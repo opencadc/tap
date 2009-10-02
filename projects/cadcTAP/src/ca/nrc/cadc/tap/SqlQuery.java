@@ -74,7 +74,6 @@ import java.util.List;
 import ca.nrc.cadc.tap.parser.adql.AdqlManager;
 import ca.nrc.cadc.tap.parser.adql.AdqlParser;
 import ca.nrc.cadc.tap.parser.adql.exception.AdqlException;
-import ca.nrc.cadc.tap.parser.adql.exception.AdqlValidateException;
 import ca.nrc.cadc.uws.Parameter;
 
 /**
