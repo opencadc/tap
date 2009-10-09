@@ -62,7 +62,7 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
+*  $Revision: 0 $
 *
 ************************************************************************
 */
@@ -73,15 +73,33 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.ResultSet;
 
-public interface TableWriter
+/**
+ *
+ * @author pdowler
+ */
+public class AsciiTableWriter implements TableWriter
 {
-    /**
-     * Get the usual filename extenasion for this format.
-     * 
-     * @return filename extension
-     */
-    public String getExtension();
+    public static String CSV = "csv";
+    public static String TSV = "tsv";
     
-	public void write( ResultSet rs, OutputStream out )
-		throws IOException;
+    private String format;
+    
+    private AsciiTableWriter() { }
+    
+    public AsciiTableWriter(String format)
+    {
+        if ( !CSV.equals(format) && !TSV.equals(format))
+            throw new IllegalArgumentException("illegal format: " + format);
+        this.format = format;
+    }
+
+    public String getExtension()
+    {
+        return format;
+    }
+    
+    public void write(ResultSet rs, OutputStream out) throws IOException
+    {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
 }
