@@ -67,16 +67,57 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap;
+package ca.nrc.cadc.tap.parser.adql;
 
-import java.util.List;
+import ca.nrc.cadc.tap.parser.adql.validator.FromColumn;
+import ca.nrc.cadc.tap.schema.Column;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.schema.Table;
+import net.sf.jsqlparser.statement.select.SelectExpressionItem;
+import net.sf.jsqlparser.statement.select.SelectItem;
 
-import ca.nrc.cadc.tap.parser.adql.TapSelectItem;
-import ca.nrc.cadc.uws.Parameter;
+/**
+ * @author zhangsa
+ *
+ */
+public class TapSelectItem {
+	private String _tableName;
+	private String _columnName;
+	private String _alias;
 
-public interface TapQuery
-{
-    public String getSQL( List<Parameter> paramList );
-    
-    public List<TapSelectItem> getSelectList(String query);
+	public TapSelectItem(String tableName, String columnName, String alias) {
+		super();
+		_tableName = tableName;
+		_columnName = columnName;
+		_alias = alias;
+	}
+	
+	public TapSelectItem(FromColumn fromColumn) {
+		_alias = fromColumn.getColumnAlias();
+		_columnName = fromColumn.getColumnName();
+		_tableName = fromColumn.getTableQualifiedName();
+	}
+	
+	public String getTableName() {
+		return _tableName;
+	}
+	public void setTableName(String tableName) {
+		_tableName = tableName;
+	}
+	public String getColumnName() {
+		return _columnName;
+	}
+	public void setColumnName(String columnName) {
+		_columnName = columnName;
+	}
+	public String getAlias() {
+		return _alias;
+	}
+	public void setAlias(String alias) {
+		_alias = alias;
+	}
+	@Override
+	public String toString() {
+		return "\r\n\tSelectItem [_alias=" + _alias + ", _columnName=" + _columnName + ", _tableName=" + _tableName + "]";
+	}
 }

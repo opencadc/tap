@@ -71,12 +71,25 @@ package ca.nrc.cadc.tap;
 
 import java.util.List;
 
-import ca.nrc.cadc.tap.parser.adql.TapSelectItem;
 import ca.nrc.cadc.uws.Parameter;
 
-public interface TapQuery
-{
-    public String getSQL( List<Parameter> paramList );
-    
-    public List<TapSelectItem> getSelectList(String query);
+/**
+ * @author zhangsa
+ *
+ */
+public class TapQueryUtil {
+	
+	public static String findQueryString( List<Parameter> paramList ) {
+		String queryString = null;
+		boolean found = false;
+		String queryParamName = "QUERY" ;
+		for (Parameter parameter : paramList) {
+			if (queryParamName.equalsIgnoreCase(parameter.getName())) {
+				found = true;
+				queryString = parameter.getValue();
+				break;
+			}
+		}
+		return queryString;
+	}
 }
