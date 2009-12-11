@@ -67,14 +67,24 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap;
+/**
+ * 
+ */
+package ca.nrc.cadc.tap.parser;
 
+import static org.junit.Assert.fail;
+
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.statement.Statement;
-import ca.nrc.cadc.tap.parser.ParserUtil;
+
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import ca.nrc.cadc.tap.parser.adql.TapSelectItem;
 import ca.nrc.cadc.tap.parser.converter.basic.AllColumnConverterNavigator;
 import ca.nrc.cadc.tap.parser.extractor.SelectListExtractor;
@@ -83,99 +93,108 @@ import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
 import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
-import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
-import ca.nrc.cadc.uws.Parameter;
+import ca.nrc.cadc.util.LoggerUtil;
 
 /**
- * TapQuery implementation for LANG=SQL.
+ * 
+ * @author Sailor Zhang
+ *
  */
-public class SqlQuery implements TapQuery
+public class AllColumnConverterTest
 {
-    private TapSchema _tapSchema;
-    private Map<String, TableDesc> _extraTables;
-    private String queryString;
+    public String _query;
 
-    public SqlQuery()
-    {
-    }
+    AllColumnConverterNavigator _sn;
 
-    public void setTapSchema(TapSchema tapSchema)
-    {
-        this._tapSchema = tapSchema;
-    }
+    static TapSchema TAP_SCHEMA;
 
-    public void setExtraTables(Map<String, TableDesc> extraTables)
-    {
-        this._extraTables = extraTables;
-    }
-
-    public void setParameterList(List<Parameter> paramList)
-    {
-        this.queryString = TapUtil.findParameterValue("QUERY", paramList);
-        if (queryString == null)
-            throw new IllegalArgumentException("parameter not found: QUERY");
-    }
-
-    /*
-     * Most basic validation is applied. e.g. no sub-select supported in the SELECT items and FROM 
-     * 
-     * (non-Javadoc)
-     * @see ca.nrc.cadc.tap.TapQuery#getSQL()
+    /**
+     * @throws java.lang.Exception
      */
-    public String getSQL()
+    @BeforeClass
+    public static void setUpBeforeClass() throws Exception
     {
-        if (queryString == null)
-            throw new IllegalStateException();
-
-        String rtn = null;
-
-        ExpressionNavigator en = new ExpressionNavigator();
-        ReferenceNavigator rn = new ReferenceNavigator();
-        FromItemNavigator fn = new FromItemNavigator();
-        SelectNavigator sn = new SelectNavigator(en, rn, fn);
-
-        SelectNavigator sn2 = new AllColumnConverterNavigator(_tapSchema);
-
-        try
-        {
-            Statement statement = ParserUtil.receiveQuery(queryString);
-            ParserUtil.parseStatement(statement, sn);
-            ParserUtil.parseStatement(statement, sn2);
-            rtn = statement.toString();
-        } catch (JSQLParserException e)
-        {
-            e.printStackTrace();
-            throw new IllegalArgumentException(e);
-        }
-        return rtn;
+        LoggerUtil.initialize(new String[] { "test", "ca.nrc.cadc" }, new String[] { "-d" });
+        TAP_SCHEMA = TestUtil.loadDefaultTapSchema();
     }
 
-    public List<TapSelectItem> getSelectList()
+    /**
+     * @throws java.lang.Exception
+     */
+    @AfterClass
+    public static void tearDownAfterClass() throws Exception
     {
-        if (queryString == null)
-            throw new IllegalStateException();
+    }
 
-        List<TapSelectItem> rtn = null;
+    /**
+     * @throws java.lang.Exception
+     */
+    @Before
+    public void setUp() throws Exception
+    {
 
-        SelectNavigator sn2 = new AllColumnConverterNavigator(_tapSchema);
+        _sn = new AllColumnConverterNavigator(TAP_SCHEMA);
+    }
 
-        SelectListExtractor en = new SelectListExtractor(_tapSchema, _extraTables);
-        ReferenceNavigator rn = null;
-        FromItemNavigator fn = null;
-        SelectNavigator sn = new SelectListExtractorNavigator(en, rn, fn);
+    /**
+     * @throws java.lang.Exception
+     */
+    @After
+    public void tearDown() throws Exception
+    {
+    }
 
+    private void doit()
+    {
+        Statement s = null;
         try
         {
-            Statement statement = ParserUtil.receiveQuery(queryString);
-            ParserUtil.parseStatement(statement, sn2);
-            ParserUtil.parseStatement(statement, sn);
-            rtn = en.getTapSelectItemList();
-        } catch (JSQLParserException e)
+            s = ParserUtil.receiveQuery(_query);
+            ParserUtil.parseStatement(s, _sn);
+        } catch (Exception ae)
         {
-            e.printStackTrace();
-            throw new IllegalArgumentException(e);
+            ae.printStackTrace(System.out);
+            fail(ae.toString());
         }
-        return rtn;
+        System.out.println(s);
+    }
+
+    @Test
+    public void testBasic()
+    {
+        _query = " select * from tap_schema.alldatatypes";
+        doit();
+    }
+
+    @Test
+    public void testAlias()
+    {
+        _query = " select aa.* from tap_schema.alldatatypes as aa";
+        doit();
+    }
+
+    @Test
+    public void testSelectItem()
+    {
+        _query = "select  tap_schema.alldatatypes.*, t_string as xx, aa.t_bytes as yy from tap_schema.alldatatypes as aa";
+        doit();
+    }
+
+    @Test
+    public void testJoin()
+    {
+        _query = "select  t_string, aa.t_bytes, * from tap_schema.alldatatypes as aa, tap_schema.tables as bb " +
+        		" where aa.t_string = bb.utype";
+        doit();
+    }
+
+    @Test
+    public void testSubselect()
+    {
+        _query = "select  t_string, aa.t_bytes, * from tap_schema.alldatatypes as aa, tap_schema.tables as bb " +
+                " where aa.t_string = bb.utype " +
+                "and aa.t_string in (select utype from bb)";
+        doit();
     }
 }
