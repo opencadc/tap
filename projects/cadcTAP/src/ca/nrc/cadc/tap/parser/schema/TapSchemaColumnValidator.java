@@ -67,7 +67,7 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.parser.validator;
+package ca.nrc.cadc.tap.parser.schema;
 
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
@@ -82,21 +82,27 @@ import ca.nrc.cadc.tap.parser.ParserUtil;
 import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.navigator.SelectNavigator.VisitingPart;
 import ca.nrc.cadc.tap.schema.TapSchema;
-import ca.nrc.cadc.tap.schema.TapSchemaUtil;
 
 /**
  * @author zhangsa
  *
  */
-public class ReferenceValidator extends ReferenceNavigator
+public class TapSchemaColumnValidator extends ReferenceNavigator
 {
-    protected static Logger log = Logger.getLogger(ReferenceValidator.class);
+    protected static Logger log = Logger.getLogger(TapSchemaColumnValidator.class);
 
-    public ReferenceValidator()
+    protected TapSchema tapSchema;
+    
+    public TapSchemaColumnValidator()
     {
         // TODO Auto-generated constructor stub
     }
 
+    public void setTapSchema(TapSchema tapSchema)
+    {
+        this.tapSchema = tapSchema;
+    }
+    
     /* (non-Javadoc)
      * @see net.sf.jsqlparser.statement.select.ColumnReferenceVisitor#visit(net.sf.jsqlparser.statement.select.ColumnIndex)
      */
@@ -118,7 +124,6 @@ public class ReferenceValidator extends ReferenceNavigator
         log.debug("visit(column)" + column);
         // The column may be referred by alias, by columnName, by table.columnName, tableAilas.columnName, or by schema.table.ColumnName
         
-        TapSchema tapSchema = ((ValidatorNavigator) _selectNavigator).getTapSchema();
         PlainSelect plainSelect = _selectNavigator.getPlainSelect();
         log.debug("plainSelect is:" + plainSelect);
         VisitingPart visiting = _selectNavigator.getVisitingPart(); 

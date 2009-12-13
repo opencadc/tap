@@ -62,153 +62,59 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
+*  $Revision: 1 $
 *
 ************************************************************************
 */
 
-/**
- * 
- */
 package ca.nrc.cadc.tap.parser;
 
-import static org.junit.Assert.fail;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import net.sf.jsqlparser.statement.Statement;
-
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import ca.nrc.cadc.tap.AdqlQuery;
-import ca.nrc.cadc.tap.TapQuery;
-import ca.nrc.cadc.tap.parser.adql.TapSelectItem;
-import ca.nrc.cadc.tap.parser.extractor.SelectListExtractor;
-import ca.nrc.cadc.tap.parser.extractor.SelectListExtractorNavigator;
-import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
-import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
-import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
-import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
-import ca.nrc.cadc.tap.schema.TapSchema;
-import ca.nrc.cadc.tap.server.AdqlQueryImpl;
-import ca.nrc.cadc.util.LoggerUtil;
-import ca.nrc.cadc.uws.Parameter;
+import net.sf.jsqlparser.expression.Expression;
+import org.apache.log4j.Logger;
 
 /**
+ * This visitor finds all occurances of timestamps. The default
+ * implementations of the protected <code>handle</code> methods throw an
+ * UnsupportedOperationException so this visitor can be used as-is to detect
+ * the presence of timestamps in the query.
+ * </p><p>
+ * Subclasses can override the <code>handle</code> methods to manipulate timestamp 
+ * values or usage in the query. Possible uses:
+ * </p>
+ * <ul>
+ * <li>validate the format of the timestamp value
+ * <li>convert the timestamp format to an internal format supported by the DB
+ * <li>convert the timestamp value to the internally used timezone or offset
+ * </ul>
  * 
- * @author Sailor Zhang
- *
+ * @author pdowler
  */
-public class AdqlQueryTest
+public class TimestampFinder
 {
-    public String _query;
-
-    SelectListExtractor _en;
-    ReferenceNavigator _rn;
-    FromItemNavigator _fn;
-    SelectNavigator _sn;
-
-    static TapSchema TAP_SCHEMA;
-
+    private static Logger log = Logger.getLogger(TimestampFinder.class);
+    
+    public TimestampFinder() { }
+    
     /**
-     * @throws java.lang.Exception
+     * This method is called when a timestamp expression is found.
+     * 
+     * @param ex the CONTAINS expression
      */
-    @BeforeClass
-    public static void setUpBeforeClass() throws Exception
+    protected void handleTimestamp(Expression ex)
     {
-        LoggerUtil.initialize(new String[] { "test", "ca.nrc.cadc" }, new String[] { "-d" });
-        TAP_SCHEMA = TestUtil.loadDefaultTapSchema();
+        throw new UnsupportedOperationException("timestamp not supported");
     }
-
+    
     /**
-     * @throws java.lang.Exception
+     * This method is called when a timestamp is one of the arguments in a predicate.
+     * A predicate is a timestamp predicate if one of the arguments is a column with
+     * datatype adql:TIMESTAMP in the TapSchema.
+     * 
+     * 
+     * @param ex the predicate with a CONTAINS argument
      */
-    @AfterClass
-    public static void tearDownAfterClass() throws Exception
+    protected void handleTimestampPredicate(Expression ex)
     {
-    }
-
-    /**
-     * @throws java.lang.Exception
-     */
-    @Before
-    public void setUp() throws Exception
-    {
-    }
-
-    /**
-     * @throws java.lang.Exception
-     */
-    @After
-    public void tearDown() throws Exception
-    {
-    }
-
-    private void doit()
-    {
-        Parameter para;
-        para = new Parameter("QUERY", _query);
-        List<Parameter> paramList = new ArrayList<Parameter>();
-        paramList.add(para);
-        
-        TapQuery tapQuery = new AdqlQuery();
-        tapQuery.setTapSchema(TAP_SCHEMA);
-        tapQuery.setExtraTables(null);
-        tapQuery.setParameterList(paramList);
-        String sql = tapQuery.getSQL();
-        List<TapSelectItem> selectList = tapQuery.getSelectList();
-        System.out.println(sql);
-        System.out.println(selectList);
-    }
-
-    //@Test
-    public void testBasic()
-    {
-        _query = " select * from tap_schema.alldatatypes";
-        doit();
-    }
-
-    //@Test
-    public void testAlias()
-    {
-        _query = " select aa.* from tap_schema.alldatatypes as aa";
-        doit();
-    }
-
-    //@Test
-    public void testSelectItem()
-    {
-        _query = "select  t_string as xx, aa.t_bytes as yy from tap_schema.alldatatypes as aa";
-        doit();
-    }
-
-    //@Test
-    public void testJoin()
-    {
-        _query = "select  t_string, aa.t_bytes, bb.* from tap_schema.alldatatypes as aa, tap_schema.tables as bb " +
-        		" where aa.t_string = bb.utype";
-        doit();
-    }
-
-    //@Test
-    public void testSubselectBad()
-    {
-        _query = "select  t_string, aa.t_bytes, bb.* from tap_schema.alldatatypes as aa, tap_schema.tables as bb " +
-                " where aa.t_string = bb.utype " +
-                "and aa.t_string in (select utype from bb)";
-        doit();
-    }
-    @Test
-    public void testSubselect()
-    {
-        _query = "select t_string, aa.t_bytes, bb.* from tap_schema.alldatatypes as aa, tap_schema.tables as bb " +
-                " where aa.t_string = bb.utype " +
-                "and aa.t_string in (select t_string from tap_schema.alldatatypes)";
-        doit();
+        throw new UnsupportedOperationException("timestamp not supported");
     }
 }

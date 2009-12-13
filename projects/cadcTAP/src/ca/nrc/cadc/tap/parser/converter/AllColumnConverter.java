@@ -67,72 +67,87 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.parser.adql;
+package ca.nrc.cadc.tap.parser.converter;
 
-import ca.nrc.cadc.tap.parser.adql.validator.FromColumn;
+import java.util.ArrayList;
+import java.util.List;
+
+
+import net.sf.jsqlparser.schema.Table;
+import net.sf.jsqlparser.statement.select.AllColumns;
+import net.sf.jsqlparser.statement.select.AllTableColumns;
+import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.SelectItem;
+
+import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.tap.parser.ParserUtil;
+import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
+import ca.nrc.cadc.tap.schema.TapSchema;
+import ca.nrc.cadc.tap.parser.schema.TapSchemaUtil;
 
 /**
- * @author zhangsa
- * 
+ * @author pdowler, Sailor Zhang
  */
-public class TapSelectItem
+public class AllColumnConverter extends SelectNavigator
 {
-    private String _tableName;
-    private String _columnName;
-    private String _alias;
+    protected static Logger log = Logger.getLogger(AllColumnConverter.class);
 
-    public TapSelectItem(String alias)
+    protected TapSchema _tapSchema;
+
+    private AllColumnConverter() {}
+    
+    public AllColumnConverter(TapSchema tapSchema)
     {
-        _alias = alias;
+        _tapSchema = tapSchema;
+    }
+    
+    /**
+     * Only convert top level plainSelect.
+     * 
+     */
+    public void visit(PlainSelect plainSelect)
+    {
+        log.debug("visit(PlainSelect) " + plainSelect);
+        enterPlainSelect(plainSelect);
+
+        List<SelectItem> oldSelectItemList = plainSelect.getSelectItems();
+        List<SelectItem> newSelectItemList = new ArrayList<SelectItem>();
+        
+        for (SelectItem si : oldSelectItemList)
+        {
+            if ( si instanceof AllColumns)
+            {
+                List<Table> fromTableList = ParserUtil.getFromTableList(plainSelect);
+                for (Table table : fromTableList)
+                {
+                    List<SelectItem> columnSelectItemList = TapSchemaUtil.getSelectItemList(_tapSchema, table);
+                    newSelectItemList.addAll(columnSelectItemList);
+                }
+            } else if ( si instanceof AllTableColumns)
+            {
+                String tableNameOrAlias = ((AllTableColumns)si).getTable().getName();
+                Table table = ParserUtil.findFromTable(plainSelect, tableNameOrAlias);
+                List<SelectItem> columnSelectItemList = TapSchemaUtil.getSelectItemList(_tapSchema, table);
+                newSelectItemList.addAll(columnSelectItemList);
+            } else 
+            {
+                newSelectItemList.add(si);
+            }
+        }
+        plainSelect.setSelectItems(newSelectItemList);
+
+        log.debug("visit(PlainSelect) done");
+        leavePlainSelect();
     }
 
-    public TapSelectItem(String tableName, String columnName, String alias)
+    public TapSchema getTapSchema()
     {
-        _tableName = tableName;
-        _columnName = columnName;
-        _alias = alias;
+        return _tapSchema;
     }
 
-    public TapSelectItem(FromColumn fromColumn)
+    public void setTapSchema(TapSchema tapSchema)
     {
-        _alias = fromColumn.getColumnAlias();
-        _columnName = fromColumn.getColumnName();
-        _tableName = fromColumn.getTableQualifiedName();
-    }
-
-    public String getTableName()
-    {
-        return _tableName;
-    }
-
-    public void setTableName(String tableName)
-    {
-        _tableName = tableName;
-    }
-
-    public String getColumnName()
-    {
-        return _columnName;
-    }
-
-    public void setColumnName(String columnName)
-    {
-        _columnName = columnName;
-    }
-
-    public String getAlias()
-    {
-        return _alias;
-    }
-
-    public void setAlias(String alias)
-    {
-        _alias = alias;
-    }
-
-    @Override
-    public String toString()
-    {
-        return "\r\n\tTapSelectItem [_alias=" + _alias + ", _columnName=" + _columnName + ", _tableName=" + _tableName + "]";
+        _tapSchema = tapSchema;
     }
 }
