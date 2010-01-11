@@ -8,7 +8,7 @@
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 *  All rights reserved                  Tous droits réservés
-*                                       
+*
 *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 *  expressed, implied, or               énoncée, implicite ou légale,
 *  statutory, of any kind with          de quelque nature que ce
@@ -31,10 +31,10 @@
 *  software without specific prior      de ce logiciel sans autorisation
 *  written permission.                  préalable et particulière
 *                                       par écrit.
-*                                       
+*
 *  This file is part of the             Ce fichier fait partie du projet
 *  OpenCADC project.                    OpenCADC.
-*                                       
+*
 *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 *  you can redistribute it and/or       vous pouvez le redistribuer ou le
 *  modify it under the terms of         modifier suivant les termes de
@@ -44,7 +44,7 @@
 *  either version 3 of the              : soit la version 3 de cette
 *  License, or (at your option)         licence, soit (à votre gré)
 *  any later version.                   toute version ultérieure.
-*                                       
+*
 *  OpenCADC is distributed in the       OpenCADC est distribué
 *  hope that it will be useful,         dans l’espoir qu’il vous
 *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -54,7 +54,7 @@
 *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 *  General Public License for           Générale Publique GNU Affero
 *  more details.                        pour plus de détails.
-*                                       
+*
 *  You should have received             Vous devriez avoir reçu une
 *  a copy of the GNU Affero             copie de la Licence Générale
 *  General Public License along         Publique GNU Affero avec
@@ -69,58 +69,26 @@
 
 package ca.nrc.cadc.tap;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.sql.ResultSet;
+import ca.nrc.cadc.uws.Parameter;
 import java.util.List;
 
-import ca.nrc.cadc.tap.parser.TapSelectItem;
-import ca.nrc.cadc.tap.schema.TapSchema;
-
-/**
- * Interface for classes that write tables in specific formats.
- * 
- * @see TableWriterFactory
- * @author pdowler
- */
-public interface TableWriter
+public class MaxRecValidator
 {
-    /**
-     * Get the usual filename extenasion for this format.
-     * 
-     * @return filename extension
-     */
-    String getExtension();
-    
-    /**
-     * The ordered selected items from the query.
-     * 
-     * @param items
-     */
-    void setSelectList(List<TapSelectItem> items);
-    
-    /**
-     * The TapSchema for the target database.
-     * 
-     * @param schema
-     */
-    void setTapSchema(TapSchema schema);
-    
 
-    /**
-     * Write ResultSet to the OutputStream.
-     *
-     * @param rs
-     * @param out
-     * @throws IOException
-     */
-    void write(ResultSet rs, OutputStream out)
-        throws IOException;
+    public int validate(List<Parameter> paramList)
+    {
+        String value = TapUtil.findParameterValue("MAXREC", paramList);
+        if (value == null || value.trim().length() == 0)
+            return -1;
 
-    /**
-     * Limit number of table rows.
-     *
-     * @param count
-     */
-    void setMaxRowCount(int count);
+        try
+        {
+            return Integer.parseInt(value);
+        }
+        catch (NumberFormatException nfe)
+        {
+            throw new IllegalArgumentException("Invalid MAXREC parameter: " + value);
+        }
+    }
+    
 }
