@@ -90,7 +90,12 @@ public class DegreeDouble extends Degree
     {
         setValue(value);
     }
-    
+
+    public DegreeDouble(double value)
+    {
+        _value = new DoubleValue(String.valueOf(value));
+    }
+
     public String toString()
     {
         return getValue().toString() + "d";
