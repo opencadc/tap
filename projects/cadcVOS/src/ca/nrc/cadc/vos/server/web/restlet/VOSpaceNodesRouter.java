@@ -68,7 +68,7 @@
 */
 
 
-package ca.nrc.cadc.vos.web.restlet;
+package ca.nrc.cadc.vos.server.web.restlet;
 
 import java.util.Map;
 
@@ -77,7 +77,7 @@ import org.restlet.routing.Router;
 import org.restlet.routing.TemplateRoute;
 import org.restlet.routing.Variable;
 
-import ca.nrc.cadc.vos.web.restlet.resource.NodeResource;
+import ca.nrc.cadc.vos.server.web.restlet.resource.NodeResource;
 
 
 /**
