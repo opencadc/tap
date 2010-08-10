@@ -72,30 +72,39 @@ package ca.nrc.cadc.vos.server.web.restlet;
 
 import java.util.Map;
 
+import org.apache.log4j.Logger;
 import org.restlet.Context;
 import org.restlet.routing.Router;
 import org.restlet.routing.TemplateRoute;
 import org.restlet.routing.Variable;
 
 import ca.nrc.cadc.vos.server.web.restlet.resource.NodeResource;
+import ca.nrc.cadc.vos.server.web.restlet.resource.ViewsResource;
 
 
 /**
  * Router to handle Node resources
  */
-public class VOSpaceNodesRouter extends Router
+public class VOSpaceRouter extends Router
 {
+    
+    private static final Logger log = Logger.getLogger(VOSpaceRouter.class);
 
     /**
      * Constructor.
      *
      * @param context The context.
      */
-    public VOSpaceNodesRouter(final Context context)
+    public VOSpaceRouter(final Context context)
     {
         super(context);
-        TemplateRoute route = attach("/{nodePath}", NodeResource.class);
-        Map<String, Variable> routeVariables = route.getTemplate().getVariables();
-        routeVariables.put("nodePath", new Variable(Variable.TYPE_ALL)); 
+        
+        TemplateRoute nodeRoute = attach("/nodes/{nodePath}", NodeResource.class);
+        Map<String, Variable> nodeRouteVariables = nodeRoute.getTemplate().getVariables();
+        nodeRouteVariables.put("nodePath", new Variable(Variable.TYPE_ALL)); 
+        log.debug("Attached NodeResource.");
+        
+        attach("/views", ViewsResource.class);
+        log.debug("Attached ViewsResource.");
     }
 }
