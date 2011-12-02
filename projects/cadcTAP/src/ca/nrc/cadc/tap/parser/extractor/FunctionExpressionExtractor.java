@@ -8,7 +8,7 @@
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
  *  All rights reserved                  Tous droits réservés
- *                                       
+ *
  *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
  *  expressed, implied, or               énoncée, implicite ou légale,
  *  statutory, of any kind with          de quelque nature que ce
@@ -31,10 +31,10 @@
  *  software without specific prior      de ce logiciel sans autorisation
  *  written permission.                  préalable et particulière
  *                                       par écrit.
- *                                       
+ *
  *  This file is part of the             Ce fichier fait partie du projet
  *  OpenCADC project.                    OpenCADC.
- *                                       
+ *
  *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
  *  you can redistribute it and/or       vous pouvez le redistribuer ou le
  *  modify it under the terms of         modifier suivant les termes de
@@ -44,7 +44,7 @@
  *  either version 3 of the              : soit la version 3 de cette
  *  License, or (at your option)         licence, soit (à votre gré)
  *  any later version.                   toute version ultérieure.
- *                                       
+ *
  *  OpenCADC is distributed in the       OpenCADC est distribué
  *  hope that it will be useful,         dans l’espoir qu’il vous
  *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -54,7 +54,7 @@
  *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
  *  General Public License for           Générale Publique GNU Affero
  *  more details.                        pour plus de détails.
- *                                       
+ *
  *  You should have received             Vous devriez avoir reçu une
  *  a copy of the GNU Affero             copie de la Licence Générale
  *  General Public License along         Publique GNU Affero avec
@@ -67,86 +67,58 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.parser.region.pgsphere.function;
+package ca.nrc.cadc.tap.parser.extractor;
 
 import java.util.List;
 
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.SelectItem;
+
+import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
+import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
+import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
+import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
+import org.apache.log4j.Logger;
 
 /**
- * super class of all PgSphere binary function implemention.
- * 
- * @author zhangsa
- * 
+ * Basic SelectVisitor implementation used for extracting parts of the
+ * query to be passed to the ExpressionValidator.
+ *
+ *
+ * @author jburke
  */
-public class PgsBinaryFunction extends PgsFunction
+public class FunctionExpressionExtractor extends SelectNavigator
 {
-    protected static final String SPACE = " ";
-    
-    protected String operator;
-    protected Expression left;
-    protected Expression right;
+    private static Logger log = Logger.getLogger(FunctionExpressionExtractor.class);
 
-    public PgsBinaryFunction()
+    /**
+     * @param en
+     * @param rn
+     * @param fn
+     */
+    public FunctionExpressionExtractor(ExpressionNavigator en, ReferenceNavigator rn, FromItemNavigator fn)
     {
-    }
-
-    public PgsBinaryFunction(Function adqlFunction)
-    {
-        super(adqlFunction);
-        convertParameters();
-    }
-
-    @SuppressWarnings("unchecked")
-    protected void convertParameters()
-    {
-        List<Expression> params = this.getParameters().getExpressions();
-        left = params.get(0);
-        right = params.get(1);
-        if (left instanceof Spoint) ((Spoint) left).setIsOperand(true);
-        if (right instanceof Spoint) ((Spoint) right).setIsOperand(true);
+        super(en, rn, fn);
     }
 
     @Override
-    public String toString()
+    public void visit(PlainSelect plainSelect)
     {
-        return left.toString() + SPACE + operator + SPACE + right.toString();
-    }
+        log.debug("visit(PlainSelect) " + plainSelect);
+        enterPlainSelect(plainSelect);
 
-    public String valueString()
-    {
-        return toString();
-    }
+        this.visitingPart = VisitingPart.SELECT_ITEM;
+        List<SelectItem> selectItems = plainSelect.getSelectItems();
+        if (selectItems != null)
+            for (SelectItem s : selectItems)
+                s.accept(this.expressionNavigator);
 
-    public String getOperator()
-    {
-        return operator;
-    }
+        this.visitingPart = VisitingPart.WHERE;
+        if (this.plainSelect.getWhere() != null)
+            this.plainSelect.getWhere().accept(this.expressionNavigator);
 
-    public void setOperator(String operator)
-    {
-        this.operator = operator;
-    }
-
-    public Expression getLeft()
-    {
-        return left;
-    }
-
-    public void setLeft(Expression left)
-    {
-        this.left = left;
-    }
-
-    public Expression getRight()
-    {
-        return right;
-    }
-
-    public void setRight(Expression right)
-    {
-        this.right = right;
+        log.debug("visit(PlainSelect) done");
+        leavePlainSelect();
     }
 
 }

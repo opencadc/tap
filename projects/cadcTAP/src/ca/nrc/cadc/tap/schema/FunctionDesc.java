@@ -8,7 +8,7 @@
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
  *  All rights reserved                  Tous droits réservés
- *                                       
+ *
  *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
  *  expressed, implied, or               énoncée, implicite ou légale,
  *  statutory, of any kind with          de quelque nature que ce
@@ -31,10 +31,10 @@
  *  software without specific prior      de ce logiciel sans autorisation
  *  written permission.                  préalable et particulière
  *                                       par écrit.
- *                                       
+ *
  *  This file is part of the             Ce fichier fait partie du projet
  *  OpenCADC project.                    OpenCADC.
- *                                       
+ *
  *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
  *  you can redistribute it and/or       vous pouvez le redistribuer ou le
  *  modify it under the terms of         modifier suivant les termes de
@@ -44,7 +44,7 @@
  *  either version 3 of the              : soit la version 3 de cette
  *  License, or (at your option)         licence, soit (à votre gré)
  *  any later version.                   toute version ultérieure.
- *                                       
+ *
  *  OpenCADC is distributed in the       OpenCADC est distribué
  *  hope that it will be useful,         dans l’espoir qu’il vous
  *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -54,7 +54,7 @@
  *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
  *  General Public License for           Générale Publique GNU Affero
  *  more details.                        pour plus de détails.
- *                                       
+ *
  *  You should have received             Vous devriez avoir reçu une
  *  a copy of the GNU Affero             copie de la Licence Générale
  *  General Public License along         Publique GNU Affero avec
@@ -67,84 +67,51 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.parser.region.pgsphere.function;
-
-
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.Function;
-import net.sf.jsqlparser.expression.StringValue;
-import ca.nrc.cadc.stc.Circle;
-import ca.nrc.cadc.stc.CoordPair;
-import ca.nrc.cadc.tap.parser.RegionFinder;
-import java.util.ArrayList;
-import java.util.List;
-import net.sf.jsqlparser.expression.DoubleValue;
-import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
-import org.apache.log4j.Logger;
+package ca.nrc.cadc.tap.schema;
 
 /**
- * the PgSphere implementation of ADQL function
- * CIRCLE.
- * 
- * @author zhangsa
- * 
+ * Describes ADQL or SQL function metadata used for VOTable metadata.
+ *
  */
-public class Scircle extends Function
+public class FunctionDesc
 {
-    private static final Logger log = Logger.getLogger(Scircle.class);
+    /**
+     * The name of the function.
+     */
+    public String name;
 
-    private Expression coordsys;
-    private Expression ra;
-    private Expression dec;
-    private Expression radius;
+    /**
+     * The measure of unit of the function (can be null).
+     */
+    public String unit;
 
-    public Scircle(Expression coordsys, Expression ra, Expression dec, Expression radius)
+    /**
+     * The returned data type of the function.
+     */
+    public String datatype;
+
+    public FunctionDesc(String name, String unit)
     {
-        super();
-        this.coordsys = coordsys;
-        this.ra = ra;
-        this.dec = dec;
-        this.radius = radius;
-        convertParameters();
+        this(name, unit, TapSchemaDAO.ARGUMENT_DATATYPE);
     }
 
-    public Scircle(Circle circle)
+    public FunctionDesc(String name, String unit, String datatype)
     {
-        super();
-        coordsys = new StringValue(RegionFinder.ICRS);
-        CoordPair coordPair = circle.getCoordPair();
-        ra = new DoubleValue(Double.toString(coordPair.getX()));
-        dec = new DoubleValue(Double.toString(coordPair.getY()));
-        radius = new DoubleValue(Double.toString(circle.getRadius()));
-        convertParameters();
+        this.name = name;
+        this.unit = unit;
+        this.datatype = datatype;
     }
 
-    protected void convertParameters()
+    @Override
+    public String toString()
     {
-        // Spoint
-        Spoint spoint = new Spoint(coordsys, ra, dec);
-
-        List<Expression> radiusExp = new ArrayList<Expression>();
-        radiusExp.add(radius);
-
-        ExpressionList radiusParams = new ExpressionList();
-        radiusParams.setExpressions(radiusExp);
-
-        // Radius
-        Function radiusFunc = new Function();
-        radiusFunc.setName("radians");
-        radiusFunc.setParameters(radiusParams);
-
-        // Scircle
-        List<Expression> expressions = new ArrayList<Expression>();
-        expressions.add(spoint);
-        expressions.add(radiusFunc);
-
-        ExpressionList parameters = new ExpressionList();
-        parameters.setExpressions(expressions);
-
-        setName("scircle");
-        setParameters(parameters);
+        StringBuilder sb = new StringBuilder();
+        sb.append("FunctionDesc[");
+        sb.append(name).append(",");
+        sb.append(unit == null ? "" : unit).append(",");
+        sb.append(datatype);
+        sb.append("]");
+        return sb.toString();
     }
-
+    
 }

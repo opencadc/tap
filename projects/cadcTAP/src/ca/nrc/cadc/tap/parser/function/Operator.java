@@ -8,7 +8,7 @@
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
  *  All rights reserved                  Tous droits réservés
- *                                       
+ *
  *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
  *  expressed, implied, or               énoncée, implicite ou légale,
  *  statutory, of any kind with          de quelque nature que ce
@@ -31,10 +31,10 @@
  *  software without specific prior      de ce logiciel sans autorisation
  *  written permission.                  préalable et particulière
  *                                       par écrit.
- *                                       
+ *
  *  This file is part of the             Ce fichier fait partie du projet
  *  OpenCADC project.                    OpenCADC.
- *                                       
+ *
  *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
  *  you can redistribute it and/or       vous pouvez le redistribuer ou le
  *  modify it under the terms of         modifier suivant les termes de
@@ -44,7 +44,7 @@
  *  either version 3 of the              : soit la version 3 de cette
  *  License, or (at your option)         licence, soit (à votre gré)
  *  any later version.                   toute version ultérieure.
- *                                       
+ *
  *  OpenCADC is distributed in the       OpenCADC est distribué
  *  hope that it will be useful,         dans l’espoir qu’il vous
  *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -54,7 +54,7 @@
  *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
  *  General Public License for           Générale Publique GNU Affero
  *  more details.                        pour plus de détails.
- *                                       
+ *
  *  You should have received             Vous devriez avoir reçu une
  *  a copy of the GNU Affero             copie de la Licence Générale
  *  General Public License along         Publique GNU Affero avec
@@ -67,84 +67,91 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.parser.region.pgsphere.function;
+package ca.nrc.cadc.tap.parser.function;
 
-
+import ca.nrc.cadc.tap.parser.QueryDeParser;
+import ca.nrc.cadc.tap.parser.region.pgsphere.function.Spoint;
+import net.sf.jsqlparser.expression.BinaryExpression;
 import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.Function;
-import net.sf.jsqlparser.expression.StringValue;
-import ca.nrc.cadc.stc.Circle;
-import ca.nrc.cadc.stc.CoordPair;
-import ca.nrc.cadc.tap.parser.RegionFinder;
-import java.util.ArrayList;
-import java.util.List;
-import net.sf.jsqlparser.expression.DoubleValue;
-import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import net.sf.jsqlparser.expression.ExpressionVisitor;
 import org.apache.log4j.Logger;
 
 /**
- * the PgSphere implementation of ADQL function
- * CIRCLE.
+ * Expression for arithmetic, conditional, and relational operators.
+ * Operator will create a binary expression with the two expressions
+ * separated by the operator, or the negation operator if the negate
+ * method is invoked.
  * 
- * @author zhangsa
- * 
+ * @author jburke
  */
-public class Scircle extends Function
+public class Operator extends BinaryExpression
 {
-    private static final Logger log = Logger.getLogger(Scircle.class);
+    private static Logger log = Logger.getLogger(Operator.class);
 
-    private Expression coordsys;
-    private Expression ra;
-    private Expression dec;
-    private Expression radius;
+    private boolean negate;
+    protected String operator;
+    protected String negateOperator;
 
-    public Scircle(Expression coordsys, Expression ra, Expression dec, Expression radius)
+    /**
+     * Constructor.
+     * 
+     * @param operator The operator between expressions.
+     * @param negateOperator The negate operator between expressions.
+     * @param left The left expression.
+     * @param right The right expression.
+     */
+    public Operator(String operator, String negateOperator, Expression left, Expression right)
     {
         super();
-        this.coordsys = coordsys;
-        this.ra = ra;
-        this.dec = dec;
-        this.radius = radius;
-        convertParameters();
+        this.operator = operator;
+        this.negateOperator = negateOperator;
+        if (left instanceof Spoint)
+            ((Spoint) left).setOperand(true);
+        setLeftExpression(left);
+        if (right instanceof Spoint)
+            ((Spoint) right).setOperand(true);
+        setRightExpression(right);
+        negate = false;
     }
 
-    public Scircle(Circle circle)
+    /**
+     * @return If the expression has been negated return the negate operator,
+     *         else return the operator.
+     */
+    public String getOperator()
     {
-        super();
-        coordsys = new StringValue(RegionFinder.ICRS);
-        CoordPair coordPair = circle.getCoordPair();
-        ra = new DoubleValue(Double.toString(coordPair.getX()));
-        dec = new DoubleValue(Double.toString(coordPair.getY()));
-        radius = new DoubleValue(Double.toString(circle.getRadius()));
-        convertParameters();
+        if (negate)
+            return negateOperator;
+        return operator;
     }
 
-    protected void convertParameters()
+    /**
+     * Invoke this method to use the negation operator in the expression.
+     */
+    public void negate()
     {
-        // Spoint
-        Spoint spoint = new Spoint(coordsys, ra, dec);
-
-        List<Expression> radiusExp = new ArrayList<Expression>();
-        radiusExp.add(radius);
-
-        ExpressionList radiusParams = new ExpressionList();
-        radiusParams.setExpressions(radiusExp);
-
-        // Radius
-        Function radiusFunc = new Function();
-        radiusFunc.setName("radians");
-        radiusFunc.setParameters(radiusParams);
-
-        // Scircle
-        List<Expression> expressions = new ArrayList<Expression>();
-        expressions.add(spoint);
-        expressions.add(radiusFunc);
-
-        ExpressionList parameters = new ExpressionList();
-        parameters.setExpressions(expressions);
-
-        setName("scircle");
-        setParameters(parameters);
+        negate = true;
     }
 
+    /**
+     * @return The operator.
+     */
+    @Override
+    public String getStringExpression()
+    {
+        return getOperator();
+    }
+
+    /**
+     * Operator can only accept a QueryParser or one of its sub-classes.
+     *
+     * @param expressionVisitor
+     */
+    public void accept(ExpressionVisitor expressionVisitor)
+    {
+        log.debug("accept(" + expressionVisitor.getClass().getSimpleName() + ")");
+        if (expressionVisitor instanceof QueryDeParser)
+            ((QueryDeParser) expressionVisitor).visit(this);
+    }
+    
 }

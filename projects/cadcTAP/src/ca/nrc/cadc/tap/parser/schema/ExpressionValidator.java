@@ -8,7 +8,7 @@
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 *  All rights reserved                  Tous droits réservés
-*                                       
+*
 *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 *  expressed, implied, or               énoncée, implicite ou légale,
 *  statutory, of any kind with          de quelque nature que ce
@@ -31,10 +31,10 @@
 *  software without specific prior      de ce logiciel sans autorisation
 *  written permission.                  préalable et particulière
 *                                       par écrit.
-*                                       
+*
 *  This file is part of the             Ce fichier fait partie du projet
 *  OpenCADC project.                    OpenCADC.
-*                                       
+*
 *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 *  you can redistribute it and/or       vous pouvez le redistribuer ou le
 *  modify it under the terms of         modifier suivant les termes de
@@ -44,7 +44,7 @@
 *  either version 3 of the              : soit la version 3 de cette
 *  License, or (at your option)         licence, soit (à votre gré)
 *  any later version.                   toute version ultérieure.
-*                                       
+*
 *  OpenCADC is distributed in the       OpenCADC est distribué
 *  hope that it will be useful,         dans l’espoir qu’il vous
 *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -54,7 +54,7 @@
 *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 *  General Public License for           Générale Publique GNU Affero
 *  more details.                        pour plus de détails.
-*                                       
+*
 *  You should have received             Vous devriez avoir reçu une
 *  a copy of the GNU Affero             copie de la Licence Générale
 *  General Public License along         Publique GNU Affero avec
@@ -66,91 +66,51 @@
 *
 ************************************************************************
 */
+package ca.nrc.cadc.tap.parser.schema;
 
-package ca.nrc.cadc.tap.parser.region.pgsphere.function;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import net.sf.jsqlparser.expression.DoubleValue;
-import net.sf.jsqlparser.expression.Expression;
+import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
+import ca.nrc.cadc.tap.schema.FunctionDesc;
+import ca.nrc.cadc.tap.schema.TapSchema;
 import net.sf.jsqlparser.expression.Function;
-import net.sf.jsqlparser.expression.LongValue;
-import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
-import ca.nrc.cadc.tap.parser.region.pgsphere.expression.DegreeDouble;
-import ca.nrc.cadc.tap.parser.region.pgsphere.expression.DegreeLong;
+import org.apache.log4j.Logger;
 
 /**
- * super class of all PgSphere function implemention.
- * 
- * @author zhangsa
+ * Validates that the Function being visited exists in the TapSchema.
  *
+ * @author jburke
  */
-public abstract class PgsFunction extends Function
+public class ExpressionValidator extends ExpressionNavigator
 {
-    protected Function adqlFunction;
+    protected static Logger log = Logger.getLogger(ExpressionValidator.class);
 
-    public PgsFunction()
+    protected TapSchema tapSchema;
+
+    public ExpressionValidator(TapSchema tapSchema)
     {
+        this.tapSchema = tapSchema;
     }
 
-    public PgsFunction(Function adqlFunction)
-    {
-        this.adqlFunction = adqlFunction;
-        // at the point this object is created,
-        // parameters have already been converted to implemented version.
-        ExpressionList adqlExprList = adqlFunction.getParameters();
-        //ExpressionList pgsExprList = toDegreeExpressionList(adqlExprList);
-        //setParameters(pgsExprList); // method in Function
-        setParameters(adqlExprList);
-    }
-
-    /*
-    public ExpressionList toDegreeExpressionList(ExpressionList adqlExprList)
-    {
-        Expression e1 = null;
-        Expression e2 = null;
-        List<Expression> adqlParams = adqlExprList.getExpressions();
-        int size = adqlParams.size();
-        List<Expression> pgsParams = new ArrayList<Expression>(size);
-        for (int i = 0; i < size; i++)
-        {
-            e1 = adqlParams.get(i);
-            e2 = toDegreeExpression(e1);
-            pgsParams.add(e2);
-        }
-
-        ExpressionList pgsExprList = new ExpressionList(pgsParams);
-        // TODO...
-        return pgsExprList;
-    }
-
-    public Expression toDegreeExpression(Expression expr)
-    {
-        Expression rtn = null;
-        if (expr instanceof LongValue)
-            rtn = new DegreeLong((LongValue) expr);
-        else if (expr instanceof DoubleValue)
-            rtn = new DegreeDouble((DoubleValue) expr);
-        else
-            rtn = expr;
-        return rtn;
-    }
-    */
-
-    protected abstract void convertParameters();
-
+    /* (non-Javadoc)
+     * @see net.sf.jsqlparser.expression.ExpressionVisitor#visit(net.sf.jsqlparser.expression.Function)
+     */
     @Override
-    public abstract String toString();
-
-    public Function getAdqlFunction()
+    public void visit(Function function)
     {
-        return adqlFunction;
-    }
+        log.debug("visit(function)" + function);
+        boolean found = false;
+        for (FunctionDesc functionDesc : tapSchema.functionDescs)
+        {
+            if (functionDesc.name.equalsIgnoreCase(function.getName()))
+            {
+                found = true;
+                break;
+            }
+        }
+        if (!found)
+            throw new IllegalArgumentException("Function [" + function.getName() + "] is not found in TapSchema");
 
-    public void setAdqlFunction(Function adqlFunction)
-    {
-        this.adqlFunction = adqlFunction;
+        if (function.getParameters() != null)
+            function.getParameters().accept(this);
     }
-
+    
 }

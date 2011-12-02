@@ -8,7 +8,7 @@
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 *  All rights reserved                  Tous droits réservés
-*                                       
+*
 *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 *  expressed, implied, or               énoncée, implicite ou légale,
 *  statutory, of any kind with          de quelque nature que ce
@@ -31,10 +31,10 @@
 *  software without specific prior      de ce logiciel sans autorisation
 *  written permission.                  préalable et particulière
 *                                       par écrit.
-*                                       
+*
 *  This file is part of the             Ce fichier fait partie du projet
 *  OpenCADC project.                    OpenCADC.
-*                                       
+*
 *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 *  you can redistribute it and/or       vous pouvez le redistribuer ou le
 *  modify it under the terms of         modifier suivant les termes de
@@ -44,7 +44,7 @@
 *  either version 3 of the              : soit la version 3 de cette
 *  License, or (at your option)         licence, soit (à votre gré)
 *  any later version.                   toute version ultérieure.
-*                                       
+*
 *  OpenCADC is distributed in the       OpenCADC est distribué
 *  hope that it will be useful,         dans l’espoir qu’il vous
 *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -54,7 +54,7 @@
 *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 *  General Public License for           Générale Publique GNU Affero
 *  more details.                        pour plus de détails.
-*                                       
+*
 *  You should have received             Vous devriez avoir reçu une
 *  a copy of the GNU Affero             copie de la Licence Générale
 *  General Public License along         Publique GNU Affero avec
@@ -67,160 +67,111 @@
 ************************************************************************
 */
 
-/**
- * 
- */
-package ca.nrc.cadc.tap.parser;
+package ca.nrc.cadc.tap.parser.converter.postgresql;
 
-import static org.junit.Assert.assertEquals;
-
+import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
+import ca.nrc.cadc.util.CaseInsensitiveStringComparator;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import ca.nrc.cadc.tap.AdqlQuery;
-import ca.nrc.cadc.tap.TapQuery;
-import ca.nrc.cadc.tap.parser.extractor.SelectListExtractor;
-import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
-import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
-import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
-import ca.nrc.cadc.tap.schema.ParamDesc;
-import ca.nrc.cadc.tap.schema.TapSchema;
-import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.uws.Parameter;
+import java.util.Map;
+import java.util.TreeMap;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import org.apache.log4j.Logger;
 
-
 /**
- * A general test of AdqlQuery with no optional stuff enabled.
- * 
- * @author Sailor Zhang
+ * Simple class to map function name(s) used in the query to function name(s) used
+ * in the database.
  *
+ * @author jburke
  */
-public class AdqlQueryTest
+public class PgFunctionNameConverter extends ExpressionNavigator
 {
-    private static Logger log = Logger.getLogger(AdqlQueryTest.class);
+    protected static Logger log = Logger.getLogger(PgFunctionNameConverter.class);
 
-    public String _query;
-    public String _expected = "";
+    protected Map<String, String> map;
 
-    SelectListExtractor _en;
-    ReferenceNavigator _rn;
-    FromItemNavigator _fn;
-    SelectNavigator _sn;
-
-    static TapSchema TAP_SCHEMA;
-
-    /**
-     * @throws java.lang.Exception
-     */
-    @BeforeClass
-    public static void setUpBeforeClass() throws Exception
+    public PgFunctionNameConverter()
     {
-        Log4jInit.setLevel("ca.nrc.cadc", org.apache.log4j.Level.INFO);
-        TAP_SCHEMA = TestUtil.loadDefaultTapSchema();
+        super();
+        map = new TreeMap<String, String>(new CaseInsensitiveStringComparator());
+        map.put("distance", "DIST");
+        map.put("log", "LN");
+        map.put("log10", "LOG");
+//        map.put("rand", "RANDOM");
+//        map.put("pi", "PI");
+//        map.put("truncate", "TRUNC");
     }
 
     /**
-     * @throws java.lang.Exception
+     * Add new entries to the function name map.
+     *
+     * @param originalName a function name that should be replaced
+     * @param newName the value that originalName should be replaced with
      */
-    @AfterClass
-    public static void tearDownAfterClass() throws Exception
+    public void put(String originalName, String newName)
     {
+        map.put(originalName, newName);
     }
 
-    /**
-     * @throws java.lang.Exception
+    /* (non-Javadoc)
+     * @see net.sf.jsqlparser.expression.ExpressionVisitor#visit(net.sf.jsqlparser.expression.Function)
      */
-    @Before
-    public void setUp() throws Exception
+    @Override
+    public void visit(Function function)
     {
-    }
+        log.debug("visit(function)" + function);
 
-    /**
-     * @throws java.lang.Exception
-     */
-    @After
-    public void tearDown() throws Exception
-    {
-    }
+        String functionName = function.getName();
+        String newName = map.get(functionName);
+        if (newName != null)
+            function.setName(newName);
 
-    private void doit()
-    {
-        Parameter para;
-        para = new Parameter("QUERY", _query);
-        List<Parameter> paramList = new ArrayList<Parameter>();
-        paramList.add(para);
-        
-        TapQuery tapQuery = new AdqlQuery();
-        tapQuery.setTapSchema(TAP_SCHEMA);
-        tapQuery.setParameterList(paramList);
-        String sql = tapQuery.getSQL();
-        List<ParamDesc> selectList = tapQuery.getSelectList();
-        log.debug("QUERY: \r\n" + _query);
-        log.debug("SQL: \r\n" + sql);
-        assertEquals(_expected.toLowerCase().trim(), sql.toLowerCase().trim());
-    }
+        // DIST returns radians, we want degrees.
+        if (function.getName().equals("DIST"))
+        {
+            Function dist = new Function();
+            dist.setName("dist");
+            dist.setParameters(function.getParameters());
 
-    @Test
-    public void testBasic()
-    {
-        _query = "select t_integer from tap_schema.alldatatypes";
-        _expected = "select t_integer from tap_schema.alldatatypes";
-        doit();
-    }
+            List<Expression> list = new ArrayList<Expression>();
+            list.add(dist);
+            ExpressionList parameters = new ExpressionList();
+            parameters.setExpressions(list);
 
-    @Test
-    public void testTableAlias()
-    {
-        _query = "select aa.t_integer from tap_schema.alldatatypes as aa";
-        _expected = "select aa.t_integer from tap_schema.alldatatypes as aa";
-        doit();
-    }
+            function.setName("degrees");
+            function.setParameters(parameters);
+        }
+        else if (function.getName().equalsIgnoreCase("COORD1"))
+        {
+            Function longitude = new Function();
+            longitude.setName("long");
+            longitude.setParameters(function.getParameters());
 
-    @Test
-    public void testColumnAlias()
-    {
-        _expected = "SELECT t_complete AS xx, t_bytes AS yy FROM tap_schema.alldatatypes";
-        _query = "select  t_complete as xx, t_bytes as yy from tap_schema.alldatatypes";
-        doit();
-    }
+            List<Expression> list = new ArrayList<Expression>();
+            list.add(longitude);
+            ExpressionList parameters = new ExpressionList();
+            parameters.setExpressions(list);
 
-    //@Test
-    public void testJoin()
-    {
-        // TODO
-        doit();
-    }
+            function.setName("degrees");
+            function.setParameters(parameters);
+        }
+        else if (function.getName().equalsIgnoreCase("COORD2"))
+        {
+            Function longitude = new Function();
+            longitude.setName("lat");
+            longitude.setParameters(function.getParameters());
 
-    //@Test
-    public void testCorrelatedSubselect()
-    {
-        _query = "select  t_complete, aa.t_bytes, bb.* from tap_schema.alldatatypes as aa, tap_schema.tables as bb " +
-                " where aa.t_complete = bb.utype " +
-                "and aa.t_complete in (select utype from bb)";
-        doit();
-    }
-    //@Test
-    public void testUncorrelatedSubselect()
-    {
-        _query = "select t_complete, aa.t_bytes, bb.* from tap_schema.alldatatypes as aa, tap_schema.tables as bb " +
-                " where aa.t_complete = bb.utype " +
-                "and aa.t_complete in (select t_complete from tap_schema.alldatatypes)";
-        doit();
-    }
+            List<Expression> list = new ArrayList<Expression>();
+            list.add(longitude);
+            ExpressionList parameters = new ExpressionList();
+            parameters.setExpressions(list);
 
-    @Test
-    public void testTopSelect()
-    {
-        _query = "select top 25 t_integer from tap_schema.alldatatypes";
-        _expected = "select top 25 t_integer from tap_schema.alldatatypes";
-        doit();
-    }
+            function.setName("degrees");
+            function.setParameters(parameters);
+        }
 
+    }
+    
 }
