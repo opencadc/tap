@@ -114,23 +114,23 @@ public class DoubleArrayFormatter implements Formatter
 
     private String toString(double[] arr)
     {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (double d : arr)
         {
             sb.append(Double.toString(d));
-            sb.append(",");
+            sb.append(" ");
         }
-        return sb.substring(0, sb.length() - 1); // trim trailing comma
+        return sb.substring(0, sb.length() - 1); // trim trailing space
     }
 
     private String toString(Double[] arr)
     {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (Double d : arr)
         {
             sb.append(d.toString());
-            sb.append(",");
+            sb.append(" ");
         }
-        return sb.substring(0, sb.length() - 1); // trim trailing comma
+        return sb.substring(0, sb.length() - 1); // trim trailing space
     }
 }

@@ -113,23 +113,23 @@ public class LongArrayFormatter  implements Formatter
 
     private String toString(long[] iarray)
     {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (long i : iarray)
         {
             sb.append(Long.toString(i));
-            sb.append(",");
+            sb.append(" ");
         }
-        return sb.substring(0, sb.length() - 1); // trim trailing comma
+        return sb.substring(0, sb.length() - 1); // trim trailing space
     }
 
     private String toString(Long[] iarray)
     {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (Long i : iarray)
         {
             sb.append(i.toString());
-            sb.append(",");
+            sb.append(" ");
         }
-        return sb.substring(0, sb.length() - 1); // trim trailing comma
+        return sb.substring(0, sb.length() - 1); // trim trailing space
     }
 }

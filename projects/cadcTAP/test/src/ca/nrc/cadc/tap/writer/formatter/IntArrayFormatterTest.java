@@ -123,5 +123,29 @@ public class IntArrayFormatterTest
         assertEquals(expResult, result);
         LOG.info("testFormat passed");
     }
+    
+    @Test
+    public void testFormatPrimitiveInt()
+    {
+        LOG.debug("testFormatPrimitiveInt");
+        Object object = new int[] { 1, 2 };
+        IntArrayFormatter instance = new IntArrayFormatter();
+        String expResult = "1 2";
+        String result = instance.format(object);
+        assertEquals(expResult, result);
+        LOG.info("testFormatPrimitiveInt passed");
+    }
+    
+    @Test
+    public void testFormatWrappedInteger()
+    {
+        LOG.debug("testFormatWrappedInteger");
+        Object object = new Integer[] { 1, 2 };
+        IntArrayFormatter instance = new IntArrayFormatter();
+        String expResult = "1 2";
+        String result = instance.format(object);
+        assertEquals(expResult, result);
+        LOG.info("testFormatWrappedInteger passed");
+    }
 
 }
