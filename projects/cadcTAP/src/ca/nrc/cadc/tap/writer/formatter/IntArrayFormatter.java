@@ -113,23 +113,23 @@ public class IntArrayFormatter implements Formatter
 
     private String toString(int[] iarray)
     {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (int i : iarray)
         {
             sb.append(Integer.toString(i));
-            sb.append(",");
+            sb.append(" ");
         }
-        return sb.substring(0, sb.length() - 1); // trim trailing comma
+        return sb.substring(0, sb.length() - 1); // trim trailing space
     }
 
     private String toString(Integer[] iarray)
     {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (Integer i : iarray)
         {
             sb.append(i.toString());
-            sb.append(",");
+            sb.append(" ");
         }
-        return sb.substring(0, sb.length() - 1); // trim trailing comma
+        return sb.substring(0, sb.length() - 1); // trim trailing space
     }
 }
