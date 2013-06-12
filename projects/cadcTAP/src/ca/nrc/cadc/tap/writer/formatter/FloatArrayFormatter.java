@@ -113,23 +113,23 @@ public class FloatArrayFormatter  implements Formatter
 
     private String toString(float[] iarray)
     {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (float i : iarray)
         {
             sb.append(Float.toString(i));
-            sb.append(",");
+            sb.append(" ");
         }
-        return sb.substring(0, sb.length() - 1); // trim trailing comma
+        return sb.substring(0, sb.length() - 1); // trim trailing space
     }
 
     private String toString(Float[] iarray)
     {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (Float i : iarray)
         {
             sb.append(i.toString());
-            sb.append(",");
+            sb.append(" ");
         }
-        return sb.substring(0, sb.length() - 1); // trim trailing comma
+        return sb.substring(0, sb.length() - 1); // trim trailing space
     }
 }

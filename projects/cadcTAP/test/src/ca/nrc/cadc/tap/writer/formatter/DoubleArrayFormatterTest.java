@@ -113,7 +113,7 @@ public class DoubleArrayFormatterTest
      * Test of format method, of class DoubleArrayFormatter.
      */
     @Test
-    public void testFormat()
+    public void testFormatNull()
     {
         LOG.debug("testFormat");
         Object object = null;
@@ -122,6 +122,30 @@ public class DoubleArrayFormatterTest
         String result = instance.format(object);
         assertEquals(expResult, result);
         LOG.info("testFormat passed");
+    }
+    
+    @Test
+    public void testFormatPrimitiveDouble()
+    {
+        LOG.debug("testFormatPrimitiveDouble");
+        Object object = new double[] { 1.0, 2.0 };
+        DoubleArrayFormatter instance = new DoubleArrayFormatter();
+        String expResult = "1.0 2.0";
+        String result = instance.format(object);
+        assertEquals(expResult, result);
+        LOG.info("testFormatPrimitiveDouble passed");
+    }
+    
+    @Test
+    public void testFormatWrappedDouble()
+    {
+        LOG.debug("testFormatPrimitiveDouble");
+        Object object = new Double[] { 1.0, 2.0 };
+        DoubleArrayFormatter instance = new DoubleArrayFormatter();
+        String expResult = "1.0 2.0";
+        String result = instance.format(object);
+        assertEquals(expResult, result);
+        LOG.info("testFormatPrimitiveDouble passed");
     }
 
 }
