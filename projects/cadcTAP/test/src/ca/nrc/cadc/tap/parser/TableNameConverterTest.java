@@ -14,13 +14,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import net.sf.jsqlparser.schema.Table;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.Assert;
 
 /**
  *
@@ -32,7 +33,7 @@ public class TableNameConverterTest
 
     static
     {
-        Log4jInit.setLevel("ca.nrc.cadc.tap.parser", org.apache.log4j.Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.tap.parser", Level.INFO);
     }
 
     public TableNameConverterTest() { }

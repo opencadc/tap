@@ -162,12 +162,6 @@ public class AdqlQuery implements TapQuery
         sn = new SelectListExtractor(en, rn, fn);
         navigatorList.add(sn);
 
-        en = new PgFunctionNameConverter();
-        rn = new ReferenceNavigator();
-        fn = null;
-        sn = new FunctionExpressionExtractor(en, rn, fn);
-        navigatorList.add(sn);
-
         // Used for file uploads to map the upload table name to the query table name.
         if (extraTables != null && !extraTables.isEmpty())
         {

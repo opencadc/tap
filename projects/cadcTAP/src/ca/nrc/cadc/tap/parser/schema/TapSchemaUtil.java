@@ -300,21 +300,22 @@ public class TapSchemaUtil
                 String tableNameOrAlias = table.getName();
                 Table fromTable = ParserUtil.findFromTable(plainSelect, tableNameOrAlias);
                 if (fromTable == null)
-                    throw new IllegalArgumentException("Table: [" + tableNameOrAlias + "] does not exist.");
+                    throw new IllegalArgumentException("Table: [" + tableNameOrAlias + "] not found in TapSchema");
                 else
                 {
                     TableDesc fromTableDesc = TapSchemaUtil.findTableDesc(tapSchema, fromTable);
                     if (!TapSchemaUtil.isValidColumnName(fromTableDesc, columnName))
-                        throw new IllegalArgumentException("Column: [" + columnName + "] does not exist.");
+                        throw new IllegalArgumentException("Column: [" + columnName + "] not found in TapSchema");
                 }
             }
             else
             {
                 // schema.table.ColumnName
                 TableDesc fromTableDesc = TapSchemaUtil.findTableDesc(tapSchema, table);
-                
+                if (fromTableDesc == null)
+                    throw new IllegalArgumentException("Table [ " + table + " ] not found in TapSchema");
                 if (!TapSchemaUtil.isValidColumnName(fromTableDesc, columnName))
-                    throw new IllegalArgumentException("Column: [" + columnName + "] does not exist.");
+                    throw new IllegalArgumentException("Column: [" + columnName + "] not found in TapSchema");
             }
         }
     }

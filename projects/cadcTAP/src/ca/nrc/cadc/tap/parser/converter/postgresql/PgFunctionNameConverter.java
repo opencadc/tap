@@ -143,35 +143,6 @@ public class PgFunctionNameConverter extends ExpressionNavigator
             function.setName("degrees");
             function.setParameters(parameters);
         }
-        else if (function.getName().equalsIgnoreCase("COORD1"))
-        {
-            Function longitude = new Function();
-            longitude.setName("long");
-            longitude.setParameters(function.getParameters());
-
-            List<Expression> list = new ArrayList<Expression>();
-            list.add(longitude);
-            ExpressionList parameters = new ExpressionList();
-            parameters.setExpressions(list);
-
-            function.setName("degrees");
-            function.setParameters(parameters);
-        }
-        else if (function.getName().equalsIgnoreCase("COORD2"))
-        {
-            Function longitude = new Function();
-            longitude.setName("lat");
-            longitude.setParameters(function.getParameters());
-
-            List<Expression> list = new ArrayList<Expression>();
-            list.add(longitude);
-            ExpressionList parameters = new ExpressionList();
-            parameters.setExpressions(list);
-
-            function.setName("degrees");
-            function.setParameters(parameters);
-        }
-
     }
     
 }

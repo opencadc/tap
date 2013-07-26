@@ -77,10 +77,10 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 /**
  *
@@ -101,7 +101,7 @@ public class LocalTimestampFormatterTest
     @BeforeClass
     public static void setUpClass() throws Exception
     {
-        formatter = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.LOCAL);
+        formatter = DateUtil.getDateFormat(DateUtil.ISO8601_DATE_FORMAT_MSLOCAL, DateUtil.LOCAL);
     }
 
     @AfterClass
@@ -128,15 +128,15 @@ public class LocalTimestampFormatterTest
 
         object = date;
         result = instance.format(object);
-        assertEquals(DATE_TIME, result);
+        Assert.assertEquals(DATE_TIME, result);
 
         object = new java.sql.Date(date.getTime());
         result = instance.format(object);
-        assertEquals(DATE_TIME, result);
+        Assert.assertEquals(DATE_TIME, result);
 
         object = new java.sql.Timestamp(date.getTime());
         result = instance.format(object);
-        assertEquals(DATE_TIME, result);
+        Assert.assertEquals(DATE_TIME, result);
 
         LOG.info("testFormat passed");
     }
@@ -151,7 +151,7 @@ public class LocalTimestampFormatterTest
         Object object = null;
         String expResult = "";
         String result = instance.format(object);
-        assertEquals(expResult, result);
+        Assert.assertEquals(expResult, result);
 
         LOG.info("testFormat passed");
     }
