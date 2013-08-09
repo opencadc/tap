@@ -260,7 +260,7 @@ public class QueryRunner implements JobRunner
 
             log.debug("find DataSource via JNDI lookup...");
             Context initContext = new InitialContext();
-            Context envContext = (Context) initContext.lookup("java:/comp/env");
+            Context envContext = (Context) initContext.lookup("java:comp/env");
             DataSource queryDataSource = (DataSource) envContext.lookup(queryDataSourceName);
             // this one is optional, so take care
             DataSource uploadDataSource = null;
