@@ -180,7 +180,7 @@ public class TableSetTest
 
             checkRootElement(doc);
 
-            for (SchemaDesc sd : ts.schemaDescs)
+            for (SchemaDesc sd : ts.getSchemaDescs())
                 checkSchema(doc, sd);
 
         } 
@@ -198,7 +198,7 @@ public class TableSetTest
         try
         {
             TapSchema ts = new TapSchema();
-            ts.schemaDescs.add(new SchemaDesc(null, "default schema", null));
+            ts.getSchemaDescs().add(new SchemaDesc(null, "default schema", null));
 
             TableSet tableSet = new TableSet(ts);
             Document doc = tableSet.getDocument();
@@ -215,7 +215,7 @@ public class TableSetTest
 
             checkRootElement(doc);
 
-            for (SchemaDesc sd : ts.schemaDescs)
+            for (SchemaDesc sd : ts.getSchemaDescs())
                 checkSchema(doc, sd);
 
         }

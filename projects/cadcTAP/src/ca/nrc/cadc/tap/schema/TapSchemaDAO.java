@@ -229,6 +229,9 @@ public class TapSchemaDAO
 
         // Add the List of FunctionDescs.
         tapSchema.functionDescs = getFunctionDescs();
+        
+        // HACK: experimental 
+        addGroupDescs(tapSchema);
 
         for (SchemaDesc s : tapSchema.schemaDescs) 
         {
@@ -240,10 +243,26 @@ public class TapSchemaDAO
 
         return tapSchema;
     }
+    
+    /**
+     * EXPERIMENTAL GroupDesc to a map. This method is responsible for marking identifier columns with an
+     * id and then adding a group to a map with that same id as the key. If the column is selected
+     * in a query, the FIELD will be tagged with the id (VOTable output) and the group will be 
+     * included in the header.
+     * </p><p>
+     * The default implementation here does nothing. Users of the library should override
+     * this method in their sub-class (delegate) to set id(s) and add group(s).
+     * 
+     * @param tapSchema 
+     */
+    protected void addGroupDescs(TapSchema tapSchema)
+    {
+        // no-op
+    }
 
     /**
      * Append a where clause to the query that selects from the specified table.
-     * The default impl does nothing (returns in the provieed SQL as-is).
+     * The default impl does nothing (returns in the provided SQL as-is).
      * </p>
      * <p>
      * If you want to implement some additional conditions, such as having private columns
