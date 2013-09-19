@@ -121,6 +121,13 @@ public class ColumnDesc
     public boolean indexed;
 
     public boolean std;
+    
+    /**
+     * An <em>id<//em> attribute value to tag the column with (for VOTable FIELD element). This
+     * can normally be left null as it is onyl needed for the prototype  getResultMeta/List<Group>
+     * hack.
+     */
+    public String id;
 
     /**
      * Default no-arg constructor.
@@ -289,6 +296,7 @@ public class ColumnDesc
         sb.append("Column[");
         sb.append(tableName).append(",");
         sb.append(columnName).append(",");
+        sb.append(id).append(",");
         sb.append(description == null ? "" : description).append(",");
         sb.append(utype == null ? "" : utype).append(",");
         sb.append(ucd == null ? "" : ucd).append(",");

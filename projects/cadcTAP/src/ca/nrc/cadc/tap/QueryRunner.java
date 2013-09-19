@@ -308,7 +308,7 @@ public class QueryRunner implements JobRunner
                 SchemaDesc tapUploadSchema = new SchemaDesc();
                 tapUploadSchema.setSchemaName("TAP_UPLOAD");
                 tapUploadSchema.setTableDescs(new ArrayList(tableDescs.values()));
-                tapSchema.schemaDescs.add(tapUploadSchema);
+                tapSchema.getSchemaDescs().add(tapUploadSchema);
             }
 
             log.debug("invoking MaxRecValidator...");
@@ -354,9 +354,11 @@ public class QueryRunner implements JobRunner
             tableWriter.setJob(job);
             tableWriter.setSelectList(selectList);
             tableWriter.setQueryInfo(queryInfo);
+            // HACK: using this deprecated method to experiment with adding extra metadata to output table
+            tableWriter.setTapSchema(tapSchema);
             if (maxRows != null)
                 tableWriter.setMaxRowCount(maxRows);
-
+            
             tList.add(System.currentTimeMillis());
             sList.add("parse/convert query: ");
 

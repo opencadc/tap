@@ -459,7 +459,7 @@ public class TapSchemaUtil
         if (function == null || function.getName() == null || function.getName().isEmpty())
             return null;
 
-        for (FunctionDesc functionDesc : tapSchema.functionDescs)
+        for (FunctionDesc functionDesc : tapSchema.getFunctionDescs())
             if (functionDesc.name.equalsIgnoreCase(function.getName()))
                 return new FunctionDesc(functionDesc.name, functionDesc.unit, functionDesc.datatype);
         return null;
