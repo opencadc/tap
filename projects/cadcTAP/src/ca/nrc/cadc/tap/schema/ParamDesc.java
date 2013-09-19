@@ -76,6 +76,8 @@ public class ParamDesc
      * The name (not null).
      */
     public String name;
+    
+    public String value;
 
     /**
      * The alias of the param (can be null).
@@ -118,6 +120,19 @@ public class ParamDesc
      * hack.
      */
     public String id;
+    
+    public ParamDesc(String name, String value, String description, 
+            String utype, String ucd, String unit, String datatype, Integer size)
+    {
+        this.name = name;
+        this.value = value;
+        this.description = description;
+        this.utype = utype;
+        this.ucd = ucd;
+        this.unit = unit;
+        this.datatype = datatype;
+        this.size = size;
+    }
     
     public ParamDesc(ColumnDesc columnDesc, String alias)
     {
