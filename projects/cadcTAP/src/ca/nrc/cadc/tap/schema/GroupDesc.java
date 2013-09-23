@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2011.                            (c) 2011.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,55 +62,39 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
+*  $Revision: 5 $
 *
 ************************************************************************
 */
-package ca.nrc.cadc.tap.parser.schema;
 
-import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
-import ca.nrc.cadc.tap.schema.FunctionDesc;
-import ca.nrc.cadc.tap.schema.TapSchema;
-import net.sf.jsqlparser.expression.Function;
-import org.apache.log4j.Logger;
+package ca.nrc.cadc.tap.schema;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Validates that the Function being visited exists in the TapSchema.
- *
- * @author jburke
+ * A grouping construct to define a group of params and references.
+ * @author pdowler
  */
-public class ExpressionValidator extends ExpressionNavigator
+public class GroupDesc 
 {
-    protected static Logger log = Logger.getLogger(ExpressionValidator.class);
-
-    protected TapSchema tapSchema;
-
-    public ExpressionValidator(TapSchema tapSchema)
+    //public List<GroupDesc> groups = new ArrayList<GroupDesc>(); // recursive?
+    
+    public List<ParamDesc> params = new ArrayList<ParamDesc>();
+    
+    public List<FieldRef> refs = new ArrayList<FieldRef>();
+    
+    private String utype;
+    
+    public GroupDesc(String utype)
     {
-        this.tapSchema = tapSchema;
+        this.utype = utype;
     }
 
-    /* (non-Javadoc)
-     * @see net.sf.jsqlparser.expression.ExpressionVisitor#visit(net.sf.jsqlparser.expression.Function)
-     */
-    @Override
-    public void visit(Function function)
+    public String getUtype()
     {
-        log.debug("visit(function)" + function);
-        boolean found = false;
-        for (FunctionDesc functionDesc : tapSchema.getFunctionDescs())
-        {
-            if (functionDesc.name.equalsIgnoreCase(function.getName()))
-            {
-                found = true;
-                break;
-            }
-        }
-        if (!found)
-            throw new IllegalArgumentException("Function [" + function.getName() + "] is not found in TapSchema");
-
-        if (function.getParameters() != null)
-            function.getParameters().accept(this);
+        return utype;
     }
+    
     
 }

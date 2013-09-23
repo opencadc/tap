@@ -90,22 +90,6 @@ import ca.nrc.cadc.tap.schema.TapSchema;
  */
 public class TestUtil
 {
-    /*
-    private static String PROPERTY_FILE = "postgresql_sql.properties";
-    public static TapProperties getPropertiesInstance() throws Exception
-    {
-        TapProperties prop;
-        try
-        {
-            prop = new TapProperties(PROPERTY_FILE);
-        } catch (Exception e)
-        {
-            throw e;
-        }
-        return prop;
-    }
-    */
-    
     /**
      * load a TAP Schema for test purpose.
      * 
@@ -124,7 +108,7 @@ public class TestUtil
 
         String schemaName = "tap_schema";
         SchemaDesc sd = new SchemaDesc(schemaName, "description", "utype");
-        ts.schemaDescs.add(sd);
+        ts.getSchemaDescs().add(sd);
 
         String tn;
         TableDesc td;
@@ -132,32 +116,32 @@ public class TestUtil
         // custom test table in tap_schema
         tn = "alldatatypes";
         td = new TableDesc(schemaName, tn, "description", "utype");
-        sd.tableDescs.add(td);
-        td.columnDescs.add( new ColumnDesc(tn, "t_integer", "int column", null, null, null, "adql:INTEGER", null) );
-        td.columnDescs.add( new ColumnDesc(tn, "t_long", "long column", null, null, null, "adql:BIGINT", null) );
-        td.columnDescs.add( new ColumnDesc(tn, "t_float", "float column", null, null, null, "adql:REAL", null) );
-        td.columnDescs.add( new ColumnDesc(tn, "t_double", "double column", null, null, null, "adql:DOUBLE", null) );
-        td.columnDescs.add( new ColumnDesc(tn, "t_char", "char column", null, null, null, "adql:CHAR", 8) );
-        td.columnDescs.add( new ColumnDesc(tn, "t_varchar", "varchar column", null, null, null, "adql:VARCHAR", 8) );
-        td.columnDescs.add( new ColumnDesc(tn, "t_string", "test column", null, null, null, "adql:VARCHAR", 8) );
-        td.columnDescs.add( new ColumnDesc(tn, "t_bytes", "varbinary column", null, null, null, "adql:BLOB", null) );
-        td.columnDescs.add( new ColumnDesc(tn, "t_text", "clob column", null, null, null, "adql:CLOB", null) );
-        td.columnDescs.add( new ColumnDesc(tn, "t_point", "point column", null, null, null, "adql:POINT", null) );
-        td.columnDescs.add( new ColumnDesc(tn, "t_region", "region column", null, null, null, "adql:REGION", null) );
-        td.columnDescs.add( new ColumnDesc(tn, "t_timestamp", "timestamp column", null, null, null, "adql:TIMESTAMP", null) );
-        td.columnDescs.add( new ColumnDesc(tn, "t_int_array", "int[] column", null, null, null, "votable:int", 2) );
-        td.columnDescs.add( new ColumnDesc(tn, "t_double_array", "double[] column", null, null, null, "votable:double", 2) );
-        td.columnDescs.add( new ColumnDesc(tn, "t_complete", "column with full metadata", "test:come.data.model","meta.ucd", "m", "votable:double", 2) );
+        sd.getTableDescs().add(td);
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_integer", "int column", null, null, null, "adql:INTEGER", null) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_long", "long column", null, null, null, "adql:BIGINT", null) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_float", "float column", null, null, null, "adql:REAL", null) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_double", "double column", null, null, null, "adql:DOUBLE", null) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_char", "char column", null, null, null, "adql:CHAR", 8) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_varchar", "varchar column", null, null, null, "adql:VARCHAR", 8) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_string", "test column", null, null, null, "adql:VARCHAR", 8) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_bytes", "varbinary column", null, null, null, "adql:BLOB", null) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_text", "clob column", null, null, null, "adql:CLOB", null) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_point", "point column", null, null, null, "adql:POINT", null) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_region", "region column", null, null, null, "adql:REGION", null) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_timestamp", "timestamp column", null, null, null, "adql:TIMESTAMP", null) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_int_array", "int[] column", null, null, null, "votable:int", 2) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_double_array", "double[] column", null, null, null, "votable:double", 2) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_complete", "column with full metadata", "test:come.data.model","meta.ucd", "m", "votable:double", 2) );
 
 
         // standard minimal self-describing tap_schema tables
         tn = "tables";
         td = new TableDesc(schemaName, tn, "description", "utype");
         sd.tableDescs.add(td);
-        td.columnDescs.add( new ColumnDesc(tn, "schema_name", null, null, null, null, "adql:VARCHAR", 16) );
-        td.columnDescs.add( new ColumnDesc(tn, "table_name", null, null, null, null, "adql:VARCHAR", 16) );
-        td.columnDescs.add( new ColumnDesc(tn, "utype", null, null, null, null, "adql:VARCHAR", 16) );
-        td.columnDescs.add( new ColumnDesc(tn, "description", null, null, null, null, "adql:VARCHAR", 16) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "schema_name", null, null, null, null, "adql:VARCHAR", 16) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "table_name", null, null, null, null, "adql:VARCHAR", 16) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "utype", null, null, null, null, "adql:VARCHAR", 16) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "description", null, null, null, null, "adql:VARCHAR", 16) );
         KeyDesc k = new KeyDesc("k1", "TAP_SCHEMA.tables", "TAP_SCHEMA.schemas");
         k.keyColumnDescs.add(new KeyColumnDesc("k1", "schema_name", "schema_name"));
         td.keyDescs.add(k);
@@ -166,17 +150,17 @@ public class TestUtil
         tn = "columns";
         td = new TableDesc(schemaName, tn, "description", "utype");
         sd.tableDescs.add(td);
-        td.columnDescs.add( new ColumnDesc(tn, "table_name", null, null, null, null, "adql:VARCHAR", 16) );
-        td.columnDescs.add( new ColumnDesc(tn, "column_name", null, null, null, null, "adql:VARCHAR", 16) );
-        td.columnDescs.add( new ColumnDesc(tn, "utype", null, null, null, null, "adql:VARCHAR", 16) );
-        td.columnDescs.add( new ColumnDesc(tn, "ucd", null, null, null, null, "adql:VARCHAR", 16) );
-        td.columnDescs.add( new ColumnDesc(tn, "unit", null, null, null, null, "adql:VARCHAR", 16) );
-        td.columnDescs.add( new ColumnDesc(tn, "description", null, null, null, null, "adql:VARCHAR", 16) );
-        td.columnDescs.add( new ColumnDesc(tn, "datatype", null, null, null, null, "adql:VARCHAR", 16) );
-        td.columnDescs.add( new ColumnDesc(tn, "size", null, null, null, null, "adql:INTEGER", null) );
-        td.columnDescs.add( new ColumnDesc(tn, "principal", null, null, null, null, "adql:INTEGER", null) );
-        td.columnDescs.add( new ColumnDesc(tn, "indexed", null, null, null, null, "adql:INTEGER", null) );
-        td.columnDescs.add( new ColumnDesc(tn, "std", null, null, null, null, "adql:INTEGER", null) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "table_name", null, null, null, null, "adql:VARCHAR", 16) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "column_name", null, null, null, null, "adql:VARCHAR", 16) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "utype", null, null, null, null, "adql:VARCHAR", 16) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "ucd", null, null, null, null, "adql:VARCHAR", 16) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "unit", null, null, null, null, "adql:VARCHAR", 16) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "description", null, null, null, null, "adql:VARCHAR", 16) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "datatype", null, null, null, null, "adql:VARCHAR", 16) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "size", null, null, null, null, "adql:INTEGER", null) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "principal", null, null, null, null, "adql:INTEGER", null) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "indexed", null, null, null, null, "adql:INTEGER", null) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "std", null, null, null, null, "adql:INTEGER", null) );
         k = new KeyDesc("k2", "TAP_SCHEMA.columns", "TAP_SCHEMA.tables");
         k.keyColumnDescs = new ArrayList<KeyColumnDesc>();
         k.keyColumnDescs.add(new KeyColumnDesc("k2", "table_name", "table_name"));
@@ -186,11 +170,11 @@ public class TestUtil
         tn = "keys";
         td = new TableDesc(schemaName, tn, "description", "utype");
         sd.tableDescs.add(td);
-        td.columnDescs.add( new ColumnDesc(tn, "key_id", null, null, null, null, "adql:VARCHAR", 16) );
-        td.columnDescs.add( new ColumnDesc(tn, "from_table", null, null, null, null, "adql:VARCHAR", 16) );
-        td.columnDescs.add( new ColumnDesc(tn, "target_table", null, null, null, null, "adql:VARCHAR", 16) );
-        td.columnDescs.add( new ColumnDesc(tn, "utype", null, null, null, null, "adql:VARCHAR", 16) );
-        td.columnDescs.add( new ColumnDesc(tn, "description", null, null, null, null, "adql:VARCHAR", 16) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "key_id", null, null, null, null, "adql:VARCHAR", 16) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "from_table", null, null, null, null, "adql:VARCHAR", 16) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "target_table", null, null, null, null, "adql:VARCHAR", 16) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "utype", null, null, null, null, "adql:VARCHAR", 16) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "description", null, null, null, null, "adql:VARCHAR", 16) );
         k = new KeyDesc("k3", "TAP_SCHEMA.keys", "TAP_SCHEMA.tables");
         k.keyColumnDescs = new ArrayList<KeyColumnDesc>();
         k.keyColumnDescs.add(new KeyColumnDesc("k3", "from_table", "table_name"));
@@ -204,9 +188,9 @@ public class TestUtil
         tn = "key_columns";
         td = new TableDesc(schemaName, tn, "description", "utype");
         sd.tableDescs.add(td);
-        td.columnDescs.add( new ColumnDesc(tn, "key_id", null, null, null, null, "adql:VARCHAR", 16) );
-        td.columnDescs.add( new ColumnDesc(tn, "from_column", null, null, null, null, "adql:VARCHAR", 16) );
-        td.columnDescs.add( new ColumnDesc(tn, "target_column", null, null, null, null, "adql:VARCHAR", 16) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "key_id", null, null, null, null, "adql:VARCHAR", 16) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "from_column", null, null, null, null, "adql:VARCHAR", 16) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "target_column", null, null, null, null, "adql:VARCHAR", 16) );
         k = new KeyDesc("k5", "TAP_SCHEMA.key_columns", "TAP_SCHEMA.keys");
         k.keyColumnDescs = new ArrayList<KeyColumnDesc>();
         k.keyColumnDescs.add(new KeyColumnDesc("k5", "key_id", "key_id"));
@@ -214,23 +198,22 @@ public class TestUtil
 
         schemaName = "caom";
         sd = new SchemaDesc(schemaName, "description", "utype");
-        ts.schemaDescs.add(sd);
+        ts.getSchemaDescs().add(sd);
 
         tn = "siav1";
         td = new TableDesc(schemaName, tn, "description", "utype");
         sd.tableDescs.add(td);
-        td.columnDescs.add( new ColumnDesc(tn, "position_center_ra", null, null, null, null, "adql:DOUBLE", null) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "position_center_ra", null, null, null, null, "adql:DOUBLE", null) );
 
-        ts.functionDescs = new ArrayList<FunctionDesc>();
-        ts.functionDescs.add(new FunctionDesc("AREA", null, "adql:DOUBLE"));
-        ts.functionDescs.add(new FunctionDesc("AVG", null, "ARGUMENT_DATATYPE"));
-        ts.functionDescs.add(new FunctionDesc("CIRCLE", null, "adql:DOUBLE"));
-        ts.functionDescs.add(new FunctionDesc("COUNT", null, "adql:INTEGER"));
-        ts.functionDescs.add(new FunctionDesc("MAX", null, "ARGUMENT_DATATYPE"));
-        ts.functionDescs.add(new FunctionDesc("MIN", null, "ARGUMENT_DATATYPE"));
-        ts.functionDescs.add(new FunctionDesc("STDDEV", null, "adql:DOUBLE"));
-        ts.functionDescs.add(new FunctionDesc("SUM", null, "ARGUMENT_DATATYPE"));
-        ts.functionDescs.add(new FunctionDesc("VARIANCE", null, "adql:DOUBLE"));
+        ts.getFunctionDescs().add(new FunctionDesc("AREA", null, "adql:DOUBLE"));
+        ts.getFunctionDescs().add(new FunctionDesc("AVG", null, "ARGUMENT_DATATYPE"));
+        ts.getFunctionDescs().add(new FunctionDesc("CIRCLE", null, "adql:DOUBLE"));
+        ts.getFunctionDescs().add(new FunctionDesc("COUNT", null, "adql:INTEGER"));
+        ts.getFunctionDescs().add(new FunctionDesc("MAX", null, "ARGUMENT_DATATYPE"));
+        ts.getFunctionDescs().add(new FunctionDesc("MIN", null, "ARGUMENT_DATATYPE"));
+        ts.getFunctionDescs().add(new FunctionDesc("STDDEV", null, "adql:DOUBLE"));
+        ts.getFunctionDescs().add(new FunctionDesc("SUM", null, "ARGUMENT_DATATYPE"));
+        ts.getFunctionDescs().add(new FunctionDesc("VARIANCE", null, "adql:DOUBLE"));
 
         return ts;
     }

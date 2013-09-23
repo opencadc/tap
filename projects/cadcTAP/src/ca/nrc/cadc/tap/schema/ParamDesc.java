@@ -76,6 +76,8 @@ public class ParamDesc
      * The name (not null).
      */
     public String name;
+    
+    public String value;
 
     /**
      * The alias of the param (can be null).
@@ -111,7 +113,27 @@ public class ParamDesc
      * The param datatype size (Column width) (not null).
      */
     public Integer size;
-
+    
+    /**
+     * An <em>id<//em> attribute value to tag the column with (for VOTable FIELD element). This
+     * can normally be left null as it is onyl needed for the prototype  getResultMeta/List<Group>
+     * hack.
+     */
+    public String id;
+    
+    public ParamDesc(String name, String value, String description, 
+            String utype, String ucd, String unit, String datatype, Integer size)
+    {
+        this.name = name;
+        this.value = value;
+        this.description = description;
+        this.utype = utype;
+        this.ucd = ucd;
+        this.unit = unit;
+        this.datatype = datatype;
+        this.size = size;
+    }
+    
     public ParamDesc(ColumnDesc columnDesc, String alias)
     {
         this.columnDesc = columnDesc;
@@ -123,6 +145,7 @@ public class ParamDesc
         this.datatype = columnDesc.datatype;
         this.size = columnDesc.size;
         this.alias = alias;
+        this.id = columnDesc.id;
     }
 
     public ParamDesc(FunctionDesc functionDesc, String alias)
@@ -158,6 +181,7 @@ public class ParamDesc
         StringBuilder sb = new StringBuilder();
         sb.append("ParamDesc[");
         sb.append(name).append(",");
+        sb.append(id).append(",");
         sb.append(alias == null ? "" : alias).append(",");
         sb.append(description == null ? "" : description).append(",");
         sb.append(utype == null ? "" : utype).append(",");
