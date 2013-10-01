@@ -173,17 +173,15 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
         if (expression instanceof Column)
         {
             Column column = (Column) expression;
-            log.debug("visit(column) " + column);
-
             ColumnDesc columnDesc = TapSchemaUtil.findColumnDesc(tapSchema, plainSelect, column);
+            log.debug("visit(column) " + column + "found: " + columnDesc);
             paramDesc = new ParamDesc(columnDesc, alias);
         }
         else if (expression instanceof Function)
         {
             Function function = (Function) expression;
-            log.debug("visit(function) " + function);
-
             FunctionDesc functionDesc = getFunctionDesc(function, plainSelect);
+            log.debug("visit(function) " + function + " fiund: " + functionDesc);
             paramDesc = new ParamDesc(functionDesc, alias);
             paramDesc.columnDesc = functionDesc.arg;
         }

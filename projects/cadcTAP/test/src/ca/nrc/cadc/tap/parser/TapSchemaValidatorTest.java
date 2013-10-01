@@ -232,9 +232,8 @@ public class TapSchemaValidatorTest
         List<SchemaDesc> sdList = new ArrayList<SchemaDesc>();
 
         TapSchema ret = new TapSchema();
-        ret.schemaDescs = new ArrayList<SchemaDesc>();
-        ret.schemaDescs.add(mockSchema("foo"));
-        ret.schemaDescs.add(mockSchema(null));
+        ret.getSchemaDescs().add(mockSchema("foo"));
+        ret.getSchemaDescs().add(mockSchema(null));
         return ret;
     }
 
