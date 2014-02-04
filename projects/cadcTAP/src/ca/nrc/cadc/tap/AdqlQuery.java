@@ -120,7 +120,6 @@ public class AdqlQuery implements TapQuery
     protected TapSchema tapSchema;
     protected Map<String, TableDesc> extraTables;
     protected List<Parameter> paramList;
-    protected List<String> queryStringList;
     protected String queryString;
     protected Integer maxRows;
 
@@ -269,11 +268,12 @@ public class AdqlQuery implements TapQuery
     public void setParameterList(List<Parameter> paramList)
     {
         this.paramList = paramList;
-        this.queryStringList = ParameterUtil.findParameterValues("QUERY", paramList);
-        // Tested; when no query is provided, the obj is null
-        if (queryStringList == null) throw new IllegalArgumentException("parameter not found: QUERY");
-        this.queryString = queryStringList.get(0);
-        if (queryString == null) throw new IllegalArgumentException("QUERY is empty");
+        List<String> vals = ParameterUtil.findParameterValues("QUERY", paramList);
+        if (vals == null || vals.isEmpty())
+            throw new IllegalArgumentException("missing required parameter: QUERY");
+        this.queryString = vals.get(0);
+        if (queryString == null || queryString.length() == 0) 
+            throw new IllegalArgumentException("QUERY parameter has no value");
     }
 
     public void setMaxRowCount(Integer count)
