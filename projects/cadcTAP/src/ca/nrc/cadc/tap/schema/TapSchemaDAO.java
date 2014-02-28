@@ -376,7 +376,7 @@ public class TapSchemaDAO
         List<FunctionDesc> functionDescs = new ArrayList<FunctionDesc>();
 
         // ADQL functions.
-        functionDescs.add(new FunctionDesc("AREA", "deg", "adql:DOUBLE"));
+        functionDescs.add(new FunctionDesc("AREA", "deg**2", "adql:DOUBLE"));
         functionDescs.add(new FunctionDesc("BOX", "", "adql:DOUBLE"));
         functionDescs.add(new FunctionDesc("CENTROID", "", "adql:POINT"));
         functionDescs.add(new FunctionDesc("CIRCLE", "", "adql:DOUBLE"));
