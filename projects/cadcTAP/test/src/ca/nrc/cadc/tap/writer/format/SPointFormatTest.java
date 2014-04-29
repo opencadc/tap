@@ -67,92 +67,63 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.writer.formatter;
+package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.date.DateUtil;
-import ca.nrc.cadc.util.Log4jInit;
-import java.text.DateFormat;
-import java.util.Date;
+import static org.junit.Assert.assertEquals;
+
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
+
+import ca.nrc.cadc.stc.Position;
+import ca.nrc.cadc.util.Log4jInit;
 
 /**
  *
  * @author jburke
  */
-public class LocalTimestampFormatterTest
+public class SPointFormatTest
 {
-    private static final Logger LOG = Logger.getLogger(LocalTimestampFormatterTest.class);
+    private static final Logger log = Logger.getLogger(SPointFormatTest.class);
     static
     {
         Log4jInit.setLevel("ca", Level.INFO);
     }
-    private static final String DATE_TIME = "2009-01-02T03:04:05.678";
-    private static DateFormat formatter;
+    private static final String SPOINT = "(0.174532925199433 , 0.174532925199433)";
+    private static final String STCS_POSITION = "POSITION ICRS 10.000000000000004 10.000000000000004";
 
-    public LocalTimestampFormatterTest() { }
+    public SPointFormatTest() { }
 
-    @BeforeClass
-    public static void setUpClass() throws Exception
-    {
-        formatter = DateUtil.getDateFormat(DateUtil.ISO8601_DATE_FORMAT_MSLOCAL, DateUtil.LOCAL);
-    }
-
-    @AfterClass
-    public static void tearDownClass() throws Exception
-    {
-    }
-
-    @Before
-    public void setUp() { }
-
-    @After
-    public void tearDown() { }
-
+    /**
+     * Test of format method, of class SPointFormatter.
+     */
     @Test
-    public void testFormatValue() throws Exception
+    public void testFormat()
     {
-        LOG.debug("testFormat");
+        log.debug("testFormat");
 
-        Formatter instance = new LocalTimestampFormatter();
-
-        Date date = formatter.parse(DATE_TIME);
-        Object object;
-        String result;
-
-        object = date;
-        result = instance.format(object);
-        Assert.assertEquals(DATE_TIME, result);
-
-        object = new java.sql.Date(date.getTime());
-        result = instance.format(object);
-        Assert.assertEquals(DATE_TIME, result);
-
-        object = new java.sql.Timestamp(date.getTime());
-        result = instance.format(object);
-        Assert.assertEquals(DATE_TIME, result);
-
-        LOG.info("testFormat passed");
+        SPointFormat format = new SPointFormat();
+        String expResult = STCS_POSITION;
+        String result = format.format(SPOINT);
+        assertEquals(expResult.toUpperCase(), result.toUpperCase());
+        log.info("testFormat passed");
     }
 
+    /**
+     * Test of getPosition method, of class SPointFormatter.
+     */
     @Test
-    public void testFormatNull() throws Exception
+    public void testGetPosition()
     {
-        LOG.debug("testFormat");
+        log.debug("testGetPosition");
 
-        Formatter instance = new LocalTimestampFormatter();
-
-        Object object = null;
-        String expResult = "";
-        String result = instance.format(object);
-        Assert.assertEquals(expResult, result);
-
-        LOG.info("testFormat passed");
+        SPointFormat format = new SPointFormat();
+        Position position = format.getPosition(SPOINT);
+        assertEquals("POSITION", Position.NAME.toUpperCase());
+        assertEquals("ICRS", position.getFrame().name().toUpperCase());
+        assertEquals("", 10.0, position.getCoordPair().getX(), 0.1);
+        assertEquals("", 10.0, position.getCoordPair().getY(), 0.1);
+        log.info("testGetPosition passed");
     }
+
 }

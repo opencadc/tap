@@ -1,0 +1,576 @@
+package ca.nrc.cadc.tap;
+
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+
+import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.dali.tables.TableData;
+import ca.nrc.cadc.dali.tables.TableWriter;
+import ca.nrc.cadc.dali.tables.ascii.AsciiTableWriter;
+import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
+import ca.nrc.cadc.dali.tables.votable.VOTableField;
+import ca.nrc.cadc.dali.tables.votable.VOTableInfo;
+import ca.nrc.cadc.dali.tables.votable.VOTableResource;
+import ca.nrc.cadc.dali.tables.votable.VOTableTable;
+import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
+import ca.nrc.cadc.dali.util.Format;
+import ca.nrc.cadc.tap.schema.ParamDesc;
+import ca.nrc.cadc.tap.writer.ResultSetTableData;
+import ca.nrc.cadc.tap.writer.RssTableWriter;
+import ca.nrc.cadc.tap.writer.format.DefaultFormatFactory;
+import ca.nrc.cadc.tap.writer.format.FormatFactory;
+import ca.nrc.cadc.uws.Job;
+import ca.nrc.cadc.uws.Parameter;
+import ca.nrc.cadc.uws.ParameterUtil;
+
+public class DefaultTableWriter implements TableWriter<ResultSet>
+{
+
+    private static final Logger log = Logger.getLogger(DefaultTableWriter.class);
+
+    private static final String FORMAT = "FORMAT";
+
+    // shortcuts
+    public static final String CSV = "csv";
+    public static final String FITS = "fits";
+    public static final String HTML = "html";
+    public static final String TEXT = "text";
+    public static final String TSV = "tsv";
+    public static final String VOTABLE = "votable";
+    public static final String RSS = "rss";
+
+    // content-type
+//    private static final String APPLICATION_FITS = "application/fits";
+    private static final String APPLICATION_VOTABLE_XML = "application/x-votable+xml";
+    private static final String APPLICATION_RSS = "application/rss+xml";
+    private static final String TEXT_XML_VOTABLE = "text/xml;content=x-votable"; // the SIAv1 mimetype
+    private static final String TEXT_CSV = "text/csv";
+//    private static final String TEXT_HTML = "text/html";
+//    private static final String TEXT_PLAIN = "text/plain";
+    private static final String TEXT_TAB_SEPARATED_VALUES = "text/tab-separated-values";
+    private static final String TEXT_XML = "text/xml";
+
+    private static final Map<String,String> knownFormats = new TreeMap<String,String>();
+
+    static
+    {
+        knownFormats.put(APPLICATION_VOTABLE_XML, VOTABLE);
+        knownFormats.put(TEXT_XML, VOTABLE);
+        knownFormats.put(TEXT_XML_VOTABLE, VOTABLE);
+        knownFormats.put(TEXT_CSV, CSV);
+        knownFormats.put(TEXT_TAB_SEPARATED_VALUES, TSV);
+//        knownFormats.put(APPLICATION_FITS, FITS);
+//        knownFormats.put(TEXT_PLAIN, TEXT);
+//        knownFormats.put(TEXT_HTML, HTML);
+        knownFormats.put(VOTABLE, VOTABLE);
+        knownFormats.put(CSV, CSV);
+        knownFormats.put(TSV, TSV);
+//        knownFormats.put(FITS, FITS);
+//        knownFormats.put(TEXT, TEXT);
+//        knownFormats.put(HTML, HTML);
+        knownFormats.put(RSS, RSS);
+        knownFormats.put(APPLICATION_RSS, RSS);
+    }
+
+    private Job job;
+    private String queryInfo;
+    private String contentType;
+
+    // RssTableWriter not yet ported to cadcDALI
+    private TableWriter<VOTableDocument> tableWriter;
+    private RssTableWriter rssTableWriter;
+    private FormatFactory formatFactory;
+
+    // once the RssTableWriter is converted to use the DALI format
+    // of writing, this reference will not be needed
+    List<ParamDesc> selectList;
+
+    public DefaultTableWriter(Job job, List<ParamDesc> selectList)
+    {
+        this(job, selectList, null);
+    }
+
+    public DefaultTableWriter(Job job, List<ParamDesc> selectList, String queryInfo)
+    {
+        if (job == null)
+            throw new IllegalStateException("job cannot be null");
+
+        if (selectList == null || selectList.isEmpty())
+            throw new IllegalStateException("selectList cannot be null or empty");
+
+        this.job = job;
+        this.selectList = selectList;
+        this.queryInfo = queryInfo;
+
+        String type = getTableFormat(job.getParameterList());
+        log.debug("table format type is: " + type);
+
+        String formatParam = ParameterUtil.findParameterValue("FORMAT", job.getParameterList());
+
+        // Create the table writer, handle RSS the old way for now
+        if (type.equals(RSS))
+        {
+            rssTableWriter = new RssTableWriter(queryInfo);
+
+            contentType = rssTableWriter.getContentType();
+            log.debug("Content type is: " + contentType);
+
+            rssTableWriter.setJob(job);
+            rssTableWriter.setSelectList(selectList);
+        }
+        else
+        {
+            if (type.equals(VOTABLE))
+                tableWriter = new VOTableWriter(formatParam);
+            if (type.equals(CSV))
+                tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.CSV);
+            if (type.equals(TSV))
+                tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
+
+            if (tableWriter == null)
+            {
+                // legal format but we don't have a table writer for it
+                throw new UnsupportedOperationException("unsupported format: " + type);
+            }
+
+            contentType = tableWriter.getContentType();
+            log.debug("Content type is: " + contentType);
+        }
+    }
+
+    @Override
+    public void setFormatFactory(ca.nrc.cadc.dali.util.FormatFactory formatFactory)
+    {
+        throw new UnsupportedOperationException("Use custom tap format factory implementation class");
+    }
+
+    @Override
+    public void write(ResultSet rs, OutputStream out) throws IOException
+    {
+        this.write(rs, out, null);
+    }
+
+    @Override
+    public void write(ResultSet rs, OutputStream out, Long maxrec)
+            throws IOException
+    {
+        Writer writer = new BufferedWriter(new OutputStreamWriter(out, "UTF-8"));
+        this.write(rs, writer, maxrec);
+    }
+
+    @Override
+    public void write(ResultSet rs, Writer out) throws IOException
+    {
+        this.write(rs, out, null);
+    }
+
+    @Override
+    public void write(ResultSet rs, Writer out, Long maxrec) throws IOException
+    {
+        if (rs != null && log.isDebugEnabled())
+            try { log.debug("resultSet column count: " + rs.getMetaData().getColumnCount()); }
+            catch(Exception oops) { log.error("failed to check resultset column count", oops); }
+
+        VOTableDocument votableDocument = new VOTableDocument();
+
+        VOTableResource resultsResource = new VOTableResource("results");
+        VOTableTable resultsTable = new VOTableTable();
+
+        // get the formats based on the selectList
+        FormatFactory formatFactory = DefaultFormatFactory.getFormatFactory();
+        formatFactory.setJobID(job.getID());
+        formatFactory.setParamList(job.getParameterList());
+
+        List<Format<Object>> formats = formatFactory.getFormats(selectList);
+
+        List<String> columnIDs = new ArrayList<String>();
+        int listIndex = 0;
+
+        // Add the metadata elements.
+        for (ParamDesc paramDesc : selectList)
+        {
+            VOTableField newField = createVOTableField(paramDesc);
+
+            Format<Object> format = formats.get(listIndex);
+            newField.setFormat(format);
+
+            resultsTable.getFields().add(newField);
+
+            if (paramDesc.id != null && !columnIDs.contains(paramDesc.id))
+                columnIDs.add(paramDesc.id);
+
+            listIndex++;
+        }
+
+        resultsResource.setTable(resultsTable);
+        votableDocument.getResources().add(resultsResource);
+
+        // TODO: Add the "meta" resources to describe services for each columnID in
+        // list columnIDs that we recognize
+
+        TableData tableData = new ResultSetTableData(rs, formats);
+
+        VOTableInfo info = new VOTableInfo("QUERY_STATUS", "OK");
+        resultsResource.getInfos().add(info);
+
+        // for documentation, add the query to the table as an info element
+        if (queryInfo != null)
+        {
+            info = new VOTableInfo("QUERY", queryInfo);
+            resultsResource.getInfos().add(info);
+        }
+
+        resultsTable.setTableData(tableData);
+
+        if (rssTableWriter != null)
+        {
+            if (maxrec != null)
+                rssTableWriter.write(rs, out, maxrec);
+            else
+                rssTableWriter.write(rs, out);
+        }
+        else
+        {
+            if (maxrec != null)
+                tableWriter.write(votableDocument, out, maxrec);
+            else
+                tableWriter.write(votableDocument, out);
+        }
+    }
+
+
+
+    public static String getTableFormat(List<Parameter> params)
+    {
+        // get the appropriate table writer
+        String format = ParameterUtil.findParameterValue(FORMAT, params);
+        if (format == null)
+            format = VOTABLE;
+        String type = knownFormats.get(format.toLowerCase());
+
+        if (type == null)
+            throw new UnsupportedOperationException("unknown format: " + format);
+
+        return type;
+    }
+
+    public void setQueryInfo(String queryInfo)
+    {
+        this.queryInfo = queryInfo;
+    }
+
+    @Override
+    public String getContentType()
+    {
+        return contentType;
+    }
+
+    @Override
+    public String getExtension()
+    {
+        // TODO: do we need this?
+        return "xml";
+    }
+
+    protected VOTableField createVOTableField(ParamDesc paramDesc)
+    {
+        if (paramDesc != null)
+        {
+            String name = getParamName(paramDesc);
+            String datatype = getDatatype(paramDesc);
+
+            VOTableField newField = new VOTableField(name, datatype);
+
+            setSize(paramDesc, newField);
+
+            if (paramDesc.id != null)
+                newField.id = paramDesc.id; // an XML id
+
+            if (paramDesc.columnDesc != null)
+                newField.utype = paramDesc.columnDesc.utype;
+            else
+                newField.utype = paramDesc.utype;
+
+            if (newField.ucd != null)
+                newField.ucd = paramDesc.ucd;
+
+            if (newField.unit != null)
+                newField.unit = paramDesc.unit;
+
+            if (paramDesc.datatype != null && paramDesc.datatype.startsWith("adql:"))
+                newField.xtype = paramDesc.datatype;
+
+            if (paramDesc.description != null)
+                newField.description = paramDesc.description;
+
+            return newField;
+        }
+
+        return null;
+    }
+
+    // Set the name using the alias first, then the column name.
+    /**
+     *
+     * @param alias
+     * @param name
+     */
+    private String getParamName(ParamDesc paramDesc)
+    {
+        String name = paramDesc.name;
+        String alias = paramDesc.alias;
+        if (alias != null)
+        {
+            // strip off double-quotes used for an alias with spaces or dots in it
+            if (alias.charAt(0) == '"' && alias.charAt(alias.length()-1) == '"')
+                alias = alias.substring(1, alias.length() - 1);
+            return alias;
+        }
+        else if (name != null)
+            return name;
+
+        return null;
+    }
+
+    /**
+     *
+     * @param datatype
+     * @param size
+     */
+    private String getDatatype(ParamDesc paramDesc)
+    {
+        String datatype = paramDesc.datatype;
+
+        if (datatype == null)
+            return null;
+
+        if (datatype.equals("adql:SMALLINT"))
+        {
+            return "short";
+        }
+        else if (datatype.equals("adql:INTEGER"))
+        {
+            return "int";
+        }
+        else if (datatype.equals("adql:BIGINT"))
+        {
+            return "long";
+        }
+        else if (datatype.equals("adql:REAL") || datatype.equals("adql:FLOAT"))
+        {
+            return "float";
+        }
+        else if (datatype.equals("adql:DOUBLE") )
+        {
+            return "double";
+        }
+        else if (datatype.equals("adql:VARBINARY"))
+        {
+            return "unsignedByte";
+        }
+        else if (datatype.equals("adql:CHAR"))
+        {
+            return "char";
+        }
+        else if (datatype.equals("adql:VARCHAR"))
+        {
+            return "char";
+        }
+        else if (datatype.equals("adql:BINARY"))
+        {
+            return "unsignedByte";
+        }
+        else if (datatype.equals("adql:BLOB"))
+        {
+            return "unsignedByte";
+        }
+        else if (datatype.equals("adql:CLOB"))
+        {
+            return "char";
+        }
+        else if (datatype.equals("adql:TIMESTAMP"))
+        {
+            return "char";
+        }
+        else if (datatype.equals("adql:POINT"))
+        {
+            return "char";
+        }
+        else if (datatype.equals("adql:CIRCLE"))
+        {
+            return "char";
+        }
+        else if (datatype.equals("adql:POLYGON"))
+        {
+            return "char";
+        }
+        else if (datatype.equals("adql:REGION"))
+        {
+            return "char";
+        }
+        // here we support votable datatypes used directly in the tap_schema,
+        // which are normally only needed if the DB has arrays of primitive types
+        // as adql types cover all the other scenarios
+        else if (datatype.equals("votable:double"))
+        {
+            return "double";
+        }
+        else if (datatype.equals("votable:int"))
+        {
+            return "int";
+        }
+        else if (datatype.equals("votable:float"))
+        {
+            return "float";
+        }
+        else if (datatype.equals("votable:long"))
+        {
+            return "long";
+        }
+        else if (datatype.equals("votable:boolean"))
+        {
+            return "boolean";
+        }
+        else if (datatype.equals("votable:short"))
+        {
+            return "short";
+        }
+        else if (datatype.equals("votable:char"))
+        {
+            return "char";
+        }
+        else if (datatype.equals("votable:char*"))
+        {
+            return "char";
+        }
+
+        return null;
+    }
+
+    /**
+     *
+     * @param datatype
+     * @param size
+     */
+    private void setSize(ParamDesc paramDesc, VOTableField field)
+    {
+        String datatype = paramDesc.datatype;
+        Integer size = paramDesc.size;
+
+        if (datatype == null)
+            return;
+
+        if (datatype.equals("adql:VARBINARY"))
+        {
+            field.setVariableSize(true);
+        }
+        else if (datatype.equals("adql:CHAR"))
+        {
+            field.setVariableSize(true);
+            if (size != null)
+                field.setArraysize(size);
+        }
+        else if (datatype.equals("adql:VARCHAR"))
+        {
+            field.setVariableSize(true);
+            if (size != null)
+                field.setArraysize(size);
+        }
+        else if (datatype.equals("adql:BINARY"))
+        {
+            if (size == null)
+                field.setVariableSize(true);
+            else
+                field.setArraysize(size);
+        }
+        else if (datatype.equals("adql:BLOB"))
+        {
+            if (size == null)
+                field.setVariableSize(true);
+            else
+                field.setArraysize(size);
+        }
+        else if (datatype.equals("adql:CLOB"))
+        {
+            if (size == null)
+                field.setVariableSize(true);
+            else
+                field.setArraysize(size);
+        }
+        else if (datatype.equals("adql:TIMESTAMP"))
+        {
+            field.setVariableSize(true);
+            if (size != null)
+                field.setArraysize(size);
+        }
+        else if (datatype.equals("adql:POINT"))
+        {
+            field.setVariableSize(true);
+        }
+        else if (datatype.equals("adql:CIRCLE"))
+        {
+            field.setVariableSize(true);
+        }
+        else if (datatype.equals("adql:POLYGON"))
+        {
+            field.setVariableSize(true);
+        }
+        else if (datatype.equals("adql:REGION"))
+        {
+            field.setVariableSize(true);
+        }
+        // here we support votable datatypes used directly in the tap_schema,
+        // which are normally only needed if the DB has arrays of primitive types
+        // as adql types cover all the other scenarios
+        else if (datatype.equals("votable:double"))
+        {
+            if (size != null)
+                field.setArraysize(size);
+        }
+        else if (datatype.equals("votable:int"))
+        {
+            if (size != null)
+                field.setArraysize(size);
+        }
+        else if (datatype.equals("votable:float"))
+        {
+            if (size != null)
+                field.setArraysize(size);
+        }
+        else if (datatype.equals("votable:long"))
+        {
+            if (size != null)
+                field.setArraysize(size);
+        }
+        else if (datatype.equals("votable:boolean"))
+        {
+            if (size != null)
+                field.setArraysize(size);
+        }
+        else if (datatype.equals("votable:short"))
+        {
+            if (size != null)
+                field.setArraysize(size);
+        }
+        else if (datatype.equals("votable:char"))
+        {
+            if (size != null)
+                field.setArraysize(size);
+        }
+        else if (datatype.equals("votable:char*"))
+        {
+            field.setVariableSize(true);
+        }
+    }
+
+
+}

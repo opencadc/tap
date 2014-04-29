@@ -67,26 +67,29 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.stc;
+package ca.nrc.cadc.tap.writer;
 
-/**
- * Allowed values for Frame in a STC-S Space sub-phrase.
- *
- */
-public enum Frame
+import java.sql.ResultSet;
+import java.util.Iterator;
+import java.util.List;
+
+import ca.nrc.cadc.dali.tables.TableData;
+import ca.nrc.cadc.dali.util.Format;
+
+public class ResultSetTableData implements TableData
 {
-    ECLIPTIC, FK4, FK5, GALACTIC, ICRS, UNKNOWNFRAME;
 
-    public static boolean contains(final String value)
+    ResultSetIterator iterator;
+
+    public ResultSetTableData(ResultSet rs, List<Format<Object>> formats)
     {
-        Frame[] values = Frame.values();
-        for (int i = 0; i < values.length; i++)
-        {
-            if (values[i].name().equals(value))
-                return true;
-        }
-        return false;
+        this.iterator = new ResultSetIterator(rs, formats);
+    }
+
+    @Override
+    public Iterator<List<Object>> iterator()
+    {
+        return iterator;
     }
 
 }
-

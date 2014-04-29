@@ -68,38 +68,42 @@
  */
 package ca.nrc.cadc.tap.writer;
 
-import ca.nrc.cadc.date.DateUtil;
-import ca.nrc.cadc.net.NetUtil;
-import ca.nrc.cadc.tap.TableWriter;
-import ca.nrc.cadc.tap.schema.ParamDesc;
-import ca.nrc.cadc.tap.schema.TapSchema;
-import ca.nrc.cadc.tap.writer.formatter.DefaultFormatterFactory;
-import ca.nrc.cadc.tap.writer.formatter.Formatter;
-import ca.nrc.cadc.tap.writer.formatter.FormatterFactory;
-import ca.nrc.cadc.tap.writer.formatter.ResultSetFormatter;
-import ca.nrc.cadc.uws.Job;
-import ca.nrc.cadc.uws.Parameter;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.util.List;
+
 import org.apache.log4j.Logger;
 import org.jdom.Document;
 import org.jdom.Element;
-import org.jdom.output.Format;
 import org.jdom.output.XMLOutputter;
+
+import ca.nrc.cadc.dali.tables.TableWriter;
+import ca.nrc.cadc.dali.util.Format;
+import ca.nrc.cadc.date.DateUtil;
+import ca.nrc.cadc.net.NetUtil;
+import ca.nrc.cadc.tap.schema.ParamDesc;
+import ca.nrc.cadc.tap.schema.TapSchema;
+import ca.nrc.cadc.tap.writer.format.DefaultFormatFactory;
+import ca.nrc.cadc.tap.writer.format.FormatFactory;
+import ca.nrc.cadc.tap.writer.format.ResultSetFormat;
+import ca.nrc.cadc.uws.Job;
+import ca.nrc.cadc.uws.Parameter;
 
 /**
  *
  * @author jburke
  */
-public class RssTableWriter implements TableWriter
+public class RssTableWriter implements TableWriter<ResultSet>
 {
     private static Logger log = Logger.getLogger(RssTableWriter.class);
-    
+
     public static final String RFC_822__DATE_FORMAT = "EEE', 'dd' 'MMM' 'yyyy' 'HH:mm:ss' 'z";
     private DateFormat dateFormat = DateUtil.getDateFormat(RFC_822__DATE_FORMAT, DateUtil.LOCAL);
 
@@ -109,28 +113,33 @@ public class RssTableWriter implements TableWriter
     protected Job job;
 
     protected String info;
-    
-    // Maximum number of rows to write.
-    protected int maxRows;
-    
+
     public RssTableWriter()
     {
-        maxRows = Integer.MAX_VALUE;
+        this(null);
+    }
+
+    public RssTableWriter(String info)
+    {
+        this.info = info;
     }
 
     /**
      * @deprecated
      */
+    @Deprecated
     public void setJobID(String jobID) { }
 
     /**
      * @deprecated
      */
+    @Deprecated
     public void setParameterList(List<Parameter> params) { }
 
     /**
      * @deprecated
      */
+    @Deprecated
     public void setTapSchema(TapSchema schema) { }
 
     public void setJob(Job job)
@@ -138,21 +147,13 @@ public class RssTableWriter implements TableWriter
         this.job = job;
     }
 
-    /**
-     * The info is used as the channel title and should be short.
-     *
-     * @param info
-     */
-    public void setQueryInfo(String info)
-    {
-        this.info = info;
-    }
-
+    @Override
     public String getExtension()
     {
         return "xml";
     }
 
+    @Override
     public String getContentType()
     {
         return "application/rss+xml";
@@ -163,36 +164,59 @@ public class RssTableWriter implements TableWriter
         this.selectList = selectList;
     }
 
-    public void setMaxRowCount(int count)
+    @Override
+    public void setFormatFactory(ca.nrc.cadc.dali.util.FormatFactory ff)
     {
-        this.maxRows = count;
-        log.debug("maxRows: " + maxRows);
+        // TODO Auto-generated method stub
+
     }
 
+    @Override
+    public void write(ResultSet resultSet, Writer writer) throws IOException
+    {
+        this.write(resultSet, writer, Long.MAX_VALUE);
+    }
+
+    @Override
     public void write(ResultSet resultSet, OutputStream output)
         throws IOException
     {
+        this.write(resultSet, output, Long.MAX_VALUE);
+    }
+
+    @Override
+    public void write(ResultSet resultSet, OutputStream out, Long maxrec)
+            throws IOException
+    {
+        Writer writer = new BufferedWriter(new OutputStreamWriter(out, "UTF-8"));
+        this.write(resultSet, writer, maxrec);
+    }
+
+    @Override
+    public void write(ResultSet resultSet, Writer out, Long maxrec) throws IOException
+    {
+        // TODO Auto-generated method stub
         if (job == null)
             throw new IllegalStateException("Job cannot be null, set using setJob()");
         if (selectList == null)
             throw new IllegalStateException("SelectList cannot be null, set using setSelectList()");
 
-        FormatterFactory factory = DefaultFormatterFactory.getFormatterFactory();
+        FormatFactory factory = DefaultFormatFactory.getFormatFactory();
         factory.setJobID(job.getID());
         factory.setParamList(job.getParameterList());
-        List<Formatter> formatters = factory.getFormatters(selectList);
+        List<Format<Object>> formats = factory.getFormats(selectList);
 
         if (resultSet != null)
             try { log.debug("resultSet column count: " + resultSet.getMetaData().getColumnCount()); }
             catch(Exception oops) { log.error("failed to check resultset column count", oops); }
-        
+
         // JDOM document.
         Document document = new Document();
-        
+
         // Root element.
         Element rss = new Element("rss");
         rss.setAttribute("version", "2.0");
-        document.setRootElement(rss); 
+        document.setRootElement(rss);
 
         // channel element.
         Element channel = new Element("channel");
@@ -219,7 +243,7 @@ public class RssTableWriter implements TableWriter
         Element link = new Element("link");
         link.setText(queryString);
         channel.addContent(link);
- 
+
         // items.
         int itemCount = 0;
         try
@@ -228,12 +252,12 @@ public class RssTableWriter implements TableWriter
             {
                 // item element.
                 Element item = new Element("item");
-       
+
                 // item description.
                 Element itemDescription = new Element("description");
                 StringBuilder sb = new StringBuilder();
                 sb.append("<table>");
-                
+
                 // Loop through the ResultSet adding the table data elements.
                 for (int columnIndex = 1; columnIndex <= resultSet.getMetaData().getColumnCount(); columnIndex++)
                 {
@@ -270,11 +294,13 @@ public class RssTableWriter implements TableWriter
                         sb.append("<tr><td align=\"right\">");
                         sb.append(paramDesc.name);
                         sb.append("</td><td align=\"left\">");
-                        Formatter formatter = formatters.get(columnIndex - 1);
-                        if (formatter instanceof ResultSetFormatter)
-                            sb.append(((ResultSetFormatter) formatter).format(resultSet, columnIndex));
+                        Format<Object> format = formats.get(columnIndex - 1);
+                        Object obj = null;
+                        if (format instanceof ResultSetFormat)
+                            obj = ((ResultSetFormat) format).extract(resultSet, columnIndex);
                         else
-                            sb.append(formatter.format(resultSet.getObject(columnIndex)));
+                            obj = resultSet.getObject(columnIndex);
+                        sb.append(format.format(obj));
                         sb.append("</td></tr>");
                     }
                 }
@@ -285,7 +311,7 @@ public class RssTableWriter implements TableWriter
                 itemCount++;
 
                 // Write MaxRows
-                if (itemCount == maxRows)
+                if (itemCount == maxrec)
                     break;
             }
         }
@@ -300,8 +326,12 @@ public class RssTableWriter implements TableWriter
         channel.addContent(channelDescription);
 
         // Write out the VOTABLE.
-        XMLOutputter outputter = new XMLOutputter(Format.getPrettyFormat());
-        outputter.output(document, output);
+        XMLOutputter outputter = new XMLOutputter(org.jdom.output.Format.getPrettyFormat());
+        outputter.output(document, out);
+
     }
+
+
+
 
 }

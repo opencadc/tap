@@ -67,70 +67,94 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.writer.formatter;
+package ca.nrc.cadc.tap.writer.format;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import ca.nrc.cadc.stc.Frame;
+import ca.nrc.cadc.stc.Position;
+import ca.nrc.cadc.stc.STC;
+
 /**
- * Formats a double[] into a String.
+ * Formats a PGSphere spoint as a String.
  *
  */
-public class DoubleArrayFormatter implements Formatter
+public class SPointFormat implements ResultSetFormat
 {
+
+    @Override
+    public Object parse(String s)
+    {
+        throw new UnsupportedOperationException("TAP Formats cannot parse strings.");
+    }
+
     /**
-     * Takes an double[] contained in a java.sql.Array and returns
-     * the default String representation.
+     * Takes a ResultSet and column index of the spoint
+     * and returns a STC-S Position String.
+     *
+     * @param resultSet containing the spoint column.
+     * @param columnIndex index of the column in the ResultSet.
+     * @return STC-S Position String of the spoint.
+     * @throws SQLException if there is an error accessing the ResultSet.
+     */
+    @Override
+    public Object extract(ResultSet resultSet, int columnIndex)
+        throws SQLException
+    {
+        return resultSet.getString(columnIndex);
+    }
+
+    /**
+     * Takes a String representation of the spoint
+     * and returns a STC-S Position String.
      *
      * @param object to format.
-     * @return String represenetation of the double[].
-     * @throws IllegalArgumentException if the object is not an int[];
+     * @return STC-S Position String of the spoint.
+     * @throws IllegalArgumentException if the object is not a String, or if
+     *         the String cannot be parsed.
      */
+    @Override
     public String format(Object object)
     {
-        if (object == null)
+        Position pos = getPosition(object);
+        if (pos == null)
             return "";
-        if (object instanceof java.sql.Array)
-        {
-            try
-            {
-                java.sql.Array array = (java.sql.Array) object;
-                object = array.getArray();
-            }
-            catch (SQLException e)
-            {
-                throw new IllegalArgumentException("Error accessing array data for " + object.getClass().getCanonicalName(), e);
-            }
-        }
-        if (object instanceof double[])
-            return toString((double[]) object);
-
-        if (object instanceof Double[])
-            return toString((Double[]) object);
-
-        throw new IllegalArgumentException(object.getClass().getCanonicalName() + " not supported.");
-
-        
+        return STC.format(pos);
     }
 
-    private String toString(double[] arr)
+    public Position getPosition(Object object)
     {
-        StringBuilder sb = new StringBuilder();
-        for (double d : arr)
-        {
-            sb.append(Double.toString(d));
-            sb.append(" ");
-        }
-        return sb.substring(0, sb.length() - 1); // trim trailing space
+         if (object == null)
+            return null;
+        if (!(object instanceof String))
+            throw new IllegalArgumentException("Expected String, was " + object.getClass().getName());
+        String s = (String) object;
+
+        // Get the string inside the enclosing parentheses.
+        int open = s.indexOf("(");
+        int close = s.indexOf(")");
+        if (open == -1 || close == -1)
+            throw new IllegalArgumentException("Missing opening or closing parentheses " + s);
+
+        // Should be 2 values separated by a comma.
+        s = s.substring(open + 1, close);
+        String[] points = s.split(",");
+        if (points.length != 2)
+            throw new IllegalArgumentException("SPoint must have only 2 values " + s);
+
+        // Coordinates.
+        Double x = Double.valueOf(points[0]);
+        Double y = Double.valueOf(points[1]);
+
+        // convert to radians
+        x = x * (180/Math.PI);
+        y = y * (180/Math.PI);
+
+        // Create STC Position.
+        Position position = new Position(Frame.ICRS, null, null, x, y);
+
+        return position;
     }
 
-    private String toString(Double[] arr)
-    {
-        StringBuilder sb = new StringBuilder();
-        for (Double d : arr)
-        {
-            sb.append(d.toString());
-            sb.append(" ");
-        }
-        return sb.substring(0, sb.length() - 1); // trim trailing space
-    }
 }

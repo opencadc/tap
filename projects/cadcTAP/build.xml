@@ -88,7 +88,7 @@
 
     <property name="project" value="cadcTAP" />
 
-    <property name="cadc" value="${lib}/cadcUtil.jar:${lib}/cadcUWS.jar:${lib}/cadcLog.jar:${lib}/cadcVOSI.jar" />
+    <property name="cadc" value="${lib}/cadcUtil.jar:${lib}/cadcUWS.jar:${lib}/cadcLog.jar:${lib}/cadcVOSI.jar:${lib}/cadcDALI.jar" />
 
     <property name="jsqlparser" value="${ext.lib}/jsqlparser.jar" />
     <property name="log4j" value="${ext.lib}/log4j.jar" />
@@ -133,7 +133,7 @@
     <!-- compile the test classes -->
 
     <!-- Run the test suite -->
-    <target name="test" depends="parser-tests,stc-tests,vosi-tests,writer-tests,upload-tests" />
+    <target name="test" depends="parser-tests,vosi-tests,writer-tests,upload-tests" />
 
     <target name="writer-tests" depends="compile,compile-test,xsd">
         <junit printsummary="yes" haltonfailure="yes" fork="yes">
@@ -143,18 +143,14 @@
                 <pathelement path="${jars}:${testingJars}"/>
             </classpath>
             <formatter type="plain" usefile="false"/>
-            <test name="ca.nrc.cadc.tap.writer.formatter.ByteArrayFormatterTest"/>
-            <test name="ca.nrc.cadc.tap.writer.formatter.DefaultFormatterTest"/>
-            <test name="ca.nrc.cadc.tap.writer.formatter.DoubleArrayFormatterTest"/>
-            <test name="ca.nrc.cadc.tap.writer.formatter.IntArrayFormatterTest"/>
-            <test name="ca.nrc.cadc.tap.writer.formatter.LocalTimestampFormatterTest"/>
-            <test name="ca.nrc.cadc.tap.writer.formatter.UTCTimestampFormatterTest"/>
-            <test name="ca.nrc.cadc.tap.writer.formatter.SPointFormatterTest"/>
-            <test name="ca.nrc.cadc.tap.writer.formatter.SPolyFormatterTest"/>
-            <test name="ca.nrc.cadc.tap.writer.formatter.SCircleFormatterTest"/>
-            <test name="ca.nrc.cadc.tap.writer.AsciiTableWriterTest"/>
-            <test name="ca.nrc.cadc.tap.writer.VOTableWriterTest"/>
-            <test name="ca.nrc.cadc.tap.writer.FieldElementTest"/>
+            <test name="ca.nrc.cadc.tap.writer.format.ByteArrayFormatTest"/>
+            <test name="ca.nrc.cadc.tap.writer.format.DoubleArrayFormatTest"/>
+            <test name="ca.nrc.cadc.tap.writer.format.IntArrayFormatTest"/>
+            <test name="ca.nrc.cadc.tap.writer.format.LocalTimestampFormatTest"/>
+            <test name="ca.nrc.cadc.tap.writer.format.UTCTimestampFormatTest"/>
+            <test name="ca.nrc.cadc.tap.writer.format.SPointFormatTest"/>
+            <test name="ca.nrc.cadc.tap.writer.format.SPolyFormatTest"/>
+            <test name="ca.nrc.cadc.tap.writer.format.SCircleFormatTest"/>
         </junit>
     </target>
 
@@ -184,25 +180,6 @@
             <test name="ca.nrc.cadc.tap.parser.schema.ExpressionValidatorTest"/>
             <test name="ca.nrc.cadc.tap.parser.ConcatenateTest"/>
             <test name="ca.nrc.cadc.tap.parser.QuerySelectDeParserTest" />
-        </junit>
-    </target>
-
-    <target name="stc-tests" depends="compile,compile-test">
-        <junit printsummary="yes" haltonfailure="yes" fork="yes">
-            <classpath>
-                <pathelement path="${resources.dir}"/>
-                <pathelement path="${build}/class"/>
-                <pathelement path="${build}/test/class"/>
-                <pathelement path="${jars}:${testingJars}"/>
-            </classpath>
-            <formatter type="plain" usefile="false"/>
-            <test name="ca.nrc.cadc.stc.BoxTest"/>
-            <test name="ca.nrc.cadc.stc.CircleTest"/>
-            <test name="ca.nrc.cadc.stc.PolygonTest"/>
-            <test name="ca.nrc.cadc.stc.PositionTest"/>
-            <test name="ca.nrc.cadc.stc.NotTest"/>
-            <test name="ca.nrc.cadc.stc.UnionTest"/>
-            <test name="ca.nrc.cadc.stc.IntersectionTest"/>
         </junit>
     </target>
 

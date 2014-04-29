@@ -67,9 +67,10 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.writer.formatter;
+package ca.nrc.cadc.tap.writer.format;
 
 import ca.nrc.cadc.date.DateUtil;
+import ca.nrc.cadc.tap.writer.format.UTCTimestampFormat;
 import ca.nrc.cadc.util.Log4jInit;
 import java.text.DateFormat;
 import java.util.Date;
@@ -86,9 +87,9 @@ import static org.junit.Assert.*;
  *
  * @author jburke
  */
-public class UTCTimestampFormatterTest
+public class UTCTimestampFormatTest
 {
-    private static final Logger LOG = Logger.getLogger(UTCTimestampFormatterTest.class);
+    private static final Logger LOG = Logger.getLogger(UTCTimestampFormatTest.class);
     static
     {
         Log4jInit.setLevel("ca", Level.INFO);
@@ -96,7 +97,7 @@ public class UTCTimestampFormatterTest
     private static final String DATE_TIME = "2009-01-02T11:04:05.678";
     private static DateFormat formatter;
 
-    public UTCTimestampFormatterTest() { }
+    public UTCTimestampFormatTest() { }
 
     @BeforeClass
     public static void setUpClass() throws Exception
@@ -121,7 +122,7 @@ public class UTCTimestampFormatterTest
     {
         LOG.debug("testFormat");
 
-        UTCTimestampFormatter instance = new UTCTimestampFormatter();
+        UTCTimestampFormat instance = new UTCTimestampFormat();
 
         Date date = formatter.parse(DATE_TIME);
         Object object;
@@ -147,7 +148,7 @@ public class UTCTimestampFormatterTest
     {
         LOG.debug("testFormat");
 
-        UTCTimestampFormatter instance = new UTCTimestampFormatter();
+        UTCTimestampFormat instance = new UTCTimestampFormat();
         
         Object object = null;
         String expResult = "";
