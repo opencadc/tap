@@ -189,7 +189,6 @@ public class DefaultTableWriter implements TableWriter<ResultSet>
         FormatFactory formatFactory = DefaultFormatFactory.getFormatFactory();
         formatFactory.setJobID(job.getID());
         formatFactory.setParamList(job.getParameterList());
-
         List<Format<Object>> formats = formatFactory.getFormats(selectList);
 
         List<String> columnIDs = new ArrayList<String>();
