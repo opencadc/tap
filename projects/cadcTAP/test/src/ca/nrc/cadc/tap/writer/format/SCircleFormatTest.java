@@ -67,85 +67,64 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.writer.formatter;
+package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.util.Log4jInit;
+import static org.junit.Assert.assertEquals;
+
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.*;
+
+import ca.nrc.cadc.stc.Circle;
+import ca.nrc.cadc.util.Log4jInit;
 
 /**
  *
  * @author jburke
  */
-public class IntArrayFormatterTest
+public class SCircleFormatTest
 {
-    private static final Logger LOG = Logger.getLogger(IntArrayFormatterTest.class);
+    private static final Logger log = Logger.getLogger(SCircleFormatTest.class);
     static
     {
         Log4jInit.setLevel("ca", Level.INFO);
     }
+    private static final String SCIRCLE = "<(0.174532925199433 , 0.174532925199433), 0.174532925199433>";
+    private static final String STCS_CIRCLE = "CIRCLE ICRS UNKNOWNREFPOS SPHERICAL2 10.000000000000004 10.000000000000004 10.000000000000004";
 
-    public IntArrayFormatterTest() { }
-
-    @BeforeClass
-    public static void setUpClass() throws Exception
-    {
-    }
-
-    @AfterClass
-    public static void tearDownClass() throws Exception
-    {
-    }
-
-    @Before
-    public void setUp() { }
-
-    @After
-    public void tearDown() { }
+    public SCircleFormatTest() { }
 
     /**
-     * Test of format method, of class IntArrayFormatter.
+     * Test of format method, of class SCircleFormatter.
      */
     @Test
     public void testFormat()
     {
-        LOG.debug("testFormat");
-        Object object = null;
-        IntArrayFormatter instance = new IntArrayFormatter();
-        String expResult = "";
-        String result = instance.format(object);
-        assertEquals(expResult, result);
-        LOG.info("testFormat passed");
+        log.debug("testFormat");
+
+        SCircleFormat formatter = new SCircleFormat();
+        String expResult = STCS_CIRCLE;
+        String result = formatter.format(SCIRCLE);
+        assertEquals(expResult.toUpperCase(), result.toUpperCase());
+        log.info("testFormat passed");
     }
-    
+
+    /**
+     * Test of testGetCircle method, of class SCircleFormatter.
+     */
     @Test
-    public void testFormatPrimitiveInt()
+    public void testGetCircle()
     {
-        LOG.debug("testFormatPrimitiveInt");
-        Object object = new int[] { 1, 2 };
-        IntArrayFormatter instance = new IntArrayFormatter();
-        String expResult = "1 2";
-        String result = instance.format(object);
-        assertEquals(expResult, result);
-        LOG.info("testFormatPrimitiveInt passed");
-    }
-    
-    @Test
-    public void testFormatWrappedInteger()
-    {
-        LOG.debug("testFormatWrappedInteger");
-        Object object = new Integer[] { 1, 2 };
-        IntArrayFormatter instance = new IntArrayFormatter();
-        String expResult = "1 2";
-        String result = instance.format(object);
-        assertEquals(expResult, result);
-        LOG.info("testFormatWrappedInteger passed");
+        log.debug("testGetCircle");
+
+        SCircleFormat formatter = new SCircleFormat();
+        Circle circle = formatter.getCircle(SCIRCLE);
+        assertEquals("CIRCLE", Circle.NAME.toUpperCase());
+        assertEquals("ICRS", circle.getFrame().name().toUpperCase());
+        assertEquals(10.0, circle.getCoordPair().getX(), 0.1);
+        assertEquals(10.0, circle.getCoordPair().getY(), 0.1);
+        assertEquals(10.0, circle.getRadius(), 0.1);
+        log.info("testGetCircle passed");
     }
 
 }

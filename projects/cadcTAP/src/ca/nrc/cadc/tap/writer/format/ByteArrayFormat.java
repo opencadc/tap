@@ -67,44 +67,85 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.writer.formatter;
+package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.tap.schema.ParamDesc;
-import ca.nrc.cadc.uws.Parameter;
-import java.util.List;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 /**
- * FormatterFactory interface.
+ * Formats a byte[] into a String.
  *
  */
-public interface FormatterFactory
+public class ByteArrayFormat implements ResultSetFormat
 {
-    void setJobID(String jobID);
-    
-    void setParamList(List<Parameter> params);
-    
-    List<Formatter> getFormatters(List<ParamDesc> selectList);
 
-//    Formatter getFormatter(ColumnDesc columnDesc);
+    @Override
+    public Object parse(String s)
+    {
+        throw new UnsupportedOperationException("TAP Formats cannot parse strings.");
+    }
 
-//    Formatter getIntegerFormatter(ColumnDesc columnDesc);
-//
-//    Formatter getDoubleFormatter(ColumnDesc columnDesc);
-//
-//    Formatter getLongFormatter(ColumnDesc columnDesc);
-//
-//    Formatter getStringFormatter(ColumnDesc columnDesc);
-//
-//    Formatter getByteArrayFormatter(ColumnDesc columnDesc);
-//
-//    Formatter getIntArrayFormatter(ColumnDesc columnDesc);
-//
-//    Formatter getDoubleArrayFormatter(ColumnDesc columnDesc);
-//
-//    Formatter getTimestampFormatter(ColumnDesc columnDesc);
-//
-//    Formatter getPointFormatter(ColumnDesc columnDesc);
-//
-//    Formatter getRegionFormatter(ColumnDesc columnDesc);
-    
+    @Override
+    public Object extract(ResultSet resultSet, int columnIndex)
+            throws SQLException
+    {
+        return resultSet.getObject(columnIndex);
+    }
+
+    /**
+     * Takes a byte[] and returns the default String representation.
+     *
+     * @param object to format
+     * @return String representation of the Object.
+     * @throws IllegalArgumentException if the object is not a byte[].
+     */
+    @Override
+    public String format(Object object)
+    {
+
+        if (object == null)
+            return "";
+        if (object instanceof java.sql.Array)
+        {
+            try
+            {
+                java.sql.Array array = (java.sql.Array) object;
+                object = array.getArray();
+            }
+            catch (SQLException e)
+            {
+                throw new IllegalArgumentException("Error accessing array data for " + object.getClass().getCanonicalName(), e);
+            }
+        }
+        if (object instanceof byte[])
+            return toString((byte[]) object);
+
+        if (object instanceof Byte[])
+            return toString((Byte[]) object);
+
+        throw new IllegalArgumentException(object.getClass().getCanonicalName() + " not supported.");
+    }
+
+    private String toString(byte[] arr)
+    {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : arr)
+        {
+            sb.append(Byte.toString(b));
+            sb.append(" ");
+        }
+        return sb.substring(0, sb.length() - 1); // trim trailing space
+    }
+
+    private String toString(Byte[] arr)
+    {
+        StringBuilder sb = new StringBuilder();
+        for (Byte b : arr)
+        {
+            sb.append(b.toString());
+            sb.append(" ");
+        }
+        return sb.substring(0, sb.length() - 1); // trim trailing space
+    }
+
 }

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VOTABLE xmlns="http://www.ivoa.net/xml/VOTable/v1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2">
+
+    <!-- The only purpose this element serves is to be a valid ID reference from "fileURIRef" in the uri parameter below. -->
+    <INFO name="file_uri" ID="fileURIRef" value="this will be dropped..." />
+
+    <RESOURCE type="meta" ID="datalink">
+        <PARAM name="resourceIdentifier" datatype="char" arraysize="*" value="ivo://cadc.nrc.ca/datalink" />
+        <PARAM name="accessURL" datatype="char" arraysize="*" value="change me to the datalink registry lookup value" />
+        <GROUP name="input">
+            <PARAM name="uri" datatype="char" arraysize="*" ref="fileURIRef" value=""/>
+        </GROUP>
+    </RESOURCE>
+</VOTABLE>

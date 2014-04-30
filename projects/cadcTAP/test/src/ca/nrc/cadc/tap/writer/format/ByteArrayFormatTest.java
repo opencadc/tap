@@ -67,8 +67,9 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.writer.formatter;
+package ca.nrc.cadc.tap.writer.format;
 
+import ca.nrc.cadc.tap.writer.format.ByteArrayFormat;
 import ca.nrc.cadc.util.Log4jInit;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -83,15 +84,15 @@ import static org.junit.Assert.*;
  *
  * @author jburke
  */
-public class DoubleArrayFormatterTest
+public class ByteArrayFormatTest
 {
-    private static final Logger LOG = Logger.getLogger(DoubleArrayFormatterTest.class);
+    private static final Logger LOG = Logger.getLogger(ByteArrayFormatTest.class);
     static
     {
         Log4jInit.setLevel("ca", Level.INFO);
     }
 
-    public DoubleArrayFormatterTest() { }
+    public ByteArrayFormatTest() { }
 
     @BeforeClass
     public static void setUpClass() throws Exception
@@ -110,42 +111,18 @@ public class DoubleArrayFormatterTest
     public void tearDown() { }
 
     /**
-     * Test of format method, of class DoubleArrayFormatter.
+     * Test of format method, of class ByteArrayFormatter.
      */
     @Test
-    public void testFormatNull()
+    public void testFormat()
     {
         LOG.debug("testFormat");
         Object object = null;
-        DoubleArrayFormatter instance = new DoubleArrayFormatter();
+        ByteArrayFormat instance = new ByteArrayFormat();
         String expResult = "";
         String result = instance.format(object);
         assertEquals(expResult, result);
         LOG.info("testFormat passed");
-    }
-    
-    @Test
-    public void testFormatPrimitiveDouble()
-    {
-        LOG.debug("testFormatPrimitiveDouble");
-        Object object = new double[] { 1.0, 2.0 };
-        DoubleArrayFormatter instance = new DoubleArrayFormatter();
-        String expResult = "1.0 2.0";
-        String result = instance.format(object);
-        assertEquals(expResult, result);
-        LOG.info("testFormatPrimitiveDouble passed");
-    }
-    
-    @Test
-    public void testFormatWrappedDouble()
-    {
-        LOG.debug("testFormatPrimitiveDouble");
-        Object object = new Double[] { 1.0, 2.0 };
-        DoubleArrayFormatter instance = new DoubleArrayFormatter();
-        String expResult = "1.0 2.0";
-        String result = instance.format(object);
-        assertEquals(expResult, result);
-        LOG.info("testFormatPrimitiveDouble passed");
     }
 
 }

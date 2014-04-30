@@ -67,84 +67,72 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.writer.formatter;
+package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.stc.Position;
-import ca.nrc.cadc.stc.STC;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.DateFormat;
+import java.util.Calendar;
+import java.util.Date;
+
+import ca.nrc.cadc.date.DateUtil;
 
 /**
- * Formats a PGSphere spoint as a String.
+ * Formats a Date or Timestamp in UTC into a String.
  *
  */
-public class SPointFormatter implements ResultSetFormatter
+public class UTCTimestampFormat implements ResultSetFormat
 {
+    private DateFormat dateFormat = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
+
+    @Override
+    public Object parse(String s)
+    {
+        throw new UnsupportedOperationException("TAP Formats cannot parse strings.");
+    }
+
     /**
-     * Takes a ResultSet and column index of the spoint
-     * and returns a STC-S Position String.
+     * Takes a ResultSet and column index of the Date or Timestamp
+     * and returns a String in UTC ISO8601 date format.
      *
-     * @param resultSet containing the spoint column.
+     * @param resultSet containing the Date or Timestamp column.
      * @param columnIndex index of the column in the ResultSet.
-     * @return STC-S Position String of the spoint.
+     * @return String representation of the Date or Timestamp.
      * @throws SQLException if there is an error accessing the ResultSet.
      */
-    public String format(ResultSet resultSet, int columnIndex)
+    @Override
+    public Object extract(ResultSet resultSet, int columnIndex)
         throws SQLException
     {
-        String object = resultSet.getString(columnIndex);
-        return format(object);
+        return resultSet.getTimestamp(columnIndex, Calendar.getInstance(DateUtil.UTC));
     }
 
     /**
-     * Takes a String representation of the spoint
-     * and returns a STC-S Position String.
+     * Takes an Date or Timestamp and returns a String representation
+     * in UTC ISO8601 date format.
      *
      * @param object to format.
-     * @return STC-S Position String of the spoint.
-     * @throws IllegalArgumentException if the object is not a String, or if
-     *         the String cannot be parsed.
+     * @return String representation of the object.
+     * @throws  UnsupportedOperationException if a Date cannot be contructed
+     *          from the object.
      */
+    @Override
     public String format(Object object)
     {
-        Position pos = getPosition(object);
-        if (pos == null)
+        if (object == null)
             return "";
-        return STC.format(pos);
+        Date date = null;
+        if (object instanceof Date)
+            date = (Date) object;
+        if (object instanceof java.sql.Date)
+            date = DateUtil.toDate(object);
+        if (object instanceof java.sql.Timestamp)
+            date = DateUtil.toDate(object);
+
+        if (date != null)
+            return dateFormat.format(date);
+        else
+            throw new UnsupportedOperationException("formatting " + object.getClass().getName() + " " + object);
     }
 
-    public Position getPosition(Object object)
-    {
-         if (object == null)
-            return null;
-        if (!(object instanceof String))
-            throw new IllegalArgumentException("Expected String, was " + object.getClass().getName());
-        String s = (String) object;
-
-        // Get the string inside the enclosing parentheses.
-        int open = s.indexOf("(");
-        int close = s.indexOf(")");
-        if (open == -1 || close == -1)
-            throw new IllegalArgumentException("Missing opening or closing parentheses " + s);
-
-        // Should be 2 values separated by a comma.
-        s = s.substring(open + 1, close);
-        String[] points = s.split(",");
-        if (points.length != 2)
-            throw new IllegalArgumentException("SPoint must have only 2 values " + s);
-
-        // Coordinates.
-        Double x = Double.valueOf(points[0]);
-        Double y = Double.valueOf(points[1]);
-
-        // convert to radians
-        x = x * (180/Math.PI);
-        y = y * (180/Math.PI);
-
-        // Create STC Position.
-        Position position = new Position("ICRS", null, null, x, y);
-
-        return position;
-    }
-    
 }
