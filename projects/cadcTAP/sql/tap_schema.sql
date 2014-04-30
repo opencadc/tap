@@ -45,6 +45,7 @@ create table TAP_SCHEMA.columns
 	principal     integer      NOT NULL,
 	indexed       integer      NOT NULL,
 	std           integer      NOT NULL,
+        id            varchar(32)  NULL,
 	
 	primary key (table_name,column_name),
 	foreign key (table_name) references TAP_SCHEMA.tables (table_name)
