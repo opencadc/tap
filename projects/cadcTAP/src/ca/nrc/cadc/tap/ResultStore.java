@@ -73,7 +73,8 @@ import java.io.IOException;
 import java.net.URL;
 import java.sql.ResultSet;
 
-import ca.nrc.cadc.tap.writer.VOTableWriter;
+import ca.nrc.cadc.dali.tables.TableWriter;
+import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
 import ca.nrc.cadc.uws.Job;
 
 /**
@@ -86,7 +87,7 @@ public interface ResultStore
     /**
      * Set the job performing the store operation. The implementation
      * may use this to perform custom actions, logging, etc.
-     * 
+     *
      * @param job
      */
     void setJob(Job job);
@@ -99,7 +100,7 @@ public interface ResultStore
      * @return an URL to the stored ResultSet.
      * @throws IOException
      */
-    URL put(ResultSet rs, TableWriter writer)
+    URL put(ResultSet rs, TableWriter<ResultSet> writer)
         throws IOException;
 
     /**

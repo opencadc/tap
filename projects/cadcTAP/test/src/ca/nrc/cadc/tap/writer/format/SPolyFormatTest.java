@@ -67,62 +67,72 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.writer.formatter;
+package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.stc.Circle;
-import ca.nrc.cadc.util.Log4jInit;
+import static org.junit.Assert.assertEquals;
+
+import java.util.List;
+
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Test;
-import static org.junit.Assert.*;
+
+import ca.nrc.cadc.stc.CoordPair;
+import ca.nrc.cadc.stc.Polygon;
+import ca.nrc.cadc.util.Log4jInit;
 
 /**
  *
  * @author jburke
  */
-public class SCircleFormatterTest
+public class SPolyFormatTest
 {
-    private static final Logger log = Logger.getLogger(SCircleFormatterTest.class);
+    private static final Logger log = Logger.getLogger(SPointFormatTest.class);
     static
     {
         Log4jInit.setLevel("ca", Level.INFO);
     }
-    private static final String SCIRCLE = "<(0.174532925199433 , 0.174532925199433), 0.174532925199433>";
-    private static final String STCS_CIRCLE = "CIRCLE ICRS 10.000000000000004 10.000000000000004 10.000000000000004";
+    private static final String SPOLYGON = " {(0.0349065850398866, 0.0349065850398866),(0.0349065850398866, 0.0698131700797732),(0.0523598775598299, 0.0523598775598299)}";
+    private static final String STCS_POLYGON = "POLYGON ICRS UNKNOWNREFPOS SPHERICAL2 2.0000000000000004 2.0000000000000004 2.0000000000000004 4.000000000000001 3.0000000000000004 3.0000000000000004";
 
-    public SCircleFormatterTest() { }
+    public SPolyFormatTest() { }
 
     /**
-     * Test of format method, of class SCircleFormatter.
+     * Test of format method, of class SPolyFormatter.
      */
     @Test
     public void testFormat()
     {
         log.debug("testFormat");
 
-        SCircleFormatter formatter = new SCircleFormatter();
-        String expResult = STCS_CIRCLE;
-        String result = formatter.format(SCIRCLE);
-        assertEquals(expResult, result);
+        SPolyFormat formatter = new SPolyFormat();
+        String expResult = STCS_POLYGON;
+        String result = formatter.format(SPOLYGON);
+        assertEquals(expResult.toUpperCase(), result.toUpperCase());
         log.info("testFormat passed");
     }
 
     /**
-     * Test of testGetCircle method, of class SCircleFormatter.
+     * Test of getPolygon method, of class SPolyFormatter.
      */
     @Test
-    public void testGetCircle()
+    public void testGetPosition()
     {
-        log.debug("testGetCircle");
+        log.debug("testGetPolygon");
 
-        SCircleFormatter formatter = new SCircleFormatter();
-        Circle circle = formatter.getCircle(SCIRCLE);
-        assertEquals("CIRCLE", Circle.NAME);
-        assertEquals("ICRS", circle.getFrame());
-        assertEquals(10.0, circle.getCoordPair().getX(), 0.1);
-        assertEquals(10.0, circle.getCoordPair().getY(), 0.1);
-        assertEquals(10.0, circle.getRadius(), 0.1);
-        log.info("testGetCircle passed");
+        SPolyFormat instance = new SPolyFormat();
+        Polygon polygon = instance.getPolygon(SPOLYGON);
+        assertEquals("POLYGON", Polygon.NAME.toUpperCase());
+        assertEquals("ICRS", polygon.getFrame().name().toUpperCase());
+        List<CoordPair> coordPairs = polygon.getCoordPairs();
+
+        assertEquals("", 2.0, coordPairs.get(0).getX(), 0.1);
+        assertEquals("", 2.0, coordPairs.get(0).getY(), 0.1);
+        assertEquals("", 2.0, coordPairs.get(1).getX(), 0.1);
+        assertEquals("", 4.0, coordPairs.get(1).getY(), 0.1);
+        assertEquals("", 3.0, coordPairs.get(2).getX(), 0.1);
+        assertEquals("", 3.0, coordPairs.get(2).getY(), 0.1);
+        log.info("testGetPolygon passed");
     }
 
 }

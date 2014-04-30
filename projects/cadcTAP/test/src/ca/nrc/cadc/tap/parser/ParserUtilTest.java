@@ -70,29 +70,30 @@
 package ca.nrc.cadc.tap.parser;
 
 
-import ca.nrc.cadc.stc.Box;
-import ca.nrc.cadc.stc.SpatialSubphrase;
+import java.util.ArrayList;
+import java.util.List;
+
+import junit.framework.Assert;
+import net.sf.jsqlparser.expression.DoubleValue;
+import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.expression.StringValue;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import ca.nrc.cadc.stc.Box;
 import ca.nrc.cadc.tap.parser.extractor.SelectListExtractor;
 import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.util.Log4jInit;
-import java.util.ArrayList;
-import java.util.List;
-import junit.framework.Assert;
-import net.sf.jsqlparser.expression.DoubleValue;
-import net.sf.jsqlparser.expression.Function;
-import net.sf.jsqlparser.expression.StringValue;
-import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 
 
 /**
@@ -120,7 +121,7 @@ public class ParserUtilTest
     @BeforeClass
     public static void setUpBeforeClass() throws Exception
     {
-        Log4jInit.setLevel("ca.nrc.cadc", Level.INFO);
+        Log4jInit.setLevel("ca.nrc.cadc", Level.DEBUG);
     }
 
     /**
@@ -170,7 +171,7 @@ public class ParserUtilTest
         f.setParameters(args);
         return f;
     }
-   
+
     @Test
     public void testAdqlToStcBoxFrame()
     {
@@ -181,12 +182,11 @@ public class ParserUtilTest
         {
             Function f = createFunction(frame, refpos, flavor, 3.0, 3.0, 1.0, 1.0);
             Box b = ParserUtil.convertToStcBox(f);
-            Assert.assertEquals(b.getFrame(), frame);
-            Assert.assertEquals(b.getRefPos(), SpatialSubphrase.DEFAULT_REFPOS);
-            Assert.assertEquals(b.getFlavor(), SpatialSubphrase.DEFAULT_FLAVOR);
+            Assert.assertEquals(b.getFrame().name().toUpperCase(), frame.toUpperCase());
         }
         catch(Throwable t)
         {
+            log.debug(t.getMessage(), t);
             Assert.fail("unexpected exception " + t);
         }
     }
@@ -200,12 +200,12 @@ public class ParserUtilTest
         {
             Function f = createFunction(frame, refpos, flavor, 3.0, 3.0, 1.0, 1.0);
             Box b = ParserUtil.convertToStcBox(f);
-            Assert.assertEquals(b.getFrame().toUpperCase(), frame.toUpperCase());
-            Assert.assertEquals(b.getRefPos().toUpperCase(), refpos.toUpperCase());
-            Assert.assertEquals(b.getFlavor(), SpatialSubphrase.DEFAULT_FLAVOR);
+            Assert.assertEquals(b.getFrame().name().toUpperCase(), frame.toUpperCase());
+            Assert.assertEquals(b.getRefPos().name().toUpperCase(), refpos.toUpperCase());
         }
         catch(Throwable t)
         {
+            log.debug(t.getMessage(), t);
             Assert.fail("unexpected exception " + t);
         }
     }
@@ -219,12 +219,13 @@ public class ParserUtilTest
         {
             Function f = createFunction(frame, refpos, flavor, 3.0, 3.0, 1.0, 1.0);
             Box b = ParserUtil.convertToStcBox(f);
-            Assert.assertEquals(b.getFrame().toUpperCase(), frame.toUpperCase());
-            Assert.assertEquals(b.getRefPos().toUpperCase(), refpos.toUpperCase());
-            Assert.assertEquals(b.getFlavor().toUpperCase(), flavor.toUpperCase());
+            Assert.assertEquals(b.getFrame().name().toUpperCase(), frame.toUpperCase());
+            Assert.assertEquals(b.getRefPos().name().toUpperCase(), refpos.toUpperCase());
+            Assert.assertEquals(b.getFlavor().name().toUpperCase(), flavor.toUpperCase());
         }
         catch(Throwable t)
         {
+            log.debug(t.getMessage(), t);
             Assert.fail("unexpected exception " + t);
         }
     }
@@ -251,6 +252,6 @@ public class ParserUtilTest
     }
 
     // TODO: add tests with jsqlparser LongValue arguments
-    
+
     // TODO: add tests that provoke the various exceptions
 }

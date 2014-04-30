@@ -8,7 +8,7 @@
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 *  All rights reserved                  Tous droits réservés
-*                                       
+*
 *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 *  expressed, implied, or               énoncée, implicite ou légale,
 *  statutory, of any kind with          de quelque nature que ce
@@ -31,10 +31,10 @@
 *  software without specific prior      de ce logiciel sans autorisation
 *  written permission.                  préalable et particulière
 *                                       par écrit.
-*                                       
+*
 *  This file is part of the             Ce fichier fait partie du projet
 *  OpenCADC project.                    OpenCADC.
-*                                       
+*
 *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 *  you can redistribute it and/or       vous pouvez le redistribuer ou le
 *  modify it under the terms of         modifier suivant les termes de
@@ -44,7 +44,7 @@
 *  either version 3 of the              : soit la version 3 de cette
 *  License, or (at your option)         licence, soit (à votre gré)
 *  any later version.                   toute version ultérieure.
-*                                       
+*
 *  OpenCADC is distributed in the       OpenCADC est distribué
 *  hope that it will be useful,         dans l’espoir qu’il vous
 *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -54,7 +54,7 @@
 *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 *  General Public License for           Générale Publique GNU Affero
 *  more details.                        pour plus de détails.
-*                                       
+*
 *  You should have received             Vous devriez avoir reçu une
 *  a copy of the GNU Affero             copie de la Licence Générale
 *  General Public License along         Publique GNU Affero avec
@@ -67,103 +67,86 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap;
+package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.tap.schema.ParamDesc;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.sql.ResultSet;
-import java.util.List;
-
-import ca.nrc.cadc.tap.schema.TapSchema;
-import ca.nrc.cadc.uws.Job;
-import ca.nrc.cadc.uws.Parameter;
+import ca.nrc.cadc.tap.writer.format.IntArrayFormat;
+import ca.nrc.cadc.util.Log4jInit;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
 /**
- * Interface for classes that write tables in specific formats.
- * 
- * @see TableWriterFactory
- * @author pdowler
+ *
+ * @author jburke
  */
-public interface TableWriter
+public class IntArrayFormatTest
 {
-    /**
-     * Provide the jobID to the TableWriter so it can include it with the output.
-     * 
-     * @param jobID
-     * @deprecated since setJob(Job) was added
-     */
-    public void setJobID(String jobID);
+    private static final Logger LOG = Logger.getLogger(IntArrayFormatTest.class);
+    static
+    {
+        Log4jInit.setLevel("ca", Level.INFO);
+    }
+
+    public IntArrayFormatTest() { }
+
+    @BeforeClass
+    public static void setUpClass() throws Exception
+    {
+    }
+
+    @AfterClass
+    public static void tearDownClass() throws Exception
+    {
+    }
+
+    @Before
+    public void setUp() { }
+
+    @After
+    public void tearDown() { }
 
     /**
-     * The complete list of job parameters. This is here to allow implementations to
-     * provide custom extensions such as client control of the output.
-     *
-     * @param params
-     * @deprecated since setJob(Job) was added
+     * Test of format method, of class IntArrayFormatter.
      */
-    public void setParameterList(List<Parameter> params);
-
-    /**
-     * Provide the job to the TableWriter.
-     *
-     * @param job
-     */
-    public void setJob(Job job);
+    @Test
+    public void testFormat()
+    {
+        LOG.debug("testFormat");
+        Object object = null;
+        IntArrayFormat instance = new IntArrayFormat();
+        String expResult = "";
+        String result = instance.format(object);
+        assertEquals(expResult, result);
+        LOG.info("testFormat passed");
+    }
     
-    /**
-     * Get the usual filename extension for this format.
-     * 
-     * @return filename extension
-     */
-    String getExtension();
+    @Test
+    public void testFormatPrimitiveInt()
+    {
+        LOG.debug("testFormatPrimitiveInt");
+        Object object = new int[] { 1, 2 };
+        IntArrayFormat instance = new IntArrayFormat();
+        String expResult = "1 2";
+        String result = instance.format(object);
+        assertEquals(expResult, result);
+        LOG.info("testFormatPrimitiveInt passed");
+    }
     
-    /**
-     * Get the usual or requested content-type (mimetype).
-     * 
-     * @return content-type
-     */
-    String getContentType();
+    @Test
+    public void testFormatWrappedInteger()
+    {
+        LOG.debug("testFormatWrappedInteger");
+        Object object = new Integer[] { 1, 2 };
+        IntArrayFormat instance = new IntArrayFormat();
+        String expResult = "1 2";
+        String result = instance.format(object);
+        assertEquals(expResult, result);
+        LOG.info("testFormatWrappedInteger passed");
+    }
 
-    /**
-     * The ordered selected items from the query.
-     * 
-     * @param items
-     */
-    void setSelectList(List<ParamDesc> items);
-    
-    /**
-     * The TapSchema for the target database.
-     * 
-     * @param schema
-     * @deprecated not used since ParamDesc now contains the datatype.
-     */
-    void setTapSchema(TapSchema schema);
-    
-    /**
-     * Set additional information or description of the result. The implementation may
-     * include this text in the output (as a comment or wherever such descriptive text
-     * is permitted by the format).
-     * 
-     * @see TapQuery.getInfo()
-     * @param info
-     */
-    void setQueryInfo(String info);
-
-    /**
-     * Write ResultSet to the OutputStream.
-     *
-     * @param rs
-     * @param out
-     * @throws IOException
-     */
-    void write(ResultSet rs, OutputStream out)
-        throws IOException;
-
-    /**
-     * Limit number of table rows.
-     *
-     * @param count
-     */
-    void setMaxRowCount(int count);
 }

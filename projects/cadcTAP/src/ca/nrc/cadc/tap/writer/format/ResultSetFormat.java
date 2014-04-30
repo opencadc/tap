@@ -67,61 +67,19 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.writer.formatter;
+package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.util.Log4jInit;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import static org.junit.Assert.*;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+import ca.nrc.cadc.dali.util.Format;
 
 /**
- *
- * @author jburke
+ * Extension of the format interface that allows for database
+ * specific object extraction.
  */
-public class ByteArrayFormatterTest
+public interface ResultSetFormat extends Format<Object>
 {
-    private static final Logger LOG = Logger.getLogger(ByteArrayFormatterTest.class);
-    static
-    {
-        Log4jInit.setLevel("ca", Level.INFO);
-    }
-
-    public ByteArrayFormatterTest() { }
-
-    @BeforeClass
-    public static void setUpClass() throws Exception
-    {
-    }
-
-    @AfterClass
-    public static void tearDownClass() throws Exception
-    {
-    }
-
-    @Before
-    public void setUp() { }
-
-    @After
-    public void tearDown() { }
-
-    /**
-     * Test of format method, of class ByteArrayFormatter.
-     */
-    @Test
-    public void testFormat()
-    {
-        LOG.debug("testFormat");
-        Object object = null;
-        ByteArrayFormatter instance = new ByteArrayFormatter();
-        String expResult = "";
-        String result = instance.format(object);
-        assertEquals(expResult, result);
-        LOG.info("testFormat passed");
-    }
-
+    Object extract(ResultSet resultSet, int columnIndex)
+        throws SQLException;
 }

@@ -8,7 +8,7 @@
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 *  All rights reserved                  Tous droits réservés
-*                                       
+*
 *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 *  expressed, implied, or               énoncée, implicite ou légale,
 *  statutory, of any kind with          de quelque nature que ce
@@ -31,10 +31,10 @@
 *  software without specific prior      de ce logiciel sans autorisation
 *  written permission.                  préalable et particulière
 *                                       par écrit.
-*                                       
+*
 *  This file is part of the             Ce fichier fait partie du projet
 *  OpenCADC project.                    OpenCADC.
-*                                       
+*
 *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 *  you can redistribute it and/or       vous pouvez le redistribuer ou le
 *  modify it under the terms of         modifier suivant les termes de
@@ -44,7 +44,7 @@
 *  either version 3 of the              : soit la version 3 de cette
 *  License, or (at your option)         licence, soit (à votre gré)
 *  any later version.                   toute version ultérieure.
-*                                       
+*
 *  OpenCADC is distributed in the       OpenCADC est distribué
 *  hope that it will be useful,         dans l’espoir qu’il vous
 *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -54,7 +54,7 @@
 *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 *  General Public License for           Générale Publique GNU Affero
 *  more details.                        pour plus de détails.
-*                                       
+*
 *  You should have received             Vous devriez avoir reçu une
 *  a copy of the GNU Affero             copie de la Licence Générale
 *  General Public License along         Publique GNU Affero avec
@@ -93,11 +93,14 @@ import net.sf.jsqlparser.statement.select.SelectItem;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.stc.Box;
+import ca.nrc.cadc.stc.Flavor;
+import ca.nrc.cadc.stc.Frame;
+import ca.nrc.cadc.stc.ReferencePosition;
 import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
 
 /**
  * Utility class for the use of Tap Parser.
- * 
+ *
  * @author zhangsa
  *
  *
@@ -118,7 +121,7 @@ public class ParserUtil
 
     /**
      * Parse a SQL/ADQL string using JSqlParser, return the result Statement.
-     * 
+     *
      * @param query
      * @return
      * @throws JSQLParserException SQL syntax error
@@ -135,7 +138,7 @@ public class ParserUtil
 
     /**
      * Extract a list of Table from the FROM part of query.
-     *  
+     *
      */
     @SuppressWarnings("unchecked")
     public static List<Table> getFromTableList(PlainSelect ps)
@@ -166,7 +169,7 @@ public class ParserUtil
 
     /**
      * Find "from Table" by table name or alias.
-     * 
+     *
      * @param plainSelect
      * @param tableNameOrAlias
      * @return Table object
@@ -188,7 +191,7 @@ public class ParserUtil
 
     /**
      * find SelectItem by column name or alias.
-     * 
+     *
      * @param plainSelect
      * @param columnNameOrAlias
      * @return SelectItem object
@@ -215,7 +218,7 @@ public class ParserUtil
 
     /**
      * count number of SelectItems in a plainSelect.
-     * 
+     *
      * @param plainSelect
      * @return int
      */
@@ -227,8 +230,8 @@ public class ParserUtil
     /**
      * Find the column in select item which matches alias.
      * return null if not found, or if not column type.
-     * 
-     * @param plainSelect 
+     *
+     * @param plainSelect
      * @param alias
      * @return Column
      */
@@ -246,7 +249,7 @@ public class ParserUtil
 
     /**
      * Determine whether Expression parameter is a binary value (0 or 1).
-     * 
+     *
      * @param Expression
      * @return true if parameter is 0/1, false for others.
      */
@@ -263,7 +266,7 @@ public class ParserUtil
 
     /**
      * Convert  ADQL BOX function to STC Box .
-     * 
+     *
      * @param adqlFunction ADQL Function, such as: BOX('ICRS GEOCENTER', 10, 20, 30, 40)
      */
     @SuppressWarnings("unchecked")
@@ -298,7 +301,7 @@ public class ParserUtil
             double width = parseToDouble(adqlParams.get(3));
             double height = parseToDouble(adqlParams.get(4));
 
-            box = new Box(frame, refpos, flavor, ra, dec, width, height);
+            box = new Box(getFrame(frame), getReferencePosition(refpos), getFlavor(flavor), ra, dec, width, height);
         }
         else
             throw new IllegalArgumentException("Not recognized as a BOX function: " + adqlFunction);
@@ -331,5 +334,26 @@ public class ParserUtil
         if (param instanceof StringValue) return ((StringValue) param).getNotExcapedValue();
 
         throw new IllegalArgumentException("Cannot be parsed as double value: " + param);
+    }
+
+    public static Frame getFrame(String frame)
+    {
+        if (frame == null || frame.length() == 0)
+            return null;
+        return Frame.toValue(frame);
+    }
+
+    public static ReferencePosition getReferencePosition(String refpos)
+    {
+        if (refpos == null || refpos.length() == 0)
+            return null;
+        return ReferencePosition.toValue(refpos);
+    }
+
+    public static Flavor getFlavor(String flavor)
+    {
+        if (flavor == null || flavor.length() == 0)
+            return null;
+        return Flavor.toValue(flavor);
     }
 }

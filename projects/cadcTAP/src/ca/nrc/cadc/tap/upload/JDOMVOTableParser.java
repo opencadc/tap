@@ -69,12 +69,6 @@
 
 package ca.nrc.cadc.tap.upload;
 
-import ca.nrc.cadc.tap.BasicUploadManager;
-import ca.nrc.cadc.tap.schema.ColumnDesc;
-import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.upload.datatype.ADQLDataType;
-import ca.nrc.cadc.tap.writer.VOTableWriter;
-import ca.nrc.cadc.xml.XmlUtil;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -82,6 +76,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.log4j.Logger;
 import org.jdom.Document;
 import org.jdom.Element;
@@ -89,9 +84,16 @@ import org.jdom.JDOMException;
 import org.jdom.Namespace;
 import org.jdom.input.SAXBuilder;
 
+import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
+import ca.nrc.cadc.tap.BasicUploadManager;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.upload.datatype.ADQLDataType;
+import ca.nrc.cadc.xml.XmlUtil;
+
 /**
  * Implements the VOTableParser interface using JDOM.
- * 
+ *
  * @author jburke
  */
 public class JDOMVOTableParser implements VOTableParser
@@ -127,7 +129,7 @@ public class JDOMVOTableParser implements VOTableParser
 
         url = XmlUtil.getResourceUrlString(VOTABLE_11_SCHEMA, JDOMVOTableParser.class);
         schemaMap.put(VOTableWriter.VOTABLE_11_NS_URI, url);
-        
+
         url = XmlUtil.getResourceUrlString(VOTABLE_12_SCHEMA, JDOMVOTableParser.class);
         schemaMap.put(VOTableWriter.VOTABLE_12_NS_URI, url);
     }
@@ -137,6 +139,7 @@ public class JDOMVOTableParser implements VOTableParser
      *
      * @param tableName the VOTable name.
      */
+    @Override
     public void setTableName(String tableName)
     {
         this.tableName = tableName;
@@ -147,6 +150,7 @@ public class JDOMVOTableParser implements VOTableParser
      *
      * @param URI URI tot the VOTable.
      */
+    @Override
     public void setInputStream(InputStream in)
     {
         this.in = in;
@@ -158,6 +162,7 @@ public class JDOMVOTableParser implements VOTableParser
      * @throws VOTableParserException if unable to parse the VOTable.
      * @return List of ColumnDesc describing the VOTable columns.
      */
+    @Override
     public TableDesc getTableDesc()
         throws VOTableParserException
     {
@@ -166,7 +171,7 @@ public class JDOMVOTableParser implements VOTableParser
 
         SAXBuilder parser = XmlUtil.createBuilder(schemaMap);
         List<ColumnDesc> columns = new ArrayList<ColumnDesc>();
-        
+
         try
         {
             document = parser.build(in);
@@ -225,11 +230,12 @@ public class JDOMVOTableParser implements VOTableParser
      *
      * @return Iterator to the VOTable data.
      */
+    @Override
     public Iterator iterator()
     {
         return new VOTableIterator();
     }
-    
+
     /**
      * Implements the Iterator interface over the VOTable data rows.
      */
@@ -240,6 +246,7 @@ public class JDOMVOTableParser implements VOTableParser
          *
          * @return true if there is another data row, false otherwise.
          */
+        @Override
         public boolean hasNext()
         {
             if (!hasTableRows)
@@ -269,6 +276,7 @@ public class JDOMVOTableParser implements VOTableParser
          *
          * @return String array containing the next data row.
          */
+        @Override
         public Object next()
         {
             Element tableRow = tableRowIter.next();
@@ -281,12 +289,13 @@ public class JDOMVOTableParser implements VOTableParser
                     s = null;
                 rowData.add(s);
             }
-            return (String[]) rowData.toArray(new String[0]);
+            return rowData.toArray(new String[0]);
         }
 
         /**
          * Not supported.
          */
+        @Override
         public void remove()
         {
             throw new UnsupportedOperationException("remove on a VOTable row not supported.");

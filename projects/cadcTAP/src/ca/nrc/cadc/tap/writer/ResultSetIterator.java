@@ -67,66 +67,101 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.writer.formatter;
+package ca.nrc.cadc.tap.writer;
 
-import ca.nrc.cadc.date.DateUtil;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.util.Calendar;
-import java.util.Date;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
 
-/**
- * Formats a Date or Timestamp into a String.
- * 
- */
-public class LocalTimestampFormatter implements ResultSetFormatter
+import ca.nrc.cadc.dali.util.Format;
+import ca.nrc.cadc.tap.writer.format.ResultSetFormat;
+
+public class ResultSetIterator implements Iterator<List<Object>>
 {
-    private DateFormat dateFormat = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.LOCAL);
-    
-    /**
-     *
-     * Takes a ResultSet and column index of the Date or Timestamp
-     * and returns a String in ISO8601 date format.
-     * 
-     * @param resultSet containing the Date or Timestamp column.
-     * @param columnIndex index of the column in the ResultSet.
-     * @return String representation of the Date or Timestamp.
-     * @throws SQLException if there is an error accessing the ResultSet.
-     */
-    public String format(ResultSet resultSet, int columnIndex)
-        throws SQLException
+    private ResultSet rs;
+    private boolean hasNext;
+    private List<Format<Object>> formats;
+
+    public ResultSetIterator(ResultSet rs, List<Format<Object>> formats)
     {
-        Timestamp object = resultSet.getTimestamp(columnIndex, Calendar.getInstance(DateUtil.LOCAL));
-        return format(object);
+
+        if (rs != null && formats != null)
+        {
+            try
+            {
+                if (rs.getMetaData().getColumnCount() != formats.size())
+                    throw new IllegalArgumentException("Wrong number of formats for result set.");
+            }
+            catch (SQLException e)
+            {
+                throw new RuntimeException(e.getMessage());
+            }
+        }
+
+        this.rs = rs;
+        this.formats = formats;
+        if (rs == null)
+        {
+            this.hasNext = false;
+            return;
+        }
+        try
+        {
+            this.hasNext = rs.next();
+        }
+        catch(SQLException e)
+        {
+            hasNext = false;
+            throw new RuntimeException(e.getMessage());
+        }
     }
 
-    /**
-     * Takes an Date or Timestamp and returns a String representation
-     * in ISO8601 date format.
-     *
-     * @param object to format.
-     * @return String representation of the object.
-     * @throws  UnsupportedOperationException if a Date cannot be contructed
-     *          from the object.
-     */
-    public String format(Object object)
+    @Override
+    public boolean hasNext()
     {
-        if (object == null)
-            return "";
-        Date date = null;
-        if (object instanceof Date)
-            date = (Date) object;
-        if (object instanceof java.sql.Date)
-            date = DateUtil.toDate(object);
-        if (object instanceof java.sql.Timestamp)
-            date = DateUtil.toDate(object);
-
-        if (date != null)
-            return dateFormat.format(date);
-        else
-            throw new UnsupportedOperationException("formatting " + object.getClass().getName() + " " + object);
+        return hasNext;
     }
 
+    @Override
+    public List<Object> next()
+    {
+        try
+        {
+            // If no more rows in the ResultSet throw a NoSuchElementException.
+            if (!hasNext)
+                throw new NoSuchElementException("No more rows in the ResultSet");
+
+            List<Object> next = new ArrayList<Object>();
+            Object nextObj = null;
+            Format<Object> nextFormat = null;
+
+            for (int columnIndex = 1; columnIndex <= rs.getMetaData().getColumnCount(); columnIndex++)
+            {
+                nextFormat = formats.get(columnIndex - 1);
+                if (nextFormat instanceof ResultSetFormat)
+                    nextObj = ((ResultSetFormat) nextFormat).extract(rs, columnIndex);
+                else
+                    nextObj = rs.getObject(columnIndex);
+                next.add(nextObj);
+            }
+            // Get the next row.
+            hasNext = rs.next();
+
+            return next;
+        }
+        catch (SQLException e)
+        {
+            hasNext = false;
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    @Override
+    public void remove()
+    {
+        throw new UnsupportedOperationException();
+    }
 }

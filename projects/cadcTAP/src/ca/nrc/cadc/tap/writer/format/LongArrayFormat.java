@@ -67,16 +67,31 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.writer.formatter;
+package ca.nrc.cadc.tap.writer.format;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /**
  *
  * @author pdowler
  */
-public class LongArrayFormatter  implements Formatter
+public class LongArrayFormat implements ResultSetFormat
 {
+
+    @Override
+    public Object parse(String s)
+    {
+        throw new UnsupportedOperationException("TAP Formats cannot parse strings.");
+    }
+
+    @Override
+    public Object extract(ResultSet resultSet, int columnIndex)
+            throws SQLException
+    {
+        return resultSet.getObject(columnIndex);
+    }
+
     /**
      * Takes an int[] contained in a java.sql.Array and returns
      * the default String representation.
@@ -85,6 +100,7 @@ public class LongArrayFormatter  implements Formatter
      * @return String represenetation of the int[].
      * @throws IllegalArgumentException if the object is not an int[];
      */
+    @Override
     public String format(Object object)
     {
         if (object == null)
@@ -132,4 +148,6 @@ public class LongArrayFormatter  implements Formatter
         }
         return sb.substring(0, sb.length() - 1); // trim trailing space
     }
+
+
 }
