@@ -108,7 +108,7 @@ public class TapSchemaDAO
 
     // SQL to select all rows from TAP_SCHEMA.colums.
     private static final String SELECT_COLUMNS = 
-            "select table_name, column_name, description, utype, ucd, unit, datatype, size, principal, indexed, std " +
+            "select table_name, column_name, description, utype, ucd, unit, datatype, size, principal, indexed, std, id " +
             "from " + COLUMNS_TAB;
     private static final String ORDER_COLUMNS = " ORDER BY table_name,column_name";
     
@@ -230,9 +230,6 @@ public class TapSchemaDAO
         // Add the List of FunctionDescs.
         tapSchema.functionDescs = getFunctionDescs();
         
-        // HACK: experimental 
-        addGroupDescs(tapSchema);
-
         for (SchemaDesc s : tapSchema.schemaDescs) 
         {
             int num = 0;
@@ -244,22 +241,6 @@ public class TapSchemaDAO
         return tapSchema;
     }
     
-    /**
-     * EXPERIMENTAL GroupDesc to a map. This method is responsible for marking identifier columns with an
-     * id and then adding a group to a map with that same id as the key. If the column is selected
-     * in a query, the FIELD will be tagged with the id (VOTable output) and the group will be 
-     * included in the header.
-     * </p><p>
-     * The default implementation here does nothing. Users of the library should override
-     * this method in their sub-class (delegate) to set id(s) and add group(s).
-     * 
-     * @param tapSchema 
-     */
-    protected void addGroupDescs(TapSchema tapSchema)
-    {
-        // no-op
-    }
-
     /**
      * Append a where clause to the query that selects from the specified table.
      * The default impl does nothing (returns in the provided SQL as-is).
@@ -532,6 +513,7 @@ public class TapSchemaDAO
             col.principal = intToBoolean(rs.getInt("principal"));
             col.indexed = intToBoolean(rs.getInt("indexed"));
             col.std = intToBoolean(rs.getInt("std"));
+            col.id = rs.getString("id");
             //log.debug("found: " + col);
             return col;
         }

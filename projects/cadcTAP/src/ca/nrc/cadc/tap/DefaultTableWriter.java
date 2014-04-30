@@ -39,6 +39,7 @@ import ca.nrc.cadc.tap.writer.format.FormatFactory;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
 import ca.nrc.cadc.uws.ParameterUtil;
+import java.util.Iterator;
 
 public class DefaultTableWriter implements TableWriter<ResultSet>
 {
@@ -69,8 +70,6 @@ public class DefaultTableWriter implements TableWriter<ResultSet>
 
     private static final Map<String,String> knownFormats = new TreeMap<String,String>();
 
-    private static final String DATALINK_SERVICE_URI = "ivo://cadc.nrc.ca/datalink";
-
     static
     {
         knownFormats.put(APPLICATION_VOTABLE_XML, VOTABLE);
@@ -98,7 +97,6 @@ public class DefaultTableWriter implements TableWriter<ResultSet>
     // RssTableWriter not yet ported to cadcDALI
     private TableWriter<VOTableDocument> tableWriter;
     private RssTableWriter rssTableWriter;
-    private FormatFactory formatFactory;
 
     // once the RssTableWriter is converted to use the DALI format
     // of writing, this reference will not be needed
@@ -266,48 +264,45 @@ public class DefaultTableWriter implements TableWriter<ResultSet>
     {
         for (String serviceID : serviceIDs)
         {
-            InputStream is = DefaultTableWriter.class.getClassLoader().getResourceAsStream(serviceID + ".xml");
+            String filename = serviceID + ".xml";
+            InputStream is = DefaultTableWriter.class.getClassLoader().getResourceAsStream(filename);
             if (is == null)
             {
                 throw new MissingResourceException(
-                    "Resource not found: " + serviceID + ".xml", DefaultTableWriter.class.getName(), serviceID + ".xml");
+                    "Resource not found: " + serviceID + ".xml", DefaultTableWriter.class.getName(), filename);
             }
             VOTableReader reader = new VOTableReader();
             VOTableDocument serviceDocument = reader.read(is);
             VOTableResource metaResource = serviceDocument.getResourceByType("meta");
+            votableDocument.getResources().add(metaResource);
 
-            // set the access URL
+            // set the access URL from resourceIdentifier if possible
             RegistryClient regClient = new RegistryClient();
-            URL cutoutServiceURL = null;
+            
             try
             {
-                cutoutServiceURL = regClient.getServiceURL(new URI(DATALINK_SERVICE_URI));
+                URI resourceIdentifier = null;
+                Iterator<VOTableParam> i = metaResource.getParams().iterator();
+                while ( i.hasNext() )
+                {
+                    VOTableParam vp = i.next();
+                    if (vp.getName().equals("resourceIdentifier"))
+                    {
+                        resourceIdentifier = new URI(vp.getValue());
+                    }
+                }
+                if (resourceIdentifier != null)
+                {
+                    URL accessURL = regClient.getServiceURL(resourceIdentifier);
+                    String surl = accessURL.toExternalForm();
+                    VOTableParam accessParam = new VOTableParam("accessURL", "char", surl.length(), false, surl);
+                    metaResource.getParams().add(accessParam);
+                }
             }
             catch (URISyntaxException e)
             {
-                throw new RuntimeException("Datalink service URI is invalid: " + DATALINK_SERVICE_URI, e);
+                throw new RuntimeException("resourceIdentifier in " + filename + " is invalid", e);
             }
-            VOTableParam accessURLParam = null;
-            for (VOTableParam param : metaResource.getParams())
-            {
-                if (param.getName().equals("accessURL"))
-                {
-                    accessURLParam = param;
-                }
-            }
-
-            if (accessURLParam == null)
-                throw new MissingResourceException(
-                    "accessURL parameter missing from " + serviceID + ".xml", DefaultTableWriter.class.getName(), "accessURL");
-
-            VOTableParam newAccessURL = new VOTableParam(
-                    accessURLParam.getName(), accessURLParam.getDatatype(), accessURLParam.getArraysize(),
-                    accessURLParam.isVariableSize(), cutoutServiceURL.toString());
-            metaResource.getParams().remove(accessURLParam);
-            metaResource.getParams().add(newAccessURL);
-
-            // add the meta resource to the document
-            votableDocument.getResources().add(metaResource);
         }
     }
 
