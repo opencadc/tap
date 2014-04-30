@@ -89,6 +89,7 @@ import javax.sql.DataSource;
 
 import org.apache.log4j.Logger;
 
+import ca.nrc.cadc.dali.tables.TableWriter;
 import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
 import ca.nrc.cadc.log.WebServiceLogInfo;
 import ca.nrc.cadc.tap.schema.ParamDesc;
@@ -353,7 +354,7 @@ public class QueryRunner implements JobRunner
             String queryInfo = tapQuery.getInfo();
 
             log.debug("invoking TableWriterFactory for FORMAT...");
-            ca.nrc.cadc.dali.tables.TableWriter<ResultSet> tableWriter = new DefaultTableWriter(job, selectList, queryInfo);
+            TableWriter<ResultSet> tableWriter = new DefaultTableWriter(job, selectList, queryInfo);
 
             tList.add(System.currentTimeMillis());
             sList.add("parse/convert query: ");

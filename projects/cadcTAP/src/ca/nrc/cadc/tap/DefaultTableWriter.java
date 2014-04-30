@@ -2,13 +2,18 @@ package ca.nrc.cadc.tap;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.MissingResourceException;
 import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
@@ -19,10 +24,13 @@ import ca.nrc.cadc.dali.tables.ascii.AsciiTableWriter;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableField;
 import ca.nrc.cadc.dali.tables.votable.VOTableInfo;
+import ca.nrc.cadc.dali.tables.votable.VOTableParam;
+import ca.nrc.cadc.dali.tables.votable.VOTableReader;
 import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
 import ca.nrc.cadc.dali.util.Format;
+import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.tap.schema.ParamDesc;
 import ca.nrc.cadc.tap.writer.ResultSetTableData;
 import ca.nrc.cadc.tap.writer.RssTableWriter;
@@ -60,6 +68,8 @@ public class DefaultTableWriter implements TableWriter<ResultSet>
     private static final String TEXT_XML = "text/xml";
 
     private static final Map<String,String> knownFormats = new TreeMap<String,String>();
+
+    private static final String DATALINK_SERVICE_URI = "ivo://cadc.nrc.ca/datalink";
 
     static
     {
@@ -116,7 +126,10 @@ public class DefaultTableWriter implements TableWriter<ResultSet>
 
         String formatParam = ParameterUtil.findParameterValue("FORMAT", job.getParameterList());
 
-        // Create the table writer, handle RSS the old way for now
+        // Create the table writer (handle RSS the old way for now)
+        // Note: This needs to be done before the write method is called so the contentType
+        // can be determined from the table writer.
+
         if (type.equals(RSS))
         {
             rssTableWriter = new RssTableWriter(queryInfo);
@@ -191,7 +204,7 @@ public class DefaultTableWriter implements TableWriter<ResultSet>
         formatFactory.setParamList(job.getParameterList());
         List<Format<Object>> formats = formatFactory.getFormats(selectList);
 
-        List<String> columnIDs = new ArrayList<String>();
+        List<String> serviceIDs = new ArrayList<String>();
         int listIndex = 0;
 
         // Add the metadata elements.
@@ -204,8 +217,9 @@ public class DefaultTableWriter implements TableWriter<ResultSet>
 
             resultsTable.getFields().add(newField);
 
-            if (paramDesc.id != null && !columnIDs.contains(paramDesc.id))
-                columnIDs.add(paramDesc.id);
+            if (paramDesc.columnDesc != null && paramDesc.columnDesc.id != null)
+                if (!serviceIDs.contains(paramDesc.columnDesc.id))
+                    serviceIDs.add(paramDesc.columnDesc.id);
 
             listIndex++;
         }
@@ -213,8 +227,9 @@ public class DefaultTableWriter implements TableWriter<ResultSet>
         resultsResource.setTable(resultsTable);
         votableDocument.getResources().add(resultsResource);
 
-        // TODO: Add the "meta" resources to describe services for each columnID in
+        // Add the "meta" resources to describe services for each columnID in
         // list columnIDs that we recognize
+        addMetaResources(votableDocument, serviceIDs);
 
         TableData tableData = new ResultSetTableData(rs, formats);
 
@@ -246,6 +261,55 @@ public class DefaultTableWriter implements TableWriter<ResultSet>
         }
     }
 
+    private void addMetaResources(VOTableDocument votableDocument, List<String> serviceIDs)
+        throws IOException
+    {
+        for (String serviceID : serviceIDs)
+        {
+            InputStream is = DefaultTableWriter.class.getClassLoader().getResourceAsStream(serviceID + ".xml");
+            if (is == null)
+            {
+                throw new MissingResourceException(
+                    "Resource not found: " + serviceID + ".xml", DefaultTableWriter.class.getName(), serviceID + ".xml");
+            }
+            VOTableReader reader = new VOTableReader();
+            VOTableDocument serviceDocument = reader.read(is);
+            VOTableResource metaResource = serviceDocument.getResourceByType("meta");
+
+            // set the access URL
+            RegistryClient regClient = new RegistryClient();
+            URL cutoutServiceURL = null;
+            try
+            {
+                cutoutServiceURL = regClient.getServiceURL(new URI(DATALINK_SERVICE_URI));
+            }
+            catch (URISyntaxException e)
+            {
+                throw new RuntimeException("Datalink service URI is invalid: " + DATALINK_SERVICE_URI, e);
+            }
+            VOTableParam accessURLParam = null;
+            for (VOTableParam param : metaResource.getParams())
+            {
+                if (param.getName().equals("accessURL"))
+                {
+                    accessURLParam = param;
+                }
+            }
+
+            if (accessURLParam == null)
+                throw new MissingResourceException(
+                    "accessURL parameter missing from " + serviceID + ".xml", DefaultTableWriter.class.getName(), "accessURL");
+
+            VOTableParam newAccessURL = new VOTableParam(
+                    accessURLParam.getName(), accessURLParam.getDatatype(), accessURLParam.getArraysize(),
+                    accessURLParam.isVariableSize(), cutoutServiceURL.toString());
+            metaResource.getParams().remove(accessURLParam);
+            metaResource.getParams().add(newAccessURL);
+
+            // add the meta resource to the document
+            votableDocument.getResources().add(metaResource);
+        }
+    }
 
 
     public static String getTableFormat(List<Parameter> params)
