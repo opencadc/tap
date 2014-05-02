@@ -8,7 +8,7 @@
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 *  All rights reserved                  Tous droits réservés
-*                                       
+*
 *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 *  expressed, implied, or               énoncée, implicite ou légale,
 *  statutory, of any kind with          de quelque nature que ce
@@ -31,10 +31,10 @@
 *  software without specific prior      de ce logiciel sans autorisation
 *  written permission.                  préalable et particulière
 *                                       par écrit.
-*                                       
+*
 *  This file is part of the             Ce fichier fait partie du projet
 *  OpenCADC project.                    OpenCADC.
-*                                       
+*
 *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 *  you can redistribute it and/or       vous pouvez le redistribuer ou le
 *  modify it under the terms of         modifier suivant les termes de
@@ -44,7 +44,7 @@
 *  either version 3 of the              : soit la version 3 de cette
 *  License, or (at your option)         licence, soit (à votre gré)
 *  any later version.                   toute version ultérieure.
-*                                       
+*
 *  OpenCADC is distributed in the       OpenCADC est distribué
 *  hope that it will be useful,         dans l’espoir qu’il vous
 *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -54,7 +54,7 @@
 *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 *  General Public License for           Générale Publique GNU Affero
 *  more details.                        pour plus de détails.
-*                                       
+*
 *  You should have received             Vous devriez avoir reçu une
 *  a copy of the GNU Affero             copie de la Licence Générale
 *  General Public License along         Publique GNU Affero avec
@@ -75,8 +75,14 @@ import net.sf.jsqlparser.expression.BinaryExpression;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.expression.NullValue;
 import net.sf.jsqlparser.expression.StringValue;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
+import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
+import net.sf.jsqlparser.expression.operators.relational.GreaterThanEquals;
+import net.sf.jsqlparser.expression.operators.relational.MinorThan;
+import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
+import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
 
 import org.apache.log4j.Logger;
 
@@ -95,16 +101,10 @@ import ca.nrc.cadc.tap.parser.region.pgsphere.function.Longitude;
 import ca.nrc.cadc.tap.parser.region.pgsphere.function.Scircle;
 import ca.nrc.cadc.tap.parser.region.pgsphere.function.Spoint;
 import ca.nrc.cadc.tap.parser.region.pgsphere.function.Spoly;
-import net.sf.jsqlparser.expression.NullValue;
-import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
-import net.sf.jsqlparser.expression.operators.relational.GreaterThanEquals;
-import net.sf.jsqlparser.expression.operators.relational.MinorThan;
-import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
-import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
 
 /**
  * Convert ADQL functions into PgSphere implementation.
- * 
+ *
  * @author pdowler, zhangsa
  */
 public class PgsphereRegionConverter extends RegionFinder
@@ -117,16 +117,16 @@ public class PgsphereRegionConverter extends RegionFinder
     }
 
     /**
-     * This method is called when a REGION PREDICATE function is one of the arguments in a binary expression, 
+     * This method is called when a REGION PREDICATE function is one of the arguments in a binary expression,
      * and after the direct function conversion.
-     * 
+     *
      * Supported functions: CONTAINS, INTERSECTS
-     * 
+     *
      * Examples:
-     * 
-     * CONTAINS() = 0 
-     * CONTAINS() = 1 
-     * 1 = CONTAINS() 
+     *
+     * CONTAINS() = 0
+     * CONTAINS() = 1
+     * 1 = CONTAINS()
      * 0 = CONTAINS()
      *
      * Supported comparison operators are =, !=, <, >, <=, >=
@@ -172,9 +172,9 @@ public class PgsphereRegionConverter extends RegionFinder
     /**
      * This method is called when a CONTAINS is found outside of a predicate.
      * This could occur if the query had CONTAINS(...) in the select list or as
-     * part of an arithmetic expression or aggregate function (since CONTAINS 
-     * returns a numeric value). 
-     * 
+     * part of an arithmetic expression or aggregate function (since CONTAINS
+     * returns a numeric value).
+     *
      */
     @Override
     protected Expression handleContains(Expression left, Expression right)
@@ -185,9 +185,9 @@ public class PgsphereRegionConverter extends RegionFinder
     /**
      * This method is called when a INTERSECTS is found outside of a predicate.
      * This could occur if the query had INTERSECTS(...) in the select list or as
-     * part of an arithmetic expression or aggregate function (since INTERSECTS 
-     * returns a numeric value). 
-     * 
+     * part of an arithmetic expression or aggregate function (since INTERSECTS
+     * returns a numeric value).
+     *
      */
     @Override
     protected Expression handleIntersects(Expression left, Expression right)
@@ -197,7 +197,7 @@ public class PgsphereRegionConverter extends RegionFinder
 
     /**
      * This method is called when a POINT geometry value is found.
-     * 
+     *
      */
     @Override
     protected Expression handlePoint(Expression coordsys, Expression ra, Expression dec)
@@ -207,7 +207,7 @@ public class PgsphereRegionConverter extends RegionFinder
 
     /**
      * This method is called when a CIRCLE geometry value is found.
-     * 
+     *
      */
     @Override
     protected Expression handleCircle(Expression coordsys, Expression ra, Expression dec, Expression radius)
@@ -217,7 +217,7 @@ public class PgsphereRegionConverter extends RegionFinder
 
     /**
      * This method is called when a POLYGON geometry value is found.
-     * 
+     *
      */
     @Override
     protected Expression handlePolygon(List<Expression> expressions)
@@ -227,7 +227,7 @@ public class PgsphereRegionConverter extends RegionFinder
 
     /**
      * This method is called when the CENTROID function is found.
-     * 
+     *
      */
     @Override
     protected Expression handleCentroid(Function adqlFunction)
@@ -237,7 +237,7 @@ public class PgsphereRegionConverter extends RegionFinder
 
     /**
      * This method is called when COORD1 function is found.
-     * 
+     *
      */
     @Override
     protected Expression handleCoord1(Function adqlFunction)
@@ -247,7 +247,7 @@ public class PgsphereRegionConverter extends RegionFinder
 
     /**
      * This method is called when COORD2 function is found.
-     * 
+     *
      */
     @Override
     protected Expression handleCoord2(Function adqlFunction)
@@ -270,15 +270,15 @@ public class PgsphereRegionConverter extends RegionFinder
     }
     /**
      * Convert ADQL BOX to PGS spoly.
-     * 
+     *
      * Only handle BOX() with constant parameters.
-     * 
+     *
      */
     @Override
     protected Expression handleBox(Function adqlFunction)
     {
         Box box = ParserUtil.convertToStcBox(adqlFunction);
-        Polygon polygon = new Polygon(box);
+        Polygon polygon = Polygon.getPolygon(box);
         return new Spoly(polygon);
     }
 
@@ -302,7 +302,7 @@ public class PgsphereRegionConverter extends RegionFinder
             {
                 throw new IllegalArgumentException(e);
             }
-            Polygon polygon = new Polygon(box);
+            Polygon polygon = Polygon.getPolygon(box);
             return new Spoly(polygon);
         }
         else if (Polygon.NAME.equalsIgnoreCase(fname))

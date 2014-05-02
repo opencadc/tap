@@ -67,65 +67,87 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.writer.formatter;
+package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.date.DateUtil;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.util.Calendar;
-import java.util.Date;
 
 /**
- * Formats a Date or Timestamp in UTC into a String.
- * 
+ * Formats a double[] into a String.
+ *
  */
-public class UTCTimestampFormatter implements ResultSetFormatter
+public class DoubleArrayFormat implements ResultSetFormat
 {
-    private DateFormat dateFormat = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
 
-    /**
-     * Takes a ResultSet and column index of the Date or Timestamp
-     * and returns a String in UTC ISO8601 date format.
-     *
-     * @param resultSet containing the Date or Timestamp column.
-     * @param columnIndex index of the column in the ResultSet.
-     * @return String representation of the Date or Timestamp.
-     * @throws SQLException if there is an error accessing the ResultSet.
-     */
-    public String format(ResultSet resultSet, int columnIndex)
-        throws SQLException
+    @Override
+    public Object parse(String s)
     {
-        Timestamp object = resultSet.getTimestamp(columnIndex, Calendar.getInstance(DateUtil.UTC));
-        return format(object);
+        throw new UnsupportedOperationException("TAP Formats cannot parse strings.");
+    }
+
+    @Override
+    public Object extract(ResultSet resultSet, int columnIndex)
+            throws SQLException
+    {
+        return resultSet.getObject(columnIndex);
     }
 
     /**
-     * Takes an Date or Timestamp and returns a String representation
-     * in UTC ISO8601 date format.
-     * 
+     * Takes an double[] contained in a java.sql.Array and returns
+     * the default String representation.
+     *
      * @param object to format.
-     * @return String representation of the object.
-     * @throws  UnsupportedOperationException if a Date cannot be contructed
-     *          from the object.
+     * @return String represenetation of the double[].
+     * @throws IllegalArgumentException if the object is not an int[];
      */
+    @Override
     public String format(Object object)
     {
         if (object == null)
             return "";
-        Date date = null;
-        if (object instanceof Date)
-            date = (Date) object;
-        if (object instanceof java.sql.Date)
-            date = DateUtil.toDate(object);
-        if (object instanceof java.sql.Timestamp)
-            date = DateUtil.toDate(object);
+        if (object instanceof java.sql.Array)
+        {
+            try
+            {
+                java.sql.Array array = (java.sql.Array) object;
+                object = array.getArray();
+            }
+            catch (SQLException e)
+            {
+                throw new IllegalArgumentException("Error accessing array data for " + object.getClass().getCanonicalName(), e);
+            }
+        }
+        if (object instanceof double[])
+            return toString((double[]) object);
 
-        if (date != null)
-            return dateFormat.format(date);
-        else
-            throw new UnsupportedOperationException("formatting " + object.getClass().getName() + " " + object);
+        if (object instanceof Double[])
+            return toString((Double[]) object);
+
+        throw new IllegalArgumentException(object.getClass().getCanonicalName() + " not supported.");
+
+
+    }
+
+    private String toString(double[] arr)
+    {
+        StringBuilder sb = new StringBuilder();
+        for (double d : arr)
+        {
+            sb.append(Double.toString(d));
+            sb.append(" ");
+        }
+        return sb.substring(0, sb.length() - 1); // trim trailing space
+    }
+
+    private String toString(Double[] arr)
+    {
+        StringBuilder sb = new StringBuilder();
+        for (Double d : arr)
+        {
+            sb.append(d.toString());
+            sb.append(" ");
+        }
+        return sb.substring(0, sb.length() - 1); // trim trailing space
     }
 
 }

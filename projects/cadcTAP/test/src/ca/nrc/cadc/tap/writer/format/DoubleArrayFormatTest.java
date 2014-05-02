@@ -67,9 +67,9 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.writer.formatter;
+package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.stc.Position;
+import ca.nrc.cadc.tap.writer.format.DoubleArrayFormat;
 import ca.nrc.cadc.util.Log4jInit;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -84,48 +84,69 @@ import static org.junit.Assert.*;
  *
  * @author jburke
  */
-public class SPointFormatterTest
+public class DoubleArrayFormatTest
 {
-    private static final Logger log = Logger.getLogger(SPointFormatterTest.class);
+    private static final Logger LOG = Logger.getLogger(DoubleArrayFormatTest.class);
     static
     {
         Log4jInit.setLevel("ca", Level.INFO);
     }
-    private static final String SPOINT = "(0.174532925199433 , 0.174532925199433)";
-    private static final String STCS_POSITION = "POSITION ICRS 10.000000000000004 10.000000000000004";
 
-    public SPointFormatterTest() { }
+    public DoubleArrayFormatTest() { }
 
-    /**
-     * Test of format method, of class SPointFormatter.
-     */
-    @Test
-    public void testFormat()
+    @BeforeClass
+    public static void setUpClass() throws Exception
     {
-        log.debug("testFormat");
-
-        SPointFormatter formatter = new SPointFormatter();
-        String expResult = STCS_POSITION;
-        String result = formatter.format(SPOINT);
-        assertEquals(expResult, result);
-        log.info("testFormat passed");
     }
 
+    @AfterClass
+    public static void tearDownClass() throws Exception
+    {
+    }
+
+    @Before
+    public void setUp() { }
+
+    @After
+    public void tearDown() { }
+
     /**
-     * Test of getPosition method, of class SPointFormatter.
+     * Test of format method, of class DoubleArrayFormatter.
      */
     @Test
-    public void testGetPosition()
+    public void testFormatNull()
     {
-        log.debug("testGetPosition");
-
-        SPointFormatter formatter = new SPointFormatter();
-        Position position = formatter.getPosition(SPOINT);
-        assertEquals("POSITION", Position.NAME);
-        assertEquals("ICRS", position.getFrame());
-        assertEquals("", 10.0, position.getCoordPair().getX(), 0.1);
-        assertEquals("", 10.0, position.getCoordPair().getY(), 0.1);
-        log.info("testGetPosition passed");
+        LOG.debug("testFormat");
+        Object object = null;
+        DoubleArrayFormat instance = new DoubleArrayFormat();
+        String expResult = "";
+        String result = instance.format(object);
+        assertEquals(expResult, result);
+        LOG.info("testFormat passed");
+    }
+    
+    @Test
+    public void testFormatPrimitiveDouble()
+    {
+        LOG.debug("testFormatPrimitiveDouble");
+        Object object = new double[] { 1.0, 2.0 };
+        DoubleArrayFormat instance = new DoubleArrayFormat();
+        String expResult = "1.0 2.0";
+        String result = instance.format(object);
+        assertEquals(expResult, result);
+        LOG.info("testFormatPrimitiveDouble passed");
+    }
+    
+    @Test
+    public void testFormatWrappedDouble()
+    {
+        LOG.debug("testFormatPrimitiveDouble");
+        Object object = new Double[] { 1.0, 2.0 };
+        DoubleArrayFormat instance = new DoubleArrayFormat();
+        String expResult = "1.0 2.0";
+        String result = instance.format(object);
+        assertEquals(expResult, result);
+        LOG.info("testFormatPrimitiveDouble passed");
     }
 
 }

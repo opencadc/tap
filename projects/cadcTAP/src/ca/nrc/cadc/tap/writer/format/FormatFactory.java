@@ -67,106 +67,49 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.writer.formatter;
+package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.stc.CoordPair;
-import ca.nrc.cadc.stc.Polygon;
-import ca.nrc.cadc.stc.STC;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
 
+import ca.nrc.cadc.dali.util.Format;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.ParamDesc;
+import ca.nrc.cadc.uws.Parameter;
+
 /**
- * Formats a PGSphere spolygon as a String.
+ * FormatFactory interface.
  *
  */
-public class SPolyFormatter implements ResultSetFormatter
+public interface FormatFactory
 {
-    /**
-     * Takes a ResultSet and column index of the spoly
-     * and returns a STC-S Polygon String.
-     *
-     * @param resultSet containing the spoint column.
-     * @param columnIndex index of the column in the ResultSet.
-     * @return STC-S Polygon String of the spoly.
-     * @throws SQLException if there is an error accessing the ResultSet.
-     */
-    public String format(ResultSet resultSet, int columnIndex)
-        throws SQLException
-    {
-        String object = resultSet.getString(columnIndex);
-        return format(object);
-    }
+    void setJobID(String jobID);
 
-    /**
-     * Takes a String representation of the spoly
-     * and returns a STC-S Polygon String.
-     *
-     * @param object to format.
-     * @return STC-S Polygon String of the spoly.
-     * @throws IllegalArgumentException if the object is not a String, or if
-     *         the String cannot be parsed.
-     */
-    public String format(Object object)
-    {
-        Polygon pos = getPolygon(object);
-        if (pos == null)
-            return "";
-        return STC.format(pos);
-    }
+    void setParamList(List<Parameter> params);
 
-    public Polygon getPolygon(Object object)
-    {
-        if (object == null)
-            return null;
-        if (!(object instanceof String))
-            throw new IllegalArgumentException("Expected String, was " + object.getClass().getName());
-        String s = (String) object;
+    List<Format<Object>> getFormats(List<ParamDesc> selectList);
 
-        // Get the string inside the enclosing brackets.
-        int open = s.indexOf("{");
-        int close = s.indexOf("}");
-        if (open == -1 || close == -1)
-            throw new IllegalArgumentException("Missing opening or closing brackets " + s);
+    Format<Object> getFormat(ColumnDesc columnDesc);
 
-        // Get the string inside the enclosing parentheses.
-        s = s.substring(open + 1, close);
-        open = s.indexOf("(");
-        close = s.lastIndexOf(")");
-        if (open == -1 || close == -1)
-            throw new IllegalArgumentException("Missing opening or closing parentheses " + s);
+    Format<Object> getFormat(ParamDesc paramDesc);
 
-        // Each set of vertices is '),(' separated.
-        s = s.substring(open + 1, close);
-        String[] vertices = s.split("\\){1}?\\s*,\\s*{1}\\({1}?");
-
-        // Check minimum vertices to make a polygon.
-        if (vertices.length < 3)
-            throw new IllegalArgumentException("Minimum 3 vertices required to form a Polygon " + s);
-
-        // Create STC Polygon and set some defaults.
-        List<CoordPair> coordPairs = new ArrayList<CoordPair>();
-
-        // Loop through each set of vertices.
-        for (int i = 0; i < vertices.length; i++)
-        {
-            // Each vertex is 2 values separated by a comma.
-            String vertex = vertices[i];
-            String[] values = vertex.split(",");
-            if (values.length != 2)
-                throw new IllegalArgumentException("Each set of vertices must have only 2 values " + vertex);
-
-            // Coordinates.
-            Double x = Double.valueOf(values[0]);
-            Double y = Double.valueOf(values[1]);
-
-            // convert to radians and add to Polygon.
-            x = x * (180/Math.PI);
-            y = y * (180/Math.PI);
-            coordPairs.add(new CoordPair(x, y));
-        }
-        return new Polygon("ICRS", null, null, coordPairs);
-    }
+//    Formatter getIntegerFormatter(ColumnDesc columnDesc);
+//
+//    Formatter getDoubleFormatter(ColumnDesc columnDesc);
+//
+//    Formatter getLongFormatter(ColumnDesc columnDesc);
+//
+//    Formatter getStringFormatter(ColumnDesc columnDesc);
+//
+//    Formatter getByteArrayFormatter(ColumnDesc columnDesc);
+//
+//    Formatter getIntArrayFormatter(ColumnDesc columnDesc);
+//
+//    Formatter getDoubleArrayFormatter(ColumnDesc columnDesc);
+//
+//    Formatter getTimestampFormatter(ColumnDesc columnDesc);
+//
+//    Formatter getPointFormatter(ColumnDesc columnDesc);
+//
+//    Formatter getRegionFormatter(ColumnDesc columnDesc);
 
 }

@@ -67,87 +67,92 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.writer.formatter;
+package ca.nrc.cadc.tap.writer.format;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.dali.util.DefaultFormat;
+import ca.nrc.cadc.dali.util.Format;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.ParamDesc;
 import ca.nrc.cadc.uws.Parameter;
-import java.util.ArrayList;
-import java.util.List;
-import org.apache.log4j.Logger;
 
 /**
  * Returns a Formatter for a given data type.
  *
  */
-public class DefaultFormatterFactory implements FormatterFactory
+public class DefaultFormatFactory implements FormatFactory
 {
-    private static final String IMPL_CLASS = "ca.nrc.cadc.tap.impl.FormatterFactoryImpl";
-    private static final Logger LOG = Logger.getLogger(DefaultFormatterFactory.class);
+    private static final String IMPL_CLASS = "ca.nrc.cadc.tap.impl.FormatFactoryImpl";
+    private static final Logger LOG = Logger.getLogger(DefaultFormatFactory.class);
 
     protected String jobID;
     protected List<Parameter> params;
-    
-    public DefaultFormatterFactory() { }
+
+    public DefaultFormatFactory() { }
 
     /**
-     * Create a FormatterFactory. This method loads and instantiates a class named
-     * <code>ca.nrc.cadc.tap.impl.FormatterFactoryImpl</code> that must be provided
+     * Create a FormatFactory. This method loads and instantiates a class named
+     * <code>ca.nrc.cadc.tap.impl.FormatFactoryImpl</code> that must be provided
      * at runtime (by the application). The simplest way to provide that class is to
      * extend this one.
      *
-     * @return a FormatterFactory implementation
+     * @return a FormatFactory implementation
      * @throws RuntimeException if the implementation class cannot be created
-     */  
-    public static FormatterFactory getFormatterFactory()
+     */
+    public static FormatFactory getFormatFactory()
     {
-        FormatterFactory ret = new DefaultFormatterFactory();
+        FormatFactory ret = new DefaultFormatFactory();
         try
         {
             Class c = Class.forName(IMPL_CLASS);
-            ret = (FormatterFactory) c.newInstance();
+            ret = (FormatFactory) c.newInstance();
         }
         catch (Exception e)
         {
-            LOG.warn("Failed to instantiate FormatterFactory class " + IMPL_CLASS +", using " + ret.getClass().getName());
+            LOG.debug(e.getMessage(), e);
+            LOG.warn("Failed to instantiate FormatFactory class " + IMPL_CLASS +", using " + ret.getClass().getName());
         }
         return ret;
     }
 
+    @Override
     public void setJobID(String jobID)
     {
         this.jobID = jobID;
     }
 
+    @Override
     public void setParamList(List<Parameter> params)
     {
         this.params = params;
     }
 
-    public List<Formatter> getFormatters(List<ParamDesc> selectList)
+    @Override
+    public List<Format<Object>> getFormats(List<ParamDesc> selectList)
     {
-        List<Formatter> formatters = new ArrayList<Formatter>();
+        List<Format<Object>> formats = new ArrayList<Format<Object>>();
         for (ParamDesc paramDesc : selectList)
         {
             if (paramDesc != null)
             {
-                if (paramDesc.columnDesc != null)
-                    formatters.add(getFormatter(paramDesc.columnDesc));
-                else
-                    formatters.add(getFormatter(paramDesc));
+                formats.add(getFormat(paramDesc));
             }
         }
-        return formatters;
+        return formats;
     }
 
     /**
-     * Return the default formatter when no type-specific one is found.
+     * Return the default format when no type-specific one is found.
      *
-     * @return a DefaultFormatter
+     * @return a DefaultFormat
      */
-    protected Formatter getDefaultFormatter()
+    protected Format<Object> getDefaultFormat()
     {
-        return new DefaultFormatter();
+        return new DefaultFormat();
     }
 
     /**
@@ -155,221 +160,221 @@ public class DefaultFormatterFactory implements FormatterFactory
      * checks the datatype in the argument ParamDesc and then calls the appropriate (public) get<type>Formatter
      * method. Subclasses should override this method if they need to support additional datatypes
      * (as specified in the TapSchema: tap_schema.columns.datatype).
-     * 
+     *
      * @param columnDesc
      * @return
      */
-    protected Formatter getFormatter(ColumnDesc columnDesc)
+    @Override
+    public Format<Object> getFormat(ColumnDesc columnDesc)
     {
         String datatype = columnDesc.datatype;
         if (datatype.equalsIgnoreCase("adql:INTEGER"))
-            return getIntegerFormatter(columnDesc);
-        
+            return getIntegerFormat(columnDesc);
+
         if (datatype.equalsIgnoreCase("adql:BIGINT"))
-            return getLongFormatter(columnDesc);
-        
+            return getLongFormat(columnDesc);
+
         if (datatype.equalsIgnoreCase("adql:DOUBLE"))
-            return getDoubleFormatter(columnDesc);
-        
+            return getDoubleFormat(columnDesc);
+
         if (datatype.equalsIgnoreCase("adql:VARCHAR"))
-            return getStringFormatter(columnDesc);
-        
+            return getStringFormat(columnDesc);
+
         if (datatype.equalsIgnoreCase("adql:TIMESTAMP"))
-            return getTimestampFormatter(columnDesc);
-        
+            return getTimestampFormat(columnDesc);
+
         if (datatype.equalsIgnoreCase("adql:VARBINARY"))
-            return getByteArrayFormatter(columnDesc);
-        
+            return getByteArrayFormat(columnDesc);
+
         if (datatype.equalsIgnoreCase("adql:POINT"))
-            return getPointFormatter(columnDesc);
-        
+            return getPointFormat(columnDesc);
+
         if (datatype.equalsIgnoreCase("adql:REGION"))
-            return getRegionFormatter(columnDesc);
+            return getRegionFormat(columnDesc);
 
         if (datatype.equalsIgnoreCase("adql:CLOB"))
-            return getClobFormatter(columnDesc);
+            return getClobFormat(columnDesc);
 
         // VOTable datatypes in the tap_schema.columns.datatype: legal?
         // needed if the database has an array of numeric values since
         // there is no adql equivalent
         if (datatype.equalsIgnoreCase("votable:int"))
             if (columnDesc.size != null && columnDesc.size > 1)
-                return getIntArrayFormatter(columnDesc);
+                return getIntArrayFormat(columnDesc);
             else
-                return getIntegerFormatter(columnDesc);
+                return getIntegerFormat(columnDesc);
 
         if (datatype.equalsIgnoreCase("votable:long"))
             if (columnDesc.size != null && columnDesc.size > 1)
-                return getLongArrayFormatter(columnDesc);
+                return getLongArrayFormat(columnDesc);
             else
-                return getLongFormatter(columnDesc);
+                return getLongFormat(columnDesc);
 
         if (datatype.equalsIgnoreCase("votable:float"))
             if (columnDesc.size != null && columnDesc.size > 1)
-                return getFloatArrayFormatter(columnDesc);
+                return getFloatArrayFormat(columnDesc);
             else
-                return getRealFormatter(columnDesc);
+                return getRealFormat(columnDesc);
 
         if (datatype.equalsIgnoreCase("votable:double"))
             if (columnDesc.size != null && columnDesc.size > 1)
-                return getDoubleArrayFormatter(columnDesc);
+                return getDoubleArrayFormat(columnDesc);
             else
-                return getDoubleFormatter(columnDesc);
-        
-        return getDefaultFormatter();
+                return getDoubleFormat(columnDesc);
+
+        return getDefaultFormat();
     }
 
-    protected Formatter getFormatter(ParamDesc paramDesc)
+    @Override
+    public Format<Object> getFormat(ParamDesc paramDesc)
     {
+        if (paramDesc.columnDesc != null)
+            return getFormat(paramDesc.columnDesc);
+
         String datatype = paramDesc.datatype;
 
         if (datatype == null)
-            return getDefaultFormatter();
+            return getDefaultFormat();
 
         if (datatype.equalsIgnoreCase("adql:TIMESTAMP"))
-            return new UTCTimestampFormatter();
-
-        if (datatype.equalsIgnoreCase("adql:VARBINARY"))
-            return new ByteArrayFormatter();
+            return new UTCTimestampFormat();
 
         if (datatype.equalsIgnoreCase("adql:POINT"))
-            return getPointFormatter(paramDesc.columnDesc);
+            return getPointFormat(paramDesc.columnDesc);
 
         if (datatype.equalsIgnoreCase("adql:REGION"))
-            return getRegionFormatter(paramDesc.columnDesc);
-        
-        return getDefaultFormatter();
+            return getRegionFormat(paramDesc.columnDesc);
+
+        return getDefaultFormat();
     }
 
     /**
      * @param columnDesc
-     * @return a DefaultFormatter
+     * @return a DefaultFormat
      */
-    protected Formatter getIntegerFormatter(ColumnDesc columnDesc)
+    protected Format<Object> getIntegerFormat(ColumnDesc columnDesc)
     {
-        return getDefaultFormatter();
+        return getDefaultFormat();
     }
 
     /**
      * @param columnDesc
-     * @return a DefaultFormatter
+     * @return a DefaultFormat
      */
-    protected Formatter getRealFormatter(ColumnDesc columnDesc)
+    protected Format<Object> getRealFormat(ColumnDesc columnDesc)
     {
-        return getDefaultFormatter();
+        return getDefaultFormat();
     }
 
     /**
      * @param columnDesc
-     * @return a DefaultFormatter
+     * @return a DefaultFormat
      */
-    protected Formatter getDoubleFormatter(ColumnDesc columnDesc)
+    protected Format<Object> getDoubleFormat(ColumnDesc columnDesc)
     {
-        return getDefaultFormatter();
+        return getDefaultFormat();
     }
 
 
     /**
      * @param columnDesc
-     * @return a DefaultFormatter
+     * @return a DefaultFormat
      */
-    protected Formatter getLongFormatter(ColumnDesc columnDesc)
+    protected Format<Object> getLongFormat(ColumnDesc columnDesc)
     {
-        return getDefaultFormatter();
+        return getDefaultFormat();
     }
 
     /**
      * @param columnDesc
-     * @return a DefaultFormatter
+     * @return a DefaultFormat
      */
-    protected Formatter getStringFormatter(ColumnDesc columnDesc)
+    protected Format<Object> getStringFormat(ColumnDesc columnDesc)
     {
-        return getDefaultFormatter();
+        return getDefaultFormat();
     }
 
     /**
      * @param columnDesc
-     * @return a ByteArrayFormatter
+     * @return a ByteArrayFormat
      */
-    protected Formatter getByteArrayFormatter(ColumnDesc columnDesc)
+    protected Format<Object> getByteArrayFormat(ColumnDesc columnDesc)
     {
-        return new ByteArrayFormatter();
+        return new ByteArrayFormat();
     }
 
     /**
      * @param columnDesc
-     * @return an IntArrayFormatter
+     * @return an IntArrayFormat
      */
-    protected Formatter getIntArrayFormatter(ColumnDesc columnDesc)
+    protected Format<Object> getIntArrayFormat(ColumnDesc columnDesc)
     {
-        return new IntArrayFormatter();
+        return new IntArrayFormat();
     }
 
     /**
      * @param columnDesc
-     * @return an LongArrayFormatter
+     * @return an LongArrayFormat
      */
-    protected Formatter getLongArrayFormatter(ColumnDesc columnDesc)
+    protected Format<Object> getLongArrayFormat(ColumnDesc columnDesc)
     {
-        return new LongArrayFormatter();
+        return new LongArrayFormat();
     }
 
     /**
      * @param columnDesc
-     * @return an FloatArrayFormatter
+     * @return an FloatArrayFormat
      */
-    protected Formatter getFloatArrayFormatter(ColumnDesc columnDesc)
+    protected Format<Object> getFloatArrayFormat(ColumnDesc columnDesc)
     {
-        return new FloatArrayFormatter();
+        return new FloatArrayFormat();
     }
 
     /**
      * @param columnDesc
-     * @return an DoubleArrayFormatter
+     * @return an DoubleArrayFormat
      */
-    protected Formatter getDoubleArrayFormatter(ColumnDesc columnDesc)
+    protected Format<Object> getDoubleArrayFormat(ColumnDesc columnDesc)
     {
-        return new DoubleArrayFormatter();
+        return new DoubleArrayFormat();
     }
 
 
     /**
      * @param columnDesc
-     * @return a UTCTimestampFormatter
+     * @return a UTCTimestampFormat
      */
-    protected Formatter getTimestampFormatter(ColumnDesc columnDesc)
+    protected Format<Object> getTimestampFormat(ColumnDesc columnDesc)
     {
-        return new UTCTimestampFormatter();
+        return new UTCTimestampFormat();
     }
 
     /**
      * @param columnDesc
-     * @return a DefaultFormatter
      * @throws UnsupportedOperationException
      */
-    protected Formatter getPointFormatter(ColumnDesc columnDesc)
+    protected Format<Object> getPointFormat(ColumnDesc columnDesc)
     {
         throw new UnsupportedOperationException("no formatter for column " + columnDesc.columnName);
     }
 
     /**
      * @param columnDesc
-     * @return a DefaultFormatter
      * @throws UnsupportedOperationException
      */
-    protected Formatter getRegionFormatter(ColumnDesc columnDesc)
+    protected Format<Object> getRegionFormat(ColumnDesc columnDesc)
     {
         throw new UnsupportedOperationException("no formatter for column " + columnDesc.columnName);
     }
 
     /**
      * @param columnDesc
-     * @return a DefaultFormatter
+     * @return a DefaultFormat
      * @throws UnsupportedOperationException
      */
-    protected Formatter getClobFormatter(ColumnDesc columnDesc)
+    protected Format<Object> getClobFormat(ColumnDesc columnDesc)
     {
-        return getDefaultFormatter();
+        return getDefaultFormat();
     }
 
 }

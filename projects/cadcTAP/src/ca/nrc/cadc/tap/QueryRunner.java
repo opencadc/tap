@@ -8,7 +8,7 @@
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 *  All rights reserved                  Tous droits réservés
-*                                       
+*
 *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 *  expressed, implied, or               énoncée, implicite ou légale,
 *  statutory, of any kind with          de quelque nature que ce
@@ -31,10 +31,10 @@
 *  software without specific prior      de ce logiciel sans autorisation
 *  written permission.                  préalable et particulière
 *                                       par écrit.
-*                                       
+*
 *  This file is part of the             Ce fichier fait partie du projet
 *  OpenCADC project.                    OpenCADC.
-*                                       
+*
 *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 *  you can redistribute it and/or       vous pouvez le redistribuer ou le
 *  modify it under the terms of         modifier suivant les termes de
@@ -44,7 +44,7 @@
 *  either version 3 of the              : soit la version 3 de cette
 *  License, or (at your option)         licence, soit (à votre gré)
 *  any later version.                   toute version ultérieure.
-*                                       
+*
 *  OpenCADC is distributed in the       OpenCADC est distribué
 *  hope that it will be useful,         dans l’espoir qu’il vous
 *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -54,7 +54,7 @@
 *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 *  General Public License for           Générale Publique GNU Affero
 *  more details.                        pour plus de détails.
-*                                       
+*
 *  You should have received             Vous devriez avoir reçu une
 *  a copy of the GNU Affero             copie de la Licence Générale
 *  General Public License along         Publique GNU Affero avec
@@ -69,7 +69,6 @@
 
 package ca.nrc.cadc.tap;
 
-import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -90,13 +89,14 @@ import javax.sql.DataSource;
 
 import org.apache.log4j.Logger;
 
+import ca.nrc.cadc.dali.tables.TableWriter;
+import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
 import ca.nrc.cadc.log.WebServiceLogInfo;
 import ca.nrc.cadc.tap.schema.ParamDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import ca.nrc.cadc.tap.writer.VOTableWriter;
 import ca.nrc.cadc.uws.ErrorSummary;
 import ca.nrc.cadc.uws.ErrorType;
 import ca.nrc.cadc.uws.ExecutionPhase;
@@ -117,8 +117,8 @@ import ca.nrc.cadc.uws.util.JobLogInfo;
  * package documentation. This allows one to control the behavior of several key components:
  * query processing, upload support, and writing the result-set to the output file format.
  * </p><p>
- * In addition, this class uses JDNI to find <code>java.sql.DataSource</code> instances for 
- * executing database statements. 
+ * In addition, this class uses JDNI to find <code>java.sql.DataSource</code> instances for
+ * executing database statements.
  * </p>
  * <ul>
  * <li>A datasource named <b>jdbc/tapuser</b> is required; this datasource
@@ -126,12 +126,12 @@ import ca.nrc.cadc.uws.util.JobLogInfo;
  * datasource must have read permission to the TAP_SCHEMA and all tables described within the
  * TAP_SCHEMA.</li>
  * <li>A datasource named <b>jdbc/tapuploadadm</b> is optional; this datasource is used to create tables
- * in the TAP_UPLOAD schema and to populate these tables with content from uploaded tables. If this 
- * datasource is provided, it is passed to the UploadManager implementation. For uploads to actually work, 
+ * in the TAP_UPLOAD schema and to populate these tables with content from uploaded tables. If this
+ * datasource is provided, it is passed to the UploadManager implementation. For uploads to actually work,
  * the connection(s) provided by the datasource must have create table permission in the current database and
  * TAP_UPLOAD schema.</li>
  * </ul>
- * 
+ *
  * @author pdowler
  */
 public class QueryRunner implements JobRunner
@@ -172,34 +172,38 @@ public class QueryRunner implements JobRunner
         syncOutput = null;
     }
 
+    @Override
     public void setJob(Job job)
     {
         this.job = job;
         jobID = job.getID();
     }
 
+    @Override
     public void setJobUpdater(JobUpdater ju)
     {
         this.jobUpdater = ju;
     }
 
+    @Override
     public void setSyncOutput(SyncOutput so)
     {
         this.syncOutput = so;
     }
 
+    @Override
     public void run()
     {
         logInfo = new JobLogInfo(job);
         log.info(logInfo.start());
         long start = System.currentTimeMillis();
-        
+
         doIt();
-        
+
         logInfo.setElapsedTime(System.currentTimeMillis() - start);
         log.info(logInfo.end());
     }
-    
+
     private void doIt()
     {
         List<Long> tList = new ArrayList<Long>();
@@ -210,7 +214,7 @@ public class QueryRunner implements JobRunner
 
         log.debug("run: " + job.getID());
 
-        
+
         ResultStore rs = null;
         if (syncOutput == null)
         {
@@ -240,7 +244,7 @@ public class QueryRunner implements JobRunner
                 ep = jobUpdater.getPhase(job.getID());
                 log.debug(job.getID() + ": QUEUED -> EXECUTING [FAILED] -- DONE");
                 logInfo.setSuccess(false);
-                logInfo.setMessage("Could not set job phase to completed.");                
+                logInfo.setMessage("Could not set job phase to completed.");
                 return;
             }
             log.debug(job.getID() + ": QUEUED -> EXECUTING [OK]");
@@ -350,22 +354,14 @@ public class QueryRunner implements JobRunner
             String queryInfo = tapQuery.getInfo();
 
             log.debug("invoking TableWriterFactory for FORMAT...");
-            TableWriter tableWriter = TableWriterFactory.getWriter(job.getParameterList());
-            tableWriter.setJob(job);
-            tableWriter.setSelectList(selectList);
-            tableWriter.setQueryInfo(queryInfo);
-            // HACK: using this deprecated method to experiment with adding extra metadata to output table
-            tableWriter.setTapSchema(tapSchema);
-            if (maxRows != null)
-                tableWriter.setMaxRowCount(maxRows);
-            
+            TableWriter<ResultSet> tableWriter = new DefaultTableWriter(job, selectList, queryInfo);
+
             tList.add(System.currentTimeMillis());
             sList.add("parse/convert query: ");
 
             Connection connection = null;
             PreparedStatement pstmt = null;
             ResultSet resultSet = null;
-            File tmpFile = null;
             URL url = null;
             try
             {
@@ -383,7 +379,7 @@ public class QueryRunner implements JobRunner
                     pstmt = connection.prepareStatement(sql);
                     pstmt.setFetchSize(1000);
                     pstmt.setFetchDirection(ResultSet.FETCH_FORWARD);
-                    
+
                     log.debug("executing query: " + sql);
                     resultSet = pstmt.executeQuery();
                 }
@@ -391,7 +387,7 @@ public class QueryRunner implements JobRunner
                 tList.add(System.currentTimeMillis());
                 sList.add("execute query and get ResultSet: ");
                 String filename = "result_" + job.getID() + "." + tableWriter.getExtension();
-                
+
                 if (syncOutput != null)
                 {
                     String contentType = tableWriter.getContentType();
@@ -399,7 +395,10 @@ public class QueryRunner implements JobRunner
                     syncOutput.setHeader("Content-Type", contentType);
                     String disp = "attachment; filename=\""+filename+"\"";
                     syncOutput.setHeader("Content-Disposition", disp);
-                    tableWriter.write(resultSet, syncOutput.getOutputStream());
+                    if (maxRows == null)
+                        tableWriter.write(resultSet, syncOutput.getOutputStream());
+                    else
+                        tableWriter.write(resultSet, syncOutput.getOutputStream(), maxRows.longValue());
                     tList.add(System.currentTimeMillis());
                     sList.add("stream Result set as " + contentType + ": ");
                 }
@@ -411,7 +410,7 @@ public class QueryRunner implements JobRunner
                         log.debug(job.getID() + ": found phase = ABORTED before writing results - DONE");
                         return;
                     }
-                    
+
                     log.debug("result filename: " + filename);
                     rs.setJob(job);
                     rs.setFilename(filename);
@@ -491,7 +490,6 @@ public class QueryRunner implements JobRunner
                 log.debug("BADNESS", t);
                 log.debug("Error message: " + errorMessage);
                 VOTableWriter ewriter = new VOTableWriter();
-                ewriter.setJob(job);
                 String filename = "error_" + job.getID() + "." + ewriter.getExtension();
                 if (syncOutput != null)
                 {
@@ -510,7 +508,7 @@ public class QueryRunner implements JobRunner
                     tList.add(System.currentTimeMillis());
                     sList.add("store error with ResultStore ");
                 }
-                
+
                 log.debug("Error URL: " + errorURL);
                 ErrorSummary es = new ErrorSummary(errorMessage, ErrorType.FATAL, errorURL);
                 log.debug("setting ExecutionPhase = " + ExecutionPhase.ERROR);
@@ -541,5 +539,5 @@ public class QueryRunner implements JobRunner
             }
         }
     }
-    
+
 }

@@ -67,17 +67,95 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.dali.util;
+package ca.nrc.cadc.tap.writer.format;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.text.DateFormat;
+import java.util.Date;
+
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import ca.nrc.cadc.date.DateUtil;
+import ca.nrc.cadc.tap.writer.format.LocalTimestampFormat;
+import ca.nrc.cadc.util.Log4jInit;
 
 /**
- * Interface for a Format that is passed a ResultSet and a
- * column index to the data in the ResultSet.
+ *
+ * @author jburke
  */
-public interface ResultSetFormat extends Format<ResultSet>
+public class LocalTimestampFormatTest
 {
-    String format(ResultSet resultSet, int columnIndex)
-        throws SQLException;
+    private static final Logger LOG = Logger.getLogger(LocalTimestampFormatTest.class);
+    static
+    {
+        Log4jInit.setLevel("ca", Level.INFO);
+    }
+    private static final String DATE_TIME = "2009-01-02T03:04:05.678";
+    private static DateFormat formatter;
+
+    public LocalTimestampFormatTest() { }
+
+    @BeforeClass
+    public static void setUpClass() throws Exception
+    {
+        formatter = DateUtil.getDateFormat(DateUtil.ISO8601_DATE_FORMAT_MSLOCAL, DateUtil.LOCAL);
+    }
+
+    @AfterClass
+    public static void tearDownClass() throws Exception
+    {
+    }
+
+    @Before
+    public void setUp() { }
+
+    @After
+    public void tearDown() { }
+
+    @Test
+    public void testFormatValue() throws Exception
+    {
+        LOG.debug("testFormat");
+
+        LocalTimestampFormat instance = new LocalTimestampFormat();
+
+        Date date = formatter.parse(DATE_TIME);
+        Object object;
+        String result;
+
+        object = date;
+        result = instance.format(object);
+        Assert.assertEquals(DATE_TIME, result);
+
+        object = new java.sql.Date(date.getTime());
+        result = instance.format(object);
+        Assert.assertEquals(DATE_TIME, result);
+
+        object = new java.sql.Timestamp(date.getTime());
+        result = instance.format(object);
+        Assert.assertEquals(DATE_TIME, result);
+
+        LOG.info("testFormat passed");
+    }
+
+    @Test
+    public void testFormatNull() throws Exception
+    {
+        LOG.debug("testFormat");
+
+        LocalTimestampFormat instance = new LocalTimestampFormat();
+
+        Object object = null;
+        String expResult = "";
+        String result = instance.format(object);
+        Assert.assertEquals(expResult, result);
+
+        LOG.info("testFormat passed");
+    }
 }

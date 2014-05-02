@@ -67,69 +67,118 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.writer.formatter;
+package ca.nrc.cadc.tap.writer.format;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+import ca.nrc.cadc.stc.CoordPair;
+import ca.nrc.cadc.stc.Flavor;
+import ca.nrc.cadc.stc.Frame;
+import ca.nrc.cadc.stc.Polygon;
+import ca.nrc.cadc.stc.ReferencePosition;
+import ca.nrc.cadc.stc.STC;
 
 /**
- * Formats a int[] into a String.
+ * Formats a PGSphere spolygon as a String.
  *
  */
-public class IntArrayFormatter implements Formatter
+public class SPolyFormat implements ResultSetFormat
 {
+
+    @Override
+    public Object parse(String s)
+    {
+        throw new UnsupportedOperationException("TAP Formats cannot parse strings.");
+    }
+
     /**
-     * Takes an int[] contained in a java.sql.Array and returns
-     * the default String representation.
+     * Takes a ResultSet and column index of the spoly
+     * and returns a STC-S Polygon String.
+     *
+     * @param resultSet containing the spoint column.
+     * @param columnIndex index of the column in the ResultSet.
+     * @return STC-S Polygon String of the spoly.
+     * @throws SQLException if there is an error accessing the ResultSet.
+     */
+    @Override
+    public Object extract(ResultSet resultSet, int columnIndex)
+        throws SQLException
+    {
+        return resultSet.getString(columnIndex);
+    }
+
+    /**
+     * Takes a String representation of the spoly
+     * and returns a STC-S Polygon String.
      *
      * @param object to format.
-     * @return String represenetation of the int[].
-     * @throws IllegalArgumentException if the object is not an int[];
+     * @return STC-S Polygon String of the spoly.
+     * @throws IllegalArgumentException if the object is not a String, or if
+     *         the String cannot be parsed.
      */
+    @Override
     public String format(Object object)
     {
-        if (object == null)
+        Polygon pos = getPolygon(object);
+        if (pos == null)
             return "";
-
-        if (object instanceof java.sql.Array)
-        {
-            try
-            {
-                java.sql.Array array = (java.sql.Array) object;
-                object = array.getArray();
-            }
-            catch (SQLException e)
-            {
-                throw new IllegalArgumentException("Error accessing array data for " + object.getClass().getCanonicalName(), e);
-            }
-        }
-        if (object instanceof int[])
-            return toString((int[]) object);
-
-        if (object instanceof Integer[])
-            return toString((Integer[]) object);
-
-        throw new IllegalArgumentException(object.getClass().getCanonicalName() + " not supported.");
+        return STC.format(pos);
     }
 
-    private String toString(int[] iarray)
+    public Polygon getPolygon(Object object)
     {
-        StringBuilder sb = new StringBuilder();
-        for (int i : iarray)
+        if (object == null)
+            return null;
+        if (!(object instanceof String))
+            throw new IllegalArgumentException("Expected String, was " + object.getClass().getName());
+        String s = (String) object;
+
+        // Get the string inside the enclosing brackets.
+        int open = s.indexOf("{");
+        int close = s.indexOf("}");
+        if (open == -1 || close == -1)
+            throw new IllegalArgumentException("Missing opening or closing brackets " + s);
+
+        // Get the string inside the enclosing parentheses.
+        s = s.substring(open + 1, close);
+        open = s.indexOf("(");
+        close = s.lastIndexOf(")");
+        if (open == -1 || close == -1)
+            throw new IllegalArgumentException("Missing opening or closing parentheses " + s);
+
+        // Each set of vertices is '),(' separated.
+        s = s.substring(open + 1, close);
+        String[] vertices = s.split("\\){1}?\\s*,\\s*{1}\\({1}?");
+
+        // Check minimum vertices to make a polygon.
+        if (vertices.length < 3)
+            throw new IllegalArgumentException("Minimum 3 vertices required to form a Polygon " + s);
+
+        // Create STC Polygon and set some defaults.
+        List<CoordPair> coordPairs = new ArrayList<CoordPair>();
+
+        // Loop through each set of vertices.
+        for (int i = 0; i < vertices.length; i++)
         {
-            sb.append(Integer.toString(i));
-            sb.append(" ");
+            // Each vertex is 2 values separated by a comma.
+            String vertex = vertices[i];
+            String[] values = vertex.split(",");
+            if (values.length != 2)
+                throw new IllegalArgumentException("Each set of vertices must have only 2 values " + vertex);
+
+            // Coordinates.
+            Double x = Double.valueOf(values[0]);
+            Double y = Double.valueOf(values[1]);
+
+            // convert to radians and add to Polygon.
+            x = x * (180/Math.PI);
+            y = y * (180/Math.PI);
+            coordPairs.add(new CoordPair(x, y));
         }
-        return sb.substring(0, sb.length() - 1); // trim trailing space
+        return new Polygon(Frame.ICRS, ReferencePosition.UNKNOWNREFPOS, Flavor.SPHERICAL2, coordPairs);
     }
 
-    private String toString(Integer[] iarray)
-    {
-        StringBuilder sb = new StringBuilder();
-        for (Integer i : iarray)
-        {
-            sb.append(i.toString());
-            sb.append(" ");
-        }
-        return sb.substring(0, sb.length() - 1); // trim trailing space
-    }
 }

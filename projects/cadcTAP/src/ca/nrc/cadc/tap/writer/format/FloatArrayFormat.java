@@ -62,93 +62,91 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 1 $
+ *  $Revision: 4 $
  *
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.writer.formatter;
+package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.stc.Circle;
-import ca.nrc.cadc.stc.STC;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /**
- * Formatter for PostgreSQL+pgSphere column type scircle.
- * 
+ *
  * @author pdowler
  */
-public class SCircleFormatter implements ResultSetFormatter
+public class FloatArrayFormat implements ResultSetFormat
 {
 
-    public String format(ResultSet resultSet, int columnIndex)
-        throws SQLException
+    @Override
+    public Object parse(String s)
     {
-        String object = resultSet.getString(columnIndex);
-        return format(object);
+        throw new UnsupportedOperationException("TAP Formats cannot parse strings.");
     }
 
+    @Override
+    public Object extract(ResultSet resultSet, int columnIndex)
+            throws SQLException
+    {
+        return resultSet.getObject(columnIndex);
+    }
+
+    /**
+     * Takes an int[] contained in a java.sql.Array and returns
+     * the default String representation.
+     *
+     * @param object to format.
+     * @return String represenetation of the int[].
+     * @throws IllegalArgumentException if the object is not an int[];
+     */
+    @Override
     public String format(Object object)
     {
-        Circle circle = getCircle(object);
-        if (circle == null)
+        if (object == null)
             return "";
-        return STC.format(circle);
+
+        if (object instanceof java.sql.Array)
+        {
+            try
+            {
+                java.sql.Array array = (java.sql.Array) object;
+                object = array.getArray();
+            }
+            catch (SQLException e)
+            {
+                throw new IllegalArgumentException("Error accessing array data for " + object.getClass().getCanonicalName(), e);
+            }
+        }
+        if (object instanceof float[])
+            return toString((float[]) object);
+
+        if (object instanceof Float[])
+            return toString((Float[]) object);
+
+        throw new IllegalArgumentException(object.getClass().getCanonicalName() + " not supported.");
     }
 
-    public Circle getCircle(Object object)
+    private String toString(float[] iarray)
     {
-         if (object == null)
-            return null;
-        if (!(object instanceof String))
-            throw new IllegalArgumentException("Expected String, was " + object.getClass().getName());
-        String s = (String) object;
+        StringBuilder sb = new StringBuilder();
+        for (float i : iarray)
+        {
+            sb.append(Float.toString(i));
+            sb.append(" ");
+        }
+        return sb.substring(0, sb.length() - 1); // trim trailing space
+    }
 
-        // scircle format: <(coordinates), radius>
-        // <(0.0174532925199433 , 0.0349065850398866) , 0.0523598775598299>
-        // Get the string inside the enclosing angle brackets.
-        int open = s.indexOf("<");
-        int close = s.indexOf(">");
-        if (open == -1 || close == -1)
-            throw new IllegalArgumentException("Missing opening or closing angle brackets " + s);
-
-        s = s.substring(open + 1, close);
-
-        // Get the string inside the enclosing parentheses.
-        open = s.indexOf("(");
-        close = s.indexOf(")");
-        if (open == -1 || close == -1)
-            throw new IllegalArgumentException("Missing opening or closing parentheses " + s);
-
-        // Should be 2 values separated by a comma.
-        String coordinates = s.substring(open + 1, close);
-        String[] points = coordinates.split(",");
-        if (points.length != 2)
-            throw new IllegalArgumentException("SCirlce coordinates must have only 2 values " + coordinates);
-
-        // Radius
-        s = s.substring (close + 1);
-        open = s.indexOf(",");
-        if (open == -1)
-            throw new IllegalArgumentException("Missing radius after coordinates " + s);
-        s = s.substring(open + 1);
-
-        // Coordinates.
-        Double x = Double.valueOf(points[0]);
-        Double y = Double.valueOf(points[1]);
-        Double r = Double.valueOf(s);
-
-        // convert to radians
-        x = x * (180/Math.PI);
-        y = y * (180/Math.PI);
-        r = r * (180/Math.PI);
-
-
-        // Create STC Cirlce.
-        Circle circle = new Circle("ICRS", x, y, r);
-
-        return circle;
+    private String toString(Float[] iarray)
+    {
+        StringBuilder sb = new StringBuilder();
+        for (Float i : iarray)
+        {
+            sb.append(i.toString());
+            sb.append(" ");
+        }
+        return sb.substring(0, sb.length() - 1); // trim trailing space
     }
 
 }
