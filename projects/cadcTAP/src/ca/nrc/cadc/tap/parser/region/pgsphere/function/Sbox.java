@@ -97,7 +97,7 @@ public class Sbox extends Function
         convertParameters();
     }
     
-    protected void convertParameters()
+    private void convertParameters()
     {
         // Spoint for start and end
         Spoint spoint1 = new Spoint(coordsys, lon1, lat1);
