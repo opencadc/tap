@@ -94,6 +94,7 @@ public class DefaultTableWriter implements TableWriter<ResultSet>
     private Job job;
     private String queryInfo;
     private String contentType;
+    private String extension;
 
     // RssTableWriter not yet ported to cadcDALI
     private TableWriter<VOTableDocument> tableWriter;
@@ -157,6 +158,9 @@ public class DefaultTableWriter implements TableWriter<ResultSet>
 
             contentType = tableWriter.getContentType();
             log.debug("Content type is: " + contentType);
+
+            extension = tableWriter.getExtension();
+            log.debug("Content type is: " + extension);
         }
     }
 
@@ -340,8 +344,7 @@ public class DefaultTableWriter implements TableWriter<ResultSet>
     @Override
     public String getExtension()
     {
-        // TODO: do we need this?
-        return "xml";
+        return extension;
     }
 
     protected VOTableField createVOTableField(ParamDesc paramDesc)
