@@ -45,6 +45,7 @@ create table TAP_SCHEMA.columns
 	principal     integer      NOT NULL,
 	indexed       integer      NOT NULL,
 	std           integer      NOT NULL,
+-- globally unique columnID for use as an XML ID attribute on the FIELD in VOTable output
         id            varchar(32)  NULL,
 	
 	primary key (table_name,column_name),
