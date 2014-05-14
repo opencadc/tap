@@ -98,9 +98,11 @@ import ca.nrc.cadc.tap.parser.function.Operator;
 import ca.nrc.cadc.tap.parser.region.pgsphere.function.Center;
 import ca.nrc.cadc.tap.parser.region.pgsphere.function.Lat;
 import ca.nrc.cadc.tap.parser.region.pgsphere.function.Longitude;
+import ca.nrc.cadc.tap.parser.region.pgsphere.function.Sbox;
 import ca.nrc.cadc.tap.parser.region.pgsphere.function.Scircle;
 import ca.nrc.cadc.tap.parser.region.pgsphere.function.Spoint;
 import ca.nrc.cadc.tap.parser.region.pgsphere.function.Spoly;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 
 /**
  * Convert ADQL functions into PgSphere implementation.
@@ -111,9 +113,34 @@ public class PgsphereRegionConverter extends RegionFinder
 {
     @SuppressWarnings("unused")
     private static Logger log = Logger.getLogger(PgsphereRegionConverter.class);
+    
+    /**
+     * Prototype coordinate range function a la sbox in pgsphere.
+     */
+    public static final String RANGE_S2D = "RANGE_S2D";
 
     public PgsphereRegionConverter()
     {
+    }
+    
+    @Override
+    public Expression convertToImplementation(Function func)
+    {
+        Expression implExpr = super.convertToImplementation(func);
+        if (implExpr == func) // not handled
+        {
+            if (RANGE_S2D.equalsIgnoreCase(func.getName()))
+            {
+                ExpressionList exprList = func.getParameters();
+                if (exprList == null)
+                    throw new IllegalStateException("RANGE_S2D requires long1, long2, lat1, lat2");
+                List<Expression> expressions = exprList.getExpressions();
+                if (expressions.size() != 4)
+                    throw new IllegalStateException("RANGE_S2D requires long1, long2, lat1, lat2");
+                implExpr = handleRangeS2D(expressions.get(0), expressions.get(1), expressions.get(2), expressions.get(3));
+            }
+        }
+        return implExpr;
     }
 
     /**
@@ -223,6 +250,11 @@ public class PgsphereRegionConverter extends RegionFinder
     protected Expression handlePolygon(List<Expression> expressions)
     {
         return new Spoly(expressions);
+    }
+    
+    protected Expression handleRangeS2D(Expression lon1, Expression lon2, Expression lat1, Expression lat2)
+    {
+        return new Sbox(lon1, lon2, lat1, lat2);
     }
 
     /**
