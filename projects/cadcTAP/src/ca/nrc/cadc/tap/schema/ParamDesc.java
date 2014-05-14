@@ -159,6 +159,7 @@ public class ParamDesc
         this.datatype = functionDesc.datatype;
         this.size = null;
         this.alias = alias;
+        this.id = functionDesc.arg.id;
     }
 
     public ParamDesc(String name, String alias, String datatype)
