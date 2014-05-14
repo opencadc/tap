@@ -219,9 +219,13 @@ public class DefaultTableWriter implements TableWriter<ResultSet>
 
             resultsTable.getFields().add(newField);
 
-            if (paramDesc.columnDesc != null && paramDesc.columnDesc.id != null)
-                if (!serviceIDs.contains(paramDesc.columnDesc.id))
-                    serviceIDs.add(paramDesc.columnDesc.id);
+            if (newField.id != null)
+            {
+                if ( !serviceIDs.contains(newField.id) )
+                    serviceIDs.add(newField.id);
+                else
+                    newField.id = null; // avoid multiple ID with same value in output
+            }
 
             listIndex++;
         }
