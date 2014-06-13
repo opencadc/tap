@@ -69,27 +69,6 @@
 
 package ca.nrc.cadc.tap;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.naming.Context;
-import javax.naming.InitialContext;
-import javax.naming.NameNotFoundException;
-import javax.sql.DataSource;
-
-import org.apache.log4j.Logger;
-
-import ca.nrc.cadc.dali.tables.TableWriter;
 import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
 import ca.nrc.cadc.log.WebServiceLogInfo;
 import ca.nrc.cadc.tap.schema.ParamDesc;
@@ -107,6 +86,22 @@ import ca.nrc.cadc.uws.server.JobRunner;
 import ca.nrc.cadc.uws.server.JobUpdater;
 import ca.nrc.cadc.uws.server.SyncOutput;
 import ca.nrc.cadc.uws.util.JobLogInfo;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NameNotFoundException;
+import javax.sql.DataSource;
+import org.apache.log4j.Logger;
 
 /**
  * Implementation of the JobRunner interface from the cadcUWS framework. This is the
@@ -138,28 +133,13 @@ public class QueryRunner implements JobRunner
 {
     private static final Logger log = Logger.getLogger(QueryRunner.class);
 
-    private static final HashMap<String, String> langQueries = new HashMap<String, String>();
-
     private static final String queryDataSourceName = "jdbc/tapuser";
     private static final String uploadDataSourceName = "jdbc/tapuploadadm";
 
     // names of plugin classes that must be provided by service implementation
     private static final String resultStoreImplClassName = "ca.nrc.cadc.tap.impl.ResultStoreImpl";
     private static final String uploadManagerClassName = "ca.nrc.cadc.tap.impl.UploadManagerImpl";
-    private static final String sqlParserClassName = "ca.nrc.cadc.tap.impl.SqlQueryImpl";
-    private static final String adqlParserClassName = "ca.nrc.cadc.tap.impl.AdqlQueryImpl";
-    private static final String pqlParserClassName = "ca.nrc.cadc.tap.impl.PqlQueryImpl";
-
-    // optional plugin classes that may be provided to override default behaviour
-    private static String maxrecValidatorClassName = "ca.nrc.cadc.tap.impl.MaxRecValidatorImpl";
-
-    static
-    {
-        langQueries.put("ADQL", adqlParserClassName);
-        langQueries.put("ADQL-2.0", adqlParserClassName);
-        langQueries.put("SQL", sqlParserClassName);
-        langQueries.put("PQL", pqlParserClassName);
-    }
+   
 
     private String jobID;
     private Job job;
@@ -213,28 +193,13 @@ public class QueryRunner implements JobRunner
         sList.add("start");
 
         log.debug("run: " + job.getID());
-
+         List<Parameter> paramList = job.getParameterList();
+        log.debug("job " + job.getID() + ": " + paramList.size() + " parameters");
+        PluginFactory pfac = new PluginFactory(job);
 
         ResultStore rs = null;
         if (syncOutput == null)
-        {
-            // try to instantiate a ResultStore instance
-            try
-            {
-                log.debug("loading " + resultStoreImplClassName);
-                rs = (ResultStore) Class.forName(resultStoreImplClassName).newInstance();
-            }
-            catch (Throwable t)
-            {
-                log.warn("Failed to instantiate ResultStore class: " + resultStoreImplClassName);
-            }
-        }
-
-        // Check if a store or stream have been set for a context
-        if (rs == null && syncOutput == null)
-        {
-            throw new RuntimeException("async mode: Failed to instantiate ResultStore implementation: " + resultStoreImplClassName);
-        }
+            rs = pfac.getResultStore();
 
         try
         {
@@ -242,9 +207,9 @@ public class QueryRunner implements JobRunner
             if ( !ExecutionPhase.EXECUTING.equals(ep) )
             {
                 ep = jobUpdater.getPhase(job.getID());
-                log.debug(job.getID() + ": QUEUED -> EXECUTING [FAILED] -- DONE");
+                log.debug(job.getID() + ": QUEUED -> EXECUTING [FAILED] -- phase is " + ep);
                 logInfo.setSuccess(false);
-                logInfo.setMessage("Could not set job phase to completed.");
+                logInfo.setMessage("Could not set job phase to EXECUTING.");
                 return;
             }
             log.debug(job.getID() + ": QUEUED -> EXECUTING [OK]");
@@ -252,9 +217,6 @@ public class QueryRunner implements JobRunner
             sList.add("QUEUED -> EXECUTING: ");
 
             // start processing the job
-            List<Parameter> paramList = job.getParameterList();
-            log.debug("job " + job.getID() + ": " + paramList.size() + " parameters");
-
             log.debug("invoking TapValidator for REQUEST and VERSION...");
             TapValidator tapValidator = new TapValidator();
             tapValidator.validate(paramList);
@@ -274,38 +236,25 @@ public class QueryRunner implements JobRunner
             }
             catch (NameNotFoundException nex)
             {
-                log.warn(nex.toString());
+                log.debug(nex.toString());
             }
 
             if (queryDataSource == null) // application server config issue
                 throw new RuntimeException("failed to find the query DataSource");
-
             tList.add(System.currentTimeMillis());
             sList.add("find DataSources via JNDI: ");
 
             log.debug("reading TapSchema...");
-            TapSchemaDAO dao = new TapSchemaDAO(queryDataSource);
+            TapSchemaDAO dao = pfac.getTapSchemaDAO();
+            dao.setDataSource(queryDataSource);
             TapSchema tapSchema = dao.get();
-
             tList.add(System.currentTimeMillis());
             sList.add("read tap_schema: ");
 
-            log.debug("loading " + uploadManagerClassName);
-            UploadManager uploadManager = new DefaultUploadManager();
-            try
-            {
-                Class umc = Class.forName(uploadManagerClassName);
-                uploadManager = (UploadManager) umc.newInstance();
-                uploadManager.setDataSource(uploadDataSource);
-            }
-            catch(Throwable t)
-            {
-                log.debug("failed to load " + uploadManagerClassName +": using " + DefaultUploadManager.class.getName());
-            }
-            log.debug("using " + uploadManager.getClass().getName());
-            log.debug("invoking UploadManager for UPLOAD...");
+            log.debug("checking uploaded tables...");
+            UploadManager uploadManager = pfac.getUploadManager();
+            uploadManager.setDataSource(uploadDataSource);
             Map<String, TableDesc> tableDescs = uploadManager.upload(paramList, job.getID());
-
             if (tableDescs != null)
             {
                 log.debug("adding TAP_UPLOAD SchemaDesc to TapSchema...");
@@ -316,45 +265,30 @@ public class QueryRunner implements JobRunner
             }
 
             log.debug("invoking MaxRecValidator...");
-            MaxRecValidator maxRecValidator = new MaxRecValidator();
-            try
-            {
-                Class c = Class.forName(maxrecValidatorClassName);
-                maxRecValidator = (MaxRecValidator) c.newInstance();
-            }
-            catch (Throwable t)
-            {
-                log.debug("failed to load " + uploadManagerClassName +": using " + DefaultUploadManager.class.getName());
-            }
-            log.debug("using " + maxRecValidator.getClass().getName());
+            MaxRecValidator maxRecValidator = pfac.getMaxRecValidator();
+            maxRecValidator.setTapSchema(tapSchema);
             maxRecValidator.setJob(job);
             maxRecValidator.setSynchronousMode(syncOutput != null);
-            maxRecValidator.setTapSchema(tapSchema);
-            maxRecValidator.setExtraTables(tableDescs);
-            Integer maxRows = maxRecValidator.validate(paramList);
+            Integer maxRows = maxRecValidator.validate();
 
-            log.debug("invoking TapValidator to get LANG...");
-            String lang = tapValidator.getLang();
-            String cname = langQueries.get(lang);
-            if (cname == null)
-                throw new UnsupportedOperationException("unknown LANG: " + lang);
-
-            log.debug("loading TapQuery " + cname);
-            Class tqc = Class.forName(cname);
-            TapQuery tapQuery = (TapQuery) tqc.newInstance();
-            tapQuery.setTapSchema(tapSchema);
-            tapQuery.setExtraTables(tableDescs);
-            tapQuery.setParameterList(paramList);
+            log.debug("creating TapQuery implementation...");
+            TapQuery query = pfac.getTapQuery();
+            query.setTapSchema(tapSchema);
+            query.setExtraTables(tableDescs);
             if (maxRows != null)
-                tapQuery.setMaxRowCount(maxRows + 1); // +1 so the TableWriter can detect overflow
+                query.setMaxRowCount(maxRows + 1); // +1 so the TableWriter can detect overflow
 
-            log.debug("invoking TapQuery...");
-            String sql = tapQuery.getSQL();
-            List<ParamDesc> selectList = tapQuery.getSelectList();
-            String queryInfo = tapQuery.getInfo();
+            log.debug("invoking TapQuery implementation: " + query.getClass().getCanonicalName());
+            String sql = query.getSQL();
+            List<ParamDesc> selectList = query.getSelectList();
+            String queryInfo = query.getInfo();
 
-            log.debug("invoking TableWriterFactory for FORMAT...");
-            TableWriter<ResultSet> tableWriter = new DefaultTableWriter(job, selectList, queryInfo);
+            log.debug("creating TapTableWriter...");
+            TableWriter tableWriter = pfac.getTableWriter();
+            tableWriter.setFormatFactory(pfac.getFormatFactory());
+            tableWriter.setJob(job);
+            tableWriter.setSelectList(selectList);
+            tableWriter.setQueryInfo(queryInfo);
 
             tList.add(System.currentTimeMillis());
             sList.add("parse/convert query: ");
@@ -386,11 +320,13 @@ public class QueryRunner implements JobRunner
 
                 tList.add(System.currentTimeMillis());
                 sList.add("execute query and get ResultSet: ");
+                
                 String filename = "result_" + job.getID() + "." + tableWriter.getExtension();
-
+                String contentType = tableWriter.getContentType();
+                
                 if (syncOutput != null)
                 {
-                    String contentType = tableWriter.getContentType();
+                    
                     log.debug("streaming output: " + contentType);
                     syncOutput.setHeader("Content-Type", contentType);
                     String disp = "attachment; filename=\""+filename+"\"";
@@ -414,8 +350,8 @@ public class QueryRunner implements JobRunner
                     log.debug("result filename: " + filename);
                     rs.setJob(job);
                     rs.setFilename(filename);
-                    rs.setContentType(tableWriter.getContentType());
-                    url = rs.put(resultSet, tableWriter);
+                    rs.setContentType(contentType);
+                    url = rs.put(resultSet, tableWriter, maxRows);
                     tList.add(System.currentTimeMillis());
                     sList.add("write ResultSet to ResultStore as " + tableWriter.getContentType() + ": ");
                 }

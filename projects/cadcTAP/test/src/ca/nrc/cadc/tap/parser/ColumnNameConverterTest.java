@@ -7,6 +7,7 @@ import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
 import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
 import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
 import java.util.ArrayList;
 import java.util.List;
@@ -145,17 +146,29 @@ public class ColumnNameConverterTest
     
     private String convert(String test, String query, boolean ignoreCase)
     {
-        List<Parameter> params = new ArrayList<Parameter>();
-        params.add(new Parameter("QUERY", query));
-        log.debug(test + ", before: " + query);
-        TestQuery tq = new TestQuery();
-        tq.ignoreCase = ignoreCase;
-        tq.setParameterList(params);
-        String sql = tq.getSQL();
-        log.debug(test + ", after: " + sql);
-        return sql;
+        try
+        {
+            job.getParameterList().add(new Parameter("QUERY", query));
+            log.debug(test + ", before: " + query);
+            TestQuery tq = new TestQuery();
+            tq.ignoreCase = ignoreCase;
+            tq.setJob(job);
+            String sql = tq.getSQL();
+            log.debug(test + ", after: " + sql);
+            return sql;
+        }
+        finally
+        {
+            job.getParameterList().clear();
+        }
     }
     
+    Job job = new Job() 
+    {
+        @Override
+        public String getID() { return "abcdefg"; }
+    };
+
     static class TestQuery extends AdqlQuery
     {
         boolean ignoreCase;

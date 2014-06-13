@@ -69,21 +69,21 @@
 
 package ca.nrc.cadc.vosi;
 
-import org.apache.log4j.Logger;
-import org.jdom.Attribute;
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.Namespace;
-
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.KeyColumnDesc;
 import ca.nrc.cadc.tap.schema.KeyDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
+import org.apache.log4j.Logger;
+import org.jdom2.Attribute;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.Namespace;
 
 /**
- *
+ * Class to convert the TapSchema content into a TableSet document.
+ * 
  * @author pdowler
  */
 public class TableSet
@@ -131,7 +131,8 @@ public class TableSet
         Element eleTableset = new Element("tableset", vosi);
         //Comment comment = new Comment("This is a temporary solution as of 2010-03-12.");
         //eleTableset.addContent(comment);
-        if (tapSchema.getSchemaDescs().size() == 0) throw new IllegalArgumentException("Error: at least one schema is required.");
+        if (tapSchema.getSchemaDescs().isEmpty()) 
+            throw new IllegalArgumentException("Error: at least one schema is required.");
         for (SchemaDesc sd : tapSchema.getSchemaDescs())
         {
             eleTableset.addContent(toXmlElement(sd));

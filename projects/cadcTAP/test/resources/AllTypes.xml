@@ -15,8 +15,10 @@
       <FIELD name="double_xtype"    datatype="double" xtype="adql:DOUBLE"    />
       <FIELD name="char_datatype"   datatype="char"                          />
       <FIELD name="char_xtype"      datatype="char"   xtype="adql:CHAR"      />
+      <FIELD name="char32_datatype" datatype="char"   arraysize="32" />
+      <FIELD name="varchar32_datatype" datatype="char"   arraysize="32*" />
       <FIELD name="varchar_xtype"   datatype="char"   xtype="adql:VARCHAR"   />
-      <FIELD name="timestamp_xtype" datatype="char"   xtype="adql:TIMESTAMP" />
+      <FIELD name="timestamp_xtype" datatype="char" arraysize="*" xtype="adql:TIMESTAMP" />
       <!--
       <FIELD name="point_xtype"     datatype="char"   xtype="adql:POINT"     />
       <FIELD name="region_xtype"    datatype="char"   xtype="adql:REGION"    />
@@ -34,8 +36,10 @@
             <TD>4.4</TD>
             <TD>5.5</TD>
             <TD>5.5</TD>
-            <TD>char_datatype</TD>
-            <TD>char_xtype</TD>
+            <TD>C</TD>
+            <TD>C</TD>
+            <TD>char(32) of exact--len</TD>
+            <TD>varchar(32) value</TD>
             <TD>varchar_xtype</TD>
             <TD>2011-01-01T00:00:00.000</TD>
 	    <!--

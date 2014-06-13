@@ -69,28 +69,13 @@
 
 package ca.nrc.cadc.tap;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import net.sf.jsqlparser.JSQLParserException;
-import net.sf.jsqlparser.statement.Statement;
-import net.sf.jsqlparser.statement.select.PlainSelect;
-import net.sf.jsqlparser.statement.select.Select;
-import net.sf.jsqlparser.statement.select.SelectBody;
-import net.sf.jsqlparser.statement.select.Top;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.tap.parser.ParserUtil;
 import ca.nrc.cadc.tap.parser.PgsphereDeParser;
+import ca.nrc.cadc.tap.parser.QuerySelectDeParser;
 import ca.nrc.cadc.tap.parser.converter.AllColumnConverter;
 import ca.nrc.cadc.tap.parser.converter.TableNameConverter;
-import ca.nrc.cadc.tap.parser.converter.postgresql.PgFunctionNameConverter;
-import ca.nrc.cadc.tap.parser.extractor.FunctionExpressionExtractor;
 import ca.nrc.cadc.tap.parser.extractor.SelectListExpressionExtractor;
 import ca.nrc.cadc.tap.parser.extractor.SelectListExtractor;
-import ca.nrc.cadc.tap.parser.QuerySelectDeParser;
 import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
 import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
@@ -100,28 +85,41 @@ import ca.nrc.cadc.tap.parser.schema.ExpressionValidator;
 import ca.nrc.cadc.tap.parser.schema.TapSchemaTableValidator;
 import ca.nrc.cadc.tap.schema.ParamDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.schema.TapSchema;
-import ca.nrc.cadc.uws.Parameter;
 import ca.nrc.cadc.uws.ParameterUtil;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import net.sf.jsqlparser.JSQLParserException;
+import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.Select;
+import net.sf.jsqlparser.statement.select.SelectBody;
+import net.sf.jsqlparser.statement.select.Top;
 import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
 import net.sf.jsqlparser.util.deparser.SelectDeParser;
+import org.apache.log4j.Logger;
 
 /**
- * TapQuery implementation for LANG=ADQL.
+ * TapQuery implementation for ADQL query processing. The default implementation
+ * validates the query against the TapSchema, converts wildcards in the select
+ * list to a fixed list of columns, and extracts the select list so it can be 
+ * matched to TapSchema.columns to support output of the ResultSet. In addition,
+ * this implementation only allows BLOB and CLOB column references in the select
+ * list.
+ * </p><p>
+ * This class supports extension by delegating calls to a subclass of itself 
+ * named <code>ca..nrc.cadc.tap.impl.AdqlQueryImpl</code>. Delegate implementation
+ * is optional.
  * 
- * @author zhangsa
+ * @author pdowler
  *
  */
-public class AdqlQuery implements TapQuery
+public class AdqlQuery extends AbstractTapQuery
 {
     private static Logger log = Logger.getLogger(AdqlQuery.class);
 
-    protected TapSchema tapSchema;
-    protected Map<String, TableDesc> extraTables;
-    protected List<Parameter> paramList;
     protected String queryString;
-    protected Integer maxRows;
 
     protected Statement statement;
     protected List<ParamDesc> selectList = null;
@@ -129,8 +127,9 @@ public class AdqlQuery implements TapQuery
 
     protected transient boolean navigated = false;
 
-    public AdqlQuery()
-    {
+    public AdqlQuery() 
+    { 
+        super();
     }
 
     /**
@@ -145,23 +144,26 @@ public class AdqlQuery implements TapQuery
         FromItemNavigator fn;
         SelectNavigator sn;
 
-        // Blob,Clob plus Default Validator
+        // default validator: table and columns in tap_schema, 
+        // blobs and clobs in select list only
         en = new ExpressionValidator(tapSchema);
         rn = new BlobClobColumnValidator(tapSchema);
         fn = new TapSchemaTableValidator(tapSchema);
         sn = new SelectNavigator(en, rn, fn);
         navigatorList.add(sn);
 
+        // convert * to fixed select-list
         sn = new AllColumnConverter(tapSchema);
         navigatorList.add(sn);
 
+        // extract select-list
         en = new SelectListExpressionExtractor(tapSchema);
         rn = null;
         fn = null;
         sn = new SelectListExtractor(en, rn, fn);
         navigatorList.add(sn);
 
-        // Used for file uploads to map the upload table name to the query table name.
+        // support for file uploads to map the upload table name to the query table name.
         if (extraTables != null && !extraTables.isEmpty())
         {
             TableNameConverter tnc = new TableNameConverter(true);
@@ -171,15 +173,17 @@ public class AdqlQuery implements TapQuery
                 String newName = (String) entry.getKey();
                 TableDesc tableDesc = (TableDesc) entry.getValue();
                 tnc.put(tableDesc.tableName, newName);
-                log.debug("TableNameConverter " + tableDesc.tableName + " -> " + newName);
+                log.info("TableNameConverter " + tableDesc.tableName + " -> " + newName);
             }
             en = new ExpressionNavigator();
             sn = new SelectNavigator(en, new ReferenceNavigator(), tnc);
             navigatorList.add(sn);
         }
+        
+        
     }
 
-    protected void doNavigate()
+    private void doNavigate()
     {
         if (navigated) // idempotent
             return;
@@ -188,6 +192,10 @@ public class AdqlQuery implements TapQuery
 
         try
         {
+            this.queryString = ParameterUtil.findParameterValue("QUERY", job.getParameterList());
+            if (queryString == null || queryString.length() == 0) 
+                throw new IllegalArgumentException("missing required parameter: QUERY");
+        
             log.debug("parsing query: " + queryString);
             statement = ParserUtil.receiveQuery(queryString);
         }
@@ -198,7 +206,7 @@ public class AdqlQuery implements TapQuery
         }
 
         // if maxRows has been set, update top
-        if (maxRows != null && statement instanceof Select)
+        if (maxRowCount != null && statement instanceof Select)
         {
             Select select = (Select) statement;
             SelectBody selectBody = select.getSelectBody();
@@ -209,15 +217,15 @@ public class AdqlQuery implements TapQuery
                 if (top == null)
                 {
                     top = new Top();
-                    top.setRowCount(new Long(maxRows));
-                    log.debug("added TOP " + maxRows);
+                    top.setRowCount(new Long(maxRowCount));
+                    log.debug("added TOP " + maxRowCount);
                 }
                 else
                 {
-                    if (maxRows < top.getRowCount())
+                    if (maxRowCount < top.getRowCount())
                     {
-                        log.debug("updated TOP " + top.getRowCount() + " to TOP " + maxRows);
-                        top.setRowCount(maxRows);
+                        log.debug("updated TOP " + top.getRowCount() + " to TOP " + maxRowCount);
+                        top.setRowCount(maxRowCount);
                     }
                 }
                 plainSelect.setTop(top);
@@ -235,7 +243,7 @@ public class AdqlQuery implements TapQuery
      * 
      * @param statement
      */
-    protected void navigateStatement(Statement statement)
+    private void navigateStatement(Statement statement)
     {
         for (SelectNavigator sn : navigatorList)
         {
@@ -251,46 +259,8 @@ public class AdqlQuery implements TapQuery
         }
     }
 
-    public void setTapSchema(TapSchema tapSchema)
-    {
-        this.tapSchema = tapSchema;
-    }
-
-    /**
-     * 
-//     * @deprecated 
-     */
-    public void setExtraTables(Map<String, TableDesc> extraTables)
-    {
-        this.extraTables = extraTables;
-    }
-
-    public void setParameterList(List<Parameter> paramList)
-    {
-        this.paramList = paramList;
-        List<String> vals = ParameterUtil.findParameterValues("QUERY", paramList);
-        if (vals == null || vals.isEmpty())
-            throw new IllegalArgumentException("missing required parameter: QUERY");
-        this.queryString = vals.get(0);
-        if (queryString == null || queryString.length() == 0) 
-            throw new IllegalArgumentException("QUERY parameter has no value");
-    }
-
-    public void setMaxRowCount(Integer count)
-    {
-        this.maxRows = count;
-    }
-
-    public Integer getMaxRowCount()
-    {
-        return maxRows;
-    }
-
     public String getSQL()
     {
-        if (queryString == null)
-            throw new IllegalStateException();
-        
         doNavigate();
         log.debug("getSQL statement: " + statement);
 
@@ -306,16 +276,14 @@ public class AdqlQuery implements TapQuery
 
     public List<ParamDesc> getSelectList()
     {
-        if (queryString == null)
-            throw new IllegalStateException();
-
         doNavigate();
         return selectList;
     }
 
+    @Override
     public String getInfo()
     {
-        // TODO: format nicely?
+        doNavigate();
         return queryString;
     }
 }
