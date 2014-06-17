@@ -196,6 +196,7 @@ public class QueryRunner implements JobRunner
          List<Parameter> paramList = job.getParameterList();
         log.debug("job " + job.getID() + ": " + paramList.size() + " parameters");
         PluginFactory pfac = new PluginFactory(job);
+        log.debug("loaded: " + pfac);
 
         ResultStore rs = null;
         if (syncOutput == null)

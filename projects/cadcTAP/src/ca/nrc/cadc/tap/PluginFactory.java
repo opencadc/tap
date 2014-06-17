@@ -108,6 +108,11 @@ public class PluginFactory
         init();
     }
     
+    @Override
+    public String toString()
+    {
+        return this.getClass().getName() + "[" + config.entrySet().size() + "]";
+    }
     private void init()
     {
         // default config
@@ -299,6 +304,7 @@ public class PluginFactory
             Class c = Class.forName(cname);
             ResultStore ret = (ResultStore) c.newInstance();
             ret.setJob(job);
+            log.debug("loaded: " + ret.getClass().getName());
             return  ret;
         }
         catch(Exception ex)
