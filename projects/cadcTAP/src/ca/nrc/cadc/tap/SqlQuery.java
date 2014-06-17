@@ -69,15 +69,6 @@
 
 package ca.nrc.cadc.tap;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import net.sf.jsqlparser.JSQLParserException;
-import net.sf.jsqlparser.statement.Statement;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.tap.parser.ParserUtil;
 import ca.nrc.cadc.tap.parser.converter.AllColumnConverter;
 import ca.nrc.cadc.tap.parser.extractor.SelectListExpressionExtractor;
@@ -89,36 +80,34 @@ import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
 import ca.nrc.cadc.tap.parser.schema.TapSchemaColumnValidator;
 import ca.nrc.cadc.tap.parser.schema.TapSchemaTableValidator;
 import ca.nrc.cadc.tap.schema.ParamDesc;
-import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.schema.TapSchema;
-import ca.nrc.cadc.uws.Parameter;
 import ca.nrc.cadc.uws.ParameterUtil;
+import java.util.ArrayList;
+import java.util.List;
+import net.sf.jsqlparser.JSQLParserException;
+import net.sf.jsqlparser.statement.Statement;
+import org.apache.log4j.Logger;
 
 /**
- * TapQuery implementation for LANG=SQL.
+ * TapQuery implementation for direct SQL query processing. The default implementation
+ * validates the query against the TapSchema, converts wildcards in the select
+ * list to a fixed list of columns, and extracts the select-list so it can be 
+ * matched to TapSchema.columns to support output of the ResultSet.
  * 
- * @author zhangsa
+ * @author pdowler
  *
  */
-public class SqlQuery implements TapQuery
+public class SqlQuery extends AbstractTapQuery
 {
     protected static Logger log = Logger.getLogger(SqlQuery.class);
 
-    protected TapSchema tapSchema;
-    protected Map<String, TableDesc> extraTables;
-    protected List<Parameter> paramList;
     protected String queryString;
-    protected Integer maxRows;
-
     protected Statement statement;
     protected List<ParamDesc> selectList;
     protected List<SelectNavigator> navigatorList = new ArrayList<SelectNavigator>();
 
     protected transient boolean navigated = false;
 
-    public SqlQuery()
-    {
-    }
+    public SqlQuery() { }
 
     /**
      * Set up the List<SelectNavigator>. Subclasses should override this method to
@@ -146,6 +135,8 @@ public class SqlQuery implements TapQuery
         fn = null;
         sn = new SelectListExtractor(en, rn, fn);
         navigatorList.add(sn);
+        
+        
     }
 
     protected void doNavigate()
@@ -158,12 +149,14 @@ public class SqlQuery implements TapQuery
         // parse for syntax
         try
         {
+            this.queryString = ParameterUtil.findParameterValue("QUERY", job.getParameterList());
+            if (queryString == null || queryString.length() == 0) 
+                throw new IllegalArgumentException("missing required parameter: QUERY");
             statement = ParserUtil.receiveQuery(queryString);
         }
         catch (JSQLParserException e)
         {
-            e.printStackTrace();
-            throw new IllegalArgumentException(e);
+            throw new IllegalArgumentException("failed to parse SQL", e);
         }
 
         // run all the navigators
@@ -182,56 +175,22 @@ public class SqlQuery implements TapQuery
         navigated = true;
     }
 
-    public void setTapSchema(TapSchema tapSchema)
-    {
-        this.tapSchema = tapSchema;
-    }
-
-    public void setExtraTables(Map<String, TableDesc> extraTables)
-    {
-        this.extraTables = extraTables;
-    }
-
-    public void setParameterList(List<Parameter> paramList)
-    {
-        this.queryString = ParameterUtil.findParameterValue("QUERY", paramList);
-        if (queryString == null) throw new IllegalArgumentException("parameter not found: QUERY");
-    }
-
-    /**
-     * Not currently used for SQL queries.
-     */
-    public void setMaxRowCount(Integer count)
-    {
-        if (maxRows == null)
-            this.maxRows = count;
-        else if (count != null && count < maxRows) this.maxRows = count;
-    }
-
-    public Integer getMaxRowCount()
-    {
-        return maxRows;
-    }
-
     public String getSQL()
     {
-        if (queryString == null) throw new IllegalStateException();
-
         doNavigate();
         return statement.toString();
     }
 
     public List<ParamDesc> getSelectList()
     {
-        if (queryString == null) throw new IllegalStateException();
-
         doNavigate();
         return selectList;
     }
 
+    @Override
     public String getInfo()
     {
-        // TODO: format nicely?
+        doNavigate();
         return queryString;
     }
 

@@ -8,6 +8,7 @@ import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
 import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
 import ca.nrc.cadc.util.CaseInsensitiveStringComparator;
 import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
 import java.util.ArrayList;
 import java.util.List;
@@ -65,7 +66,7 @@ public class TableNameConverterTest
         }
         catch(Throwable t)
         {
-            log.error("testSelectCaseInsensitive: " + t);
+            log.error("testSelectCaseInsensitive: ", t);
             Assert.assertFalse(true);
         }
     }
@@ -88,7 +89,7 @@ public class TableNameConverterTest
         }
         catch(Exception t)
         {
-            log.error("testCaseSensitive: " + t);
+            log.error("testCaseSensitive: ",t);
             Assert.assertFalse(true);
         }
     }
@@ -107,7 +108,7 @@ public class TableNameConverterTest
         }
         catch(Throwable t)
         {
-            log.error("testWithSchema: " + t);
+            log.error("testWithSchema: " , t);
             Assert.assertFalse(true);
         }
     }
@@ -126,7 +127,7 @@ public class TableNameConverterTest
         }
         catch(Throwable t)
         {
-            log.error("testWithSchemaChange: " + t);
+            log.error("testWithSchemaChange: ", t);
             Assert.assertFalse(true);
         }
     }
@@ -145,7 +146,7 @@ public class TableNameConverterTest
         }
         catch(Throwable t)
         {
-            log.error("testChangeBoth: " + t);
+            log.error("testChangeBoth: " , t);
             Assert.assertFalse(true);
         }
     }
@@ -168,7 +169,7 @@ public class TableNameConverterTest
         }
         catch(Throwable t)
         {
-            log.error("testFullyQualifiedColumnName: " + t);
+            log.error("testFullyQualifiedColumnName: ", t);
             Assert.assertFalse(true);
         }
     }
@@ -185,7 +186,7 @@ public class TableNameConverterTest
         }
         catch(Throwable t)
         {
-            log.error("testSubQuery: " + t);
+            log.error("testSubQuery: ", t);
             Assert.assertFalse(true);
         }
     }
@@ -207,25 +208,38 @@ public class TableNameConverterTest
         }
         catch(Throwable t)
         {
+            log.error("testDatabaseSchemaTable: ", t);
             Assert.fail("testDatabaseSchemaTable: " + t);
         }
     }
 
     private String convert(String test, String query, String ot, String nt, boolean ignoreCase)
     {
-        List<Parameter> params = new ArrayList<Parameter>();
-        params.add(new Parameter("QUERY", query));
-        log.debug(test + ", before: " + query);
-        TestQuery tq = new TestQuery(ot, nt, ignoreCase);
-        tq.setParameterList(params);
-        String sql = tq.getSQL();
-        log.debug(test + ", after: " + sql);
-        return sql;
+        try
+        {
+            job.getParameterList().add(new Parameter("QUERY", query));
+            log.debug(test + ", before: " + query);
+            TestQuery tq = new TestQuery(ot, nt, ignoreCase);
+            tq.setJob(job);
+            String sql = tq.getSQL();
+            log.debug(test + ", after: " + sql);
+            return sql;
+        }
+        finally
+        {
+            job.getParameterList().clear();
+        }
     }
 
     String ot = "oldTable";
     String nt = "newTable";
 
+    Job job = new Job() 
+    {
+        @Override
+        public String getID() { return "abcdefg"; }
+    };
+    
     static class TestQuery extends AdqlQuery
     {
         TableNameConverter tnc;
@@ -259,7 +273,6 @@ public class TableNameConverterTest
         }
         protected void init()
         {
-            //super.init();
             SelectNavigator sn = new SelectNavigator(
                     new ExpressionNavigator(), tnrc, tnc);
             super.navigatorList.add(sn);

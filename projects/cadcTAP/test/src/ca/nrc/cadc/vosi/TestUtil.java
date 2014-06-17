@@ -69,18 +69,14 @@
 
 package ca.nrc.cadc.vosi;
 
-import java.io.IOException;
-import java.io.StringReader;
-import java.net.URL;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.apache.log4j.Logger;
-
-import org.jdom.Document;
-import org.jdom.JDOMException;
-import org.jdom.input.SAXBuilder;
-import org.jdom.xpath.XPath;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.Namespace;
+import org.jdom2.filter.Filters;
+import org.jdom2.xpath.XPathExpression;
+import org.jdom2.xpath.XPathFactory;
 import org.junit.Assert;
 
 /**
@@ -126,16 +122,10 @@ public class TestUtil
     public static int getXmlNodeCount(Document doc, String xpathStr)
     {
         int rtn = 0;
-        XPath xpath;
-        try
-        {
-            xpath = XPath.newInstance(xpathStr);
-            List rs = xpath.selectNodes(doc);
-            rtn = rs.size();
-        } catch (JDOMException e)
-        {
-            e.printStackTrace();
-        }
-        return rtn;
+        Namespace ns = doc.getRootElement().getNamespace();
+        
+        XPathExpression<Element> xp = XPathFactory.instance().compile(xpathStr, Filters.element(), null, ns);
+        List<Element> rs = xp.evaluate(doc);
+        return rs.size();
     }
 }

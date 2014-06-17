@@ -72,8 +72,6 @@ import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.ParamDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.schema.TapSchema;
-import ca.nrc.cadc.uws.Parameter;
 import ca.nrc.cadc.uws.ParameterUtil;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -85,73 +83,19 @@ import org.apache.log4j.Logger;
  *
  * @author jburke
  */
-public abstract class PqlQuery implements TapQuery
+public abstract class PqlQuery extends AbstractTapQuery
 {
     protected static Logger log = Logger.getLogger(PqlQuery.class);
-
-    /*
-     * The TapSchema content.
-     */
-    protected TapSchema tapSchema;
-
-    /*
-     * Temporary tables not described in the TapSchema.
-     */
-    protected Map<String, TableDesc> extraTables;
-
-    /*
-     * List of request parameters.
-     */
-    protected List<Parameter> paramList;
-
-    /*
-     * Maximum number of rows returned from query.
-     */
-    protected Integer maxRows;
 
     /*
      * Request parameters from the TapSchema and their values.
      */
     protected Map<TableDesc, String[]> tapSchemaParameters;
 
-    protected transient boolean navigated = false;
-
     /**
      * Default no-arg constructor.
      */
     public PqlQuery() { }
-
-    /**
-     * Caller provides the complete TapSchema content.
-     *
-     * @param ts
-     */
-    public void setTapSchema(TapSchema ts)
-    {
-        this.tapSchema = ts;
-    }
-
-    /**
-     * Caller provides the original table names and metadata for temporary tables not
-     * described in TapSchema.
-     *
-     * @param extraTables
-     */
-    public void setExtraTables(Map<String, TableDesc> extraTables)
-    {
-        this.extraTables = extraTables;
-    }
-
-    /**
-     * Set the parameter list. Calling this method clears all previous
-     * parsing state.
-     *
-     * @param params
-     */
-    public void setParameterList(List<Parameter> params)
-    {
-        this.paramList = params;    
-    }
 
     /**
      * @return the SQL query to execute
@@ -162,28 +106,6 @@ public abstract class PqlQuery implements TapQuery
      * @return the metadata for columns in the result set
      */
     public abstract List<ParamDesc> getSelectList();
-
-    /**
-     * Limit number of table rows.
-     *
-     * @param count
-     */
-    public void setMaxRowCount(Integer count)
-    {
-        this.maxRows = count;
-    }
-
-    /**
-     * Get the effective row count limit. The QueryRunner class will use this to
-     * limit output to the lesser of this value and the user-specified MAXREC and
-     * will actually write one row less than this along with an overflow indicator.
-     *
-     * @return max number of rows the query will return, null means unlimited
-     */
-    public Integer getMaxRowCount()
-    {
-        return maxRows;
-    }
 
     /**
      * Given the List of request Parameters, builds a Map of TableDesc to
@@ -197,11 +119,11 @@ public abstract class PqlQuery implements TapQuery
      */
     protected void setTapSchemaParameters()
     {        
-        if (paramList == null)
-            throw new IllegalStateException("setParameterList(List<Parameter> params) must be called before using this method");
+        if (job == null)
+            throw new IllegalStateException("BUG: job cannot be null");
 
         if (tapSchema == null)
-            throw new IllegalStateException("setTapSchema(TapSchema ts) must be called before using this method");
+            throw new IllegalStateException("BUG: TapSchema cannot be null");
 
         // Check for request parameters that match tap_schema names.
         List<SchemaDesc> schemaDescs = tapSchema.getSchemaDescs();
@@ -242,7 +164,7 @@ public abstract class PqlQuery implements TapQuery
                     String fqn = sb.toString();
 
                     // Check if the paramList contains the fully qualified column name.
-                    List<String> values = ParameterUtil.findParameterValues(fqn, paramList);
+                    List<String> values = ParameterUtil.findParameterValues(fqn, job.getParameterList());
                     if (values == null)
                         continue;
 

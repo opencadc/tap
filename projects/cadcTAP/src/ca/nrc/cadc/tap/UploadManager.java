@@ -83,7 +83,7 @@ import javax.sql.DataSource;
  * 
  * @author pdowler
  */
-public interface UploadManager 
+public interface UploadManager extends TapPlugin
 {
     /**
      * The parameter name as defined in the TAP 1.0 specification.

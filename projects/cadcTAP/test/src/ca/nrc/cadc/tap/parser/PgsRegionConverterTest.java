@@ -91,6 +91,7 @@ import ca.nrc.cadc.tap.parser.extractor.FunctionExpressionExtractor;
 import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.region.pgsphere.PgsphereRegionConverter;
 import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -111,20 +112,24 @@ public class PgsRegionConverterTest
     public String _query;
     public String _expected = "";
 
+    Job job = new Job() 
+    {
+        @Override
+        public String getID() { return "abcdefg"; }
+    };
+    
     private void doit() { doit(true); }
     
     private void doit(boolean eq)
     {
         try
         {
-            Parameter para;
-            para = new Parameter("QUERY", _query);
-            List<Parameter> paramList = new ArrayList<Parameter>();
-            paramList.add(para);
+            Parameter para = new Parameter("QUERY", _query);
+            job.getParameterList().add(para);
             log.debug("input query: " + _query);
 
             TapQuery tapQuery = new AdqlPgsRegionQuery(); // inner class in this file
-            tapQuery.setParameterList(paramList);
+            tapQuery.setJob(job);
             String sql = tapQuery.getSQL();
             log.debug("actual: " + sql);
             log.debug("expected: " + _expected);
@@ -134,10 +139,14 @@ public class PgsRegionConverterTest
             else // contains expected
                 Assert.assertTrue(sql.toLowerCase().indexOf(_expected.toLowerCase()) > 0);
         }
-        catch(Throwable t)
+        catch(Exception unexpected)
         {
-            t.printStackTrace();
-            Assert.fail("unexpected exception: " + t);
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+        finally
+        {
+            job.getParameterList().clear();
         }
     }
 

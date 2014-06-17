@@ -69,23 +69,18 @@
 
 package ca.nrc.cadc.tap.writer.format;
 
-import java.util.List;
-
 import ca.nrc.cadc.dali.util.Format;
+import ca.nrc.cadc.tap.TapPlugin;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.ParamDesc;
-import ca.nrc.cadc.uws.Parameter;
+import java.util.List;
 
 /**
  * FormatFactory interface.
  *
  */
-public interface FormatFactory
+public interface FormatFactory extends TapPlugin
 {
-    void setJobID(String jobID);
-
-    void setParamList(List<Parameter> params);
-
     List<Format<Object>> getFormats(List<ParamDesc> selectList);
 
     Format<Object> getFormat(ColumnDesc columnDesc);

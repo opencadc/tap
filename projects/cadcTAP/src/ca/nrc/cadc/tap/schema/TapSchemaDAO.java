@@ -69,13 +69,13 @@
 
 package ca.nrc.cadc.tap.schema;
 
+import ca.nrc.cadc.tap.TapPlugin;
+import ca.nrc.cadc.uws.Job;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.sql.DataSource;
-
 import org.apache.log4j.Logger;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -84,9 +84,9 @@ import org.springframework.jdbc.core.RowMapper;
  * Given a DataSource to a TAP_SCHEMA, returns a TapSchema object containing the TAP_SCHEMA data.
  * 
  */
-public class TapSchemaDAO
+public class TapSchemaDAO implements TapPlugin
 {
-    private static Logger log = Logger.getLogger(TapSchemaDAO.class);
+    private static final Logger log = Logger.getLogger(TapSchemaDAO.class);
 
     public static final String SCHEMAS_TAB = "tap_schema.schemas";
     public static final String TABLES_TAB = "tap_schema.tables";
@@ -124,12 +124,11 @@ public class TapSchemaDAO
             "from " + KEY_COLUMNS_TAB;
     private static final String ORDER_KEY_COLUMNS = " ORDER BY key_id, from_column, target_column";
 
-    // Database connection.
     protected DataSource dataSource;
     protected boolean ordered;
 
-    private TapSchemaDAO delegate;
-
+    protected Job job;
+    
     // Indicates function return datatype matches argument datatype.
     public static final String ARGUMENT_DATATYPE = "ARGUMENT_DATATYPE";
 
@@ -141,34 +140,21 @@ public class TapSchemaDAO
      * 
      * @param dataSource TAP_SCHEMA DataSource.
      */
-    public TapSchemaDAO(DataSource dataSource)
-    {
-        this(dataSource, false);
-    }
+    public TapSchemaDAO() { }
 
-    public TapSchemaDAO(DataSource dataSource, boolean ordered)
+    public void setJob(Job job)
+    {
+        this.job = job;
+    }
+    
+    public void setDataSource(DataSource dataSource)
     {
         this.dataSource = dataSource;
-        this.ordered = ordered;
-        String extensionClassName = TapSchemaDAO.class.getName() + "Impl";
-        try
-        {
-            Class c = Class.forName(extensionClassName);
-            this.delegate = (TapSchemaDAO) c.newInstance();
-            log.debug("loaded: " + extensionClassName);
-            delegate.dataSource = dataSource;
-            delegate.ordered = ordered;
-        }
-        catch(Throwable t)
-        {
-            log.debug("failed to load: " + extensionClassName + ", using TapSchemaDAO directly", t);
-        }
     }
 
-    // delegate ctor
-    protected TapSchemaDAO()
+    public void setOrdered(boolean ordered)
     {
-
+        this.ordered = ordered;
     }
 
     /**
@@ -176,11 +162,8 @@ public class TapSchemaDAO
      * 
      * @return TapSchema containing all of the data from TAP_SCHEMA.
      */
-    public final TapSchema get()
+    public TapSchema get()
     {
-        if (delegate != null)
-            return delegate.get();
-
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         TapSchema tapSchema = new TapSchema();
         String sql;

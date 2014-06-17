@@ -102,6 +102,18 @@ public interface ResultStore
      */
     URL put(ResultSet rs, TableWriter<ResultSet> writer)
         throws IOException;
+    
+    /**
+     * Store the ResultSet and returns an
+     * URL to the stored file.
+     * @param rs ResultSet to store.
+     * @param writer TableWriter.
+     * @param maxrec max rows value to pass to TableWriter
+     * @return an URL to the stored ResultSet.
+     * @throws IOException
+     */
+    URL put(ResultSet rs, TableWriter<ResultSet> writer, Integer maxrec)
+        throws IOException;
 
     /**
      * Stores the Throwable as a VOTable, and returns an

@@ -81,9 +81,9 @@ import javax.servlet.http.HttpServletResponse;
 import javax.sql.DataSource;
 
 import org.apache.log4j.Logger;
-import org.jdom.Document;
-import org.jdom.output.Format;
-import org.jdom.output.XMLOutputter;
+import org.jdom2.Document;
+import org.jdom2.output.Format;
+import org.jdom2.output.XMLOutputter;
 
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
@@ -139,7 +139,9 @@ public class TableServlet extends HttpServlet
                 DataSource queryDataSource = (DataSource) envContext.lookup(queryDataSourceName);
 
                 // extract TapSchema
-                TapSchemaDAO dao = new TapSchemaDAO(queryDataSource, true);
+                TapSchemaDAO dao = new TapSchemaDAO();
+                dao.setDataSource(queryDataSource);
+                dao.setOrdered(true);
                 TapSchema tapSchema = dao.get();
 
                 TableSet vods = new TableSet(tapSchema);

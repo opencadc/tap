@@ -70,7 +70,6 @@
 package ca.nrc.cadc.tap.upload;
 
 import ca.nrc.cadc.tap.schema.TableDesc;
-import java.io.InputStream;
 import java.util.Iterator;
 
 /**
@@ -83,20 +82,6 @@ public interface VOTableParser
 {
     static final String VOTABLE_11_SCHEMA = "VOTable-v1.1.xsd";
     static final String VOTABLE_12_SCHEMA = "VOTable-v1.2.xsd";
-
-    /**
-     * Set the name of the VOTable.
-     *
-     * @param tableName the VOTable name.
-     */
-    void setTableName(String tableName);
-
-    /**
-     * Set the URI used to access the VOTabe.
-     *
-     * @param in InputStream to the VOTable document.
-     */
-    void setInputStream(InputStream in);
 
     /**
      * Get a TableDesc of the VOTable.

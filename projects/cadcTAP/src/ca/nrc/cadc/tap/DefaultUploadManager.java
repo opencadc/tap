@@ -70,6 +70,7 @@
 package ca.nrc.cadc.tap;
 
 import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
 import ca.nrc.cadc.uws.ParameterUtil;
 import java.util.HashMap;
@@ -95,8 +96,14 @@ public class DefaultUploadManager implements UploadManager
 
     public void setDataSource(DataSource ds)
     {
-        throw new UnsupportedOperationException("UPLOAD parameter not supported by this service");
+        
     }
 
+    public void setJob(Job job)
+    {
+        
+    }
+
+    
 
 }

@@ -68,14 +68,15 @@
 */
 package ca.nrc.cadc.tap;
 
+import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
+import ca.nrc.cadc.dali.tables.votable.VOTableReader;
+import ca.nrc.cadc.dali.tables.votable.VOTableResource;
+import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.date.DateUtil;
-import ca.nrc.cadc.stc.Polygon;
 import ca.nrc.cadc.stc.Position;
 import ca.nrc.cadc.stc.Region;
 import ca.nrc.cadc.stc.STC;
 import ca.nrc.cadc.stc.StcsParsingException;
-import ca.nrc.cadc.tap.parser.region.pgsphere.function.Spoint;
-import ca.nrc.cadc.tap.parser.region.pgsphere.function.Spoly;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.upload.DatabaseDataTypeFactory;
@@ -86,6 +87,7 @@ import ca.nrc.cadc.tap.upload.VOTableParser;
 import ca.nrc.cadc.tap.upload.VOTableParserException;
 import ca.nrc.cadc.tap.upload.datatype.ADQLDataType;
 import ca.nrc.cadc.tap.upload.datatype.DatabaseDataType;
+import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
 import java.io.IOException;
 import java.sql.Connection;
@@ -129,6 +131,8 @@ public class BasicUploadManager implements UploadManager
      */
     protected int maxUploadRows;
 
+    protected Job job;
+    
     /**
      * Default constructor.
      */
@@ -149,6 +153,12 @@ public class BasicUploadManager implements UploadManager
         this.dataSource = ds;
     }
 
+    public void setJob(Job job)
+    {
+        this.job = job;
+    }
+    
+    
     /**
      * Find and process all UPLOAD requests.
      *
@@ -205,6 +215,7 @@ public class BasicUploadManager implements UploadManager
                 // XML parser
                 // TODO: make configurable.
                 log.debug(uploadTable);
+                
                 VOTableParser parser = getVOTableParser(uploadTable);
 
                 // Get the Table description.
@@ -212,10 +223,10 @@ public class BasicUploadManager implements UploadManager
 
                 // Fully qualified name of the table in the database.
                 String databaseTableName = getDatabaseTableName(uploadTable);
-                
-                // Update the returned Metadata.
-                metadata.put(databaseTableName, tableDesc);
 
+                metadata.put(databaseTableName, tableDesc);
+                log.debug("upload table: " + databaseTableName + " aka " + tableDesc);
+                
                 // Build the SQL to create the table.
                 String tableSQL = getCreateTableSQL(tableDesc, databaseTableName, databaseDataType);
                 log.debug("Create table SQL: " + tableSQL);
@@ -242,11 +253,11 @@ public class BasicUploadManager implements UploadManager
 
                 // Populate the table from the VOTable tabledata rows.
                 int numRows = 0;
-                Iterator it = parser.iterator();
+                Iterator<List<Object>> it = parser.iterator();
                 while (it.hasNext())
                 {
                     // Get the data for the next row.
-                    String[] row = (String[]) it.next();
+                    List<Object> row = it.next();
 
                     // Update the PreparedStatement with the row data.
                     updatePreparedStatement(ps, tableDesc.columnDescs, row);
@@ -284,7 +295,6 @@ public class BasicUploadManager implements UploadManager
         }
         catch(IOException ex)
         {
-
             throw new RuntimeException("failed to read table " + cur.tableName + " from " + cur.uri, ex);
         }
         catch (SQLException e)
@@ -326,6 +336,18 @@ public class BasicUploadManager implements UploadManager
         }
         return metadata;
     }
+    
+    protected VOTableParser getVOTableParser(UploadTable uploadTable)
+            throws IOException
+    {
+        VOTableReader r = new VOTableReader();
+        // TODO: wrap a ByteCountInputStream here to limit input data volume
+        VOTableDocument vdoc = r.read(uploadTable.uri.toURL().openStream());
+        String tname = uploadTable.tableName;
+        if (!tname.toUpperCase().startsWith(SCHEMA))
+            tname = SCHEMA + "." + tname;
+        return new JDOMVOTableParser(vdoc, tname);
+    }
 
     /**
      * Create the SQL to grant select privileges for the UPLOAD table.
@@ -339,22 +361,6 @@ public class BasicUploadManager implements UploadManager
     }
     
     /**
-     * Get a VOTableParser for an UploadTable.
-     * 
-     * @param uploadTable containing the table name and URI.
-     * @return VOTableParser for the UploadTable.
-     * @throws IOException 
-     */
-    protected VOTableParser getVOTableParser(UploadTable uploadTable)
-        throws IOException
-    {
-        VOTableParser parser = new JDOMVOTableParser();
-        parser.setTableName(SCHEMA + "." + uploadTable.tableName);
-        parser.setInputStream(uploadTable.uri.toURL().openStream());
-        return parser;
-    }
-    
-    /**
      * Constructs the database table name from the schema, upload table name,
      * and the jobID.
      * 
@@ -363,14 +369,11 @@ public class BasicUploadManager implements UploadManager
     public String getDatabaseTableName(UploadTable uploadTable)
     {
         StringBuilder sb = new StringBuilder();
+        if (!uploadTable.tableName.toUpperCase().startsWith(SCHEMA))
+            sb.append(SCHEMA).append(".");
         sb.append(uploadTable.tableName);
         sb.append("_");
         sb.append(uploadTable.jobID);
-        if (!uploadTable.tableName.toUpperCase().startsWith(SCHEMA + "."))
-        {
-            sb.insert(0, ".");
-            sb.insert(0, SCHEMA);
-        }
         return sb.toString();
     }
     
@@ -444,17 +447,46 @@ public class BasicUploadManager implements UploadManager
      * @param row Array containing the data to be inserted into the database.
      * @throws SQLException if the statement is closed or if the parameter index type doesn't match.
      */
-    protected void updatePreparedStatement(PreparedStatement ps, List<ColumnDesc> columnDescs, String[] row)
+    protected void updatePreparedStatement(PreparedStatement ps, List<ColumnDesc> columnDescs, List<Object> row)
         throws SQLException, StcsParsingException
     {
-        for (int i = 0; i < row.length; i++)
+        int i = 1;
+        for (Object value : row)
         {
-            ColumnDesc columnDesc = columnDescs.get(i);
-            log.debug("update ps: " + columnDesc.columnName + "[" + columnDesc.datatype + "] = " + row[i]);
+            ColumnDesc columnDesc = columnDescs.get(i-1);
+            log.debug("update ps: " + columnDesc.columnName + "[" + columnDesc.datatype + "] = " + value);
 
-            String value = row[i];
             if (value == null)
-                ps.setNull(i + 1, ADQLDataType.getSQLType(columnDesc.datatype));
+                ps.setNull(i, ADQLDataType.getSQLType(columnDesc.datatype));
+            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_TIMESTAMP))
+            {
+                Date date = (Date) value;
+                ps.setTimestamp(i, new Timestamp(date.getTime()));
+            }
+            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_POINT))
+            {
+                Region r = (Region) value;
+                if (r instanceof Position)
+                {
+                    Position pos = (Position) r;
+                    Object o = getPointObject(pos);
+                    ps.setObject(i, o);
+                }
+                else
+                    throw new IllegalArgumentException("failed to parse " + value + " as an " + ADQLDataType.ADQL_POINT);
+            }
+            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_REGION))
+            {
+                Region reg = (Region) value;
+                Object o = getRegionObject(reg);
+                ps.setObject(i, o);
+            }
+            else
+                ps.setObject(i, value, ADQLDataType.getSQLType(columnDesc.datatype));
+            
+            i++;
+            
+            /*
             else if (columnDesc.datatype.equals(ADQLDataType.ADQL_SMALLINT))
                 ps.setShort(i + 1, Short.parseShort(value));
             else if (columnDesc.datatype.equals(ADQLDataType.ADQL_INTEGER))
@@ -470,8 +502,8 @@ public class BasicUploadManager implements UploadManager
             else if (columnDesc.datatype.equals(ADQLDataType.ADQL_VARCHAR))
                 ps.setString(i + 1, value);
             else if (columnDesc.datatype.equals(ADQLDataType.ADQL_CLOB))
-	        ps.setString(i + 1, value);
-	    else if (columnDesc.datatype.equals(ADQLDataType.ADQL_TIMESTAMP))
+                ps.setString(i + 1, value);
+            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_TIMESTAMP))
             {
                 try
                 {
@@ -503,6 +535,7 @@ public class BasicUploadManager implements UploadManager
             }
             else
                 throw new SQLException("Unsupported ADQL data type " + columnDesc.datatype);
+            */
         }
     }
 
