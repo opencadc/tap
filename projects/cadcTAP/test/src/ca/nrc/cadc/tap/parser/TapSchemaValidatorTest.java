@@ -72,11 +72,6 @@
  */
 package ca.nrc.cadc.tap.parser;
 
-
-
-
-
-
 import ca.nrc.cadc.tap.AdqlQuery;
 import ca.nrc.cadc.tap.TapQuery;
 import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
@@ -90,17 +85,17 @@ import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.log4j.Logger;
-
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.Assert;
 
 /**
  * Checks for correct handling of default vs explicit schema.
@@ -144,7 +139,11 @@ public class TapSchemaValidatorTest
     {
     }
 
-    
+    Job job = new Job() 
+    {
+        @Override
+        public String getID() { return "abcdefg"; }
+    };
 
     @Test
     public void testDefaultSchema()
@@ -153,10 +152,9 @@ public class TapSchemaValidatorTest
         {
             String query = "select baz from bar_from_default";
             log.debug("testDefaultSchema, before: " + query);
-            List<Parameter> params = new ArrayList<Parameter>();
-            params.add(new Parameter("QUERY", query));
+            job.getParameterList().add(new Parameter("QUERY", query));
             TapQuery tq = new TestQuery();
-            tq.setParameterList(params);
+            tq.setJob(job);
             String sql = tq.getSQL();
             // valid
         }
@@ -164,6 +162,10 @@ public class TapSchemaValidatorTest
         {
             log.debug("FAIL", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
+        }
+        finally
+        {
+            job.getParameterList().clear();
         }
     }
 
@@ -174,10 +176,9 @@ public class TapSchemaValidatorTest
         {
             String query = "select baz from foo.bar_from_foo";
             log.debug("testDefaultSchema, before: " + query);
-            List<Parameter> params = new ArrayList<Parameter>();
-            params.add(new Parameter("QUERY", query));
+            job.getParameterList().add(new Parameter("QUERY", query));
             TapQuery tq = new TestQuery();
-            tq.setParameterList(params);
+            tq.setJob(job);
             String sql = tq.getSQL();
             // valid
         }
@@ -185,6 +186,10 @@ public class TapSchemaValidatorTest
         {
             log.debug("FAIL", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
+        }
+        finally
+        {
+            job.getParameterList().clear();
         }
     }
 
@@ -195,10 +200,9 @@ public class TapSchemaValidatorTest
         {
             String query = "select \"baz\" from foo.bar_from_foo";
             log.debug("testQuotesColumn, before: " + query);
-            List<Parameter> params = new ArrayList<Parameter>();
-            params.add(new Parameter("QUERY", query));
+            job.getParameterList().add(new Parameter("QUERY", query));
             TapQuery tq = new TestQuery();
-            tq.setParameterList(params);
+            tq.setJob(job);
             String sql = tq.getSQL();
             // valid
         }
@@ -206,6 +210,10 @@ public class TapSchemaValidatorTest
         {
             log.debug("FAIL", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
+        }
+        finally
+        {
+            job.getParameterList().clear();
         }
     }
 

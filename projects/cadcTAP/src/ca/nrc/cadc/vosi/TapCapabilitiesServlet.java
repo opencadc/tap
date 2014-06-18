@@ -1,8 +1,6 @@
 
 package ca.nrc.cadc.vosi;
 
-import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.xml.XmlUtil;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringReader;
@@ -15,13 +13,15 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.output.Format;
-import org.jdom.output.XMLOutputter;
-import org.jdom.xpath.XPath;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.Namespace;
+import org.jdom2.filter.Filters;
+import org.jdom2.output.Format;
+import org.jdom2.output.XMLOutputter;
+import org.jdom2.xpath.XPathExpression;
+import org.jdom2.xpath.XPathFactory;
 
 /**
  * Simple VOSI capabilities servlet that takes an input XML document and simply
@@ -89,10 +89,13 @@ public class TapCapabilitiesServlet extends HttpServlet
             StringReader sr = new StringReader(staticCapabilities);
             TAPRegExtParser tp = new TAPRegExtParser(false); // schema validation done in init
             Document doc = tp.parse(sr);
+            
+            Namespace vosi = doc.getRootElement().getNamespace();
             String xpath = "/vosi:capabilities/capability/interface/accessURL";
-            XPath xp = XPath.newInstance(xpath);
-            List accessURLs = xp.selectNodes(doc);
-            log.debug("xpath[" + xpath + "] found: " + accessURLs.size());
+            XPathExpression<Element> xp = XPathFactory.instance().compile(xpath, Filters.element(), null, vosi);
+            List<Element> accessURLs = xp.evaluate(doc);
+            log.info("xpath[" + xpath + "] found: " + accessURLs.size());
+            
             Iterator i = accessURLs.iterator();
             while ( i.hasNext() )
             {

@@ -69,27 +69,6 @@
 
 package ca.nrc.cadc.vosi;
 
-import java.io.StringWriter;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.jdom.Document;
-import org.jdom.JDOMException;
-import org.jdom.output.Format;
-import org.jdom.output.XMLOutputter;
-import org.jdom.xpath.XPath;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.KeyColumnDesc;
 import ca.nrc.cadc.tap.schema.KeyDesc;
@@ -98,6 +77,30 @@ import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.xml.XmlUtil;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
+import org.jdom2.Namespace;
+import org.jdom2.filter.Filters;
+import org.jdom2.output.Format;
+import org.jdom2.output.XMLOutputter;
+import org.jdom2.xpath.XPathExpression;
+import org.jdom2.xpath.XPathFactory;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 /**
  *
@@ -167,7 +170,7 @@ public class TableSetTest
             String xmlString = stringWriter.toString();
             log.debug(xmlString);
 
-            doc = XmlUtil.validateXml(xmlString, schemaNSMap);
+            doc = XmlUtil.buildDocument(new StringReader(xmlString), schemaNSMap);
 
             TestUtil.assertXmlNode(doc, "/vosi:tableset");
             TestUtil.assertXmlNode(doc, "/vosi:tableset/schema[name='tap_schema']");
@@ -191,7 +194,7 @@ public class TableSetTest
         }
     }
 
-//    @Test
+    //@Test
     public final void testDefaultSchema()
     {
         log.debug("testMock");
@@ -208,7 +211,7 @@ public class TableSetTest
             String xmlString = stringWriter.toString();
             log.debug(xmlString);
             
-            doc = XmlUtil.validateXml(xmlString, schemaNSMap);
+            doc = XmlUtil.buildDocument(new StringReader(xmlString), schemaNSMap);
 
             TestUtil.assertXmlNode(doc, "/vosi:tableset");
             TestUtil.assertXmlNode(doc, "/vosi:tableset/schema[name='default']");
@@ -250,14 +253,25 @@ public class TableSetTest
         }
     }
 
+    private void checkRootElement(Document doc) throws JDOMException
+    {
+        Namespace vosi = doc.getRootElement().getNamespace();
+        String xpath = "/vosi:tableset";
+        XPathExpression<Element> xp = XPathFactory.instance().compile(xpath, Filters.element(), null, vosi);
+        List<Element> rs = xp.evaluate(doc);
+        Assert.assertTrue(rs.size() == 1);
+    }
+
     private void checkSchema(Document doc, SchemaDesc sd) throws JDOMException
     {
         String schemaName = sd.getSchemaName();
         if (schemaName == null)
             schemaName = DEFAULT_SCHEMA;
+        Namespace vosi = doc.getRootElement().getNamespace();
         
-        XPath xpath = XPath.newInstance("/vosi:tableset/schema/name[.='" + schemaName + "']");
-        List<?> rs = xpath.selectNodes(doc);
+        String xpath = "/vosi:tableset/schema/name[.='" + schemaName + "']";
+        XPathExpression<Element> xp = XPathFactory.instance().compile(xpath, Filters.element(), null, vosi);
+        List<?> rs = xp.evaluate(doc);
         Assert.assertTrue(rs.size() == 1);
 
         if (sd.getTableDescs() != null)
@@ -265,62 +279,58 @@ public class TableSetTest
             {
                 if (td.tableName.equalsIgnoreCase("siav1"))
                     continue;
-                xpath = XPath.newInstance("/vosi:tableset/schema[name='" + schemaName + "']/table[name='" + td.getTableName()
-                        + "']");
-                rs = xpath.selectNodes(doc);
+                xpath = "/vosi:tableset/schema[name='" + schemaName + "']/table[name='" + td.getTableName() + "']";
+                xp = XPathFactory.instance().compile(xpath, Filters.element(), null, vosi);
+                rs = xp.evaluate(doc);
                 Assert.assertTrue(rs.size() == 1);
                 checkColumns(doc, td);
                 checkKeys(doc, td);
             }
     }
 
-    private void checkRootElement(Document doc) throws JDOMException
-    {
-        XPath xpath = XPath.newInstance("/vosi:tableset");
-        List<?> rs = xpath.selectNodes(doc);
-        Assert.assertTrue(rs.size() == 1);
-    }
-
+    
     private void checkColumns(Document doc, TableDesc td) throws JDOMException
     {
-        XPath xpath;
-        List<?> rs;
         String schemaName = td.getSchemaName();
-
+        Namespace vosi = doc.getRootElement().getNamespace();
+        
         if (td.getColumnDescs() != null)
             for (ColumnDesc cd : td.getColumnDescs())
             {
-                xpath = XPath.newInstance("/vosi:tableset/schema[name='" + schemaName + "']/table[name='" + td.getTableName()
-                        + "']/column[name='" + cd.getColumnName() + "']");
-                rs = xpath.selectNodes(doc);
+                String xpath = "/vosi:tableset/schema[name='" + schemaName + "']/table[name='" + td.getTableName()
+                        + "']/column[name='" + cd.getColumnName() + "']";
+                XPathExpression<Element> xp = XPathFactory.instance().compile(xpath, Filters.element(), null, vosi);
+                List<?> rs = xp.evaluate(doc);
                 Assert.assertTrue(rs.size() == 1);
             }
         }
 
     private void checkKeys(Document doc, TableDesc td) throws JDOMException
     {
-        XPath xpath;
-        List<?> rs;
         String schemaName = td.getSchemaName();
-
+        Namespace vosi = doc.getRootElement().getNamespace();
+        
         if (td.getKeyDescs() != null)
             for (KeyDesc kd : td.getKeyDescs())
             {
                 for (KeyColumnDesc kcd : kd.keyColumnDescs)
                 {
                     log.debug(td.tableName + " -- " + kd.targetTable + " -- from: " + kcd.fromColumn);
-                    xpath = XPath.newInstance("/vosi:tableset/schema[name='" + schemaName + "']/table[name='" + td.getTableName()
+                    String xpath = "/vosi:tableset/schema[name='" + schemaName + "']/table[name='" + td.getTableName()
                             + "']/foreignKey[targetTable='" + kd.targetTable + "']" +
-                            "/fkColumn[fromColumn='"+kcd.fromColumn+"']");
-                    rs = xpath.selectNodes(doc);
+                            "/fkColumn[fromColumn='"+kcd.fromColumn+"']";
+                    XPathExpression<Element> xp = XPathFactory.instance().compile(xpath, Filters.element(), null, vosi);
+                    
+                    List<?> rs = xp.evaluate(doc);
                     Assert.assertTrue(rs.size() > 0);
                     log.debug(td.tableName + " -- " + kd.targetTable + " -- from: " + kcd.fromColumn + " OK");
 
                     log.debug(td.tableName + " -- " + kd.targetTable + " -- target: " + kcd.targetColumn);
-                    xpath = XPath.newInstance("/vosi:tableset/schema[name='" + schemaName + "']/table[name='" + td.getTableName()
+                    xpath = "/vosi:tableset/schema[name='" + schemaName + "']/table[name='" + td.getTableName()
                             + "']/foreignKey[targetTable='" + kd.targetTable + "']" +
-                            "/fkColumn[targetColumn='"+kcd.targetColumn+"']");
-                    rs = xpath.selectNodes(doc);
+                            "/fkColumn[targetColumn='"+kcd.targetColumn+"']";
+                    xp = XPathFactory.instance().compile(xpath, Filters.element(), null, vosi);
+                    rs = xp.evaluate(doc);
                     Assert.assertTrue(rs.size() > 0);
                     log.debug(td.tableName + " -- " + kd.targetTable + " -- target: " + kcd.targetColumn + " OK");
                 }

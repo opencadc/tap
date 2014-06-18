@@ -7,6 +7,7 @@ package ca.nrc.cadc.tap.parser;
 import ca.nrc.cadc.tap.AdqlQuery;
 import ca.nrc.cadc.tap.TapQuery;
 import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
 import java.util.ArrayList;
 import java.util.List;
@@ -94,11 +95,10 @@ public class QuerySelectDeParserTest
             for (int t = 0; t < queries.length; t++)
             {
                 String query = queries[t];
-                List<Parameter> params = new ArrayList<Parameter>();
-                params.add(new Parameter("QUERY", query));
+                job.getParameterList().add(new Parameter("QUERY", query));
                 log.debug("testDeparseLimit, before: " + query);
                 TapQuery tq = new TestQuery();
-                tq.setParameterList(params);
+                tq.setJob(job);
                 String sql = tq.getSQL();
                 log.debug("testDeparseLimit, after: " + sql);
 
@@ -111,7 +111,18 @@ public class QuerySelectDeParserTest
             log.error("testNotFound", t);
             fail();
         }
+        finally
+        {
+            job.getParameterList().clear();
+        }
     }
+    
+    Job job = new Job() 
+    {
+        @Override
+        public String getID() { return "abcdefg"; }
+    };
+  
 
     static class TestQuery extends AdqlQuery
     {

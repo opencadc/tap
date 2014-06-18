@@ -78,7 +78,7 @@ import ca.nrc.cadc.dali.util.DefaultFormat;
 import ca.nrc.cadc.dali.util.Format;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.ParamDesc;
-import ca.nrc.cadc.uws.Parameter;
+import ca.nrc.cadc.uws.Job;
 
 /**
  * Returns a Formatter for a given data type.
@@ -89,9 +89,8 @@ public class DefaultFormatFactory implements FormatFactory
     private static final String IMPL_CLASS = "ca.nrc.cadc.tap.impl.FormatFactoryImpl";
     private static final Logger LOG = Logger.getLogger(DefaultFormatFactory.class);
 
-    protected String jobID;
-    protected List<Parameter> params;
-
+    protected Job job;
+    
     public DefaultFormatFactory() { }
 
     /**
@@ -113,22 +112,15 @@ public class DefaultFormatFactory implements FormatFactory
         }
         catch (Exception e)
         {
-            LOG.debug(e.getMessage(), e);
-            LOG.warn("Failed to instantiate FormatFactory class " + IMPL_CLASS +", using " + ret.getClass().getName());
+            LOG.debug("failed to create " + IMPL_CLASS, e);
         }
+        LOG.debug("created: " + ret.getClass().getName());
         return ret;
     }
 
-    @Override
-    public void setJobID(String jobID)
+    public void setJob(Job job)
     {
-        this.jobID = jobID;
-    }
-
-    @Override
-    public void setParamList(List<Parameter> params)
-    {
-        this.params = params;
+        this.job = job;
     }
 
     @Override

@@ -70,56 +70,35 @@
 package ca.nrc.cadc.tap;
 
 import ca.nrc.cadc.tap.schema.ParamDesc;
-import java.util.List;
-
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
-import ca.nrc.cadc.uws.Parameter;
+import java.util.List;
 import java.util.Map;
 
 /**
- * Interface for classes that handle parameters for a single value of LANG and 
- * generate the SQL to be executed. 
- * 
- * TODO allow deployet to define new LANG values
- * and implementation classes to go with them (currently hard-coded in QueryRunner).
+ * Default TAP query processor. This class pulls parameter(s) from the input parameter
+ * list and then generates the SQL to execute and the list of items in the select list
+ * to assist in writing the results.
  * 
  * @author pdowler
  */
-public interface TapQuery
+public interface TapQuery extends TapPlugin
 {
-    /**
-     * Caller provides the complete TapSchema content.
-     * 
-     * @param ts
-     */
-    void setTapSchema(TapSchema ts);
+    public void setExtraTables(Map<String, TableDesc> extraTables);
+
+    public void setTapSchema(TapSchema tapSchema);
 
     /**
-     * Caller provides the original table names and metadata for temporary tables not
-     * described in TapSchema.
+     * Convert the input query parameter(s) into SQL for execution.
      * 
-     * @param extraTables
-     */
-    void setExtraTables(Map<String, TableDesc> extraTables);
-
-    /**
-     * Set the parameter list. Calling this method clears all previous
-     * parsing state.
-     * 
-     * @param params
-     */
-    void setParameterList(List<Parameter> params);
-
-    /**
      * @return the SQL query to execute
      */
-    String getSQL();
+    public String getSQL();
 
     /**
      * @return the metadata for columns in the result set
      */
-    List<ParamDesc> getSelectList();
+    public List<ParamDesc> getSelectList();
 
     /**
      * Provide a text description of the relevant part of the query. This should
@@ -130,21 +109,12 @@ public interface TapQuery
      * 
      * @return
      */
-    String getInfo();
+    public String getInfo();
 
     /**
      * Limit number of table rows.
      *
      * @param count
      */
-    void setMaxRowCount(Integer count);
-
-    /**
-     * Get the effective row count limit. The QueryRunner class will use this to
-     * limit output to the lesser of this value and the user-specified MAXREC and
-     * will actually write one row less than this along with an overflow indicator.
-     * 
-     * @return max number of rows the query will return, null means unlimited
-     */
-    Integer getMaxRowCount();
+    public void setMaxRowCount(Integer count);
 }

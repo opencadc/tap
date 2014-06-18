@@ -3,12 +3,12 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2014.                            (c) 2014.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 *  All rights reserved                  Tous droits réservés
-*                                       
+*
 *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 *  expressed, implied, or               énoncée, implicite ou légale,
 *  statutory, of any kind with          de quelque nature que ce
@@ -31,10 +31,10 @@
 *  software without specific prior      de ce logiciel sans autorisation
 *  written permission.                  préalable et particulière
 *                                       par écrit.
-*                                       
+*
 *  This file is part of the             Ce fichier fait partie du projet
 *  OpenCADC project.                    OpenCADC.
-*                                       
+*
 *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 *  you can redistribute it and/or       vous pouvez le redistribuer ou le
 *  modify it under the terms of         modifier suivant les termes de
@@ -44,7 +44,7 @@
 *  either version 3 of the              : soit la version 3 de cette
 *  License, or (at your option)         licence, soit (à votre gré)
 *  any later version.                   toute version ultérieure.
-*                                       
+*
 *  OpenCADC is distributed in the       OpenCADC est distribué
 *  hope that it will be useful,         dans l’espoir qu’il vous
 *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -54,7 +54,7 @@
 *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 *  General Public License for           Générale Publique GNU Affero
 *  more details.                        pour plus de détails.
-*                                       
+*
 *  You should have received             Vous devriez avoir reçu une
 *  a copy of the GNU Affero             copie de la Licence Générale
 *  General Public License along         Publique GNU Affero avec
@@ -62,47 +62,101 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
+*  $Revision: 5 $
 *
 ************************************************************************
 */
 
 package ca.nrc.cadc.tap;
 
+import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapSchema;
+import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
-import ca.nrc.cadc.uws.ParameterUtil;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
- * TAP Validator. 
  *
+ * @author pdowler
  */
-public class TapValidator
+public class PluginFactoryTest 
 {
-    private String lang;
-
-    public void validate(List<Parameter> paramList)
+    private static final Logger log = Logger.getLogger(PluginFactoryTest.class);
+    
+    static
     {
-        if (paramList == null || paramList.isEmpty())
-            throw new IllegalStateException("Missing required parameter: REQUEST");
-
-        //  REQUEST
-        String request = ParameterUtil.findParameterValue("REQUEST", paramList);
-        if (request == null || request.trim().length() == 0)
-            throw new IllegalStateException("Missing required parameter: REQUEST");
-
-        if (!request.equals("doQuery"))
-            throw new IllegalArgumentException("Unknown REQUEST value: " + request);
-
-        //  VERSION
-        String version = ParameterUtil.findParameterValue("VERSION", paramList);
-        if (version != null && version.length() != 0 && !version.equals("1.0"))
-            throw new IllegalArgumentException("Unsupported TAP version: " + version);
+        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.DEBUG);
     }
-
-    public String getLang()
+    
+    Job job = new Job() 
     {
-        return lang;
+        @Override
+        public String getID() { return "abcdefg"; }
+    };
+            
+    public PluginFactoryTest() { }
+    
+    //@Test
+    public void testTemplate()
+    {
+        try
+        {
+            
+        }
+        catch(Exception unexpected)
+        {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
     }
-
+    
+    @Test
+    public void testSetup()
+    {
+        TapSchema tapSchema=  new TapSchema();
+        Map<String, TableDesc> extraTables = new HashMap<String, TableDesc>();
+        
+        try
+        {
+            PluginFactory pf = new PluginFactory(job);
+            
+            try
+            {
+                Assert.assertNull(pf.getTapQuery());
+            }
+            catch(IllegalArgumentException expected)
+            {
+                log.debug("caught expected exception: " + expected);
+            }
+            
+            job.getParameterList().clear();
+            job.getParameterList().add(new Parameter("LANG", "ADQL"));
+            pf = new PluginFactory(job);
+            
+            TapQuery q = pf.getTapQuery();
+            Assert.assertNotNull(q);
+            Assert.assertEquals(AdqlQuery.class, q.getClass());
+            pf = new PluginFactory(job);
+            
+            job.getParameterList().clear();
+            job.getParameterList().add(new Parameter("LANG", "ADQL-2.0"));
+            
+            q = pf.getTapQuery();
+            Assert.assertNotNull(q);
+            Assert.assertEquals(AdqlQuery.class, q.getClass());
+        }
+        catch(Exception unexpected)
+        {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
 }

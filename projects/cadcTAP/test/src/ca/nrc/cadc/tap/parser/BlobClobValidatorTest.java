@@ -86,6 +86,7 @@ import ca.nrc.cadc.tap.AdqlQuery;
 import ca.nrc.cadc.tap.TapQuery;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
 import org.apache.log4j.Logger;
 
@@ -102,6 +103,12 @@ public class BlobClobValidatorTest
     public String _query;
 
     static TapSchema TAP_SCHEMA;
+    
+    Job job = new Job() 
+    {
+        @Override
+        public String getID() { return "abcdefg"; }
+    };
 
     /**
      * @throws java.lang.Exception
@@ -140,16 +147,15 @@ public class BlobClobValidatorTest
     private void doit(boolean expectValid)
     {
         log.debug(_query);
-        try {
-            Parameter para;
-            para = new Parameter("QUERY", _query);
-            List<Parameter> paramList = new ArrayList<Parameter>();
-            paramList.add(para);
+        try 
+        {
+            Parameter para = new Parameter("QUERY", _query);
+            job.getParameterList().add(para);
             
             TapQuery tapQuery = new AdqlQuery();
             tapQuery.setTapSchema(TAP_SCHEMA);
             tapQuery.setExtraTables(null);
-            tapQuery.setParameterList(paramList);
+            tapQuery.setJob(job);
             String sql = tapQuery.getSQL();
         } 
         catch (Exception ae)
@@ -160,6 +166,10 @@ public class BlobClobValidatorTest
                 Assert.fail("unexpected exception: " + ae);
             }
             log.debug("caught expected exception: "+  ae);
+        }
+        finally
+        {
+            job.getParameterList().clear();
         }
     }
 

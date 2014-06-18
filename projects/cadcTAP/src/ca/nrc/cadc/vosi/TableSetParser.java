@@ -76,9 +76,9 @@ import java.io.Reader;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.log4j.Logger;
-import org.jdom.Document;
-import org.jdom.JDOMException;
-import org.jdom.input.SAXBuilder;
+import org.jdom2.Document;
+import org.jdom2.JDOMException;
+import org.jdom2.input.SAXBuilder;
 
 /**
  * Simple class to parse a VOSI-tables document. When schema validation is enabled
