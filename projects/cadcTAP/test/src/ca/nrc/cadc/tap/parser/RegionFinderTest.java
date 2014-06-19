@@ -84,6 +84,7 @@ import org.junit.Test;
 import ca.nrc.cadc.tap.AdqlQuery;
 import ca.nrc.cadc.tap.TapQuery;
 import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
 import junit.framework.Assert;
 import org.apache.log4j.Logger;
@@ -133,19 +134,30 @@ public class RegionFinderTest
     {
     }
 
+    Job job = new Job() 
+    {
+        @Override
+        public String getID() { return "abcdefg"; }
+    };
+    
     private void doit(String query)
     {
-        log.debug("IN: " + query);
-        Parameter para = new Parameter("QUERY", query);
-        List<Parameter> paramList = new ArrayList<Parameter>();
-        paramList.add(para);
-        
-        TapQuery tapQuery = new TestQuery();
-        tapQuery.setParameterList(paramList);
-        String sql = tapQuery.getSQL();
-        //List<TapSelectItem> selectList = tapQuery.getSelectList();
-        log.debug("OUT: " + sql);
-        //log.debug("select-list: " + selectList);
+        try
+        {
+            log.debug("IN: " + query);
+            Parameter para = new Parameter("QUERY", query);
+            job.getParameterList().add(para);
+            TapQuery tapQuery = new TestQuery();
+            tapQuery.setJob(job);
+            String sql = tapQuery.getSQL();
+            //List<TapSelectItem> selectList = tapQuery.getSelectList();
+            log.debug("OUT: " + sql);
+            //log.debug("select-list: " + selectList);
+        }
+        finally
+        {
+            job.getParameterList().clear();
+        }
     }
 
     @Test

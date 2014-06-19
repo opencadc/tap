@@ -39,6 +39,8 @@
 
 package ca.nrc.cadc.tap;
 
+import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
+import ca.nrc.cadc.dali.tables.votable.VOTableReader;
 import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.db.ConnectionConfig;
 import ca.nrc.cadc.db.DBConfig;
@@ -111,6 +113,8 @@ public class BasicUploadManagerTest
         ConnectionConfig conf = dbrc.getConnectionConfig("TAP_UPLOAD_TEST", "cadctest");
         ds = DBUtil.getDataSource(conf, true, true);
 
+        // map of internal Postgresql datatypes for create table
+        // TODO: need to dunamically check/load DB-specific code here
         types = new HashMap<String, String>();
         types.put("short_datatype", "int2");
         types.put("smallint_xtype", "int2");
@@ -122,9 +126,11 @@ public class BasicUploadManagerTest
         types.put("real_xtype", "float4");
         types.put("double_datatype", "float8");
         types.put("double_xtype", "float8");
-        types.put("char_datatype", "varchar");
+        types.put("char_datatype", "bpchar"); // pdd: changed from varchar because it shoud be char(1)
         types.put("char_xtype", "bpchar");
         types.put("varchar_datatype", "varchar");
+        types.put("char32_datatype", "bpchar");
+        types.put("varchar32_datatype", "varchar");
         types.put("varchar_xtype", "varchar");
         types.put("timestamp_xtype", "timestamp");
         types.put("point_xtype", "spoint");
@@ -178,7 +184,7 @@ public class BasicUploadManagerTest
 
             Assert.assertEquals(0, tableDesc.columnDescs.size());
 
-            log.info("testUploadEmptyTable passed.");
+            log.debug("testUploadEmptyTable passed.");
         }
         catch (Exception unexpected)
         {
@@ -219,6 +225,7 @@ public class BasicUploadManagerTest
             Set<String> keySet = tableDescs.keySet();
             String tableName = keySet.iterator().next();
             log.debug("test table name: " + tableName);
+            Assert.assertTrue("table is in TAP_UPLOAD schema", tableName.toUpperCase().startsWith("TAP_UPLOAD."));
             TableDesc tableDesc = tableDescs.get(tableName);
             log.debug("TableDesc " + tableDesc);
 
@@ -238,8 +245,8 @@ public class BasicUploadManagerTest
                 String columnTypeName = metadata.getColumnTypeName(i);
                 if (types.containsKey(columnName))
                 {
-                    log.debug("columnName: " + columnName + ", type: " + columnTypeName);
                     String typeName = types.get(columnName);
+                    log.debug("columnName: " + columnName + ", columnTypeName: " + columnTypeName + " typeName: " + typeName);
                     Assert.assertEquals(typeName, columnTypeName);
                 }
                 else
@@ -248,7 +255,7 @@ public class BasicUploadManagerTest
                 }
             }
 
-            log.info("testUploadAllTypesNoRows passed.");
+            log.debug("testUploadAllTypesNoRows passed.");
         }
         catch (Exception unexpected)
         {
@@ -330,12 +337,14 @@ public class BasicUploadManagerTest
             Assert.assertEquals(4.4, rs.getFloat("real_xtype"), 1);
             Assert.assertEquals(5.5, rs.getDouble("double_datatype"), 1);
             Assert.assertEquals(5.5, rs.getDouble("double_xtype"), 1);
-            Assert.assertEquals("char_datatype", rs.getString("char_datatype").trim());
-            Assert.assertEquals("char_xtype", rs.getString("char_xtype").trim());
+            Assert.assertEquals("C", rs.getString("char_datatype").trim());
+            Assert.assertEquals("C", rs.getString("char_xtype").trim());
+            Assert.assertEquals("char(32) of exact--len", rs.getString("char32_datatype").trim());
+            Assert.assertEquals("varchar(32) value", rs.getString("varchar32_datatype").trim());
             Assert.assertEquals("varchar_xtype", rs.getString("varchar_xtype").trim());
             Assert.assertEquals(new Timestamp(date.getTime()), rs.getTimestamp("timestamp_xtype"));
 
-            log.info("testUploadAllTypes passed.");
+            log.debug("testUploadAllTypes passed.");
         }
         catch (Exception unexpected)
         {
@@ -443,7 +452,7 @@ public class BasicUploadManagerTest
             }
             catch (RuntimeException ignore) { }
             
-            log.info("testInvalidTableNames passed.");
+            log.debug("testInvalidTableNames passed.");
         }
         catch (Exception unexpected)
         {
@@ -486,7 +495,7 @@ public class BasicUploadManagerTest
                     Assert.fail(e.getCause().getMessage());
             }
 
-            log.info("testColumnNameStartsWithDigit passed.");
+            log.debug("testColumnNameStartsWithDigit passed.");
         }
         catch (Exception unexpected)
         {
@@ -529,7 +538,7 @@ public class BasicUploadManagerTest
                     Assert.fail(e.getCause().getMessage());
             }
 
-            log.info("testColumnNameStartsWithUnderscore passed.");
+            log.debug("testColumnNameStartsWithUnderscore passed.");
         }
         catch (Exception unexpected)
         {
@@ -576,7 +585,7 @@ public class BasicUploadManagerTest
                     Assert.fail(e.getCause().getMessage());
             }
 
-            log.info("testColumnNameStartsWithSpace passed.");
+            log.debug("testColumnNameStartsWithSpace passed.");
         }
         catch (Exception unexpected)
         {
@@ -619,7 +628,7 @@ public class BasicUploadManagerTest
                     Assert.fail(e.getCause().getMessage());
             }
 
-            log.info("testColumnNameContainsSpace passed.");
+            log.debug("testColumnNameContainsSpace passed.");
         }
         catch (Exception unexpected)
         {
@@ -663,7 +672,7 @@ public class BasicUploadManagerTest
                     Assert.fail(e.getCause().getMessage());
             }
 
-            log.info("testColumnNameEndsWithSpace passed.");
+            log.debug("testColumnNameEndsWithSpace passed.");
         }
         catch (Exception unexpected)
         {
@@ -709,7 +718,7 @@ public class BasicUploadManagerTest
                 }
             }
 
-            log.info("testColumnNameStartsWithInvalidLetter passed.");
+            log.debug("testColumnNameStartsWithInvalidLetter passed.");
         }
         catch (Exception unexpected)
         {
@@ -752,7 +761,7 @@ public class BasicUploadManagerTest
                     Assert.fail(e.getCause().getMessage());
             }
 
-            log.info("testColumnNameContainsInvalidLetter passed.");
+            log.debug("testColumnNameContainsInvalidLetter passed.");
         }
         catch (Exception unexpected)
         {
@@ -790,7 +799,7 @@ public class BasicUploadManagerTest
                     Assert.fail(e.getCause().getMessage());
             }
 
-            log.info("testColumnNameEndsWithInvalidLetter passed.");
+            log.debug("testColumnNameEndsWithInvalidLetter passed.");
         }
         catch (Exception unexpected)
         {
@@ -813,10 +822,10 @@ public class BasicUploadManagerTest
         protected VOTableParser getVOTableParser(UploadTable uploadTable)
             throws IOException
         {
-            VOTableParser parser = new JDOMVOTableParser();
-            parser.setTableName(uploadTable.tableName);
             File file = FileUtil.getFileFromResource(filename, BasicUploadManagerTest.class);
-            parser.setInputStream(new BufferedInputStream(new FileInputStream(file)));
+            VOTableReader r  = new VOTableReader();
+            VOTableDocument doc = r.read(new BufferedInputStream(new FileInputStream(file)));
+            VOTableParser parser = new JDOMVOTableParser(doc, uploadTable.tableName);
             return parser;
         }
         

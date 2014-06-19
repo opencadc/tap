@@ -16,6 +16,9 @@
       
       <FIELD name="char_datatype"   datatype="char"                          />
       <FIELD name="char_xtype"      datatype="char"   xtype="adql:CHAR"      />
+
+      <FIELD name="char32_datatype" datatype="char"   arraysize="32" />
+      <FIELD name="varchar32_datatype" datatype="char"   arraysize="32*" />
       
       <FIELD name="varchar_datatype"   datatype="char" arraysize="32*" />
       <FIELD name="varchar_xtype"   datatype="char" arraysize="32*"  xtype="adql:VARCHAR"   />

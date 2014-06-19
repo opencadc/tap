@@ -80,17 +80,15 @@ import java.text.DateFormat;
 import java.util.List;
 
 import org.apache.log4j.Logger;
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.output.XMLOutputter;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.output.XMLOutputter;
 
-import ca.nrc.cadc.dali.tables.TableWriter;
 import ca.nrc.cadc.dali.util.Format;
 import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.net.NetUtil;
+import ca.nrc.cadc.tap.TableWriter;
 import ca.nrc.cadc.tap.schema.ParamDesc;
-import ca.nrc.cadc.tap.schema.TapSchema;
-import ca.nrc.cadc.tap.writer.format.DefaultFormatFactory;
 import ca.nrc.cadc.tap.writer.format.FormatFactory;
 import ca.nrc.cadc.tap.writer.format.ResultSetFormat;
 import ca.nrc.cadc.uws.Job;
@@ -100,7 +98,7 @@ import ca.nrc.cadc.uws.Parameter;
  *
  * @author jburke
  */
-public class RssTableWriter implements TableWriter<ResultSet>
+public class RssTableWriter implements TableWriter
 {
     private static Logger log = Logger.getLogger(RssTableWriter.class);
 
@@ -110,41 +108,26 @@ public class RssTableWriter implements TableWriter<ResultSet>
     // List of column names used in the select statement.
     protected List<ParamDesc> selectList;
 
-    protected Job job;
-
     protected String info;
+    
+    private FormatFactory formatFactory;
+    
+    private Job job;
+    
 
     public RssTableWriter()
     {
-        this(null);
+        
     }
-
-    public RssTableWriter(String info)
-    {
-        this.info = info;
-    }
-
-    /**
-     * @deprecated
-     */
-    @Deprecated
-    public void setJobID(String jobID) { }
-
-    /**
-     * @deprecated
-     */
-    @Deprecated
-    public void setParameterList(List<Parameter> params) { }
-
-    /**
-     * @deprecated
-     */
-    @Deprecated
-    public void setTapSchema(TapSchema schema) { }
 
     public void setJob(Job job)
     {
         this.job = job;
+    }
+
+    public void setQueryInfo(String info)
+    {
+        this.info = info;
     }
 
     @Override
@@ -164,13 +147,16 @@ public class RssTableWriter implements TableWriter<ResultSet>
         this.selectList = selectList;
     }
 
-    @Override
     public void setFormatFactory(ca.nrc.cadc.dali.util.FormatFactory ff)
     {
-        // TODO Auto-generated method stub
-
+        
     }
 
+    public void setFormatFactory(FormatFactory formatFactory)
+    {
+        this.formatFactory = formatFactory;
+    }
+    
     @Override
     public void write(ResultSet resultSet, Writer writer) throws IOException
     {
@@ -195,16 +181,10 @@ public class RssTableWriter implements TableWriter<ResultSet>
     @Override
     public void write(ResultSet resultSet, Writer out, Long maxrec) throws IOException
     {
-        // TODO Auto-generated method stub
-        if (job == null)
-            throw new IllegalStateException("Job cannot be null, set using setJob()");
         if (selectList == null)
             throw new IllegalStateException("SelectList cannot be null, set using setSelectList()");
 
-        FormatFactory factory = DefaultFormatFactory.getFormatFactory();
-        factory.setJobID(job.getID());
-        factory.setParamList(job.getParameterList());
-        List<Format<Object>> formats = factory.getFormats(selectList);
+        List<Format<Object>> formats = formatFactory.getFormats(selectList);
 
         if (resultSet != null)
             try { log.debug("resultSet column count: " + resultSet.getMetaData().getColumnCount()); }
@@ -326,7 +306,7 @@ public class RssTableWriter implements TableWriter<ResultSet>
         channel.addContent(channelDescription);
 
         // Write out the VOTABLE.
-        XMLOutputter outputter = new XMLOutputter(org.jdom.output.Format.getPrettyFormat());
+        XMLOutputter outputter = new XMLOutputter(org.jdom2.output.Format.getPrettyFormat());
         outputter.output(document, out);
 
     }

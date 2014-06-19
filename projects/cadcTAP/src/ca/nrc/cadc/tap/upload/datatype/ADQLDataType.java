@@ -106,10 +106,9 @@ public class ADQLDataType
     public static final String ADQL_REGION = "adql:REGION";
 
     
-    private static Map<String, String> adqlTypes;
+    private final static Map<String, String> adqlTypes = new HashMap<String, String>();
     static
     {
-        adqlTypes = new HashMap<String, String>();
         adqlTypes.put(SHORT, ADQL_SMALLINT);
         adqlTypes.put(INT, ADQL_INTEGER);
         adqlTypes.put(LONG, ADQL_BIGINT);
@@ -135,10 +134,10 @@ public class ADQLDataType
         adqlTypes.put(ADQL_REGION, ADQL_REGION);
     }
     
-    private static Map<String, Integer> sqlTypes;
+    private final static Map<String, Integer> sqlTypes = new HashMap<String, Integer>();
     static
     {
-        sqlTypes = new HashMap<String, Integer>();
+        
         sqlTypes.put(ADQL_SMALLINT, Types.SMALLINT);
         sqlTypes.put(ADQL_INTEGER, Types.INTEGER);
         sqlTypes.put(ADQL_BIGINT, Types.BIGINT);
@@ -163,33 +162,28 @@ public class ADQLDataType
      * @return ADQL data type for the VOTable data type.
      * @throws VOTableParserException
      */
-    public static String getDataType(String datatype, String width)
+    public static String getDataType(String datatype, Integer width, boolean varSize, String xtype)
         throws VOTableParserException
     {
         if (datatype == null)
             return null;
 
         // Get the ADQL data type from the datatype or xtype
-        String adqlType = adqlTypes.get(datatype);
+        String adqlType = adqlTypes.get(xtype);
+        if (adqlType == null)
+            adqlType = adqlTypes.get(datatype);
 
         // Handle char datatypes separately
         if (adqlType == null && datatype.equalsIgnoreCase(CHAR))
         {
-            if (width == null || width.isEmpty())
-            {
+            if (varSize)
                 adqlType = ADQL_VARCHAR;
-            }
             else
-            {
-                if (width.indexOf("*") == -1)
-                    adqlType = ADQL_CHAR;
-                else
-                    adqlType = ADQL_VARCHAR;
-            }
+                adqlType = ADQL_CHAR;
         }
         if (adqlType == null)
             throw new VOTableParserException("unknown data type " + datatype);
-	log.debug("getDataType: " + datatype + "," + width + " -> " + adqlType);
+        log.debug("getDataType: " + datatype + "," + width + " -> " + adqlType);
         return adqlType;
     }
     

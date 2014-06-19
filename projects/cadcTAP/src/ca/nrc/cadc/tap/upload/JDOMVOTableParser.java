@@ -69,27 +69,23 @@
 
 package ca.nrc.cadc.tap.upload;
 
-import java.io.IOException;
-import java.io.InputStream;
+import ca.nrc.cadc.dali.tables.TableData;
+import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
+import ca.nrc.cadc.dali.tables.votable.VOTableField;
+import ca.nrc.cadc.dali.tables.votable.VOTableResource;
+import ca.nrc.cadc.dali.tables.votable.VOTableTable;
+import ca.nrc.cadc.tap.UploadManager;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.JDOMException;
-import org.jdom.Namespace;
-import org.jdom.input.SAXBuilder;
-
-import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
-import ca.nrc.cadc.tap.BasicUploadManager;
+import org.jdom2.Element;
+import org.jdom2.Namespace;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.upload.datatype.ADQLDataType;
-import ca.nrc.cadc.xml.XmlUtil;
 
 /**
  * Implements the VOTableParser interface using JDOM.
@@ -106,56 +102,21 @@ public class JDOMVOTableParser implements VOTableParser
     private Iterator<Element> tableRowIter;
 
     protected String tableName;
-    protected InputStream in;
-    protected Document document;
+    protected VOTableTable vtab;
 
     private Map<String,String> schemaMap;
 
     /**
      *
      */
-    public JDOMVOTableParser()
-    {
-        tableName = null;
-        in = null;
-        hasTableRows = false;
-        initSchemaMap();
-    }
-
-    private void initSchemaMap()
-    {
-        schemaMap = new HashMap<String,String>();
-        String url;
-
-        url = XmlUtil.getResourceUrlString(VOTABLE_11_SCHEMA, JDOMVOTableParser.class);
-        schemaMap.put(VOTableWriter.VOTABLE_11_NS_URI, url);
-
-        url = XmlUtil.getResourceUrlString(VOTABLE_12_SCHEMA, JDOMVOTableParser.class);
-        schemaMap.put(VOTableWriter.VOTABLE_12_NS_URI, url);
-    }
-
-    /**
-     * Set the name of the VOTable.
-     *
-     * @param tableName the VOTable name.
-     */
-    @Override
-    public void setTableName(String tableName)
+    public JDOMVOTableParser(VOTableDocument doc, String tableName)
     {
         this.tableName = tableName;
+        VOTableResource vr = doc.getResourceByType("results"); // first results table
+        this.vtab = vr.getTable();
     }
 
-    /**
-     * Set the URI used to access the VOTabe.
-     *
-     * @param URI URI tot the VOTable.
-     */
-    @Override
-    public void setInputStream(InputStream in)
-    {
-        this.in = in;
-    }
-
+   
     /**
      * Get a List that describes each VOTable column.
      *
@@ -166,59 +127,29 @@ public class JDOMVOTableParser implements VOTableParser
     public TableDesc getTableDesc()
         throws VOTableParserException
     {
-        if (in == null)
-            throw new IllegalStateException("Inputstream to the VOTable must be set before calling getMetaData()");
-
-        SAXBuilder parser = XmlUtil.createBuilder(schemaMap);
         List<ColumnDesc> columns = new ArrayList<ColumnDesc>();
-
-        try
+        if (vtab != null)
         {
-            document = parser.build(in);
-            root = document.getRootElement();
-            namespace = root.getNamespace();
-            Element resource = root.getChild("RESOURCE", namespace);
-            if (resource != null)
+            for (VOTableField f : vtab.getFields())
             {
-                Element table = resource.getChild("TABLE", namespace);
-                if (table != null)
+                try { UploadUtil.isValidateIdentifier(f.getName()); }
+                catch(ADQLIdentifierException ex)
                 {
-                    List<Element> fields = table.getChildren("FIELD", namespace);
-                    for (Element field : fields)
-                    {
-                        String datatype = field.getAttributeValue("xtype");
-                        if (datatype == null)
-                            datatype = field.getAttributeValue("datatype");
-                        String width = field.getAttributeValue("arraysize");
-                        String name = field.getAttributeValue("name");
-                        log.debug("column: '"+name+"'");
-                        UploadUtil.isValidateIdentifier(name);
-                        ColumnDesc columnDesc = new ColumnDesc();
-                        columnDesc.tableName = tableName;
-                        columnDesc.columnName = name;
-                        columnDesc.datatype = ADQLDataType.getDataType(datatype, width);
-                        columnDesc.size = ADQLDataType.getWidth(width);
-                        columns.add(columnDesc);
-                        log.debug("column: " + columnDesc);
-                    }
+                    throw new VOTableParserException("invalid ADQL identifier (column name): " + f.getName(), ex);
                 }
+                ColumnDesc columnDesc = new ColumnDesc();
+                columnDesc.tableName = tableName;
+                columnDesc.columnName = f.getName();
+                columnDesc.datatype = ADQLDataType.getDataType(f.getDatatype(), f.getArraysize(), f.isVariableSize(), f.xtype);
+                columnDesc.size = f.getArraysize();
+                log.debug("ColumnDesc: " + f + " -> " + columnDesc.datatype);
+                columns.add(columnDesc);
+                log.debug("column: " + columnDesc);
             }
-        }
-        catch (JDOMException e)
-        {
-            throw new VOTableParserException("Error parsing VOTable", e);
-        }
-        catch (IOException e)
-        {
-            throw new VOTableParserException("Error reading VOTable", e);
-        }
-        catch (ADQLIdentifierException e)
-        {
-            throw new VOTableParserException("Invalid column name", e);
         }
 
         TableDesc tableDesc = new TableDesc();
-        tableDesc.schemaName = BasicUploadManager.SCHEMA;
+        tableDesc.schemaName = UploadManager.SCHEMA;
         tableDesc.tableName = tableName;
         tableDesc.columnDescs = columns;
         log.debug("table: " + tableDesc);
@@ -231,76 +162,11 @@ public class JDOMVOTableParser implements VOTableParser
      * @return Iterator to the VOTable data.
      */
     @Override
-    public Iterator iterator()
+    public Iterator<List<Object>> iterator()
     {
-        return new VOTableIterator();
+        if (vtab != null)
+            if (vtab.getTableData() != null)
+            return vtab.getTableData().iterator();
+        return new ArrayList<List<Object>>().iterator();
     }
-
-    /**
-     * Implements the Iterator interface over the VOTable data rows.
-     */
-    class VOTableIterator implements Iterator
-    {
-
-        /**
-         *
-         * @return true if there is another data row, false otherwise.
-         */
-        @Override
-        public boolean hasNext()
-        {
-            if (!hasTableRows)
-            {
-                Element resource = root.getChild("RESOURCE", namespace);
-                if (resource == null)
-                    return false;
-                Element table = resource.getChild("TABLE", namespace);
-                if (table == null)
-                    return false;
-                Element data = table.getChild("DATA", namespace);
-                if (data == null)
-                    return false;
-                Element tableData = data.getChild("TABLEDATA", namespace);
-                if (tableData == null)
-                    return false;
-                List<Element> tableRowList = tableData.getChildren("TR", namespace);
-                if (tableRowList.isEmpty())
-                    return false;
-                tableRowIter = tableRowList.iterator();
-                hasTableRows = true;
-            }
-            return tableRowIter.hasNext();
-        }
-
-        /**
-         *
-         * @return String array containing the next data row.
-         */
-        @Override
-        public Object next()
-        {
-            Element tableRow = tableRowIter.next();
-            List<String> rowData = new ArrayList<String>();
-            List<Element> tableDatas = tableRow.getChildren("TD", namespace);
-            for (Element tableData : tableDatas)
-            {
-                String s = tableData.getTextTrim();
-                if (s.length() == 0)
-                    s = null;
-                rowData.add(s);
-            }
-            return rowData.toArray(new String[0]);
-        }
-
-        /**
-         * Not supported.
-         */
-        @Override
-        public void remove()
-        {
-            throw new UnsupportedOperationException("remove on a VOTable row not supported.");
-        }
-
-    }
-
 }

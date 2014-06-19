@@ -93,11 +93,10 @@
     <property name="jsqlparser" value="${ext.lib}/jsqlparser.jar" />
     <property name="log4j" value="${ext.lib}/log4j.jar" />
     <property name="spring" value="${ext.lib}/spring.jar" />
-    <property name="jdom" value="${ext.lib}/jdom.jar" />
-    <property name="gson" value="${ext.lib}/gson.jar" />
+    <property name="jdom2" value="${ext.lib}/jdom2.jar" />
     <property name="javacsv" value="${ext.lib}/javacsv.jar" />
     <property name="servlet" value="${ext.lib}/servlet-api.jar" />
-    <property name="extlib" value="${jsqlparser}:${log4j}:${spring}:${jdom}:${gson}:${javacsv}:${servlet}" />
+    <property name="extlib" value="${jsqlparser}:${log4j}:${spring}:${jdom2}:${javacsv}:${servlet}" />
 
     <property name="jars" value="${cadc}:${extlib}" />
 
@@ -133,9 +132,22 @@
     <!-- compile the test classes -->
 
     <!-- Run the test suite -->
-    <target name="test" depends="parser-tests,vosi-tests,writer-tests,upload-tests" />
+    <target name="test" depends="core-test,parser-test,vosi-test,writer-test,upload-test" />
 
-    <target name="writer-tests" depends="compile,compile-test,xsd">
+    <target name="core-test" depends="compile,compile-test">
+        <junit printsummary="yes" haltonfailure="yes" fork="yes">
+            <classpath>
+                <pathelement path="${resources.dir}"/>
+                <pathelement path="${build}/class"/>
+                <pathelement path="${build}/test/class"/>
+                <pathelement path="${jars}:${testingJars}"/>
+            </classpath>
+            <formatter type="plain" usefile="false"/>
+            <test name="ca.nrc.cadc.tap.PluginFactoryTest" />
+        </junit>
+    </target>
+    
+    <target name="writer-test" depends="compile,compile-test,xsd">
         <junit printsummary="yes" haltonfailure="yes" fork="yes">
             <classpath>
                 <pathelement path="${build}/class"/>
@@ -154,7 +166,7 @@
         </junit>
     </target>
 
-    <target name="parser-tests" depends="compile,compile-test">
+    <target name="parser-test" depends="compile,compile-test">
         <junit printsummary="yes" haltonfailure="yes" fork="yes">
             <classpath>
                 <pathelement path="${resources.dir}"/>
@@ -183,7 +195,7 @@
         </junit>
     </target>
 
-    <target name="vosi-tests" depends="compile,compile-test">
+    <target name="vosi-test" depends="compile,compile-test">
         <junit printsummary="yes" haltonfailure="yes" fork="yes">
             <classpath>
                 <pathelement path="${resources.dir}"/>
@@ -196,7 +208,7 @@
         </junit>
     </target>
     
-    <target name="upload-tests" depends="compile,compile-test">
+    <target name="upload-test" depends="compile,compile-test">
         <copy todir="${build}/test/class">
             <fileset dir="test/resources">
                 <include name="**.xml"/>

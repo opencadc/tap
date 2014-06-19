@@ -69,13 +69,7 @@
 
 package ca.nrc.cadc.tap;
 
-import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
-import ca.nrc.cadc.uws.Job;
-import ca.nrc.cadc.uws.Parameter;
-import ca.nrc.cadc.uws.ParameterUtil;
-import java.util.List;
-import java.util.Map;
 import org.apache.log4j.Logger;
 
 /**
@@ -87,87 +81,16 @@ import org.apache.log4j.Logger;
  * 
  * @author jburke
  */
-public class MaxRecValidator
+public class MaxRecValidator extends ca.nrc.cadc.dali.MaxRecValidator implements TapPlugin
 {
     private static Logger log = Logger.getLogger(MaxRecValidator.class);
-
-    /**
-     * The default value when MAXREC is not specified. May be null for unlimited.
-     */
-    protected Integer defaultValue;
-
-    /**
-     * The maximum allowed value. May be null for unlimited.
-     */
-    protected Integer maxValue;
-
-    /**
-     * The UWS Job. This may be used by subclasses to dynamically determine
-     * the limit in the validate method.
-     */
-    protected Job job;
-
-    /**
-     * This gets set to true if the job is running in synchronous mode. In
-     * sync mode, the QueryRunner streams the output and thus consumes a finite
-     * amount of memory and no storage space.
-     */
-    protected boolean sync;
-
+    
     protected TapSchema tapSchema;
     
-    protected Map<String, TableDesc> extraTables;
-
     public MaxRecValidator() { }
-
-    public void setJob(Job job) { this.job = job; }
-
-    public void setSynchronousMode(boolean sync) { this.sync = sync; }
 
     public void setTapSchema(TapSchema tapSchema)
     {
         this.tapSchema = tapSchema;
-    }
-
-    public void setExtraTables(Map<String, TableDesc> extraTables)
-    {
-        this.extraTables = extraTables;
-    }
-
-    /**
-     * Checks the parameter List for a parameter named MAXREC.
-     * <p>
-     * If the MAXREC parameter is found, attempts to parse and return the value
-     * of MAXREC as an int. If the parsing fails, or if the value of MAXREC is
-     * negative, an IllegalArgumentException is thrown.
-     * <p>
-     * If the MAXREC parameter is not found in the List of parameters,
-     * the default value of {@link Integer.MAX_VALUE} is returned.
-     * <p>
-     *
-     *
-     * @param paramList List of TAP parameters.
-     * @return int value of MAXREC.
-     */
-    public Integer validate(List<Parameter> paramList)
-    {
-        String value = ParameterUtil.findParameterValue("MAXREC", paramList);
-
-        if (value == null || value.trim().length() == 0)
-            return defaultValue;
-
-        try
-        {
-            Integer ret = new Integer(value);
-            if (ret < 0)
-                throw new IllegalArgumentException("Invalid MAXREC: " + value);
-            if (maxValue != null && maxValue < ret)
-                return maxValue;
-            return ret;
-        }
-        catch (NumberFormatException nfe)
-        {
-            throw new IllegalArgumentException("Invalid MAXREC: " + value);
-        }
     }
 }

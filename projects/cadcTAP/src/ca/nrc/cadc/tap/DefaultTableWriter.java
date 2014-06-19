@@ -1,25 +1,6 @@
 package ca.nrc.cadc.tap;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.MissingResourceException;
-import java.util.TreeMap;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.dali.tables.TableData;
-import ca.nrc.cadc.dali.tables.TableWriter;
 import ca.nrc.cadc.dali.tables.ascii.AsciiTableWriter;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableField;
@@ -34,14 +15,28 @@ import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.tap.schema.ParamDesc;
 import ca.nrc.cadc.tap.writer.ResultSetTableData;
 import ca.nrc.cadc.tap.writer.RssTableWriter;
-import ca.nrc.cadc.tap.writer.format.DefaultFormatFactory;
 import ca.nrc.cadc.tap.writer.format.FormatFactory;
 import ca.nrc.cadc.uws.Job;
-import ca.nrc.cadc.uws.Parameter;
 import ca.nrc.cadc.uws.ParameterUtil;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.sql.ResultSet;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.MissingResourceException;
+import java.util.TreeMap;
+import org.apache.log4j.Logger;
 
-public class DefaultTableWriter implements TableWriter<ResultSet>
+public class DefaultTableWriter implements TableWriter
 {
 
     private static final Logger log = Logger.getLogger(DefaultTableWriter.class);
@@ -77,15 +72,9 @@ public class DefaultTableWriter implements TableWriter<ResultSet>
         knownFormats.put(TEXT_XML_VOTABLE, VOTABLE);
         knownFormats.put(TEXT_CSV, CSV);
         knownFormats.put(TEXT_TAB_SEPARATED_VALUES, TSV);
-//        knownFormats.put(APPLICATION_FITS, FITS);
-//        knownFormats.put(TEXT_PLAIN, TEXT);
-//        knownFormats.put(TEXT_HTML, HTML);
         knownFormats.put(VOTABLE, VOTABLE);
         knownFormats.put(CSV, CSV);
         knownFormats.put(TSV, TSV);
-//        knownFormats.put(FITS, FITS);
-//        knownFormats.put(TEXT, TEXT);
-//        knownFormats.put(HTML, HTML);
         knownFormats.put(RSS, RSS);
         knownFormats.put(APPLICATION_RSS, RSS);
     }
@@ -96,53 +85,74 @@ public class DefaultTableWriter implements TableWriter<ResultSet>
     private String extension;
 
     // RssTableWriter not yet ported to cadcDALI
-    private TableWriter<VOTableDocument> tableWriter;
+    private ca.nrc.cadc.dali.tables.TableWriter<VOTableDocument> tableWriter;
     private RssTableWriter rssTableWriter;
+    
+    private FormatFactory formatFactory;
 
     // once the RssTableWriter is converted to use the DALI format
     // of writing, this reference will not be needed
     List<ParamDesc> selectList;
 
-    public DefaultTableWriter(Job job, List<ParamDesc> selectList)
+    public DefaultTableWriter() { }
+
+    public void setJob(Job job)
     {
-        this(job, selectList, null);
+        this.job = job;
+        initFormat();
     }
 
-    public DefaultTableWriter(Job job, List<ParamDesc> selectList, String queryInfo)
+    public void setSelectList(List<ParamDesc> selectList)
     {
-        if (job == null)
-            throw new IllegalStateException("job cannot be null");
-
-        if (selectList == null || selectList.isEmpty())
-            throw new IllegalStateException("selectList cannot be null or empty");
-
-        this.job = job;
         this.selectList = selectList;
+        if (rssTableWriter != null)
+            rssTableWriter.setSelectList(selectList);
+    }
+    
+    public void setQueryInfo(String queryInfo)
+    {
         this.queryInfo = queryInfo;
+    }
 
-        String type = getTableFormat(job.getParameterList());
-        log.debug("table format type is: " + type);
+    @Override
+    public String getContentType()
+    {
+        return contentType;
+    }
 
-        String formatParam = ParameterUtil.findParameterValue("FORMAT", job.getParameterList());
+    @Override
+    public String getExtension()
+    {
+        return extension;
+    }
+    
+    private void initFormat()
+    {
+        String format = ParameterUtil.findParameterValue(FORMAT, job.getParameterList());
+        if (format == null)
+            format = VOTABLE;
+        
+        String type = knownFormats.get(format.toLowerCase());
+        if (type == null)
+            throw new UnsupportedOperationException("unknown format: " + format);
 
+        if (type.equals(VOTABLE) && format.equals(VOTABLE))
+            format = APPLICATION_VOTABLE_XML;
+        
         // Create the table writer (handle RSS the old way for now)
         // Note: This needs to be done before the write method is called so the contentType
         // can be determined from the table writer.
 
         if (type.equals(RSS))
         {
-            rssTableWriter = new RssTableWriter(queryInfo);
-
-            contentType = rssTableWriter.getContentType();
-            log.debug("Content type is: " + contentType);
-
+            rssTableWriter = new RssTableWriter();
+            this.contentType = rssTableWriter.getContentType();
             rssTableWriter.setJob(job);
-            rssTableWriter.setSelectList(selectList);
         }
         else
         {
             if (type.equals(VOTABLE))
-                tableWriter = new VOTableWriter(formatParam);
+                tableWriter = new VOTableWriter(format);
             if (type.equals(CSV))
                 tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.CSV);
             if (type.equals(TSV))
@@ -154,12 +164,14 @@ public class DefaultTableWriter implements TableWriter<ResultSet>
                 throw new UnsupportedOperationException("unsupported format: " + type);
             }
 
-            contentType = tableWriter.getContentType();
-            log.debug("Content type is: " + contentType);
-
-            extension = tableWriter.getExtension();
-            log.debug("Content type is: " + extension);
+            this.contentType = tableWriter.getContentType();
+            this.extension = tableWriter.getExtension();
         }
+    }
+
+    public void setFormatFactory(FormatFactory formatFactory)
+    {
+        this.formatFactory = formatFactory;
     }
 
     @Override
@@ -195,15 +207,25 @@ public class DefaultTableWriter implements TableWriter<ResultSet>
             try { log.debug("resultSet column count: " + rs.getMetaData().getColumnCount()); }
             catch(Exception oops) { log.error("failed to check resultset column count", oops); }
 
+        if (rssTableWriter != null)
+        {
+            rssTableWriter.setJob(job);
+            rssTableWriter.setSelectList(selectList);
+            rssTableWriter.setFormatFactory(formatFactory);
+            rssTableWriter.setQueryInfo(queryInfo);
+            if (maxrec != null)
+                rssTableWriter.write(rs, out, maxrec);
+            else
+                rssTableWriter.write(rs, out);
+            return;
+        }
+        
         VOTableDocument votableDocument = new VOTableDocument();
 
         VOTableResource resultsResource = new VOTableResource("results");
         VOTableTable resultsTable = new VOTableTable();
 
         // get the formats based on the selectList
-        FormatFactory formatFactory = DefaultFormatFactory.getFormatFactory();
-        formatFactory.setJobID(job.getID());
-        formatFactory.setParamList(job.getParameterList());
         List<Format<Object>> formats = formatFactory.getFormats(selectList);
 
         List<String> serviceIDs = new ArrayList<String>();
@@ -250,21 +272,11 @@ public class DefaultTableWriter implements TableWriter<ResultSet>
         }
 
         resultsTable.setTableData(tableData);
-
-        if (rssTableWriter != null)
-        {
-            if (maxrec != null)
-                rssTableWriter.write(rs, out, maxrec);
-            else
-                rssTableWriter.write(rs, out);
-        }
+        
+        if (maxrec != null)
+            tableWriter.write(votableDocument, out, maxrec);
         else
-        {
-            if (maxrec != null)
-                tableWriter.write(votableDocument, out, maxrec);
-            else
-                tableWriter.write(votableDocument, out);
-        }
+            tableWriter.write(votableDocument, out);
     }
 
     private void addMetaResources(VOTableDocument votableDocument, List<String> serviceIDs)
@@ -312,38 +324,6 @@ public class DefaultTableWriter implements TableWriter<ResultSet>
                 throw new RuntimeException("resourceIdentifier in " + filename + " is invalid", e);
             }
         }
-    }
-
-
-    public static String getTableFormat(List<Parameter> params)
-    {
-        // get the appropriate table writer
-        String format = ParameterUtil.findParameterValue(FORMAT, params);
-        if (format == null)
-            format = VOTABLE;
-        String type = knownFormats.get(format.toLowerCase());
-
-        if (type == null)
-            throw new UnsupportedOperationException("unknown format: " + format);
-
-        return type;
-    }
-
-    public void setQueryInfo(String queryInfo)
-    {
-        this.queryInfo = queryInfo;
-    }
-
-    @Override
-    public String getContentType()
-    {
-        return contentType;
-    }
-
-    @Override
-    public String getExtension()
-    {
-        return extension;
     }
 
     protected VOTableField createVOTableField(ParamDesc paramDesc)

@@ -92,6 +92,7 @@ import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
 import ca.nrc.cadc.tap.schema.ParamDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
 import org.apache.log4j.Logger;
 
@@ -150,21 +151,32 @@ public class AdqlQueryTest
     {
     }
 
+    Job job = new Job() 
+    {
+        @Override
+        public String getID() { return "abcdefg"; }
+    };
+    
     private void doit()
     {
-        Parameter para;
-        para = new Parameter("QUERY", _query);
-        List<Parameter> paramList = new ArrayList<Parameter>();
-        paramList.add(para);
-        
-        TapQuery tapQuery = new AdqlQuery();
-        tapQuery.setTapSchema(TAP_SCHEMA);
-        tapQuery.setParameterList(paramList);
-        String sql = tapQuery.getSQL();
-        List<ParamDesc> selectList = tapQuery.getSelectList();
-        log.debug("QUERY: \r\n" + _query);
-        log.debug("SQL: \r\n" + sql);
-        assertEquals(_expected.toLowerCase().trim(), sql.toLowerCase().trim());
+        try
+        {
+            Parameter para = new Parameter("QUERY", _query);
+            job.getParameterList().add(para);
+
+            TapQuery tapQuery = new AdqlQuery();
+            tapQuery.setTapSchema(TAP_SCHEMA);
+            tapQuery.setJob(job);
+            String sql = tapQuery.getSQL();
+            List<ParamDesc> selectList = tapQuery.getSelectList();
+            log.debug("QUERY: \r\n" + _query);
+            log.debug("SQL: \r\n" + sql);
+            assertEquals(_expected.toLowerCase().trim(), sql.toLowerCase().trim());
+        }
+        finally
+        {
+            job.getParameterList().clear();
+        }
     }
 
     @Test
