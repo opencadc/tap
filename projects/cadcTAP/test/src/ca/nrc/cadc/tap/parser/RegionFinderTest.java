@@ -83,6 +83,13 @@ import org.junit.Test;
 
 import ca.nrc.cadc.tap.AdqlQuery;
 import ca.nrc.cadc.tap.TapQuery;
+import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
+import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
+import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
+import ca.nrc.cadc.tap.parser.schema.BlobClobColumnValidator;
+import ca.nrc.cadc.tap.parser.schema.ExpressionValidator;
+import ca.nrc.cadc.tap.parser.schema.TapSchemaTableValidator;
+import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
@@ -196,7 +203,11 @@ public class RegionFinderTest
         protected void init()
         {
             //super.init();
-            super.navigatorList.add(new RegionFinder());
+            TapSchema tapSchema = TestUtil.mockTapSchema();
+            ExpressionNavigator en = new ExpressionValidator(tapSchema);
+            ReferenceNavigator rn = new BlobClobColumnValidator(tapSchema);
+            FromItemNavigator fn = new TapSchemaTableValidator(tapSchema);
+            super.navigatorList.add(new RegionFinder(en, rn, fn));
         }
     }
 }

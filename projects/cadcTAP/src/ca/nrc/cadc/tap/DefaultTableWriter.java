@@ -345,17 +345,13 @@ public class DefaultTableWriter implements TableWriter
             else
                 newField.utype = paramDesc.utype;
 
-            if (newField.ucd != null)
-                newField.ucd = paramDesc.ucd;
-
-            if (newField.unit != null)
-                newField.unit = paramDesc.unit;
+            newField.ucd = paramDesc.ucd;
+            newField.unit = paramDesc.unit;
 
             if (paramDesc.datatype != null && paramDesc.datatype.startsWith("adql:"))
                 newField.xtype = paramDesc.datatype;
 
-            if (paramDesc.description != null)
-                newField.description = paramDesc.description;
+            newField.description = paramDesc.description;
 
             return newField;
         }

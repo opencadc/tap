@@ -127,7 +127,7 @@ public class SqlQuery extends AbstractTapQuery
         sn = new SelectNavigator(en, rn, fn);
         navigatorList.add(sn);
 
-        sn = new AllColumnConverter(tapSchema);
+        sn = new AllColumnConverter(en, rn, fn, tapSchema);
         navigatorList.add(sn);
 
         en = new SelectListExpressionExtractor(tapSchema);

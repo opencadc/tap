@@ -86,6 +86,8 @@ import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
 import ca.nrc.cadc.tap.parser.region.pgsphere.PgsphereRegionConverter;
+import ca.nrc.cadc.tap.parser.schema.BlobClobColumnValidator;
+import ca.nrc.cadc.tap.parser.schema.ExpressionValidator;
 import ca.nrc.cadc.tap.parser.schema.TapSchemaColumnValidator;
 import ca.nrc.cadc.tap.parser.schema.TapSchemaTableValidator;
 import ca.nrc.cadc.tap.schema.TapSchema;
@@ -132,7 +134,11 @@ public class ValidateAdqlCoordSysTest
     @Before
     public void setUp() throws Exception
     {
-        _sn = new PgsphereRegionConverter();
+        TapSchema tapSchema = TestUtil.mockTapSchema();
+        ExpressionNavigator en = new ExpressionValidator(tapSchema);
+        ReferenceNavigator rn = new BlobClobColumnValidator(tapSchema);
+        FromItemNavigator fn = new TapSchemaTableValidator(tapSchema);
+        _sn = new PgsphereRegionConverter(en, rn, fn);
     }
 
     /**
