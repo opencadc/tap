@@ -69,6 +69,9 @@
 
 package ca.nrc.cadc.tap.parser;
 
+import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
+import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
+import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
@@ -118,8 +121,9 @@ public class RegionFinder extends SelectNavigator
 
     private static Logger log = Logger.getLogger(RegionFinder.class);
 
-    public RegionFinder()
+    public RegionFinder(ExpressionNavigator en, ReferenceNavigator rn, FromItemNavigator fn)
     {
+        super(en, rn, fn);
     }
 
     /**

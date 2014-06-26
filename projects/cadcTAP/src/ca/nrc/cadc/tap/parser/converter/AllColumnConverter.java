@@ -81,6 +81,9 @@ import net.sf.jsqlparser.statement.select.SelectItem;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.tap.parser.ParserUtil;
+import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
+import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
+import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
 import ca.nrc.cadc.tap.parser.schema.TapSchemaUtil;
 import ca.nrc.cadc.tap.schema.TapSchema;
@@ -97,8 +100,9 @@ public class AllColumnConverter extends SelectNavigator
 
     protected TapSchema tapSchema;
 
-    public AllColumnConverter(TapSchema tapSchema)
+    public AllColumnConverter(ExpressionNavigator en, ReferenceNavigator rn, FromItemNavigator fn, TapSchema tapSchema)
     {
+        super(en, rn, fn);
         this.tapSchema = tapSchema;
     }
 

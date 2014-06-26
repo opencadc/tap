@@ -78,6 +78,9 @@ import net.sf.jsqlparser.statement.select.Top;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.tap.parser.converter.postgresql.PgLimit;
+import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
+import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
+import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
 
 /**
@@ -91,7 +94,10 @@ public class TopConverter extends SelectNavigator
 {
     protected static Logger log = Logger.getLogger(TopConverter.class);
 
-    public TopConverter() { }
+    public TopConverter(ExpressionNavigator en, ReferenceNavigator rn, FromItemNavigator fn)
+    {
+        super(en, rn, fn);
+    }
 
     public void visit(PlainSelect plainSelect)
     {
