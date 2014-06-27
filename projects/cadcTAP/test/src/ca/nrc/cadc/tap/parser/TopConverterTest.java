@@ -83,9 +83,13 @@ import org.junit.Test;
 
 import ca.nrc.cadc.tap.parser.converter.TopConverter;
 import ca.nrc.cadc.tap.parser.extractor.SelectListExtractor;
+import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
 import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
+import ca.nrc.cadc.tap.parser.schema.BlobClobColumnValidator;
+import ca.nrc.cadc.tap.parser.schema.ExpressionValidator;
+import ca.nrc.cadc.tap.parser.schema.TapSchemaTableValidator;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.util.Log4jInit;
 import org.apache.log4j.Logger;
@@ -133,8 +137,11 @@ public class TopConverterTest
     @Before
     public void setUp() throws Exception
     {
-
-        _sn = new TopConverter();
+        TapSchema tapSchema = TestUtil.mockTapSchema();
+        ExpressionNavigator en = new ExpressionValidator(tapSchema);
+        ReferenceNavigator rn = new BlobClobColumnValidator(tapSchema);
+        FromItemNavigator fn = new TapSchemaTableValidator(tapSchema);
+        _sn = new TopConverter(en, rn, fn);
     }
 
     /**

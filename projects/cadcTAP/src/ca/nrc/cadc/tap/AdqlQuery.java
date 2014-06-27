@@ -139,27 +139,26 @@ public class AdqlQuery extends AbstractTapQuery
      */
     protected void init()
     {
-        ExpressionNavigator en;
-        ReferenceNavigator rn;
-        FromItemNavigator fn;
-        SelectNavigator sn;
+        ExpressionNavigator endef = new ExpressionNavigator();
+        ReferenceNavigator rndef = new ReferenceNavigator();
+        FromItemNavigator fndef = new FromItemNavigator();
 
         // default validator: table and columns in tap_schema, 
         // blobs and clobs in select list only
-        en = new ExpressionValidator(tapSchema);
-        rn = new BlobClobColumnValidator(tapSchema);
-        fn = new TapSchemaTableValidator(tapSchema);
-        sn = new SelectNavigator(en, rn, fn);
+        ExpressionNavigator en = new ExpressionValidator(tapSchema);
+        ReferenceNavigator rn = new BlobClobColumnValidator(tapSchema);
+        FromItemNavigator fn = new TapSchemaTableValidator(tapSchema);
+        SelectNavigator sn = new SelectNavigator(en, rn, fn);
         navigatorList.add(sn);
 
         // convert * to fixed select-list
-        sn = new AllColumnConverter(tapSchema);
+        sn = new AllColumnConverter(endef, rndef, fndef, tapSchema);
         navigatorList.add(sn);
 
         // extract select-list
         en = new SelectListExpressionExtractor(tapSchema);
-        rn = null;
-        fn = null;
+        rn = rndef;
+        fn = fndef;
         sn = new SelectListExtractor(en, rn, fn);
         navigatorList.add(sn);
 
@@ -173,10 +172,10 @@ public class AdqlQuery extends AbstractTapQuery
                 String newName = (String) entry.getKey();
                 TableDesc tableDesc = (TableDesc) entry.getValue();
                 tnc.put(tableDesc.tableName, newName);
-                log.info("TableNameConverter " + tableDesc.tableName + " -> " + newName);
+                log.debug("TableNameConverter " + tableDesc.tableName + " -> " + newName);
             }
             en = new ExpressionNavigator();
-            sn = new SelectNavigator(en, new ReferenceNavigator(), tnc);
+            sn = new SelectNavigator(endef, rndef, tnc);
             navigatorList.add(sn);
         }
         

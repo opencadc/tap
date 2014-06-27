@@ -131,8 +131,8 @@ public class ExtractorTest
     public void setUp() throws Exception
     {
         _en = new SelectListExpressionExtractor(TAP_SCHEMA);
-        _rn = null;
-        _fn = null;
+        _rn = new ReferenceNavigator();
+        _fn = new FromItemNavigator();
         _sn = new SelectListExtractor(_en, _rn, _fn);
     }
 
