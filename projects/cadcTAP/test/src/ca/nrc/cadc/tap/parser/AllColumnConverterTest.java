@@ -83,6 +83,13 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import ca.nrc.cadc.tap.parser.converter.AllColumnConverter;
+import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
+import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
+import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
+import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
+import ca.nrc.cadc.tap.parser.schema.BlobClobColumnValidator;
+import ca.nrc.cadc.tap.parser.schema.ExpressionValidator;
+import ca.nrc.cadc.tap.parser.schema.TapSchemaTableValidator;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.util.Log4jInit;
 import org.apache.log4j.Logger;
@@ -128,8 +135,17 @@ public class AllColumnConverterTest
     @Before
     public void setUp() throws Exception
     {
+        ExpressionNavigator en;
+        ReferenceNavigator rn;
+        FromItemNavigator fn;
+        SelectNavigator sn;
 
-        _sn = new AllColumnConverter(TAP_SCHEMA);
+        // default validator: table and columns in tap_schema, 
+        // blobs and clobs in select list only
+        en = new ExpressionValidator(TAP_SCHEMA);
+        rn = new BlobClobColumnValidator(TAP_SCHEMA);
+        fn = new TapSchemaTableValidator(TAP_SCHEMA);
+        _sn = new AllColumnConverter(en, rn, fn, TAP_SCHEMA);
     }
 
     /**

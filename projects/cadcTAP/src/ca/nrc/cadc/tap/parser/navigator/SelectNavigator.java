@@ -71,7 +71,6 @@ package ca.nrc.cadc.tap.parser.navigator;
 
 import java.util.List;
 import java.util.Stack;
-
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.ColumnReference;
@@ -86,7 +85,6 @@ import net.sf.jsqlparser.statement.select.SelectVisitor;
 import net.sf.jsqlparser.statement.select.SubSelect;
 import net.sf.jsqlparser.statement.select.Top;
 import net.sf.jsqlparser.statement.select.Union;
-
 import org.apache.log4j.Logger;
 
 /**
@@ -134,19 +132,25 @@ public class SelectNavigator implements SelectVisitor
     protected ReferenceNavigator referenceNavigator;
     protected FromItemNavigator fromItemNavigator;
 
-    protected SelectNavigator()
+    private SelectNavigator()
     {
     }
 
     public SelectNavigator(ExpressionNavigator en, ReferenceNavigator rn, FromItemNavigator fn)
     {
+        if (en == null)
+            throw new IllegalArgumentException("BUG: SelectNavigator must haven ExpressionNavigator component");
+        if (rn == null)
+            throw new IllegalArgumentException("BUG: SelectNavigator must haven ReferenceNavigator component");
+        if (fn == null)
+            throw new IllegalArgumentException("BUG: SelectNavigator must haven FromItemNavigator component");
         this.expressionNavigator = en;
         this.referenceNavigator = rn;
         this.fromItemNavigator = fn;
 
-        if (en != null) en.setSelectNavigator(this);
-        if (rn != null) rn.setSelectNavigator(this);
-        if (fn != null) fn.setSelectNavigator(this);
+        en.setSelectNavigator(this);
+        rn.setSelectNavigator(this);
+        fn.setSelectNavigator(this);
     }
 
     protected void enterPlainSelect(PlainSelect plainSelect)

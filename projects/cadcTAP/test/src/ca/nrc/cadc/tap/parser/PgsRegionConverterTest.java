@@ -74,22 +74,19 @@ package ca.nrc.cadc.tap.parser;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import ca.nrc.cadc.tap.AdqlQuery;
 import ca.nrc.cadc.tap.TapQuery;
-import ca.nrc.cadc.tap.parser.converter.postgresql.PgFunctionNameConverter;
-import ca.nrc.cadc.tap.parser.extractor.FunctionExpressionExtractor;
+import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
+import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.region.pgsphere.PgsphereRegionConverter;
+import ca.nrc.cadc.tap.parser.schema.BlobClobColumnValidator;
+import ca.nrc.cadc.tap.parser.schema.ExpressionValidator;
+import ca.nrc.cadc.tap.parser.schema.TapSchemaTableValidator;
+import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
@@ -407,6 +404,11 @@ class AdqlPgsRegionQuery extends AdqlQuery
     protected void init()
     {
         //super.init();
-        super.navigatorList.add(new PgsphereRegionConverter());
+        TapSchema tapSchema = TestUtil.mockTapSchema();
+        ExpressionNavigator en = new ExpressionValidator(tapSchema);
+        ReferenceNavigator rn = new BlobClobColumnValidator(tapSchema);
+        FromItemNavigator fn = new TapSchemaTableValidator(tapSchema);
+
+        super.navigatorList.add(new PgsphereRegionConverter(en, rn, fn));
     }
 }
