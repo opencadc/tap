@@ -3,12 +3,12 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2014.                            (c) 2014.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 *  All rights reserved                  Tous droits réservés
-*                                       
+*
 *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 *  expressed, implied, or               énoncée, implicite ou légale,
 *  statutory, of any kind with          de quelque nature que ce
@@ -31,10 +31,10 @@
 *  software without specific prior      de ce logiciel sans autorisation
 *  written permission.                  préalable et particulière
 *                                       par écrit.
-*                                       
+*
 *  This file is part of the             Ce fichier fait partie du projet
 *  OpenCADC project.                    OpenCADC.
-*                                       
+*
 *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 *  you can redistribute it and/or       vous pouvez le redistribuer ou le
 *  modify it under the terms of         modifier suivant les termes de
@@ -44,7 +44,7 @@
 *  either version 3 of the              : soit la version 3 de cette
 *  License, or (at your option)         licence, soit (à votre gré)
 *  any later version.                   toute version ultérieure.
-*                                       
+*
 *  OpenCADC is distributed in the       OpenCADC est distribué
 *  hope that it will be useful,         dans l’espoir qu’il vous
 *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -54,7 +54,7 @@
 *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 *  General Public License for           Générale Publique GNU Affero
 *  more details.                        pour plus de détails.
-*                                       
+*
 *  You should have received             Vous devriez avoir reçu une
 *  a copy of the GNU Affero             copie de la Licence Générale
 *  General Public License along         Publique GNU Affero avec
@@ -62,146 +62,124 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
+*  $Revision: 5 $
 *
 ************************************************************************
 */
 
-/**
- * 
- */
-package ca.nrc.cadc.tap.parser;
+package ca.nrc.cadc.sample;
 
-import static org.junit.Assert.fail;
-import net.sf.jsqlparser.statement.Statement;
-
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import ca.nrc.cadc.tap.parser.converter.TopConverter;
-import ca.nrc.cadc.tap.parser.extractor.SelectListExtractor;
-import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
-import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
-import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
-import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
-import ca.nrc.cadc.tap.parser.schema.BlobClobColumnValidator;
-import ca.nrc.cadc.tap.parser.schema.ExpressionValidator;
-import ca.nrc.cadc.tap.parser.schema.TapSchemaTableValidator;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.SchemaDesc;
+import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.uws.Job;
+import ca.nrc.cadc.uws.Parameter;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
- * test the convertion from TOP to LIMIT
- * 
- * @author Sailor Zhang
  *
+ * @author pdowler
  */
-public class TopConverterTest
+public class AdqlQueryImplTest 
 {
-    private static final Logger log = Logger.getLogger(TopConverterTest.class);
-
-    public String _query;
-
-    SelectListExtractor _en;
-    ReferenceNavigator _rn;
-    FromItemNavigator _fn;
-    SelectNavigator _sn;
-
-    static TapSchema TAP_SCHEMA;
-
-    /**
-     * @throws java.lang.Exception
-     */
-    @BeforeClass
-    public static void setUpBeforeClass() throws Exception
+    private static final Logger log = Logger.getLogger(AdqlQueryImplTest.class);
+    
+    static
     {
-        Log4jInit.setLevel("ca.nrc.cadc", org.apache.log4j.Level.INFO);
-        TAP_SCHEMA = TestUtil.loadDefaultTapSchema();
-    }
-
-    /**
-     * @throws java.lang.Exception
-     */
-    @AfterClass
-    public static void tearDownAfterClass() throws Exception
-    {
-    }
-
-    /**
-     * @throws java.lang.Exception
-     */
-    @Before
-    public void setUp() throws Exception
-    {
-        TapSchema tapSchema = TestUtil.mockTapSchema();
-        ExpressionNavigator en = new ExpressionValidator(tapSchema);
-        ReferenceNavigator rn = new BlobClobColumnValidator(tapSchema);
-        FromItemNavigator fn = new TapSchemaTableValidator(tapSchema);
-        _sn = new TopConverter(en, rn, fn);
-    }
-
-    /**
-     * @throws java.lang.Exception
-     */
-    @After
-    public void tearDown() throws Exception
-    {
-    }
-
-    private void doit()
-    {
-        Statement s = null;
-        try
-        {
-            s = ParserUtil.receiveQuery(_query);
-            log.debug("query: " + _query);
-            ParserUtil.parseStatement(s, _sn);
-        }
-        catch (Exception ae)
-        {
-            ae.printStackTrace(System.out);
-            fail(ae.toString());
-        }
-        log.debug("statement: " + s);
-        String sql = s.toString().toLowerCase();
-        if (sql.indexOf("top") >= 0)
-            fail("TOP is not converted.");
-        if (sql.indexOf("limit") < 0)
-            fail("LIMIT is missing from result.");
-    }
-
-    @Test
-    public void testTop()
-    {
-        _query = "select  top 1234 t_string as xx, aa.t_bytes as yy from tap_schema.alldatatypes as aa";
-        doit();
-    }
-
-    @Test
-    public void testTop0()
-    {
-        _query = "select  top 0 t_string as xx, aa.t_bytes as yy from tap_schema.alldatatypes as aa";
-        doit();
+        Log4jInit.setLevel("ca.nrc.cadc.sample", Level.INFO);
+                
     }
     
-    @Test
-    public void testJoin()
+    Job job = new Job()
     {
-        _query = "select top 1234 t_string, aa.t_bytes, bb.* from tap_schema.alldatatypes as aa, tap_schema.tables as bb " +
-        		" where aa.t_string = bb.utype limit 2345";
-        doit();
-    }
+        @Override
+        public String getID() { return "testJob"; }
+    };
+    
+    public AdqlQueryImplTest() { }
 
+    // this test makes ure that the AllColumnsConverter in the base AdqlQuery 
+    // class still operates (eg we called super.init() correctly)
     @Test
-    public void testSubselect()
+    public void testOrigConverters()
     {
-        _query = "select  t_string, aa.t_bytes, bb.* from tap_schema.alldatatypes as aa, tap_schema.tables as bb " +
-                " where aa.t_string = bb.utype " +
-                "and aa.t_string in (select utype from bb) limit 3456";
-        doit();
+        try
+        {
+            job.getParameterList().add(new Parameter("QUERY", "select * from test.foo as t"));
+            
+            AdqlQueryImpl q = new AdqlQueryImpl();
+            q.setJob(job);
+            q.setTapSchema(mockTapSchema());
+            
+            String sql = q.getSQL();
+            log.debug("SQL: " + sql);
+            Assert.assertNotNull("sql", sql);
+            sql = sql.toLowerCase();
+            int i = sql.indexOf("select") + 6;
+            int j = sql.indexOf("from") - 1;
+            String selectList = sql.substring(i, j);
+            log.debug("select-list: " + selectList);
+            Assert.assertTrue("f1", selectList.contains("t.f1"));
+            Assert.assertTrue("f1", selectList.contains("t.f2"));
+            Assert.assertFalse("f1", selectList.contains("*"));
+        }
+        catch(Exception unexpected)
+        {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+        finally
+        {
+            job.getParameterList().clear();
+        }
+    }
+    
+    // this test requires that AdqlQueryImpl converts TOP to LIMIT
+    @Test
+    public void testTopConverter()
+    {
+        try
+        {
+            job.getParameterList().add(new Parameter("QUERY", "select top 5 * from test.foo"));
+            
+            AdqlQueryImpl q = new AdqlQueryImpl();
+            q.setJob(job);
+            q.setTapSchema(mockTapSchema());
+            
+            String sql = q.getSQL();
+            log.debug("SQL: " + sql);
+            Assert.assertNotNull("sql", sql);
+            Assert.assertTrue("limit", sql.toLowerCase().endsWith("limit 5"));
+        }
+        catch(Exception unexpected)
+        {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+        finally
+        {
+            job.getParameterList().clear();
+        }
+    }
+    
+    TapSchema mockTapSchema()
+    {
+        TapSchema ret = new TapSchema();
+        SchemaDesc sd = new SchemaDesc("test", null, null);
+        TableDesc foo = new TableDesc("test", "test.foo", null, null);
+        TableDesc bar = new TableDesc("test", "test.bar", null, null);
+        foo.getColumnDescs().add(new ColumnDesc("test.foo", "f1", null, null, null, null, "adql:INTEGER", null));
+        foo.getColumnDescs().add(new ColumnDesc("test.foo", "f2", null, null, null, null, "adql:CHAR", 8));
+        bar.getColumnDescs().add(new ColumnDesc("test.bar", "b1", null, null, null, null, "adql:INTEGER", null));
+        bar.getColumnDescs().add(new ColumnDesc("test.bar", "b2", null, null, null, null, "adql:CHAR", 8));
+        sd.getTableDescs().add(foo);
+        sd.getTableDescs().add(bar);
+        ret.getSchemaDescs().add(sd);
+        return ret;
     }
 }
