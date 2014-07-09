@@ -116,27 +116,25 @@ public class SqlQuery extends AbstractTapQuery
      */
     protected void init()
     {
-        ExpressionNavigator en;
-        ReferenceNavigator rn;
-        FromItemNavigator fn;
-        SelectNavigator sn;
-
-        en = new ExpressionNavigator();
-        rn = new TapSchemaColumnValidator(tapSchema);
-        fn = new TapSchemaTableValidator(tapSchema);
-        sn = new SelectNavigator(en, rn, fn);
+        ExpressionNavigator endef = new ExpressionNavigator();
+        ReferenceNavigator rndef = new ReferenceNavigator();
+        FromItemNavigator fndef = new FromItemNavigator();
+        
+        ReferenceNavigator rn = new TapSchemaColumnValidator(tapSchema);
+        FromItemNavigator fn = new TapSchemaTableValidator(tapSchema);
+        SelectNavigator sn = new SelectNavigator(endef, rn, fn);
         navigatorList.add(sn);
 
-        sn = new AllColumnConverter(en, rn, fn, tapSchema);
+        // convert * to fixed select-list
+        sn = new AllColumnConverter(endef, rndef, fndef, tapSchema);
         navigatorList.add(sn);
 
-        en = new SelectListExpressionExtractor(tapSchema);
-        rn = null;
-        fn = null;
+        // extract select-list
+        ExpressionNavigator en = new SelectListExpressionExtractor(tapSchema);
+        rn = rndef;
+        fn = fndef;
         sn = new SelectListExtractor(en, rn, fn);
         navigatorList.add(sn);
-        
-        
     }
 
     protected void doNavigate()
