@@ -82,61 +82,49 @@ import org.springframework.jdbc.core.RowMapper;
 
 /**
  * Given a DataSource to a TAP_SCHEMA, returns a TapSchema object containing the TAP_SCHEMA data.
- * 
+ * The fully qualified names of tables in the tap_schema can be modified in a subclass as long 
+ * as the change(s) are made before the get method is called (*TableName variables).
  */
 public class TapSchemaDAO implements TapPlugin
 {
     private static final Logger log = Logger.getLogger(TapSchemaDAO.class);
 
-    public static final String SCHEMAS_TAB = "tap_schema.schemas";
-    public static final String TABLES_TAB = "tap_schema.tables";
-    public static final String COLUMNS_TAB = "tap_schema.columns";
-    public static final String KEYS_TAB = "tap_schema.keys";
-    public static final String KEY_COLUMNS_TAB = "tap_schema.key_columns";
+    // standard tap_schema table names
+    protected String schemasTableName = "tap_schema.schemas";
+    protected String tablesTableName = "tap_schema.tables";
+    protected String columnsTableName = "tap_schema.columns";
+    protected String keysTableName = "tap_schema.keys";
+    protected String keyColumnsTableName = "tap_schema.key_columns";
 
     // SQL to select all rows from TAP_SCHEMA.schemas.
-    private static final String SELECT_SCHEMAS =
-            "select schema_name, description, utype " +
-            "from " + SCHEMAS_TAB;
-    private static final String ORDER_SCHEMAS = " ORDER BY schema_name";
+    protected String SELECT_SCHEMAS_COLS = "schema_name, description, utype";
+    protected String orderSchemaClause = " ORDER BY schema_name";
 
     // SQL to select all rows from TAP_SCHEMA.tables.
-    private static final String SELECT_TABLES = 
-            "select schema_name, table_name, description, utype " +
-            " from " + TABLES_TAB;
-    private static final String ORDER_TABLES = " ORDER BY schema_name,table_name";
+    protected String SELECT_TABLES_COLS = "schema_name, table_name, description, utype";
+    protected String orderTablesClause = " ORDER BY schema_name,table_name";
 
     // SQL to select all rows from TAP_SCHEMA.colums.
-    private static final String SELECT_COLUMNS = 
-            "select table_name, column_name, description, utype, ucd, unit, datatype, size, principal, indexed, std, id " +
-            "from " + COLUMNS_TAB;
-    private static final String ORDER_COLUMNS = " ORDER BY table_name,column_name";
+    protected String SELECT_COLUMNS_COLS = "table_name, column_name, description, utype, ucd, unit, datatype, size, principal, indexed, std, id";
+    protected String orderColumnsClause = " ORDER BY table_name,column_name";
     
     // SQL to select all rows from TAP_SCHEMA.keys.
-    private static final String SELECT_KEYS =
-            "select key_id, from_table, target_table,description,utype " +
-            "from " + KEYS_TAB;
-    private static final String ORDER_KEYS = " ORDER BY key_id,from_table,target_table";
+    protected String SELECT_KEYS_COLS = "key_id, from_table, target_table,description,utype";
+    protected String orderKeysClause = " ORDER BY key_id,from_table,target_table";
 
     // SQL to select all rows from TAP_SCHEMA.key_columns.
-    private static final String SELECT_KEY_COLUMNS = 
-            "select key_id, from_column, target_column " +
-            "from " + KEY_COLUMNS_TAB;
-    private static final String ORDER_KEY_COLUMNS = " ORDER BY key_id, from_column, target_column";
+    protected String SELECT_KEY_COLUMNS_COLS = "key_id, from_column, target_column";
+    protected String orderKeyColumnsClause = " ORDER BY key_id, from_column, target_column";
 
     protected DataSource dataSource;
     protected boolean ordered;
-
     protected Job job;
     
     // Indicates function return datatype matches argument datatype.
     public static final String ARGUMENT_DATATYPE = "ARGUMENT_DATATYPE";
 
     /**
-     * Construct a new TapSchemaDAO using the specified DataSource. As an extension
-     * mechanism, this class will attempt to load a subclass and delegate to it. The
-     * delegate class muct be named <code>ca.nrc.cadc.tap.schema.TapSchemaDAOImpl</code>
-     * and have a no-arg constructor.
+     * Construct a new TapSchemaDAO.
      * 
      * @param dataSource TAP_SCHEMA DataSource.
      */
@@ -166,17 +154,21 @@ public class TapSchemaDAO implements TapPlugin
     {
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         TapSchema tapSchema = new TapSchema();
-        String sql;
+        String sql, tab;
 
         // List of TAP_SCHEMA.schemas
-        sql = appendWhere(SCHEMAS_TAB, SELECT_SCHEMAS);
-        if (ordered) sql += ORDER_SCHEMAS;
+        tab = schemasTableName;
+        sql = "SELECT " + SELECT_SCHEMAS_COLS + " FROM " + tab;
+        sql = appendWhere(tab, sql);
+        if (ordered) sql += orderSchemaClause;
         log.debug(sql);
         tapSchema.schemaDescs = jdbc.query(sql, new SchemaMapper());
 
         // List of TAP_SCHEMA.tables
-        sql = appendWhere(TABLES_TAB, SELECT_TABLES);
-        if (ordered) sql += ORDER_TABLES;
+        tab = tablesTableName;
+        sql = "SELECT " + SELECT_TABLES_COLS + " FROM " + tab;
+        sql = appendWhere(tab, sql);
+        if (ordered) sql += orderTablesClause;
         log.debug(sql);
         List<TableDesc> tableDescs = jdbc.query(sql, new TableMapper());
 
@@ -184,8 +176,10 @@ public class TapSchemaDAO implements TapPlugin
         addTablesToSchemas(tapSchema.schemaDescs, tableDescs);
 
         // List of TAP_SCHEMA.columns
-        sql = appendWhere(COLUMNS_TAB, SELECT_COLUMNS);
-        if (ordered) sql += ORDER_COLUMNS;
+        tab = columnsTableName;
+        sql = "SELECT " + SELECT_COLUMNS_COLS + " FROM " + tab;
+        sql = appendWhere(tab, sql);
+        if (ordered) sql += orderColumnsClause;
         log.debug(sql);
         List<ColumnDesc> columnDescs = jdbc.query(sql, new ColumnMapper());
 
@@ -193,14 +187,18 @@ public class TapSchemaDAO implements TapPlugin
         addColumnsToTables(tableDescs, columnDescs);
 
         // List of TAP_SCHEMA.keys
-        sql = appendWhere(KEYS_TAB, SELECT_KEYS);
-        if (ordered) sql += ORDER_KEYS;
+        tab = keysTableName;
+        sql = "SELECT " + SELECT_KEYS_COLS + " FROM " + tab;
+        sql = appendWhere(tab, sql);
+        if (ordered) sql += orderKeysClause;
         log.debug(sql);
         List<KeyDesc> keyDescs = jdbc.query(sql, new KeyMapper());
 
         // List of TAP_SCHEMA.key_columns
-        sql = appendWhere(KEY_COLUMNS_TAB, SELECT_KEY_COLUMNS);
-        if (ordered) sql += ORDER_KEY_COLUMNS;
+        tab = keyColumnsTableName;
+        sql = "SELECT " + SELECT_KEY_COLUMNS_COLS + " FROM " + tab;
+        sql = appendWhere(tab, sql);
+        if (ordered) sql += orderKeyColumnsClause;
         log.debug(sql);
         List<KeyColumnDesc> keyColumnDescs = jdbc.query(sql, new KeyColumnMapper());
 
@@ -226,10 +224,10 @@ public class TapSchemaDAO implements TapPlugin
     
     /**
      * Append a where clause to the query that selects from the specified table.
-     * The default impl does nothing (returns in the provided SQL as-is).
+     * The default implementation does nothing (returns in the provided SQL as-is).
      * </p>
      * <p>
-     * If you want to implement some additional conditions, such as having private columns
+     * If you want to implement some additional conditions, such as having private records
      * only visible to certain authenticated and authorized users, you can append some
      * conditions (or re-write the query as long as the select-list is not altered) here.
      * 
