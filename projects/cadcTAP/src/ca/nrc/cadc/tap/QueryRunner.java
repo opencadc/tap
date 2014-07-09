@@ -136,27 +136,17 @@ public class QueryRunner implements JobRunner
     private static final String queryDataSourceName = "jdbc/tapuser";
     private static final String uploadDataSourceName = "jdbc/tapuploadadm";
 
-    // names of plugin classes that must be provided by service implementation
-    private static final String resultStoreImplClassName = "ca.nrc.cadc.tap.impl.ResultStoreImpl";
-    private static final String uploadManagerClassName = "ca.nrc.cadc.tap.impl.UploadManagerImpl";
-   
-
-    private String jobID;
     private Job job;
     private JobUpdater jobUpdater;
     private SyncOutput syncOutput;
     private WebServiceLogInfo logInfo;
 
-    public QueryRunner()
-    {
-        syncOutput = null;
-    }
+    public QueryRunner() { }
 
     @Override
     public void setJob(Job job)
     {
         this.job = job;
-        jobID = job.getID();
     }
 
     @Override
@@ -178,7 +168,14 @@ public class QueryRunner implements JobRunner
         log.info(logInfo.start());
         long start = System.currentTimeMillis();
 
-        doIt();
+        try
+        {
+            doIt();
+        }
+        catch(Exception ex)
+        {
+            log.error("unexpected exception", ex);
+        }
 
         logInfo.setElapsedTime(System.currentTimeMillis() - start);
         log.info(logInfo.end());
