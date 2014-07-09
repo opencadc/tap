@@ -1,0 +1,6 @@
+#
+
+## sample request: query TAP_SCHEMA.tables using the sync resource
+
+curl -v --location -d 'REQUEST=doQuery&LANG=ADQL-2.0&QUERY=SELECT * FROM TAP_SCHEMA.tables' http://localhost/cadcSampleTAP/sync
+

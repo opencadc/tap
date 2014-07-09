@@ -95,6 +95,9 @@ import ca.nrc.cadc.stc.StcsParsingException;
 import ca.nrc.cadc.tap.parser.ParserUtil;
 import ca.nrc.cadc.tap.parser.RegionFinder;
 import ca.nrc.cadc.tap.parser.function.Operator;
+import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
+import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
+import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.region.pgsphere.function.Center;
 import ca.nrc.cadc.tap.parser.region.pgsphere.function.Lat;
 import ca.nrc.cadc.tap.parser.region.pgsphere.function.Longitude;
@@ -119,8 +122,9 @@ public class PgsphereRegionConverter extends RegionFinder
      */
     public static final String RANGE_S2D = "RANGE_S2D";
 
-    public PgsphereRegionConverter()
+    public PgsphereRegionConverter(ExpressionNavigator en, ReferenceNavigator rn, FromItemNavigator fn)
     {
+        super(en, rn, fn);
     }
     
     @Override
