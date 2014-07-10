@@ -288,9 +288,11 @@ public class DefaultTableWriter implements TableWriter
             InputStream is = DefaultTableWriter.class.getClassLoader().getResourceAsStream(filename);
             if (is == null)
             {
-                throw new MissingResourceException(
-                    "Resource not found: " + serviceID + ".xml", DefaultTableWriter.class.getName(), filename);
+                //throw new MissingResourceException(
+                //    "Resource not found: " + serviceID + ".xml", DefaultTableWriter.class.getName(), filename);
+                log.debug("failed to find service resource " + filename + " to go with XML ID " + serviceID);
             }
+            
             VOTableReader reader = new VOTableReader();
             VOTableDocument serviceDocument = reader.read(is);
             VOTableResource metaResource = serviceDocument.getResourceByType("meta");
