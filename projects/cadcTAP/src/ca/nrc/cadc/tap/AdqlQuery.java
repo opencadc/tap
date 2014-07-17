@@ -174,7 +174,6 @@ public class AdqlQuery extends AbstractTapQuery
                 tnc.put(tableDesc.tableName, newName);
                 log.debug("TableNameConverter " + tableDesc.tableName + " -> " + newName);
             }
-            en = new ExpressionNavigator();
             sn = new SelectNavigator(endef, rndef, tnc);
             navigatorList.add(sn);
         }
