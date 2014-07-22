@@ -82,7 +82,7 @@ public class ConcatenateTest
         StringBuffer buffer = new StringBuffer();
         SelectDeParser deParser = new SelectDeParser();
         deParser.setBuffer(buffer);
-        ExpressionDeParser expressionDeParser = new QueryDeParser(deParser, buffer);
+        ExpressionDeParser expressionDeParser = new BaseExpressionDeParser(deParser, buffer);
         deParser.setExpressionVisitor(expressionDeParser);
 
         plainSelect.accept(deParser);

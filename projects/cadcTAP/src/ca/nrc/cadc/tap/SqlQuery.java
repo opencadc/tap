@@ -69,7 +69,9 @@
 
 package ca.nrc.cadc.tap;
 
+import ca.nrc.cadc.tap.parser.BaseExpressionDeParser;
 import ca.nrc.cadc.tap.parser.ParserUtil;
+import ca.nrc.cadc.tap.parser.QuerySelectDeParser;
 import ca.nrc.cadc.tap.parser.converter.AllColumnConverter;
 import ca.nrc.cadc.tap.parser.converter.TableNameConverter;
 import ca.nrc.cadc.tap.parser.extractor.SelectListExpressionExtractor;
@@ -89,6 +91,9 @@ import java.util.Map;
 import java.util.Set;
 import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.select.Select;
+import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
+import net.sf.jsqlparser.util.deparser.SelectDeParser;
 import org.apache.log4j.Logger;
 
 /**
@@ -193,10 +198,40 @@ public class SqlQuery extends AbstractTapQuery
         navigated = true;
     }
 
+    /**
+     * Provide implementation of select deparser if the default (QuerySelectDeParser) is not sufficient.
+     * 
+     * @return 
+     */
+    protected QuerySelectDeParser getSelectDeParser()
+    {
+        return new QuerySelectDeParser();
+    }
+    
+    /**
+     * Provide implementation of expression deparser if the default (BaseExpressionDeParser) 
+     * is not sufficient.
+     * 
+     * @param dep
+     * @param sb
+     * @return expression deparser impl
+     */
+    protected BaseExpressionDeParser getExpressionDeparser(SelectDeParser dep, StringBuffer sb)
+    {
+        return new BaseExpressionDeParser(dep, sb);
+    }
+
     public String getSQL()
     {
         doNavigate();
-        return statement.toString();
+        StringBuffer sb = new StringBuffer();
+        SelectDeParser deParser = getSelectDeParser();
+        deParser.setBuffer(sb);
+        ExpressionDeParser expressionDeParser = getExpressionDeparser(deParser, sb);
+        deParser.setExpressionVisitor(expressionDeParser);
+        Select select = (Select) statement;
+        select.getSelectBody().accept(deParser);
+        return deParser.getBuffer().toString();
     }
 
     public List<ParamDesc> getSelectList()

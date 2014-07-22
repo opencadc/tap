@@ -19,7 +19,7 @@ import org.apache.log4j.Logger;
  * 
  * @author jburke
  */
-public class PgsphereDeParser extends QueryDeParser
+public class PgsphereDeParser extends BaseExpressionDeParser
 {
     private static Logger log = Logger.getLogger(PgsphereDeParser.class);
 

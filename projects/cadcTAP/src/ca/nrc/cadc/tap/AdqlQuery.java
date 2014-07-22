@@ -69,6 +69,7 @@
 
 package ca.nrc.cadc.tap;
 
+import ca.nrc.cadc.tap.parser.BaseExpressionDeParser;
 import ca.nrc.cadc.tap.parser.ParserUtil;
 import ca.nrc.cadc.tap.parser.PgsphereDeParser;
 import ca.nrc.cadc.tap.parser.QuerySelectDeParser;
@@ -256,16 +257,40 @@ public class AdqlQuery extends AbstractTapQuery
             }
         }
     }
+    
+    /**
+     * Provide implementation of select deparser if the default (SelectDeParser) is not sufficient.
+     * 
+     * @return 
+     */
+    protected QuerySelectDeParser getSelectDeParser()
+    {
+        return new QuerySelectDeParser();
+    }
+    
+    /**
+     * Provide implementation of expression deparser if the default (BaseExpressionDeParser) 
+     * is not sufficient. For example, postgresql+pg_sphere requires the PgsphereDeParser to 
+     * support spoint and spoly. the default is to return a new BaseExpressionDeParser.
+     * 
+     * @param dep
+     * @param sb
+     * @return expression deparser impl
+     */
+    protected ExpressionDeParser getExpressionDeparser(SelectDeParser dep, StringBuffer sb)
+    {
+        // backwards compat: return the PgsphereDeParser like we used to for now
+        return new PgsphereDeParser(dep, sb);
+        //return new BaseExpressionDeParser(dep, sb);
+    }
 
     public String getSQL()
     {
         doNavigate();
-        log.debug("getSQL statement: " + statement);
-
         StringBuffer sb = new StringBuffer();
-        SelectDeParser deParser = new QuerySelectDeParser();
+        SelectDeParser deParser = getSelectDeParser();
         deParser.setBuffer(sb);
-        ExpressionDeParser expressionDeParser = new PgsphereDeParser(deParser, sb);
+        ExpressionDeParser expressionDeParser = getExpressionDeparser(deParser, sb);
         deParser.setExpressionVisitor(expressionDeParser);
         Select select = (Select) statement;
         select.getSelectBody().accept(deParser);
