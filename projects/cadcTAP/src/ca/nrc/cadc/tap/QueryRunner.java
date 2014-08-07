@@ -181,6 +181,52 @@ public class QueryRunner implements JobRunner
         log.info(logInfo.end());
     }
 
+    /**
+     * Factory method to create the PluginFactory. The default implementation
+     * can be configured using a properties file, but if the application requires
+     * integration with some other configuration system then this method could be
+     * overridden to create a custom subclass of PluginFactory.
+     * 
+     * @return 
+     */
+    protected PluginFactory getPluginFactory()
+    {
+        return new PluginFactory(job);
+    }
+    
+    /**
+     * Get the DataSOurce to be used to execute the query. By default, this uses JNDI to
+     * find an app-server supplied DataSource named <code>jdbc/tapuser</code>.
+     * 
+     * @return
+     * @throws Exception 
+     */
+    protected DataSource getQueryDataSource()
+        throws Exception
+    {
+        log.debug("find DataSource via JNDI lookup...");
+        Context initContext = new InitialContext();
+        Context envContext = (Context) initContext.lookup("java:comp/env");
+        return (DataSource) envContext.lookup(queryDataSourceName);
+    }
+    
+    /**
+     * Get the DataSOurce to be used to insert uploaded tables into the database. 
+     * By default, this uses JNDI to find an app-server supplied DataSource named 
+     * <code>jdbc/tapuploadadm</code>.
+     * 
+     * @return
+     * @throws Exception 
+     */
+    protected DataSource getUploadDataSource()
+        throws Exception
+    {
+        log.debug("find DataSource via JNDI lookup...");
+        Context initContext = new InitialContext();
+        Context envContext = (Context) initContext.lookup("java:comp/env");
+        return (DataSource) envContext.lookup(uploadDataSourceName);
+    }
+    
     private void doIt()
     {
         List<Long> tList = new ArrayList<Long>();
@@ -190,9 +236,9 @@ public class QueryRunner implements JobRunner
         sList.add("start");
 
         log.debug("run: " + job.getID());
-         List<Parameter> paramList = job.getParameterList();
+        List<Parameter> paramList = job.getParameterList();
         log.debug("job " + job.getID() + ": " + paramList.size() + " parameters");
-        PluginFactory pfac = new PluginFactory(job);
+        PluginFactory pfac = getPluginFactory();
         log.debug("loaded: " + pfac);
 
         ResultStore rs = null;
@@ -222,15 +268,12 @@ public class QueryRunner implements JobRunner
             tList.add(System.currentTimeMillis());
             sList.add("initialisation: ");
 
-            log.debug("find DataSource via JNDI lookup...");
-            Context initContext = new InitialContext();
-            Context envContext = (Context) initContext.lookup("java:comp/env");
-            DataSource queryDataSource = (DataSource) envContext.lookup(queryDataSourceName);
+            DataSource queryDataSource = (DataSource) getQueryDataSource();
             // this one is optional, so take care
             DataSource uploadDataSource = null;
             try
             {
-                uploadDataSource = (DataSource) envContext.lookup(uploadDataSourceName);
+                uploadDataSource = getUploadDataSource();
             }
             catch (NameNotFoundException nex)
             {
