@@ -288,40 +288,44 @@ public class DefaultTableWriter implements TableWriter
             InputStream is = DefaultTableWriter.class.getClassLoader().getResourceAsStream(filename);
             if (is == null)
             {
-                throw new MissingResourceException(
-                    "Resource not found: " + serviceID + ".xml", DefaultTableWriter.class.getName(), filename);
+                //throw new MissingResourceException(
+                //    "Resource not found: " + serviceID + ".xml", DefaultTableWriter.class.getName(), filename);
+                log.debug("failed to find service resource " + filename + " to go with XML ID " + serviceID);
             }
-            VOTableReader reader = new VOTableReader();
-            VOTableDocument serviceDocument = reader.read(is);
-            VOTableResource metaResource = serviceDocument.getResourceByType("meta");
-            votableDocument.getResources().add(metaResource);
-
-            // set the access URL from resourceIdentifier if possible
-            RegistryClient regClient = new RegistryClient();
-            
-            try
+            else
             {
-                URI resourceIdentifier = null;
-                Iterator<VOTableParam> i = metaResource.getParams().iterator();
-                while ( i.hasNext() )
+                VOTableReader reader = new VOTableReader();
+                VOTableDocument serviceDocument = reader.read(is);
+                VOTableResource metaResource = serviceDocument.getResourceByType("meta");
+                votableDocument.getResources().add(metaResource);
+
+                // set the access URL from resourceIdentifier if possible
+                RegistryClient regClient = new RegistryClient();
+
+                try
                 {
-                    VOTableParam vp = i.next();
-                    if (vp.getName().equals("resourceIdentifier"))
+                    URI resourceIdentifier = null;
+                    Iterator<VOTableParam> i = metaResource.getParams().iterator();
+                    while ( i.hasNext() )
                     {
-                        resourceIdentifier = new URI(vp.getValue());
+                        VOTableParam vp = i.next();
+                        if (vp.getName().equals("resourceIdentifier"))
+                        {
+                            resourceIdentifier = new URI(vp.getValue());
+                        }
+                    }
+                    if (resourceIdentifier != null)
+                    {
+                        URL accessURL = regClient.getServiceURL(resourceIdentifier);
+                        String surl = accessURL.toExternalForm();
+                        VOTableParam accessParam = new VOTableParam("accessURL", "char", surl.length(), false, surl);
+                        metaResource.getParams().add(accessParam);
                     }
                 }
-                if (resourceIdentifier != null)
+                catch (URISyntaxException e)
                 {
-                    URL accessURL = regClient.getServiceURL(resourceIdentifier);
-                    String surl = accessURL.toExternalForm();
-                    VOTableParam accessParam = new VOTableParam("accessURL", "char", surl.length(), false, surl);
-                    metaResource.getParams().add(accessParam);
+                    throw new RuntimeException("resourceIdentifier in " + filename + " is invalid", e);
                 }
-            }
-            catch (URISyntaxException e)
-            {
-                throw new RuntimeException("resourceIdentifier in " + filename + " is invalid", e);
             }
         }
     }

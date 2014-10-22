@@ -30,6 +30,8 @@ public class QuerySelectDeParser extends SelectDeParser
 {
     private static Logger log = Logger.getLogger(QuerySelectDeParser.class);
 
+    private boolean tableAliasWithAS = true;
+    
     public QuerySelectDeParser()
     {
         super();
@@ -40,6 +42,8 @@ public class QuerySelectDeParser extends SelectDeParser
         super(expressionVisitor, buffer);
     }
 
+    public void setTableAliasWithAS(boolean enabled) { this.tableAliasWithAS = enabled; }
+    
     /**
      * The table alias, if it exists, was not appended to the table name.
      *
@@ -52,7 +56,10 @@ public class QuerySelectDeParser extends SelectDeParser
         buffer.append(table.getWholeTableName());
         if (table.getAlias() != null)
         {
-			buffer.append(" AS ");
+			if (tableAliasWithAS)
+                buffer.append(" AS ");
+            else
+                buffer.append(" ");
             buffer.append(table.getAlias());
 		}
     }

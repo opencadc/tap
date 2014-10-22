@@ -201,8 +201,7 @@ public class UploadParameters
     }
     
     /**
-     * Validates that the URI string in the UPLOAD parameter is a valid URI and
-     * is a supported protocol.
+     * Validates that the URI string in the UPLOAD parameter is a valid URI.
      * 
      * @param parameter a single UPLOAD parameter.
      * @param tableNameUri String[] containing table name and VOTable URI string.
@@ -215,7 +214,7 @@ public class UploadParameters
         URI uri;        
         try
         {
-            uri = new URI(tableNameUri[1]);
+            return new URI(tableNameUri[1]);
         }
         catch (IndexOutOfBoundsException e)
         {
@@ -225,9 +224,6 @@ public class UploadParameters
         {
             throw new UnsupportedOperationException("UPLOAD URI is invalid: " + tableNameUri[1]);
         }
-        if (!uri.getScheme().equals("http"))
-            throw new UnsupportedOperationException("UPLOAD URI protocol is not supported: " + uri.toString());
-        return uri;
     }
     
 }
