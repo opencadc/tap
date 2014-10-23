@@ -47,9 +47,12 @@ import ca.nrc.cadc.db.DBConfig;
 import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.upload.ADQLIdentifierException;
+import ca.nrc.cadc.tap.upload.DatabaseDataTypeFactory;
 import ca.nrc.cadc.tap.upload.JDOMVOTableParser;
 import ca.nrc.cadc.tap.upload.UploadTable;
 import ca.nrc.cadc.tap.upload.VOTableParser;
+import ca.nrc.cadc.tap.upload.datatype.DatabaseDataType;
+import ca.nrc.cadc.tap.upload.datatype.PostgreSQLDataType;
 import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.uws.Parameter;
@@ -60,6 +63,7 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -114,7 +118,7 @@ public class BasicUploadManagerTest
         ds = DBUtil.getDataSource(conf, true, true);
 
         // map of internal Postgresql datatypes for create table
-        // TODO: need to dunamically check/load DB-specific code here
+        // TODO: need to dynamically check/load DB-specific code here
         types = new HashMap<String, String>();
         types.put("short_datatype", "int2");
         types.put("smallint_xtype", "int2");
@@ -126,7 +130,7 @@ public class BasicUploadManagerTest
         types.put("real_xtype", "float4");
         types.put("double_datatype", "float8");
         types.put("double_xtype", "float8");
-        types.put("char_datatype", "bpchar"); // pdd: changed from varchar because it shoud be char(1)
+        types.put("char_datatype", "bpchar"); // pdd: changed from varchar because it should be char(1)
         types.put("char_xtype", "bpchar");
         types.put("varchar_datatype", "varchar");
         types.put("char32_datatype", "bpchar");
@@ -817,6 +821,13 @@ public class BasicUploadManagerTest
             super(999);
         }
 
+        @Override
+        protected DatabaseDataType getDatabaseDataType(Connection con) throws SQLException
+        {
+            // the tests actually only work with postgresql
+            //return DatabaseDataTypeFactory.getDatabaseDataType(con);
+            return new PostgreSQLDataType();
+        }
 
         @Override
         protected VOTableParser getVOTableParser(UploadTable uploadTable)
