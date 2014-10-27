@@ -109,7 +109,7 @@ import org.apache.log4j.Logger;
  *
  * @author jburke
  */
-public class BasicUploadManager implements UploadManager
+public abstract class BasicUploadManager implements UploadManager
 {
     private static final Logger log = Logger.getLogger(BasicUploadManager.class);
     
@@ -158,6 +158,8 @@ public class BasicUploadManager implements UploadManager
         this.job = job;
     }
     
+    protected abstract DatabaseDataType getDatabaseDataType(Connection con)
+        throws SQLException;
     
     /**
      * Find and process all UPLOAD requests.
@@ -202,7 +204,7 @@ public class BasicUploadManager implements UploadManager
             
             // DataType containing mapping of java.sql.Types
             // to database data type names.
-            DatabaseDataType databaseDataType = DatabaseDataTypeFactory.getDatabaseDataType(con);
+            DatabaseDataType databaseDataType = getDatabaseDataType(con);
 
             con.setAutoCommit(false);
             txn = true;

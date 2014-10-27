@@ -86,11 +86,11 @@ import org.apache.log4j.Logger;
  * 
  * @author jburke
  */
-public class QueryDeParser extends ExpressionDeParser implements OperatorVisitor
+public class BaseExpressionDeParser extends ExpressionDeParser implements OperatorVisitor
 {
-    private static Logger log = Logger.getLogger(QueryDeParser.class);
+    private static Logger log = Logger.getLogger(BaseExpressionDeParser.class);
 
-    public QueryDeParser(SelectVisitor selectVisitor, StringBuffer buffer)
+    public BaseExpressionDeParser(SelectVisitor selectVisitor, StringBuffer buffer)
     {
         super(selectVisitor, buffer);
     }
