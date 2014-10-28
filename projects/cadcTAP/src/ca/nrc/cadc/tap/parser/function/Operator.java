@@ -70,7 +70,6 @@
 package ca.nrc.cadc.tap.parser.function;
 
 import ca.nrc.cadc.tap.parser.OperatorVisitor;
-import ca.nrc.cadc.tap.parser.QueryDeParser;
 import ca.nrc.cadc.tap.parser.region.pgsphere.function.Spoint;
 import net.sf.jsqlparser.expression.BinaryExpression;
 import net.sf.jsqlparser.expression.Expression;
