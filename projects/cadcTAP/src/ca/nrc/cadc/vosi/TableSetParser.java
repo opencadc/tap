@@ -133,14 +133,32 @@ public class TableSetParser
             else
                 log.warn("failed to find resource: " + VOSI.VODATASERVICE_SCHEMA);
 
-            url = XmlUtil.getResourceUrlString(VOSI.XSI_SCHEMA, TableSetParser.class);
+            url = XmlUtil.getResourceUrlString(VOSI.STC_SCHEMA, CapabilitiesParser.class);
+            if (url != null)
+            {
+                log.debug(VOSI.STC_NS_URI + " -> " + url);
+                schemaMap.put(VOSI.STC_NS_URI, url);
+            }
+            else
+                log.warn("failed to find resource: " + VOSI.STC_SCHEMA);
+
+            url = XmlUtil.getResourceUrlString(VOSI.XSI_SCHEMA, CapabilitiesParser.class);
             if (url != null)
             {
                 log.debug(VOSI.XSI_NS_URI + " -> " + url);
                 schemaMap.put(VOSI.XSI_NS_URI, url);
             }
             else
-                log.warn("failed to find resource: " + VOSI.XSI_SCHEMA);
+                log.warn("failed to find resource: " + VOSI.XLINK_SCHEMA);
+            
+            url = XmlUtil.getResourceUrlString(VOSI.XLINK_SCHEMA, CapabilitiesParser.class);
+            if (url != null)
+            {
+                log.debug(VOSI.XLINK_NS_URI + " -> " + url);
+                schemaMap.put(VOSI.XLINK_NS_URI, url);
+            }
+            else
+                log.warn("failed to find resource: " + VOSI.XLINK_SCHEMA);
         }
     }
 
