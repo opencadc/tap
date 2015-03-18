@@ -87,14 +87,12 @@ import org.jdom2.input.SAXBuilder;
  * 
  * @author pdowler
  */
-public class TAPRegExtParser 
+public class TAPRegExtParser extends CapabilitiesParser
 {
     private static final Logger log = Logger.getLogger(TAPRegExtParser.class);
 
     private static final String TAPREGEXT_SCHEMA = "TAPRegExt-v1.0.xsd";
     private static final String TAPREGEXT_NAMESPACE = "http://www.ivoa.net/xml/TAPRegExt/v1.0";
-
-    private Map<String,String> schemaMap;
 
     public TAPRegExtParser()
     {
@@ -103,71 +101,19 @@ public class TAPRegExtParser
 
     public TAPRegExtParser(boolean enableSchemaValidation)
     {
+        super(enableSchemaValidation);
+
         if (enableSchemaValidation)
         {
-            this.schemaMap = new HashMap<String,String>();
-            String url;
-
-            url = XmlUtil.getResourceUrlString(TAPREGEXT_SCHEMA, TAPRegExtParser.class);
+            String url = XmlUtil.getResourceUrlString(TAPREGEXT_SCHEMA, TAPRegExtParser.class);
             if (url != null)
             {
                 log.debug(TAPREGEXT_NAMESPACE + " -> " + url);
-                schemaMap.put(TAPREGEXT_NAMESPACE, url);
+                addSchemaLocation(TAPREGEXT_NAMESPACE, url);
             }
             else
                 log.warn("failed to find resource: " + TAPREGEXT_SCHEMA);
-
-            url = XmlUtil.getResourceUrlString(VOSI.CAPABILITIES_SCHEMA, TAPRegExtParser.class);
-            if (url != null)
-            {
-                log.debug(VOSI.CAPABILITIES_NS_URI + " -> " + url);
-                schemaMap.put(VOSI.CAPABILITIES_NS_URI, url);
-            }
-            else
-                log.warn("failed to find resource: " + VOSI.CAPABILITIES_SCHEMA);
-
-            url = XmlUtil.getResourceUrlString(VOSI.VORESOURCE_SCHEMA, TAPRegExtParser.class);
-            if (url != null)
-            {
-                log.debug(VOSI.VORESOURCE_NS_URI + " -> " + url);
-                schemaMap.put(VOSI.VORESOURCE_NS_URI, url);
-            }
-            else
-                log.warn("failed to find resource: " + VOSI.VORESOURCE_SCHEMA);
-
-            url = XmlUtil.getResourceUrlString(VOSI.VODATASERVICE_SCHEMA, TAPRegExtParser.class);
-            if (url != null)
-            {
-                log.debug(VOSI.VODATASERVICE_NS_URI + " -> " + url);
-                schemaMap.put(VOSI.VODATASERVICE_NS_URI, url);
-            }
-            else
-                log.warn("failed to find resource: " + VOSI.VODATASERVICE_SCHEMA);
-
-            url = XmlUtil.getResourceUrlString(VOSI.XSI_SCHEMA, TAPRegExtParser.class);
-            if (url != null)
-            {
-                log.debug(VOSI.XSI_NS_URI + " -> " + url);
-                schemaMap.put(VOSI.XSI_NS_URI, url);
-            }
-            else
-                log.warn("failed to find resource: " + VOSI.XSI_SCHEMA);
         }
-    }
-
-    public Document parse(Reader rdr)
-        throws IOException, JDOMException
-    {
-        // and again with schema validation
-        SAXBuilder sb = XmlUtil.createBuilder(schemaMap);
-        return sb.build(rdr);
-    }
-
-    public Document parse(InputStream istream)
-        throws IOException, JDOMException
-    {
-        // and again with schema validation
-        SAXBuilder sb = XmlUtil.createBuilder(schemaMap);
-        return sb.build(istream);
+            
     }
 }

@@ -114,11 +114,20 @@ public class TableSetTest
         Log4jInit.setLevel("ca.nrc.cadc.vosi", Level.INFO);
     }
 
+    String schemaNSKey0 = VOSI.VORESOURCE_NS_URI;
+    String schemaResource0 = VOSI.VORESOURCE_SCHEMA;
+    
     String schemaNSKey1 = VOSI.TABLES_NS_URI;
     String schemaResource1 = VOSI.TABLES_SCHEMA;
 
     String schemaNSKey2 = VOSI.VODATASERVICE_NS_URI;
     String schemaResource2 = VOSI.VODATASERVICE_SCHEMA;
+    
+    String schemaNSKey3 = VOSI.STC_NS_URI;
+    String schemaResource3 = VOSI.STC_SCHEMA;
+    
+    String schemaNSKey4 = VOSI.XLINK_NS_URI;
+    String schemaResource4 = VOSI.XLINK_SCHEMA;
 
     String DEFAULT_SCHEMA = "default";
 
@@ -143,8 +152,11 @@ public class TableSetTest
     public void setUp()
     {
         schemaNSMap = new HashMap<String, String>();
+        schemaNSMap.put(schemaNSKey0, XmlUtil.getResourceUrlString(schemaResource0, TableSetTest.class));
         schemaNSMap.put(schemaNSKey1, XmlUtil.getResourceUrlString(schemaResource1, TableSetTest.class));
         schemaNSMap.put(schemaNSKey2, XmlUtil.getResourceUrlString(schemaResource2, TableSetTest.class));
+        schemaNSMap.put(schemaNSKey3, XmlUtil.getResourceUrlString(schemaResource3, TableSetTest.class));
+        schemaNSMap.put(schemaNSKey4, XmlUtil.getResourceUrlString(schemaResource4, TableSetTest.class));
     }
 
     @After
