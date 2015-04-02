@@ -39,11 +39,11 @@ public class PgsphereDeParser extends BaseExpressionDeParser
         // would actually rely on quoted identifers :-)
         // TODO: this should really go into a super class PostresqlQueryDeparser
         // but we don't have that right now... or be na option on BaseExpressionDeParser
-        String wcn = column.getWholeColumnName();
-        if (wcn.indexOf('"') >= 0)
+        String cn = column.getColumnName();
+        if (cn.indexOf('"') >= 0)
         {
-            wcn = wcn.replace("\"", "");
-            column.setColumnName(wcn);
+            cn = cn.replace("\"", "");
+            column.setColumnName(cn);
         }
         
         super.visit(column);
