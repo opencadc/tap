@@ -11,6 +11,7 @@ import java.util.List;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.StringValue;
+import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.statement.select.SelectVisitor;
 import org.apache.log4j.Logger;
 
@@ -26,6 +27,26 @@ public class PgsphereDeParser extends BaseExpressionDeParser
     public PgsphereDeParser(SelectVisitor selectVisitor, StringBuffer buffer)
     {
         super(selectVisitor, buffer);
+    }
+    
+    @Override
+    public void visit(Column column)
+    {
+        log.debug("visit(" +  column.getClass().getSimpleName() + ") " + column);
+        
+        // postgresql: quoted identifiers avoid case foling so mixed-case columns
+        // will not be found, so HACK: just strip the quotes because no sane person 
+        // would actually rely on quoted identifers :-)
+        // TODO: this should really go into a super class PostresqlQueryDeparser
+        // but we don't have that right now... or be na option on BaseExpressionDeParser
+        String wcn = column.getWholeColumnName();
+        if (wcn.indexOf('"') >= 0)
+        {
+            wcn = wcn.replace("\"", "");
+            column.setColumnName(wcn);
+        }
+        
+        super.visit(column);
     }
 
     /**
