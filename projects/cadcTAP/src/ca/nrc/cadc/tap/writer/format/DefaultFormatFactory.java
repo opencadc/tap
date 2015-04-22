@@ -93,31 +93,6 @@ public class DefaultFormatFactory implements FormatFactory
     
     public DefaultFormatFactory() { }
 
-    /**
-     * Create a FormatFactory. This method loads and instantiates a class named
-     * <code>ca.nrc.cadc.tap.impl.FormatFactoryImpl</code> that must be provided
-     * at runtime (by the application). The simplest way to provide that class is to
-     * extend this one.
-     *
-     * @return a FormatFactory implementation
-     * @throws RuntimeException if the implementation class cannot be created
-     */
-    public static FormatFactory getFormatFactory()
-    {
-        FormatFactory ret = new DefaultFormatFactory();
-        try
-        {
-            Class c = Class.forName(IMPL_CLASS);
-            ret = (FormatFactory) c.newInstance();
-        }
-        catch (Exception e)
-        {
-            LOG.debug("failed to create " + IMPL_CLASS, e);
-        }
-        LOG.debug("created: " + ret.getClass().getName());
-        return ret;
-    }
-
     public void setJob(Job job)
     {
         this.job = job;
@@ -184,6 +159,9 @@ public class DefaultFormatFactory implements FormatFactory
         if (datatype.equalsIgnoreCase("adql:REGION"))
             return getRegionFormat(columnDesc);
 
+        if (datatype.equalsIgnoreCase("adql:proto:INTERVAL"))
+                return getIntervalFormat(columnDesc);
+        
         if (datatype.equalsIgnoreCase("adql:CLOB"))
             return getClobFormat(columnDesc);
 
@@ -236,6 +214,9 @@ public class DefaultFormatFactory implements FormatFactory
 
         if (datatype.equalsIgnoreCase("adql:REGION"))
             return getRegionFormat(paramDesc.columnDesc);
+        
+        if (datatype.equalsIgnoreCase("adql:proto:INTERVAL"))
+                return getIntervalFormat(paramDesc.columnDesc);
 
         return getDefaultFormat();
     }
@@ -355,6 +336,15 @@ public class DefaultFormatFactory implements FormatFactory
      * @throws UnsupportedOperationException
      */
     protected Format<Object> getRegionFormat(ColumnDesc columnDesc)
+    {
+        throw new UnsupportedOperationException("no formatter for column " + columnDesc.columnName);
+    }
+    
+    /**
+     * @param columnDesc
+     * @throws UnsupportedOperationException
+     */
+    protected Format<Object> getIntervalFormat(ColumnDesc columnDesc)
     {
         throw new UnsupportedOperationException("no formatter for column " + columnDesc.columnName);
     }
