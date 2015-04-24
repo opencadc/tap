@@ -86,9 +86,6 @@ import ca.nrc.cadc.uws.Job;
  */
 public class DefaultFormatFactory implements FormatFactory
 {
-    private static final String IMPL_CLASS = "ca.nrc.cadc.tap.impl.FormatFactoryImpl";
-    private static final Logger LOG = Logger.getLogger(DefaultFormatFactory.class);
-
     protected Job job;
     
     public DefaultFormatFactory() { }
