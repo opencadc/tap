@@ -455,7 +455,10 @@ public class QueryRunner implements JobRunner
         catch (Throwable t)
         {
             logInfo.setMessage(t.getMessage());
-            logInfo.setSuccess(false);
+            if (t instanceof IllegalArgumentException || t instanceof UnsupportedOperationException)
+                logInfo.setSuccess(true);
+            else
+                logInfo.setSuccess(false);
             String errorMessage = null;
             URL errorURL = null;
             try
