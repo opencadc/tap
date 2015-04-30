@@ -75,6 +75,7 @@ import ca.nrc.cadc.tap.schema.KeyDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
+import java.util.NoSuchElementException;
 import org.apache.log4j.Logger;
 import org.jdom2.Attribute;
 import org.jdom2.Document;
@@ -108,34 +109,78 @@ public class TableSet
     }
 
     /**
-     * @return the TapSchema as a document to be rendered as XML
+     * Get TableSet document with all content.
+     * 
+     * @return 
      */
     public Document getDocument()
     {
-
-        Element eleTableset = toXmlElement(tapSchema);
-        eleTableset.addNamespaceDeclaration(xsi);
-        eleTableset.addNamespaceDeclaration(vod);
-
+        Element root = toXmlElement(tapSchema);
+        return getDocument(root);
+    }
+    
+    public Document getSchemaDocument(String schemaName)
+    {
+        if (schemaName == null)
+            throw new IllegalArgumentException("schemeName cannot be null for Schema document");
+        for (SchemaDesc sd : tapSchema.getSchemaDescs())
+        {
+            if (sd.getSchemaName().equals(schemaName))
+            {
+                Element root = toXmlElement(sd, vosi);
+                return getDocument(root);
+            }
+        }
+        throw new NoSuchElementException("schema not found: " + schemaName);
+        
+    }
+    public Document getTableDocument(String tableName)
+    {
+        if (tableName == null)
+            throw new IllegalArgumentException("tableName cannot be null for Table document");
+        for (SchemaDesc sd : tapSchema.getSchemaDescs())
+        {
+            for (TableDesc td : sd.getTableDescs())
+            {
+                if (td.getTableName().equals(tableName))
+                {
+                    Element root = toXmlElement(td, vosi);
+                    return getDocument(root);
+                }
+            }
+        }
+        throw new NoSuchElementException("table not found: " + tableName);
+    }
+    
+    /**
+     * Get a single Table document.
+     * 
+     * @param root root element for document
+     * @return the TapSchema as a document to be rendered as XML
+     */
+    protected Document getDocument(Element root)
+    {
+        root.addNamespaceDeclaration(xsi);
+        root.addNamespaceDeclaration(vod);
+            
         Document document = new Document();
-        document.addContent(eleTableset);
+        document.addContent(root);
         return document;
     }
 
     /**
-     * @param tapSchema
+     * @param ts
      * @return
      */
-    private Element toXmlElement(TapSchema tapSchema)
+    private Element toXmlElement(TapSchema ts)
     {
-        Element eleTableset = new Element("tableset", vosi);
-        //Comment comment = new Comment("This is a temporary solution as of 2010-03-12.");
-        //eleTableset.addContent(comment);
-        if (tapSchema.getSchemaDescs().isEmpty()) 
+        if (ts.getSchemaDescs().isEmpty()) 
             throw new IllegalArgumentException("Error: at least one schema is required.");
-        for (SchemaDesc sd : tapSchema.getSchemaDescs())
+        
+        Element eleTableset = new Element("tableset", vosi);
+        for (SchemaDesc sd : ts.getSchemaDescs())
         {
-            eleTableset.addContent(toXmlElement(sd));
+            eleTableset.addContent(toXmlElement(sd, Namespace.NO_NAMESPACE));
         }
         return eleTableset;
     }
@@ -144,9 +189,9 @@ public class TableSet
      * @param sd
      * @return
      */
-    private Element toXmlElement(SchemaDesc sd)
+    private Element toXmlElement(SchemaDesc sd, Namespace ns)
     {
-        Element eleSchema = new Element("schema");
+        Element eleSchema = new Element("schema", ns);
         Element ele;
         ele = new Element("name");
         if (sd.getSchemaName() == null)
@@ -156,7 +201,7 @@ public class TableSet
         eleSchema.addContent(ele);
         if (sd.getTableDescs() != null) for (TableDesc td : sd.getTableDescs())
         {
-            eleSchema.addContent(toXmlElement(td));
+            eleSchema.addContent(toXmlElement(td, Namespace.NO_NAMESPACE));
         }
         return eleSchema;
     }
@@ -165,9 +210,9 @@ public class TableSet
      * @param td
      * @return
      */
-    private Element toXmlElement(TableDesc td)
+    private Element toXmlElement(TableDesc td, Namespace ns)
     {
-        Element eleTable = new Element("table");
+        Element eleTable = new Element("table", ns);
         eleTable.setAttribute("type", "output");
 
         Element ele;

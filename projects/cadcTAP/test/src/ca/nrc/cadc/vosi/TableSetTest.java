@@ -76,14 +76,11 @@ import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.xml.XmlUtil;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.jdom2.Document;
@@ -95,11 +92,7 @@ import org.jdom2.output.Format;
 import org.jdom2.output.XMLOutputter;
 import org.jdom2.xpath.XPathExpression;
 import org.jdom2.xpath.XPathFactory;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
