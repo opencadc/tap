@@ -74,6 +74,7 @@ import ca.nrc.cadc.uws.Job;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
@@ -109,7 +110,7 @@ public class TapSchemaDAO implements TapPlugin
     protected String orderColumnsClause = " ORDER BY table_name,column_name";
     
     // SQL to select all rows from TAP_SCHEMA.keys.
-    protected String SELECT_KEYS_COLS = "key_id, from_table, target_table,description,utype";
+    protected String SELECT_KEYS_COLS = "key_id, from_table, target_table, description,utype";
     protected String orderKeysClause = " ORDER BY key_id,from_table,target_table";
 
     // SQL to select all rows from TAP_SCHEMA.key_columns.
@@ -122,11 +123,13 @@ public class TapSchemaDAO implements TapPlugin
     
     // Indicates function return datatype matches argument datatype.
     public static final String ARGUMENT_DATATYPE = "ARGUMENT_DATATYPE";
+    
+    public static final int  SCHEMA_DEPTH = 1;
+    public static final int TABLE_DEPTH = 2;
+    public static final int MAX_DEPTH = 3; // columns, keys, etc
 
     /**
      * Construct a new TapSchemaDAO.
-     * 
-     * @param dataSource TAP_SCHEMA DataSource.
      */
     public TapSchemaDAO() { }
 
@@ -145,39 +148,94 @@ public class TapSchemaDAO implements TapPlugin
         this.ordered = ordered;
     }
 
+    public TapSchema get()
+    {
+        // depth 1 = schemas
+        // depth 2 = tables
+        // depth 3 = columns
+        // depth 4 = keys + functions
+        return get(null, null, MAX_DEPTH); // complete
+    }
+    
     /**
      * Creates and returns a TapSchema object representing all of the data in TAP_SCHEMA.
      * 
+     * @param schemaName
+     * @param tableName
+     * @param depth
      * @return TapSchema containing all of the data from TAP_SCHEMA.
      */
-    public TapSchema get()
+    public TapSchema get(String schemaName, String tableName, int depth)
     {
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         TapSchema tapSchema = new TapSchema();
+        SchemaDesc singleSchema = null;
+        TableDesc singleTable = null;
         String sql, tab;
 
         // List of TAP_SCHEMA.schemas
         tab = schemasTableName;
         sql = "SELECT " + SELECT_SCHEMAS_COLS + " FROM " + tab;
+        //if (schemaName != null)
+        //    sql += " WHERE schema_name = '" + schemaName + "'"; // DANGER: use PreparedStatement for user-input schemaName
         sql = appendWhere(tab, sql);
         if (ordered) sql += orderSchemaClause;
         log.debug(sql);
         tapSchema.schemaDescs = jdbc.query(sql, new SchemaMapper());
-
+        if (schemaName != null) // instead of DANGER above, just post-filter the schema list here
+        {
+            Iterator<SchemaDesc> i = tapSchema.schemaDescs.iterator();
+            while (i.hasNext())
+            {
+                SchemaDesc sd = i.next();
+                if (sd.getSchemaName().equals(schemaName))
+                    singleSchema = sd;
+                else
+                    i.remove();
+            }
+        }
+        if (depth == SCHEMA_DEPTH || tapSchema.schemaDescs.isEmpty())
+            return tapSchema;
+        
         // List of TAP_SCHEMA.tables
         tab = tablesTableName;
         sql = "SELECT " + SELECT_TABLES_COLS + " FROM " + tab;
+        if (singleSchema != null)
+        {
+            sql += " WHERE schema_name = '" + singleSchema.getSchemaName() + "'"; // this string found in db so must be safe
+            //sql += " AND table_name = '" + tableName + "'"; // DANGER: use prepared statement for user-input tableName
+        }
         sql = appendWhere(tab, sql);
         if (ordered) sql += orderTablesClause;
         log.debug(sql);
         List<TableDesc> tableDescs = jdbc.query(sql, new TableMapper());
-
+        if (tableName != null) // instead of DANGER above, just post-filter the table list here
+        {
+            Iterator<TableDesc> i = tableDescs.iterator();
+            while(i.hasNext())
+            {
+                TableDesc td = i.next();
+                if (td.getTableName().equals(tableName))
+                    singleTable = td;
+                else
+                    i.remove();
+            }
+        }
+                
         // Add the Tables to the Schemas.
         addTablesToSchemas(tapSchema.schemaDescs, tableDescs);
+        
+        if (depth == TABLE_DEPTH || tableDescs.isEmpty())
+            return tapSchema;
 
         // List of TAP_SCHEMA.columns
         tab = columnsTableName;
         sql = "SELECT " + SELECT_COLUMNS_COLS + " FROM " + tab;
+        // TODO: there is no good way to optimise this query result for a single schemaName
+        // unless we add schema_name to the TAP_SCHEMA.columns table OR query for each table
+        // in the tapSchema.getTableDescs() list
+        if (singleTable != null)
+            sql += " WHERE table_name = '" + singleTable.getTableName() + "'";
         sql = appendWhere(tab, sql);
         if (ordered) sql += orderColumnsClause;
         log.debug(sql);
@@ -185,10 +243,12 @@ public class TapSchemaDAO implements TapPlugin
 
         // Add the Columns to the Tables.
         addColumnsToTables(tableDescs, columnDescs);
-
+        
         // List of TAP_SCHEMA.keys
         tab = keysTableName;
         sql = "SELECT " + SELECT_KEYS_COLS + " FROM " + tab;
+        if (singleTable != null)
+            sql += " WHERE from_table = '" + singleTable.getTableName() + "'";
         sql = appendWhere(tab, sql);
         if (ordered) sql += orderKeysClause;
         log.debug(sql);
@@ -197,6 +257,18 @@ public class TapSchemaDAO implements TapPlugin
         // List of TAP_SCHEMA.key_columns
         tab = keyColumnsTableName;
         sql = "SELECT " + SELECT_KEY_COLUMNS_COLS + " FROM " + tab;
+        if (singleTable != null && !keyDescs.isEmpty())
+        {
+            sql += " WHERE key_id in (";
+            Iterator<KeyDesc> ki = keyDescs.iterator();
+            while (ki.hasNext())
+            {
+                sql += "'" + ki.next().keyId + "'";
+                if (ki.hasNext())
+                    sql += ",";
+            }
+            sql += ")";
+        }
         sql = appendWhere(tab, sql);
         if (ordered) sql += orderKeyColumnsClause;
         log.debug(sql);
