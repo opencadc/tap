@@ -177,7 +177,7 @@ public class TapSchemaDAO implements TapPlugin
         tab = schemasTableName;
         sql = "SELECT " + SELECT_SCHEMAS_COLS + " FROM " + tab;
         //if (schemaName != null)
-        //    sql += " WHERE schema_name = '" + schemaName + "'"; // DANGER: use PreparedStatement
+        //    sql += " WHERE schema_name = '" + schemaName + "'"; // DANGER: use PreparedStatement for user-input schemaName
         sql = appendWhere(tab, sql);
         if (ordered) sql += orderSchemaClause;
         log.debug(sql);
@@ -209,7 +209,7 @@ public class TapSchemaDAO implements TapPlugin
         if (ordered) sql += orderTablesClause;
         log.debug(sql);
         List<TableDesc> tableDescs = jdbc.query(sql, new TableMapper());
-        if (tableName != null) // instead of DANGER above, just post-filter the schema list here
+        if (tableName != null) // instead of DANGER above, just post-filter the table list here
         {
             Iterator<TableDesc> i = tableDescs.iterator();
             while(i.hasNext())
@@ -231,8 +231,9 @@ public class TapSchemaDAO implements TapPlugin
         // List of TAP_SCHEMA.columns
         tab = columnsTableName;
         sql = "SELECT " + SELECT_COLUMNS_COLS + " FROM " + tab;
-        // TODO: there is no good way to optimise this query result for a single schemaName but
-        // the memory usage will be temporary
+        // TODO: there is no good way to optimise this query result for a single schemaName
+        // unless we add schema_name to the TAP_SCHEMA.columns table OR query for each table
+        // in the tapSchema.getTableDescs() list
         if (singleTable != null)
             sql += " WHERE table_name = '" + singleTable.getTableName() + "'";
         sql = appendWhere(tab, sql);
@@ -251,7 +252,7 @@ public class TapSchemaDAO implements TapPlugin
         sql = appendWhere(tab, sql);
         if (ordered) sql += orderKeysClause;
         log.debug(sql);
-        List<KeyDesc> keyDescs = jdbc.query(sql, new KeyMapper()); // DANGER: use PreparedStatement
+        List<KeyDesc> keyDescs = jdbc.query(sql, new KeyMapper());
 
         // List of TAP_SCHEMA.key_columns
         tab = keyColumnsTableName;
