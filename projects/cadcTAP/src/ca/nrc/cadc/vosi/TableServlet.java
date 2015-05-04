@@ -182,11 +182,11 @@ public class TableServlet extends HttpServlet
                 int depth = TapSchemaDAO.MAX_DEPTH;
                 if ("schema".equals(detail) && tableName == null)
                 {
-                    depth = 1;
+                    depth = TapSchemaDAO.SCHEMA_DEPTH;
                 }
                 else if ("table".equals(detail))
                 {
-                    depth = 2;
+                    depth = TapSchemaDAO.TABLE_DEPTH;
                 }
                 else if (detail != null)
                     throw new IllegalArgumentException("invalid parameter value detail="+detail + " for " + pathStr);

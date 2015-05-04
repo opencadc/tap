@@ -124,12 +124,12 @@ public class TapSchemaDAO implements TapPlugin
     // Indicates function return datatype matches argument datatype.
     public static final String ARGUMENT_DATATYPE = "ARGUMENT_DATATYPE";
     
-    public static final int MAX_DEPTH = 4;
+    public static final int  SCHEMA_DEPTH = 1;
+    public static final int TABLE_DEPTH = 2;
+    public static final int MAX_DEPTH = 3; // columns, keys, etc
 
     /**
      * Construct a new TapSchemaDAO.
-     * 
-     * @param dataSource TAP_SCHEMA DataSource.
      */
     public TapSchemaDAO() { }
 
@@ -160,6 +160,9 @@ public class TapSchemaDAO implements TapPlugin
     /**
      * Creates and returns a TapSchema object representing all of the data in TAP_SCHEMA.
      * 
+     * @param schemaName
+     * @param tableName
+     * @param depth
      * @return TapSchema containing all of the data from TAP_SCHEMA.
      */
     public TapSchema get(String schemaName, String tableName, int depth)
@@ -191,7 +194,7 @@ public class TapSchemaDAO implements TapPlugin
                     i.remove();
             }
         }
-        if (depth == 1 || tapSchema.schemaDescs.isEmpty())
+        if (depth == SCHEMA_DEPTH || tapSchema.schemaDescs.isEmpty())
             return tapSchema;
         
         // List of TAP_SCHEMA.tables
@@ -222,7 +225,7 @@ public class TapSchemaDAO implements TapPlugin
         // Add the Tables to the Schemas.
         addTablesToSchemas(tapSchema.schemaDescs, tableDescs);
         
-        if (depth == 2 || tableDescs.isEmpty())
+        if (depth == TABLE_DEPTH || tableDescs.isEmpty())
             return tapSchema;
 
         // List of TAP_SCHEMA.columns
