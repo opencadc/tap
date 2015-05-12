@@ -271,7 +271,7 @@ public class PgsRegionConverterTest
     public void testContainsColumn()
     {
         _query = "select * from someTable where CONTAINS(some_col, other_col) = 1";
-        _expected = "select * from someTable where some_col @ other_col";
+        _expected = "select * from someTable where some_col <@ other_col";
         doit();
     }
 
@@ -279,7 +279,7 @@ public class PgsRegionConverterTest
     public void testNotContainsColumn()
     {
         _query = "select * from someTable where CONTAINS(some_col, other_col) = 0";
-        _expected = "select * from someTable where some_col !@ other_col";
+        _expected = "select * from someTable where some_col !<@ other_col";
         doit();
     }
 
@@ -287,7 +287,7 @@ public class PgsRegionConverterTest
     public void testContainsValue()
     {
         _query = "select * from someTable where CONTAINS(CIRCLE('',1,2,3), other_col) = 1";
-        _expected = "select * from someTable where scircle(spoint(radians(1), radians(2)), radians(3)) @ other_col";
+        _expected = "select * from someTable where scircle(spoint(radians(1), radians(2)), radians(3)) <@ other_col";
         doit();
     }
 
@@ -295,11 +295,11 @@ public class PgsRegionConverterTest
     public void testNotContainsValue()
     {
         _query = "select * from someTable where CONTAINS(CIRCLE('',1,2,3), other_col) = 0";
-        _expected = "select * from someTable where scircle(spoint(radians(1), radians(2)), radians(3)) !@ other_col";
+        _expected = "select * from someTable where scircle(spoint(radians(1), radians(2)), radians(3)) !<@ other_col";
         doit();
 
         _query = "select * from someTable where NOT (CONTAINS(CIRCLE('',1,2,3), other_col) = 0)";
-        _expected = "select * from someTable where not (scircle(spoint(radians(1), radians(2)), radians(3)) !@ other_col)";
+        _expected = "select * from someTable where not (scircle(spoint(radians(1), radians(2)), radians(3)) !<@ other_col)";
         doit();
     }
 
@@ -308,10 +308,10 @@ public class PgsRegionConverterTest
     {
         // spoint has special handling in a predicate
         _query = "select * from someTable where CONTAINS(POINT('',1,2), other_col) = 1";
-        _expected = "select * from someTable where cast(spoint(radians(1), radians(2)) as scircle) @ other_col";
+        _expected = "select * from someTable where cast(spoint(radians(1), radians(2)) as scircle) <@ other_col";
         doit();
         _query = "select * from someTable where CONTAINS(other_col, POINT('',1,2)) = 1";
-        _expected = "select * from someTable where other_col @ cast(spoint(radians(1), radians(2)) as scircle)";
+        _expected = "select * from someTable where other_col <@ cast(spoint(radians(1), radians(2)) as scircle)";
         doit();
     }
 
@@ -320,7 +320,7 @@ public class PgsRegionConverterTest
     {
         // spoint has special handling in a predicate
         _query = "select * from someTable where CONTAINS(POINT('',1,2), other_col) = 0";
-        _expected = "select * from someTable where cast(spoint(radians(1), radians(2)) as scircle) !@ other_col";
+        _expected = "select * from someTable where cast(spoint(radians(1), radians(2)) as scircle) !<@ other_col";
         doit();
     }
 

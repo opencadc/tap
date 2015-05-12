@@ -399,7 +399,7 @@ public class TapSchemaDAO implements TapPlugin
 
     /**
      * Get white-list of supported functions. TAP implementors that want to allow
-     * additiopnal functions to be used in queries to be used should override this
+     * additional functions to be used in queries to be used should override this
      * method, call <code>super.getFunctionDescs()</code>, and then add additional
      * FunctionDesc descriptors to the list before returning it.
      *
@@ -420,6 +420,7 @@ public class TapSchemaDAO implements TapPlugin
         functionDescs.add(new FunctionDesc("COORDSYS", "", "adql:VARCHAR"));
         functionDescs.add(new FunctionDesc("DISTANCE", "deg", "adql:DOUBLE"));
         functionDescs.add(new FunctionDesc("INTERSECTS", "", "adql:INTEGER"));
+        functionDescs.add(new FunctionDesc("INTERVAL", "", "adql:DOUBLE"));
         functionDescs.add(new FunctionDesc("POINT", "", "adql:POINT"));
         functionDescs.add(new FunctionDesc("POLYGON", "", "adql:DOUBLE"));
         functionDescs.add(new FunctionDesc("REGION", "", "adql:REGION"));
