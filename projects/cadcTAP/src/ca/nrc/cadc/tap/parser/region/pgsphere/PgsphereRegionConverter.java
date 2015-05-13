@@ -210,7 +210,7 @@ public class PgsphereRegionConverter extends RegionFinder
     @Override
     protected Expression handleContains(Expression left, Expression right)
     {
-        return new Operator("@", "!@", left, right);
+        return new Operator("<@", "!<@", left, right);
     }
 
     /**
