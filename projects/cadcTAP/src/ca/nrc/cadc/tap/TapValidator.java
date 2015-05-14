@@ -74,7 +74,8 @@ import ca.nrc.cadc.uws.ParameterUtil;
 import java.util.List;
 
 /**
- * TAP Validator. 
+ * TAP Validator. This now defaults to VERSION=1.1 and ignores REQUEST, but
+ * if the caller specifies VERSION=1.0 then REQUWEST must be <code>doQuery</code>.
  *
  */
 public class TapValidator
@@ -83,21 +84,27 @@ public class TapValidator
 
     public void validate(List<Parameter> paramList)
     {
+        
         if (paramList == null || paramList.isEmpty())
-            throw new IllegalStateException("Missing required parameter: REQUEST");
-
-        //  REQUEST
-        String request = ParameterUtil.findParameterValue("REQUEST", paramList);
-        if (request == null || request.trim().length() == 0)
-            throw new IllegalStateException("Missing required parameter: REQUEST");
-
-        if (!request.equals("doQuery"))
-            throw new IllegalArgumentException("Unknown REQUEST value: " + request);
-
+            return; // default is TAP-1.1 with no required params
+        
+        //    throw new IllegalStateException("Missing required parameter: REQUEST");
         //  VERSION
         String version = ParameterUtil.findParameterValue("VERSION", paramList);
-        if (version != null && version.length() != 0 && !version.equals("1.0"))
-            throw new IllegalArgumentException("Unsupported TAP version: " + version);
+        if ("1.0".equals(version))
+        {
+            //  REQUEST
+            String request = ParameterUtil.findParameterValue("REQUEST", paramList);
+            if (request == null || request.trim().length() == 0)
+                throw new IllegalStateException("VERSION=1.0: Missing required parameter: REQUEST");
+            if (request != null && !request.equals("doQuery"))
+                throw new IllegalArgumentException("VERSION=1.0: invalid REQUEST value: " + request);
+            return;
+        }
+        if (version == null || "1.1".equals(version))
+            return;
+        
+        throw new IllegalArgumentException("Unsupported TAP version: " + version);
     }
 
     public String getLang()

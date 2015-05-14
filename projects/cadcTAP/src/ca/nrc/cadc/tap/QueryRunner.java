@@ -455,10 +455,17 @@ public class QueryRunner implements JobRunner
         catch (Throwable t)
         {
             logInfo.setMessage(t.getMessage());
+            int errorCode;
             if (t instanceof IllegalArgumentException || t instanceof UnsupportedOperationException)
+            {
                 logInfo.setSuccess(true);
+                errorCode = 400; // TAP-1.1 follows DALI and allows for normal response codes
+            }
             else
+            {
                 logInfo.setSuccess(false);
+                errorCode = 500;
+            }
             String errorMessage = null;
             URL errorURL = null;
             try
@@ -473,6 +480,7 @@ public class QueryRunner implements JobRunner
                 String filename = "error_" + job.getID() + "." + ewriter.getExtension();
                 if (syncOutput != null)
                 {
+                    syncOutput.setResponseCode(errorCode);
                     syncOutput.setHeader("Content-Type", ewriter.getContentType());
                     String disp = "attachment; filename=\""+filename+"\"";
                     syncOutput.setHeader("Content-Disposition", disp);
