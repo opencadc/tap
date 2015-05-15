@@ -137,10 +137,10 @@ public class PgsphereRegionConverter extends RegionFinder
             {
                 ExpressionList exprList = func.getParameters();
                 if (exprList == null)
-                    throw new IllegalStateException("RANGE_S2D requires long1, long2, lat1, lat2");
+                    throw new IllegalArgumentException("RANGE_S2D requires long1, long2, lat1, lat2");
                 List<Expression> expressions = exprList.getExpressions();
                 if (expressions.size() != 4)
-                    throw new IllegalStateException("RANGE_S2D requires long1, long2, lat1, lat2");
+                    throw new IllegalArgumentException("RANGE_S2D requires long1, long2, lat1, lat2");
                 implExpr = handleRangeS2D(expressions.get(0), expressions.get(1), expressions.get(2), expressions.get(3));
             }
         }
