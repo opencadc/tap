@@ -462,6 +462,10 @@ public class DefaultTableWriter implements TableWriter
         {
             return "char";
         }
+        else if (datatype.equals("adql:proto:INTERVAL"))
+        {
+            return "double";
+        }
         // here we support votable datatypes used directly in the tap_schema,
         // which are normally only needed if the DB has arrays of primitive types
         // as adql types cover all the other scenarios
@@ -570,6 +574,10 @@ public class DefaultTableWriter implements TableWriter
             field.setVariableSize(true);
         }
         else if (datatype.equals("adql:REGION"))
+        {
+            field.setVariableSize(true);
+        }
+        else if (datatype.equals("adql:proto:INTERVAL"))
         {
             field.setVariableSize(true);
         }
