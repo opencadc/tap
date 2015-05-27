@@ -86,6 +86,7 @@ import ca.nrc.cadc.uws.server.JobRunner;
 import ca.nrc.cadc.uws.server.JobUpdater;
 import ca.nrc.cadc.uws.server.SyncOutput;
 import ca.nrc.cadc.uws.util.JobLogInfo;
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -245,6 +246,8 @@ public class QueryRunner implements JobRunner
         if (syncOutput == null)
             rs = pfac.getResultStore();
 
+        int responseCodeOnUserFail = 400;   // default for TAP-1.1+
+        int responseCodeOnSystemFail = 500;
         try
         {
             ExecutionPhase ep = jobUpdater.setPhase(job.getID(), ExecutionPhase.QUEUED, ExecutionPhase.EXECUTING, new Date());
@@ -264,6 +267,8 @@ public class QueryRunner implements JobRunner
             log.debug("invoking TapValidator for REQUEST and VERSION...");
             TapValidator tapValidator = new TapValidator();
             tapValidator.validate(paramList);
+            if ("1.0".equals(tapValidator.getVersion()))
+                responseCodeOnUserFail = HttpURLConnection.HTTP_OK; // TAP-1.0
 
             tList.add(System.currentTimeMillis());
             sList.add("initialisation: ");
@@ -459,12 +464,12 @@ public class QueryRunner implements JobRunner
             if (t instanceof IllegalArgumentException || t instanceof UnsupportedOperationException)
             {
                 logInfo.setSuccess(true);
-                errorCode = 400; // TAP-1.1 follows DALI and allows for normal response codes
+                errorCode = responseCodeOnUserFail;
             }
             else
             {
                 logInfo.setSuccess(false);
-                errorCode = 500;
+                errorCode = responseCodeOnSystemFail;
             }
             String errorMessage = null;
             URL errorURL = null;
