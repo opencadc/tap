@@ -80,11 +80,33 @@ import java.util.List;
  */
 public class TapValidator
 {
+    public static final String DEFAULT_VERSION = "1.1";
+    
     private String version;
 
+    public void validateVersion(List<Parameter> paramList)
+    {
+        if (version != null)
+            return;
+        if (paramList == null || paramList.isEmpty())
+        {
+            version = DEFAULT_VERSION;
+            return; // default is TAP-1.1 with no required params
+        }
+        
+        this.version = ParameterUtil.findParameterValue("VERSION", paramList);
+        if (version == null)
+            version = DEFAULT_VERSION;
+       
+        if (DEFAULT_VERSION.equals(version) || "1.0".equals(version))
+            return;
+        
+        throw new IllegalArgumentException("Unsupported TAP version: " + version);
+    }
+    
     public void validate(List<Parameter> paramList)
     {
-        
+        validateVersion(paramList);
         if (paramList == null || paramList.isEmpty())
             return; // default is TAP-1.1 with no required params
         
@@ -97,14 +119,9 @@ public class TapValidator
             String request = ParameterUtil.findParameterValue("REQUEST", paramList);
             if (request == null || request.trim().length() == 0)
                 throw new IllegalArgumentException("VERSION=1.0: Missing required parameter: REQUEST");
-            if (request != null && !request.equals("doQuery"))
+            if (!"doQuery".equals(request))
                 throw new IllegalArgumentException("VERSION=1.0: invalid REQUEST value: " + request);
-            return;
         }
-        if (version == null || "1.1".equals(version))
-            return;
-        
-        throw new IllegalArgumentException("Unsupported TAP version: " + version);
     }
 
     public String getVersion()

@@ -266,9 +266,10 @@ public class QueryRunner implements JobRunner
             // start processing the job
             log.debug("invoking TapValidator for REQUEST and VERSION...");
             TapValidator tapValidator = new TapValidator();
-            tapValidator.validate(paramList);
+            tapValidator.validateVersion(paramList);
             if ("1.0".equals(tapValidator.getVersion()))
                 responseCodeOnUserFail = HttpURLConnection.HTTP_OK; // TAP-1.0
+            tapValidator.validate(paramList);
 
             tList.add(System.currentTimeMillis());
             sList.add("initialisation: ");
