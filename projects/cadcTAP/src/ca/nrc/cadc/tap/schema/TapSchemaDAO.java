@@ -436,7 +436,7 @@ public class TapSchemaDAO implements TapPlugin
         functionDescs.add(new FunctionDesc("COT", "radians", "adql:DOUBLE"));
         functionDescs.add(new FunctionDesc("DEGREES", "deg", "adql:DOUBLE"));
         functionDescs.add(new FunctionDesc("EXP", "", "adql:DOUBLE"));
-        functionDescs.add(new FunctionDesc("FLOOR", "", "adql:INTEGER"));
+        functionDescs.add(new FunctionDesc("FLOOR", ""));
         functionDescs.add(new FunctionDesc("LN", "", "adql:DOUBLE"));
         functionDescs.add(new FunctionDesc("LOG", "", "adql:DOUBLE"));
         functionDescs.add(new FunctionDesc("LOG10", "", "adql:DOUBLE"));
