@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2011.                            (c) 2011.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,119 +62,40 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
+*  $Revision: 5 $
 *
 ************************************************************************
 */
 
-package ca.nrc.cadc.vosi;
+package ca.nrc.cadc.tap.parser.region.pgsphere.function;
 
-import ca.nrc.cadc.xml.XmlUtil;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.util.HashMap;
-import java.util.Map;
+
+import java.util.ArrayList;
+import java.util.List;
+import net.sf.jsqlparser.expression.DoubleValue;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import org.apache.log4j.Logger;
-import org.jdom2.Document;
-import org.jdom2.JDOMException;
-import org.jdom2.input.SAXBuilder;
 
 /**
- * Simple class to parse a VOSI-tables document. When schema validation is enabled
- * (it is the default), this class finds all the necessary schema files in the
- * classpath (in cadcVOSI) and maps the current namespace URIs to those schema
- * locations as required by the XmlUtil class (cadcUtil).
+ * Cartesian 2D point for use with postgresql builtin geometry.
  * 
  * @author pdowler
  */
-public class TableSetParser 
+public class Point2D extends Function
 {
-    private static final Logger log = Logger.getLogger(TableSetParser.class);
+    private static final Logger log = Logger.getLogger(Point2D.class);
 
-    private Map<String,String> schemaMap;
-
-    public TableSetParser()
+    public Point2D(DoubleValue p1, DoubleValue p2)
     {
-        this(true);
-    }
-
-    public TableSetParser(boolean enableSchemaValidation)
-    {
-        if (enableSchemaValidation)
-        {
-            this.schemaMap = new HashMap<String,String>();
-            String url;
-
-            url = XmlUtil.getResourceUrlString(VOSI.TABLES_SCHEMA, TableSetParser.class);
-            if (url != null)
-            {
-                log.debug(VOSI.TABLES_NS_URI + " -> " + url);
-                schemaMap.put(VOSI.TABLES_NS_URI, url);
-            }
-            else
-                log.warn("failed to find resource: " + VOSI.TABLES_SCHEMA);
-
-            url = XmlUtil.getResourceUrlString(VOSI.VORESOURCE_SCHEMA, TableSetParser.class);
-            if (url != null)
-            {
-                log.debug(VOSI.VORESOURCE_NS_URI + " -> " + url);
-                schemaMap.put(VOSI.VORESOURCE_NS_URI, url);
-            }
-            else
-                log.warn("failed to find resource: " + VOSI.VORESOURCE_SCHEMA);
-
-            url = XmlUtil.getResourceUrlString(VOSI.VODATASERVICE_SCHEMA, TableSetParser.class);
-            if (url != null)
-            {
-                log.debug(VOSI.VODATASERVICE_NS_URI + " -> " + url);
-                schemaMap.put(VOSI.VODATASERVICE_NS_URI, url);
-            }
-            else
-                log.warn("failed to find resource: " + VOSI.VODATASERVICE_SCHEMA);
-
-            url = XmlUtil.getResourceUrlString(VOSI.STC_SCHEMA, CapabilitiesParser.class);
-            if (url != null)
-            {
-                log.debug(VOSI.STC_NS_URI + " -> " + url);
-                schemaMap.put(VOSI.STC_NS_URI, url);
-            }
-            else
-                log.warn("failed to find resource: " + VOSI.STC_SCHEMA);
-
-            url = XmlUtil.getResourceUrlString(VOSI.XSI_SCHEMA, CapabilitiesParser.class);
-            if (url != null)
-            {
-                log.debug(VOSI.XSI_NS_URI + " -> " + url);
-                schemaMap.put(VOSI.XSI_NS_URI, url);
-            }
-            else
-                log.warn("failed to find resource: " + VOSI.XLINK_SCHEMA);
-            
-            url = XmlUtil.getResourceUrlString(VOSI.XLINK_SCHEMA, CapabilitiesParser.class);
-            if (url != null)
-            {
-                log.debug(VOSI.XLINK_NS_URI + " -> " + url);
-                schemaMap.put(VOSI.XLINK_NS_URI, url);
-            }
-            else
-                log.warn("failed to find resource: " + VOSI.XLINK_SCHEMA);
-        }
-    }
-
-    public Document parse(Reader rdr)
-        throws IOException, JDOMException
-    {
-        // and again with schema validation
-        SAXBuilder sb = XmlUtil.createBuilder(schemaMap);
-        return sb.build(rdr);
-    }
-
-    public Document parse(InputStream istream)
-        throws IOException, JDOMException
-    {
-        // and again with schema validation
-        SAXBuilder sb = XmlUtil.createBuilder(schemaMap);
-        return sb.build(istream);
+        super();
+        
+        List<Expression> expr = new ArrayList<Expression>(2);
+        expr.add(p1);
+        expr.add(p2);
+        
+        setName("point");
+        setParameters(new ExpressionList(expr));
     }
 }

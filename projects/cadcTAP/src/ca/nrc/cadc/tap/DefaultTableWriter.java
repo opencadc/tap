@@ -1,5 +1,7 @@
 package ca.nrc.cadc.tap;
 
+import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.dali.tables.TableData;
 import ca.nrc.cadc.dali.tables.ascii.AsciiTableWriter;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
@@ -32,8 +34,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.MissingResourceException;
 import java.util.TreeMap;
+import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
 
 public class DefaultTableWriter implements TableWriter
@@ -316,7 +318,9 @@ public class DefaultTableWriter implements TableWriter
                     }
                     if (resourceIdentifier != null)
                     {
-                        URL accessURL = regClient.getServiceURL(resourceIdentifier);
+                        Subject s = AuthenticationUtil.getCurrentSubject();
+                        AuthMethod cur = AuthenticationUtil.getAuthMethod(s);
+                        URL accessURL = regClient.getServiceURL(resourceIdentifier, job.protocol, null, cur);
                         String surl = accessURL.toExternalForm();
                         VOTableParam accessParam = new VOTableParam("accessURL", "char", surl.length(), false, surl);
                         metaResource.getParams().add(accessParam);
@@ -462,6 +466,10 @@ public class DefaultTableWriter implements TableWriter
         {
             return "char";
         }
+        else if (datatype.equals("adql:proto:INTERVAL"))
+        {
+            return "double";
+        }
         // here we support votable datatypes used directly in the tap_schema,
         // which are normally only needed if the DB has arrays of primitive types
         // as adql types cover all the other scenarios
@@ -570,6 +578,10 @@ public class DefaultTableWriter implements TableWriter
             field.setVariableSize(true);
         }
         else if (datatype.equals("adql:REGION"))
+        {
+            field.setVariableSize(true);
+        }
+        else if (datatype.equals("adql:proto:INTERVAL"))
         {
             field.setVariableSize(true);
         }

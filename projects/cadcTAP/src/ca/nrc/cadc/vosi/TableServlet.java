@@ -87,8 +87,13 @@ import org.jdom2.output.XMLOutputter;
 
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import ca.nrc.cadc.util.StringUtil;
+import java.io.PrintWriter;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.NoSuchElementException;
 import javax.naming.NamingException;
 import javax.security.auth.Subject;
 
@@ -104,14 +109,13 @@ public class TableServlet extends HttpServlet
     private static final long serialVersionUID = 201003131300L;
 
     private static String queryDataSourceName = "jdbc/tapuser";
-
+    
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
         throws ServletException, IOException
     {
         Subject subject = AuthenticationUtil.getSubject(request);
-        GetTablesAction action = new GetTablesAction();
-        action.response = response;
+        GetTablesAction action = new GetTablesAction(request, response);
         try
         {
             Subject.doAs(subject, action);
@@ -126,7 +130,14 @@ public class TableServlet extends HttpServlet
 
     private class GetTablesAction implements PrivilegedExceptionAction<Object>
     {
+        HttpServletRequest request;
         HttpServletResponse response;
+        
+        GetTablesAction(HttpServletRequest request, HttpServletResponse response)
+        {
+            this.request = request;
+            this.response = response;
+        }
 
         public Object run() throws Exception
         {
@@ -138,18 +149,80 @@ public class TableServlet extends HttpServlet
                 Context envContext = (Context) initContext.lookup("java:/comp/env");
                 DataSource queryDataSource = (DataSource) envContext.lookup(queryDataSourceName);
 
-                // extract TapSchema
                 TapSchemaDAO dao = new TapSchemaDAO();
                 dao.setDataSource(queryDataSource);
                 dao.setOrdered(true);
-                TapSchema tapSchema = dao.get();
+                
+                String pathStr = request.getPathInfo();
+                log.debug("path: " + pathStr);
+                String schemaName = null;
+                String tableName = null;
+                if (pathStr != null)
+                {
+                    String[] path = pathStr.split("/");
+                    for (String p : path)
+                    {
+                        if (StringUtil.hasText(p))
+                        {
+                            if (schemaName == null)
+                                schemaName = p;
+                            else if (tableName == null)
+                                tableName = p;
+                            else // no resources below table name
+                                throw new NoSuchElementException("not found: " + pathStr);
+                        }
+                    }
+                }
+                log.debug("schema: " + schemaName);
+                log.debug("table: " + tableName);
+                
+                String detail = request.getParameter("detail");
+                log.debug("detail: " + detail);
 
+                int depth = TapSchemaDAO.MAX_DEPTH;
+                if ("schema".equals(detail) && tableName == null)
+                {
+                    depth = TapSchemaDAO.SCHEMA_DEPTH;
+                }
+                else if ("table".equals(detail))
+                {
+                    depth = TapSchemaDAO.TABLE_DEPTH;
+                }
+                else if (detail != null)
+                    throw new IllegalArgumentException("invalid parameter value detail="+detail + " for " + pathStr);
+                
+                TapSchema tapSchema = dao.get(schemaName, tableName, depth);
                 TableSet vods = new TableSet(tapSchema);
-                Document doc = vods.getDocument();
+                
+                Document doc = null;
+                if (tableName != null)
+                    doc = vods.getTableDocument(tableName);
+                else if (schemaName != null)
+                    doc = vods.getSchemaDocument(schemaName);
+                else
+                    doc = vods.getDocument();
+                
                 XMLOutputter out = new XMLOutputter(Format.getPrettyFormat());
                 started = true;
+                response.setStatus(HttpServletResponse.SC_OK);
                 response.setContentType("text/xml");
                 out.output(doc, response.getOutputStream());
+            }
+            catch(IllegalArgumentException ex)
+            {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                response.setContentType("text/plain");
+                PrintWriter pw = response.getWriter();
+                pw.println(ex.getMessage());
+                pw.flush();
+            }
+            catch(NoSuchElementException ex)
+            {
+                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                response.setContentType("text/plain");
+                PrintWriter pw = response.getWriter();
+                pw.println(ex.getMessage());
+                pw.flush();
             }
             catch(IOException ex)
             {

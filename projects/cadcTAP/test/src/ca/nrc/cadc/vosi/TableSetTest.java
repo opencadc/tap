@@ -76,14 +76,11 @@ import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.xml.XmlUtil;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.jdom2.Document;
@@ -95,11 +92,7 @@ import org.jdom2.output.Format;
 import org.jdom2.output.XMLOutputter;
 import org.jdom2.xpath.XPathExpression;
 import org.jdom2.xpath.XPathFactory;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -114,41 +107,9 @@ public class TableSetTest
         Log4jInit.setLevel("ca.nrc.cadc.vosi", Level.INFO);
     }
 
-    String schemaNSKey1 = VOSI.TABLES_NS_URI;
-    String schemaResource1 = VOSI.TABLES_SCHEMA;
-
-    String schemaNSKey2 = VOSI.VODATASERVICE_NS_URI;
-    String schemaResource2 = VOSI.VODATASERVICE_SCHEMA;
-
     String DEFAULT_SCHEMA = "default";
 
-    Map<String, String> schemaNSMap;
-
     public TableSetTest()
-    {
-    }
-
-    @BeforeClass
-    public static void setUpClass() throws Exception
-    {
-
-    }
-
-    @AfterClass
-    public static void tearDownClass() throws Exception
-    {
-    }
-
-    @Before
-    public void setUp()
-    {
-        schemaNSMap = new HashMap<String, String>();
-        schemaNSMap.put(schemaNSKey1, XmlUtil.getResourceUrlString(schemaResource1, TableSetTest.class));
-        schemaNSMap.put(schemaNSKey2, XmlUtil.getResourceUrlString(schemaResource2, TableSetTest.class));
-    }
-
-    @After
-    public void tearDown()
     {
     }
 
@@ -170,7 +131,8 @@ public class TableSetTest
             String xmlString = stringWriter.toString();
             log.debug(xmlString);
 
-            doc = XmlUtil.buildDocument(new StringReader(xmlString), schemaNSMap);
+            TableSetParser tp = new TableSetParser();
+            doc = tp.parse(new StringReader(xmlString));
 
             TestUtil.assertXmlNode(doc, "/vosi:tableset");
             TestUtil.assertXmlNode(doc, "/vosi:tableset/schema[name='tap_schema']");
@@ -211,7 +173,8 @@ public class TableSetTest
             String xmlString = stringWriter.toString();
             log.debug(xmlString);
             
-            doc = XmlUtil.buildDocument(new StringReader(xmlString), schemaNSMap);
+            TableSetParser tp = new TableSetParser();
+            doc = tp.parse(new StringReader(xmlString));
 
             TestUtil.assertXmlNode(doc, "/vosi:tableset");
             TestUtil.assertXmlNode(doc, "/vosi:tableset/schema[name='default']");

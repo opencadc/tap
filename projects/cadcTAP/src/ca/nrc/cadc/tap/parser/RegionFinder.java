@@ -108,6 +108,8 @@ public class RegionFinder extends SelectNavigator
     // ADQL region functions
     public static final String CONTAINS = "CONTAINS";
     public static final String INTERSECTS = "INTERSECTS";
+    
+    public static final String INTERVAL = "INTERVAL"; // prototype 1D interval
     public static final String BOX = "BOX";
     public static final String POINT = "POINT";
     public static final String CIRCLE = "CIRCLE";
@@ -334,6 +336,13 @@ public class RegionFinder extends SelectNavigator
                 throw new IllegalStateException("INTERSECTS requires 2 expressions, found " + expressions.size());
             implExpr = handleIntersects(expressions.get(0), expressions.get(1));
         }
+        else if (INTERVAL.equalsIgnoreCase(fname))
+        {
+            List<Expression> expressions = func.getParameters().getExpressions();
+            if (expressions.size() != 2)
+                throw new IllegalStateException("INTERVAL requires lower, upper");
+            implExpr = handleInterval(expressions.get(0), expressions.get(1));
+        }
         else if (POINT.equalsIgnoreCase(fname))
         {
             validateCoordSys(func);
@@ -422,6 +431,14 @@ public class RegionFinder extends SelectNavigator
         throw new UnsupportedOperationException("INTERSECTS not supported");
     }
 
+    /**
+     * This method is called when a POINT geometry value is found.
+     */
+    protected Expression handleInterval(Expression lower, Expression upper)
+    {
+        throw new UnsupportedOperationException("INTERVAL not supported");
+    }
+    
     /**
      * This method is called when a POINT geometry value is found.
      */
