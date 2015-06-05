@@ -86,6 +86,7 @@ import ca.nrc.cadc.uws.server.JobRunner;
 import ca.nrc.cadc.uws.server.JobUpdater;
 import ca.nrc.cadc.uws.server.SyncOutput;
 import ca.nrc.cadc.uws.util.JobLogInfo;
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -245,6 +246,8 @@ public class QueryRunner implements JobRunner
         if (syncOutput == null)
             rs = pfac.getResultStore();
 
+        int responseCodeOnUserFail = 400;   // default for TAP-1.1+
+        int responseCodeOnSystemFail = 500;
         try
         {
             ExecutionPhase ep = jobUpdater.setPhase(job.getID(), ExecutionPhase.QUEUED, ExecutionPhase.EXECUTING, new Date());
@@ -263,6 +266,9 @@ public class QueryRunner implements JobRunner
             // start processing the job
             log.debug("invoking TapValidator for REQUEST and VERSION...");
             TapValidator tapValidator = new TapValidator();
+            tapValidator.validateVersion(paramList);
+            if ("1.0".equals(tapValidator.getVersion()))
+                responseCodeOnUserFail = HttpURLConnection.HTTP_OK; // TAP-1.0
             tapValidator.validate(paramList);
 
             tList.add(System.currentTimeMillis());
@@ -455,10 +461,17 @@ public class QueryRunner implements JobRunner
         catch (Throwable t)
         {
             logInfo.setMessage(t.getMessage());
+            int errorCode;
             if (t instanceof IllegalArgumentException || t instanceof UnsupportedOperationException)
+            {
                 logInfo.setSuccess(true);
+                errorCode = responseCodeOnUserFail;
+            }
             else
+            {
                 logInfo.setSuccess(false);
+                errorCode = responseCodeOnSystemFail;
+            }
             String errorMessage = null;
             URL errorURL = null;
             try
@@ -473,6 +486,7 @@ public class QueryRunner implements JobRunner
                 String filename = "error_" + job.getID() + "." + ewriter.getExtension();
                 if (syncOutput != null)
                 {
+                    syncOutput.setResponseCode(errorCode);
                     syncOutput.setHeader("Content-Type", ewriter.getContentType());
                     String disp = "attachment; filename=\""+filename+"\"";
                     syncOutput.setHeader("Content-Disposition", disp);
