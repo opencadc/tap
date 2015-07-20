@@ -70,6 +70,7 @@
 package ca.nrc.cadc.vosi;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.tap.PluginFactory;
 import java.io.IOException;
 
 import javax.naming.Context;
@@ -128,6 +129,13 @@ public class TableServlet extends HttpServlet
         }
     }
 
+    protected TapSchemaDAO getTapSchemaDAO()
+    {
+        PluginFactory pf = new PluginFactory(null);
+        TapSchemaDAO ret = pf.getTapSchemaDAO();
+        return ret;
+    }
+    
     private class GetTablesAction implements PrivilegedExceptionAction<Object>
     {
         HttpServletRequest request;
@@ -149,7 +157,7 @@ public class TableServlet extends HttpServlet
                 Context envContext = (Context) initContext.lookup("java:/comp/env");
                 DataSource queryDataSource = (DataSource) envContext.lookup(queryDataSourceName);
 
-                TapSchemaDAO dao = new TapSchemaDAO();
+                TapSchemaDAO dao = getTapSchemaDAO();
                 dao.setDataSource(queryDataSource);
                 dao.setOrdered(true);
                 
