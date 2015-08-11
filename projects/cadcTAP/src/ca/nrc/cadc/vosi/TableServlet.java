@@ -90,6 +90,7 @@ import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import ca.nrc.cadc.util.StringUtil;
 import java.io.PrintWriter;
+import java.security.AccessControlException;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
@@ -215,6 +216,14 @@ public class TableServlet extends HttpServlet
                 response.setStatus(HttpServletResponse.SC_OK);
                 response.setContentType("text/xml");
                 out.output(doc, response.getOutputStream());
+            }
+            catch(AccessControlException ex)
+            {
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                response.setContentType("text/plain");
+                PrintWriter pw = response.getWriter();
+                pw.println(ex.getMessage());
+                pw.flush();
             }
             catch(IllegalArgumentException ex)
             {
