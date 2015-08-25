@@ -70,6 +70,7 @@
 package ca.nrc.cadc.vosi;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.tap.PluginFactory;
 import java.io.IOException;
 
 import javax.naming.Context;
@@ -89,6 +90,7 @@ import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import ca.nrc.cadc.util.StringUtil;
 import java.io.PrintWriter;
+import java.security.AccessControlException;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
@@ -128,6 +130,13 @@ public class TableServlet extends HttpServlet
         }
     }
 
+    protected TapSchemaDAO getTapSchemaDAO()
+    {
+        PluginFactory pf = new PluginFactory(null);
+        TapSchemaDAO ret = pf.getTapSchemaDAO();
+        return ret;
+    }
+    
     private class GetTablesAction implements PrivilegedExceptionAction<Object>
     {
         HttpServletRequest request;
@@ -149,7 +158,7 @@ public class TableServlet extends HttpServlet
                 Context envContext = (Context) initContext.lookup("java:/comp/env");
                 DataSource queryDataSource = (DataSource) envContext.lookup(queryDataSourceName);
 
-                TapSchemaDAO dao = new TapSchemaDAO();
+                TapSchemaDAO dao = getTapSchemaDAO();
                 dao.setDataSource(queryDataSource);
                 dao.setOrdered(true);
                 
@@ -207,6 +216,14 @@ public class TableServlet extends HttpServlet
                 response.setStatus(HttpServletResponse.SC_OK);
                 response.setContentType("text/xml");
                 out.output(doc, response.getOutputStream());
+            }
+            catch(AccessControlException ex)
+            {
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                response.setContentType("text/plain");
+                PrintWriter pw = response.getWriter();
+                pw.println(ex.getMessage());
+                pw.flush();
             }
             catch(IllegalArgumentException ex)
             {
