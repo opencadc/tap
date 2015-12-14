@@ -88,7 +88,7 @@
 
     <property name="project" value="cadcTAP" />
 
-    <property name="cadc" value="${lib}/cadcUtil.jar:${lib}/cadcUWS.jar:${lib}/cadcLog.jar:${lib}/cadcVOSI.jar:${lib}/cadcDALI.jar:${lib}/cadcRegistryClient.jar" />
+    <property name="cadc" value="${lib}/cadcUtil.jar:${lib}/cadcUWS.jar:${lib}/cadcUWS-Server.jar:${lib}/cadcLog.jar:${lib}/cadcVOSI.jar:${lib}/cadcDALI.jar:${lib}/cadcRegistry.jar" />
 
     <property name="jsqlparser" value="${ext.lib}/jsqlparser.jar" />
     <property name="log4j" value="${ext.lib}/log4j.jar" />

@@ -87,7 +87,7 @@
     <!-- developer convenience: place for extra targets and properties -->
     <import file="extras.xml" optional="true" />
     
-    <property name="project" value="cadcSampleTAP" />
+    <property name="project" value="example-tap" />
     <property name="warfile" value="${project}.war" />
 
     <property file="local.build.properties" />
