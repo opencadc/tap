@@ -71,8 +71,10 @@ package ca.nrc.cadc.tap.parser;
 
 import ca.nrc.cadc.tap.parser.function.Concatenate;
 import ca.nrc.cadc.tap.parser.function.Operator;
+import ca.nrc.cadc.tap.parser.operator.postgresql.TextSearchMatch;
 import java.util.Iterator;
 import java.util.List;
+
 import net.sf.jsqlparser.expression.CaseExpression;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Parenthesis;
@@ -129,6 +131,17 @@ public class BaseExpressionDeParser extends ExpressionDeParser implements Operat
     }
 
     /**
+     * De-parse the text matching expression.
+     *
+     * @param match
+     */
+    public void visit(TextSearchMatch match)
+    {
+        log.debug("visit(TextSearchMatch) " + match);
+        buffer.append(match);
+    }
+
+    /**
      * Overridden to provide proper whitespace when prepending a NOT.
      * 
      * @param parenthesis
@@ -180,6 +193,7 @@ public class BaseExpressionDeParser extends ExpressionDeParser implements Operat
 
         buffer.append(" END");
     }
+
 }
 
     /**

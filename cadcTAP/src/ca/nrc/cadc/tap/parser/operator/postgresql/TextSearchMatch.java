@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2011.                            (c) 2011.
+*  (c) 2015.                            (c) 2015.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -66,22 +66,65 @@
 *
 ************************************************************************
 */
+package ca.nrc.cadc.tap.parser.operator.postgresql;
 
-package ca.nrc.cadc.tap.parser;
+import ca.nrc.cadc.tap.parser.OperatorVisitor;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.ExpressionVisitor;
+import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.tap.parser.function.Concatenate;
-import ca.nrc.cadc.tap.parser.function.Operator;
-import ca.nrc.cadc.tap.parser.operator.postgresql.TextSearchMatch;
+import java.util.List;
 
 /**
- *
- * @author pdowler
+ * Text search expression to match a tsvector to a tsquery.
  */
-public interface OperatorVisitor 
+public class TextSearchMatch implements Expression
 {
-    public void visit(Operator operator);
+    private static Logger log = Logger.getLogger(TextSearchMatch.class);
 
-    public void visit(Concatenate operator);
+    private String columnName;
+    private String query;
 
-    public void visit(TextSearchMatch match);
+    public TextSearchMatch(String columnName, String query)
+    {
+        this.columnName = columnName;
+        this.query = query;
+    }
+
+    @Override
+    public void accept(ExpressionVisitor expressionVisitor)
+    {
+        log.debug("accept(" + expressionVisitor.getClass().getSimpleName() + "): " + this);
+        ((OperatorVisitor) expressionVisitor).visit(this);
+    }
+
+    public void setColumnName(String columnName)
+    {
+        this.columnName = columnName;
+    }
+
+    public String getColumnName()
+    {
+        return this.columnName;
+    }
+
+    public void setQuery(String query)
+    {
+        this.query = query;
+    }
+
+    public String getQuery()
+    {
+        return this.query;
+    }
+
+    public String toString()
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.append(columnName);
+        sb.append(" @@ '");
+        sb.append(query);
+        sb.append("'::tsquery");
+        return sb.toString();
+    }
 }
