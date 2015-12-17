@@ -78,12 +78,18 @@ import java.util.NoSuchElementException;
 
 import ca.nrc.cadc.dali.util.Format;
 import ca.nrc.cadc.tap.writer.format.ResultSetFormat;
+import java.sql.SQLWarning;
+import org.apache.log4j.Logger;
 
 public class ResultSetIterator implements Iterator<List<Object>>
 {
+    private static final Logger log = Logger.getLogger(ResultSetIterator.class);
+    
     private ResultSet rs;
     private boolean hasNext;
     private List<Format<Object>> formats;
+    private long numRows = 0l;
+    private long numRowsBatch = 0l;
 
     public ResultSetIterator(ResultSet rs, List<Format<Object>> formats)
     {
@@ -134,6 +140,8 @@ public class ResultSetIterator implements Iterator<List<Object>>
             if (!hasNext)
                 throw new NoSuchElementException("No more rows in the ResultSet");
 
+            long t1 = System.currentTimeMillis();
+            
             List<Object> next = new ArrayList<Object>();
             Object nextObj = null;
             Format<Object> nextFormat = null;
@@ -147,8 +155,24 @@ public class ResultSetIterator implements Iterator<List<Object>>
                     nextObj = rs.getObject(columnIndex);
                 next.add(nextObj);
             }
+            
             // Get the next row.
             hasNext = rs.next();
+            numRows++;
+            numRowsBatch++;
+            long dt = System.currentTimeMillis() - t1;
+            if (dt > 20l || !hasNext)
+            {
+                SQLWarning sw = rs.getWarnings();
+                while (sw != null)
+                {
+                    log.debug("result set warning: " + sw.getMessage());
+                    sw = sw.getNextWarning();
+                }
+                
+                log.debug("get next row: " + dt + "ms " + numRowsBatch + " " + numRows);
+                numRowsBatch = 0l;
+            }
 
             return next;
         }
