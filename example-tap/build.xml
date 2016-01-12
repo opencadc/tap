@@ -97,11 +97,12 @@
     <property name="cadcDALI"           value="${lib}/cadcDALI.jar" />
     <property name="cadcLog"            value="${lib}/cadcLog.jar" />
     <property name="cadcUWS"            value="${lib}/cadcUWS.jar" />
+    <property name="cadcUWSsrv"         value="${lib}/cadcUWS-Server.jar" />
     <property name="cadcTAP"            value="${lib}/cadcTAP.jar" />
     <property name="cadcVOSI"           value="${lib}/cadcVOSI.jar" />
     
     <property name="jsqlparser"         value="${ext.lib}/jsqlparser.jar" />
-    <property name="jdom2"               value="${ext.lib}/jdom2.jar" />
+    <property name="jdom2"              value="${ext.lib}/jdom2.jar" />
     <property name="log4j"              value="${ext.lib}/log4j.jar" />
     <property name="restlet"            value="${ext.lib}/org.restlet.jar" />
     <property name="restlet.servlet"    value="${ext.lib}/org.restlet.ext.servlet.jar" />
@@ -109,7 +110,7 @@
     <property name="spring"             value="${ext.lib}/spring.jar" />
     <property name="commons-logging"    value="${ext.lib}/commons-logging.jar" />
 
-    <property name="jars" value="${log4j}:${cadcUtil}:${cadcDALI}:${cadcUWS}:${cadcTAP}:${cadcVOSI}" />
+    <property name="jars" value="${log4j}:${cadcUtil}:${cadcDALI}:${cadcUWS}:${cadcUWSsrv}:${cadcTAP}:${cadcVOSI}" />
 
     <target name="build" depends="webapp" />
 
@@ -127,6 +128,7 @@
             <lib file="${cadcUtil}" />
             <lib file="${cadcDALI}" />
             <lib file="${cadcUWS}" />
+            <lib file="${cadcUWSsrv}" />
             <lib file="${cadcTAP}" />
             <lib file="${cadcVOSI}" />
             <lib file="${jsqlparser}" />
