@@ -70,6 +70,8 @@
 package ca.nrc.cadc.vosi;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.log.ServletLogInfo;
+import ca.nrc.cadc.log.WebServiceLogInfo;
 import ca.nrc.cadc.tap.PluginFactory;
 import java.io.IOException;
 
@@ -116,17 +118,37 @@ public class TableServlet extends HttpServlet
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
         throws ServletException, IOException
     {
-        Subject subject = AuthenticationUtil.getSubject(request);
-        GetTablesAction action = new GetTablesAction(request, response);
+        WebServiceLogInfo logInfo = new ServletLogInfo(request);
+        long start = System.currentTimeMillis();
+        
         try
         {
+            Subject subject = AuthenticationUtil.getSubject(request);
+            logInfo.setSubject(subject);
+            log.info(logInfo.start());
+            
+            GetTablesAction action = new GetTablesAction(request, response);
             Subject.doAs(subject, action);
+            
+            logInfo.setSuccess(true);
         }
         catch(PrivilegedActionException pex)
         {
+            
             Exception ex = pex.getException();
+            logInfo.setSuccess(false);
+            logInfo.setMessage(ex.toString());
+            
             if (ex instanceof IOException)
                 throw (IOException) ex;
+            
+            log.error("BUG: failed to rewrite hostname in accessURL elements", ex);
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ex.getMessage());
+        }
+        finally
+        {
+            logInfo.setElapsedTime(System.currentTimeMillis() - start);
+            log.info(logInfo.end());
         }
     }
 

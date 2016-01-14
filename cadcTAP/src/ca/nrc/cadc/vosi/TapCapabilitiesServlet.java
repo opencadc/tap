@@ -36,39 +36,18 @@ import org.jdom2.xpath.XPathFactory;
  *
  * @author pdowler
  */
-public class TapCapabilitiesServlet extends HttpServlet
+public class TapCapabilitiesServlet extends CapabilitiesServlet
 {
     private static Logger log = Logger.getLogger(TapCapabilitiesServlet.class);
     private static final long serialVersionUID = 201109261300L;
 
-    private String staticCapabilities;
-
     @Override
-    public void init(ServletConfig config)
-        throws ServletException
+    protected CapabilitiesParser getParser()
     {
-        super.init(config);
-
-        String str = config.getInitParameter("input");
-        log.info("static capabilities: " + str);
-        try
-        {
-            URL resURL = config.getServletContext().getResource(str);
-            TAPRegExtParser tp = new TAPRegExtParser(true);
-            Document doc = tp.parse(resURL.openStream());
-            StringWriter sw = new StringWriter();
-            XMLOutputter out = new XMLOutputter();
-            out.output(doc, sw);
-            this.staticCapabilities = sw.toString();
-        }
-        catch(Throwable t)
-        {
-            log.error("CONFIGURATION ERROR: failed to read static capabilities file: " + str, t);
-        }
-            
-
+        return new TAPRegExtParser(true);
     }
 
+    /*
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
         throws ServletException, IOException
@@ -94,7 +73,7 @@ public class TapCapabilitiesServlet extends HttpServlet
             String xpath = "/vosi:capabilities/capability/interface/accessURL";
             XPathExpression<Element> xp = XPathFactory.instance().compile(xpath, Filters.element(), null, vosi);
             List<Element> accessURLs = xp.evaluate(doc);
-            log.info("xpath[" + xpath + "] found: " + accessURLs.size());
+            log.debug("xpath[" + xpath + "] found: " + accessURLs.size());
             
             Iterator i = accessURLs.iterator();
             while ( i.hasNext() )
@@ -116,4 +95,5 @@ public class TapCapabilitiesServlet extends HttpServlet
             log.error("BUG: failed to rewrite hostname in accessURL elements", t);
         }
     }
+    */
 }
