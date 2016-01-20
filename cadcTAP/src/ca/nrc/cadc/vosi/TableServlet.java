@@ -159,6 +159,25 @@ public class TableServlet extends HttpServlet
         return ret;
     }
     
+    /**
+     * Get the DataSOurce to be used to execute the query. By default, this uses JNDI to
+     * find an app-server supplied DataSource named <code>jdbc/tapuser</code>.
+     * 
+     * @return
+     * @throws Exception 
+     */
+    protected DataSource getQueryDataSource()
+        throws Exception
+    {
+        // temporary hack: this is identical to a method in QueryRunner but needs to be
+        // protected so subclasses can override... TODO: move to PluginFactory
+        log.debug("find DataSource via JNDI lookup...");
+        Context initContext = new InitialContext();
+        Context envContext = (Context) initContext.lookup("java:comp/env");
+        return (DataSource) envContext.lookup(queryDataSourceName);
+    }
+    
+    
     private class GetTablesAction implements PrivilegedExceptionAction<Object>
     {
         HttpServletRequest request;
@@ -175,13 +194,10 @@ public class TableServlet extends HttpServlet
             boolean started = false;
             try
             {
-                // find DataSource via JNDI lookup
-                Context initContext = new InitialContext();
-                Context envContext = (Context) initContext.lookup("java:/comp/env");
-                DataSource queryDataSource = (DataSource) envContext.lookup(queryDataSourceName);
-
+                DataSource ds = getQueryDataSource();
+                
                 TapSchemaDAO dao = getTapSchemaDAO();
-                dao.setDataSource(queryDataSource);
+                dao.setDataSource(ds);
                 dao.setOrdered(true);
                 
                 String pathStr = request.getPathInfo();
