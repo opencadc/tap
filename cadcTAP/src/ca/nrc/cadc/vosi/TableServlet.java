@@ -100,6 +100,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import javax.naming.NamingException;
 import javax.security.auth.Subject;
+import javax.servlet.ServletConfig;
 
 /**
  * Simple servlet that reads metadata using <code>ca.nrc.cadc.tap.schema</code>
@@ -113,6 +114,19 @@ public class TableServlet extends HttpServlet
     private static final long serialVersionUID = 201003131300L;
 
     private static String queryDataSourceName = "jdbc/tapuser";
+    
+    private boolean defaultDetailMin = false;
+
+    @Override
+    public void init(ServletConfig config) throws ServletException
+    {
+        super.init(config);
+        
+        String det = config.getInitParameter("defaultDetailMin");
+        this.defaultDetailMin = "true".equals(det);
+        log.info("defaultDetailMin: " + defaultDetailMin);
+    }
+    
     
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -202,7 +216,6 @@ public class TableServlet extends HttpServlet
                 
                 String pathStr = request.getPathInfo();
                 log.debug("path: " + pathStr);
-                String schemaName = null;
                 String tableName = null;
                 if (pathStr != null)
                 {
@@ -211,41 +224,40 @@ public class TableServlet extends HttpServlet
                     {
                         if (StringUtil.hasText(p))
                         {
-                            if (schemaName == null)
-                                schemaName = p;
-                            else if (tableName == null)
+                            if (tableName == null)
                                 tableName = p;
                             else // no resources below table name
                                 throw new NoSuchElementException("not found: " + pathStr);
                         }
                     }
                 }
-                log.debug("schema: " + schemaName);
                 log.debug("table: " + tableName);
                 
                 String detail = request.getParameter("detail");
-                log.debug("detail: " + detail);
-
                 int depth = TapSchemaDAO.MAX_DEPTH;
-                if ("schema".equals(detail) && tableName == null)
+                if ("min".equals(detail) && tableName == null)
                 {
-                    depth = TapSchemaDAO.SCHEMA_DEPTH;
-                }
-                else if ("table".equals(detail))
-                {
-                    depth = TapSchemaDAO.TABLE_DEPTH;
+                    depth = TapSchemaDAO.MIN_DEPTH;
                 }
                 else if (detail != null)
                     throw new IllegalArgumentException("invalid parameter value detail="+detail + " for " + pathStr);
+
+                // enforce default detail level
+                if (defaultDetailMin && depth == TapSchemaDAO.MAX_DEPTH && tableName == null)
+                {
+                    StringBuffer sb = request.getRequestURL();
+                    sb.append("?detail=min");
+                    response.setHeader("Location", sb.toString());
+                    response.setStatus(303);
+                    return null;
+                }
                 
-                TapSchema tapSchema = dao.get(schemaName, tableName, depth);
+                TapSchema tapSchema = dao.get(tableName, depth);
                 TableSet vods = new TableSet(tapSchema);
                 
                 Document doc = null;
                 if (tableName != null)
                     doc = vods.getTableDocument(tableName);
-                else if (schemaName != null)
-                    doc = vods.getSchemaDocument(schemaName);
                 else
                     doc = vods.getDocument();
                 

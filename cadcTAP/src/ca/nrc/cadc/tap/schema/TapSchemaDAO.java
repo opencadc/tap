@@ -71,6 +71,8 @@ package ca.nrc.cadc.tap.schema;
 
 import ca.nrc.cadc.tap.TapPlugin;
 import ca.nrc.cadc.uws.Job;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -79,6 +81,7 @@ import java.util.List;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.core.RowMapper;
 
 /**
@@ -124,9 +127,8 @@ public class TapSchemaDAO implements TapPlugin
     // Indicates function return datatype matches argument datatype.
     public static final String ARGUMENT_DATATYPE = "ARGUMENT_DATATYPE";
     
-    public static final int  SCHEMA_DEPTH = 1;
-    public static final int TABLE_DEPTH = 2;
-    public static final int MAX_DEPTH = 3; // columns, keys, etc
+    public static final int MIN_DEPTH = 0; // schema and tables only
+    public static final int MAX_DEPTH = 1; // columns, keys, etc
 
     /**
      * Construct a new TapSchemaDAO.
@@ -154,136 +156,75 @@ public class TapSchemaDAO implements TapPlugin
         // depth 2 = tables
         // depth 3 = columns
         // depth 4 = keys + functions
-        return get(null, null, MAX_DEPTH); // complete
+        return get(null, MAX_DEPTH); // complete
     }
     
     /**
      * Creates and returns a TapSchema object representing all of the data in TAP_SCHEMA.
      * 
-     * @param schemaName
-     * @param tableName
+     * @param tableName fully qualified table name
      * @param depth
      * @return TapSchema containing all of the data from TAP_SCHEMA.
      */
-    public TapSchema get(String schemaName, String tableName, int depth)
+    public TapSchema get(String tableName, int depth)
     {
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
-        TapSchema tapSchema = new TapSchema();
-        SchemaDesc singleSchema = null;
-        TableDesc singleTable = null;
-        String sql, tab;
+        TapSchema ret = new TapSchema();
 
         // List of TAP_SCHEMA.schemas
-        tab = schemasTableName;
-        sql = "SELECT " + SELECT_SCHEMAS_COLS + " FROM " + tab;
-        //if (schemaName != null)
-        //    sql += " WHERE schema_name = '" + schemaName + "'"; // DANGER: use PreparedStatement for user-input schemaName
-        sql = appendWhere(tab, sql);
-        if (ordered) sql += orderSchemaClause;
-        log.debug(sql);
-        tapSchema.schemaDescs = jdbc.query(sql, new SchemaMapper());
-        if (schemaName != null) // instead of DANGER above, just post-filter the schema list here
-        {
-            Iterator<SchemaDesc> i = tapSchema.schemaDescs.iterator();
-            while (i.hasNext())
-            {
-                SchemaDesc sd = i.next();
-                if (sd.getSchemaName().equals(schemaName))
-                    singleSchema = sd;
-                else
-                    i.remove();
-            }
-        }
-        if (depth == SCHEMA_DEPTH || tapSchema.schemaDescs.isEmpty())
-            return tapSchema;
+        GetSchemasStatement gss = new GetSchemasStatement(schemasTableName);
+        if (ordered)
+            gss.setOrderBy(orderSchemaClause);
+        ret.schemaDescs = jdbc.query(gss, new SchemaMapper());
         
-        // List of TAP_SCHEMA.tables
-        tab = tablesTableName;
-        sql = "SELECT " + SELECT_TABLES_COLS + " FROM " + tab;
-        if (singleSchema != null)
-        {
-            sql += " WHERE schema_name = '" + singleSchema.getSchemaName() + "'"; // this string found in db so must be safe
-            //sql += " AND table_name = '" + tableName + "'"; // DANGER: use prepared statement for user-input tableName
-        }
-        sql = appendWhere(tab, sql);
-        if (ordered) sql += orderTablesClause;
-        log.debug(sql);
-        List<TableDesc> tableDescs = jdbc.query(sql, new TableMapper());
-        if (tableName != null) // instead of DANGER above, just post-filter the table list here
-        {
-            Iterator<TableDesc> i = tableDescs.iterator();
-            while(i.hasNext())
-            {
-                TableDesc td = i.next();
-                if (td.getTableName().equals(tableName))
-                    singleTable = td;
-                else
-                    i.remove();
-            }
-        }
-                
+        // TAP_SCHEMA.tables
+        GetTablesStatement gts = new GetTablesStatement(tablesTableName);
+        gts.setTableName(tableName);
+        if (ordered)
+            gts.setOrderBy(orderTablesClause);
+        List<TableDesc> tableDescs = jdbc.query(gts, new TableMapper());
+        
         // Add the Tables to the Schemas.
-        addTablesToSchemas(tapSchema.schemaDescs, tableDescs);
+        addTablesToSchemas(ret.schemaDescs, tableDescs);
         
-        if (depth == TABLE_DEPTH || tableDescs.isEmpty())
-            return tapSchema;
-
-        // List of TAP_SCHEMA.columns
-        tab = columnsTableName;
-        sql = "SELECT " + SELECT_COLUMNS_COLS + " FROM " + tab;
-        // TODO: there is no good way to optimise this query result for a single schemaName
-        // unless we add schema_name to the TAP_SCHEMA.columns table OR query for each table
-        // in the tapSchema.getTableDescs() list
-        if (singleTable != null)
-            sql += " WHERE table_name = '" + singleTable.getTableName() + "'";
-        sql = appendWhere(tab, sql);
-        if (ordered) sql += orderColumnsClause;
-        log.debug(sql);
-        List<ColumnDesc> columnDescs = jdbc.query(sql, new ColumnMapper());
-
-        // Add the Columns to the Tables.
-        addColumnsToTables(tableDescs, columnDescs);
-        
-        // List of TAP_SCHEMA.keys
-        tab = keysTableName;
-        sql = "SELECT " + SELECT_KEYS_COLS + " FROM " + tab;
-        if (singleTable != null)
-            sql += " WHERE from_table = '" + singleTable.getTableName() + "'";
-        sql = appendWhere(tab, sql);
-        if (ordered) sql += orderKeysClause;
-        log.debug(sql);
-        List<KeyDesc> keyDescs = jdbc.query(sql, new KeyMapper());
-
-        // List of TAP_SCHEMA.key_columns
-        tab = keyColumnsTableName;
-        sql = "SELECT " + SELECT_KEY_COLUMNS_COLS + " FROM " + tab;
-        if (singleTable != null && !keyDescs.isEmpty())
+        // TAP_SCHEMA.columns
+        if (depth > MIN_DEPTH)
         {
-            sql += " WHERE key_id in (";
-            Iterator<KeyDesc> ki = keyDescs.iterator();
-            while (ki.hasNext())
-            {
-                sql += "'" + ki.next().keyId + "'";
-                if (ki.hasNext())
-                    sql += ",";
-            }
-            sql += ")";
-        }
-        sql = appendWhere(tab, sql);
-        if (ordered) sql += orderKeyColumnsClause;
-        log.debug(sql);
-        List<KeyColumnDesc> keyColumnDescs = jdbc.query(sql, new KeyColumnMapper());
+            GetColumnsStatement gcs = new GetColumnsStatement(columnsTableName);
+            gcs.setTableName(tableName);
+            if (ordered)
+                gcs.setOrderBy(orderColumnsClause);
+            List<ColumnDesc> columnDescs = jdbc.query(gcs, new ColumnMapper());
 
-        // Add the KeyColumns to the Keys.
-        addKeyColumnsToKeys(keyDescs, keyColumnDescs);
-
-        // connect foreign keys to the fromTable
-        addForeignKeys(tapSchema, keyDescs);
-
-        // Add the List of FunctionDescs.
-        tapSchema.functionDescs = getFunctionDescs();
+            // Add the Columns to the Tables.
+            addColumnsToTables(tableDescs, columnDescs);
         
-        for (SchemaDesc s : tapSchema.schemaDescs) 
+            // List of TAP_SCHEMA.keys
+            GetKeysStatement gks = new GetKeysStatement(keysTableName);
+            gks.setTableName(tableName);
+            if (ordered)
+                gks.setOrderBy(orderKeysClause);
+            List<KeyDesc> keyDescs = jdbc.query(gks, new KeyMapper());
+
+            // TAP_SCHEMA.key_columns
+            GetKeyColumnsStatement gkcs = new GetKeyColumnsStatement(keyColumnsTableName);
+            if (tableName != null)
+                gkcs.setKeyDescs(keyDescs); // get keys for tableName only
+            if (ordered)
+                gkcs.setOrderBy(orderKeyColumnsClause);
+            List<KeyColumnDesc> keyColumnDescs = jdbc.query(gkcs, new KeyColumnMapper());
+
+            // Add the KeyColumns to the Keys.
+            addKeyColumnsToKeys(keyDescs, keyColumnDescs);
+
+            // connect foreign keys to the fromTable
+            addForeignKeys(ret, keyDescs);
+        }
+        
+        // Add the List of FunctionDescs.
+        ret.functionDescs = getFunctionDescs();
+        
+        for (SchemaDesc s : ret.schemaDescs) 
         {
             int num = 0;
             if (s.tableDescs != null)
@@ -291,7 +232,271 @@ public class TapSchemaDAO implements TapPlugin
             log.debug("schema " + s.schemaName + " has " + num + " tables");
         }
 
-        return tapSchema;
+        return ret;
+    }
+
+    private class GetSchemasStatement implements PreparedStatementCreator
+    {
+        private String tap_schema_tab;
+        private String orderBy;
+
+        public GetSchemasStatement(String tap_schema_tab)
+        {
+            this.tap_schema_tab = tap_schema_tab;
+        }
+
+        public void setOrderBy(String orderBy)
+        {
+            this.orderBy = orderBy;
+        }
+        
+        public PreparedStatement createPreparedStatement(Connection conn) throws SQLException
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.append("SELECT ").append(SELECT_SCHEMAS_COLS);
+            sb.append(" FROM ").append(tap_schema_tab);
+            
+            // customisation
+            String tmp = appendWhere(tap_schema_tab, sb.toString());
+            
+            sb = new StringBuilder();
+            sb.append(tmp);
+            if (orderBy != null)
+                sb.append(orderBy);
+            
+            String sql = sb.toString();
+            log.debug(sql);
+
+            PreparedStatement prep = conn.prepareStatement(sql);
+            return prep;
+        }
+    }
+
+    private class GetTablesStatement implements PreparedStatementCreator
+    {
+        private String tap_schema_tab;
+        private String tableName;
+        private String orderBy;
+
+        public GetTablesStatement(String tap_schema_tab)
+        {
+            this.tap_schema_tab = tap_schema_tab;
+        }
+
+        public void setTableName(String tableName)
+        {
+            this.tableName = tableName;
+        }
+
+        public void setOrderBy(String orderBy)
+        {
+            this.orderBy = orderBy;
+        }
+        
+        public PreparedStatement createPreparedStatement(Connection conn) throws SQLException
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.append("SELECT ").append(SELECT_TABLES_COLS);
+            sb.append(" FROM ").append(tap_schema_tab);
+            
+            // customisation
+            String tmp = appendWhere(tap_schema_tab, sb.toString());
+            
+            sb = new StringBuilder();
+            sb.append(tmp);
+            if (tableName != null)
+            {
+                if (tmp.toLowerCase().contains("where"))
+                    sb.append(" AND ");
+                else
+                    sb.append(" WHERE ");
+                sb.append(" table_name = ?");
+            }
+            else if (orderBy != null)
+                sb.append(orderBy);
+            
+            String sql = sb.toString();
+            log.debug(sql);
+            log.debug("values: " + tableName);
+            
+            PreparedStatement prep = conn.prepareStatement(sql);
+            if (tableName != null)
+                prep.setString(1, tableName);
+            return prep;
+        }
+    }
+    
+    private class GetColumnsStatement implements PreparedStatementCreator
+    {
+        private String tap_schema_tab;
+        private String tableName;
+        private String orderBy;
+
+        public GetColumnsStatement(String tap_schema_tab)
+        {
+            this.tap_schema_tab = tap_schema_tab;
+        }
+
+        public void setTableName(String tableName)
+        {
+            this.tableName = tableName;
+        }
+
+        public void setOrderBy(String orderBy)
+        {
+            this.orderBy = orderBy;
+        }
+        
+        public PreparedStatement createPreparedStatement(Connection conn) throws SQLException
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.append("SELECT ").append(SELECT_COLUMNS_COLS);
+            sb.append(" FROM ").append(tap_schema_tab);
+            
+            // customisation
+            String tmp = appendWhere(tap_schema_tab, sb.toString());
+            
+            sb = new StringBuilder();
+            sb.append(tmp);
+            if (tableName != null)
+            {
+                if (tmp.toLowerCase().contains("where"))
+                    sb.append(" AND ");
+                else
+                    sb.append(" WHERE ");
+                sb.append(" table_name = ?");
+            }
+            else if (orderBy != null)
+                sb.append(orderBy);
+            
+            String sql = sb.toString();
+            log.debug(sql);
+            log.debug("values: " + tableName);
+            
+            PreparedStatement prep = conn.prepareStatement(sql);
+            if (tableName != null)
+                prep.setString(1, tableName);
+            return prep;
+        }
+    }
+    
+    private class GetKeysStatement implements PreparedStatementCreator
+    {
+        private String tap_schema_tab;
+        private String tableName;
+        private String orderBy;
+
+        public GetKeysStatement(String tap_schema_tab)
+        {
+            this.tap_schema_tab = tap_schema_tab;
+        }
+
+        public void setTableName(String tableName)
+        {
+            this.tableName = tableName;
+        }
+
+        public void setOrderBy(String orderBy)
+        {
+            this.orderBy = orderBy;
+        }
+        
+        public PreparedStatement createPreparedStatement(Connection conn) throws SQLException
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.append("SELECT ").append(SELECT_KEYS_COLS);
+            sb.append(" FROM ").append(tap_schema_tab);
+            
+            // customisation
+            String tmp = appendWhere(tap_schema_tab, sb.toString());
+            
+            sb = new StringBuilder();
+            sb.append(tmp);
+            if (tableName != null)
+            {
+                if (tmp.toLowerCase().contains("where"))
+                    sb.append(" AND ");
+                else
+                    sb.append(" WHERE ");
+                sb.append(" from_table = ?");
+            }
+            else if (orderBy != null)
+                sb.append(orderBy);
+            
+            String sql = sb.toString();
+            log.debug(sql);
+            log.debug("values: " + tableName);
+            
+            PreparedStatement prep = conn.prepareStatement(sql);
+            if (tableName != null)
+                prep.setString(1, tableName);
+            return prep;
+        }
+    }
+    
+    private class GetKeyColumnsStatement implements PreparedStatementCreator
+    {
+        private String tap_schema_tab;
+        private List<KeyDesc> keyDescs;
+        private String orderBy;
+
+        public GetKeyColumnsStatement(String tap_schema_tab)
+        {
+            this.tap_schema_tab = tap_schema_tab;
+        }
+
+        public void setKeyDescs(List<KeyDesc> keyDescs)
+        {
+            this.keyDescs = keyDescs;
+        }
+
+        public void setOrderBy(String orderBy)
+        {
+            this.orderBy = orderBy;
+        }
+        
+        public PreparedStatement createPreparedStatement(Connection conn) throws SQLException
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.append("SELECT ").append(SELECT_KEY_COLUMNS_COLS);
+            sb.append(" FROM ").append(tap_schema_tab);
+            
+            // customisation
+            String tmp = appendWhere(tap_schema_tab, sb.toString());
+            
+            sb = new StringBuilder();
+            sb.append(tmp);
+            if (keyDescs != null && !keyDescs.isEmpty())
+            {
+                if (tmp.toLowerCase().contains("where"))
+                    sb.append(" AND ");
+                else
+                    sb.append(" WHERE ");
+                sb.append("key_id IN (");
+                for (KeyDesc kd : keyDescs)
+                {
+                    sb.append("?,");
+                }
+                sb.setCharAt(sb.length() - 1, ')'); // replace last | with closed bracket
+            }
+            else if (orderBy != null)
+                sb.append(orderBy);
+            
+            String sql = sb.toString();
+            log.debug(sql);
+            
+            PreparedStatement prep = conn.prepareStatement(sql);
+            if (keyDescs != null && !keyDescs.isEmpty())
+            {
+                int col = 1;
+                for (KeyDesc kd : keyDescs)
+                {
+                    log.debug("values: " + kd.keyId);
+                    prep.setString(col++, kd.keyId);
+                }
+            }
+            return prep;
+        }
     }
     
     /**
