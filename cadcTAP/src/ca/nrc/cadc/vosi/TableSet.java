@@ -147,8 +147,9 @@ public class TableSet
     {
         root.addNamespaceDeclaration(xsi);
         root.addNamespaceDeclaration(vod);
-            
-        root.setAttribute("version", "1.1");
+          
+        // ivoa convention but not allowed by the VODataService schema
+        //root.setAttribute("version", "1.1");
         
         Document document = new Document();
         document.addContent(root);
