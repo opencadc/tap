@@ -119,21 +119,6 @@ public class TableSet
         return getDocument(root);
     }
     
-    public Document getSchemaDocument(String schemaName)
-    {
-        if (schemaName == null)
-            throw new IllegalArgumentException("schemeName cannot be null for Schema document");
-        for (SchemaDesc sd : tapSchema.getSchemaDescs())
-        {
-            if (sd.getSchemaName().equals(schemaName))
-            {
-                Element root = toXmlElement(sd, vosi);
-                return getDocument(root);
-            }
-        }
-        throw new NoSuchElementException("schema not found: " + schemaName);
-        
-    }
     public Document getTableDocument(String tableName)
     {
         if (tableName == null)
@@ -163,6 +148,8 @@ public class TableSet
         root.addNamespaceDeclaration(xsi);
         root.addNamespaceDeclaration(vod);
             
+        root.setAttribute("version", "1.1");
+        
         Document document = new Document();
         document.addContent(root);
         return document;
