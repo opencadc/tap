@@ -147,7 +147,7 @@ public class TapSchemaUtil
             return null;
         for (SchemaDesc sd : tapSchema.getSchemaDescs())
         {
-            if ((sd.getSchemaName() == null && table.getSchemaName() == null)
+            if (table.getSchemaName() == null // unqualified table name, search all schemas
                     || (sd.getSchemaName().equalsIgnoreCase(table.getSchemaName())))
             {
                 for (TableDesc td : sd.getTableDescs())
