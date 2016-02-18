@@ -79,32 +79,34 @@ import java.sql.SQLException;
 public class ByteArrayFormat implements ResultSetFormat
 {
 
+    private ca.nrc.cadc.dali.util.ByteArrayFormat bfmt = new ca.nrc.cadc.dali.util.ByteArrayFormat();
+    
     @Override
     public Object parse(String s)
     {
         throw new UnsupportedOperationException("TAP Formats cannot parse strings.");
     }
 
+    public String format(Object t)
+    {
+        if (t == null)
+            return "";
+        if (t instanceof byte[])
+        {
+            return bfmt.format((byte[]) t);
+        }
+        throw new IllegalArgumentException(t.getClass().getCanonicalName() + " not supported.");
+    }
+
+    
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
             throws SQLException
     {
-        return resultSet.getObject(columnIndex);
-    }
-
-    /**
-     * Takes a byte[] and returns the default String representation.
-     *
-     * @param object to format
-     * @return String representation of the Object.
-     * @throws IllegalArgumentException if the object is not a byte[].
-     */
-    @Override
-    public String format(Object object)
-    {
-
+        Object object = resultSet.getObject(columnIndex);
         if (object == null)
-            return "";
+            return null;
+        
         if (object instanceof java.sql.Array)
         {
             try
@@ -117,35 +119,19 @@ public class ByteArrayFormat implements ResultSetFormat
                 throw new IllegalArgumentException("Error accessing array data for " + object.getClass().getCanonicalName(), e);
             }
         }
-        if (object instanceof byte[])
-            return toString((byte[]) object);
-
         if (object instanceof Byte[])
-            return toString((Byte[]) object);
-
+        {
+            Byte[] ba = (Byte[]) object;
+            byte[] ret = new byte[ba.length];
+            for (int i=0; i<ba.length; i++)
+                ret[i] = ba[i]; // unbox
+            object = ret;
+        }
+        if (object instanceof byte[])
+            return object;
+        
         throw new IllegalArgumentException(object.getClass().getCanonicalName() + " not supported.");
     }
 
-    private String toString(byte[] arr)
-    {
-        StringBuilder sb = new StringBuilder();
-        for (byte b : arr)
-        {
-            sb.append(Byte.toString(b));
-            sb.append(" ");
-        }
-        return sb.substring(0, sb.length() - 1); // trim trailing space
-    }
-
-    private String toString(Byte[] arr)
-    {
-        StringBuilder sb = new StringBuilder();
-        for (Byte b : arr)
-        {
-            sb.append(b.toString());
-            sb.append(" ");
-        }
-        return sb.substring(0, sb.length() - 1); // trim trailing space
-    }
-
+    
 }
