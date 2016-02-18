@@ -173,7 +173,7 @@ public class QueryRunner implements JobRunner
         {
             doIt();
         }
-        catch(Exception ex)
+        catch(Throwable ex)
         {
             log.error("unexpected exception", ex);
         }
@@ -244,12 +244,15 @@ public class QueryRunner implements JobRunner
 
         ResultStore rs = null;
         if (syncOutput == null)
+        {
             rs = pfac.getResultStore();
-
+            log.debug("loaded: " + rs.getClass().getName());
+        }
         int responseCodeOnUserFail = 400;   // default for TAP-1.1+
         int responseCodeOnSystemFail = 500;
         try
         {
+            log.debug("try: QUEUED -> EXECUTING...");
             ExecutionPhase ep = jobUpdater.setPhase(job.getID(), ExecutionPhase.QUEUED, ExecutionPhase.EXECUTING, new Date());
             if ( !ExecutionPhase.EXECUTING.equals(ep) )
             {

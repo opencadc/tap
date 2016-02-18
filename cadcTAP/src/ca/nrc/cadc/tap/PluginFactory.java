@@ -149,7 +149,7 @@ public class PluginFactory
                         c = Class.forName(cname);
                         langBindings.put(lang, c);
                     }
-                    catch(ClassNotFoundException ex)
+                    catch(Throwable ex)
                     {
                         log.error("CONFIG: failed to load " + cname + " for LANG="+lang, ex);
                     }
@@ -174,7 +174,7 @@ public class PluginFactory
             ret.setJob(job);
             return ret;
         }
-        catch(Exception ex)
+        catch(Throwable ex)
         {
             throw new RuntimeException("config error: failed to create " + clazz.getName(), ex);
         }
@@ -194,7 +194,7 @@ public class PluginFactory
                 Class c = Class.forName(cname);
                 ret = (MaxRecValidator) c.newInstance();
             }
-            catch(Exception ex)
+            catch(Throwable ex)
             {
                 throw new RuntimeException("config error: failed to create MaxRecValidator " + cname, ex);
             }
@@ -217,7 +217,7 @@ public class PluginFactory
                 Class c = Class.forName(cname);
                 ret = (UploadManager) c.newInstance();
             }
-            catch(Exception ex)
+            catch(Throwable ex)
             {
                 throw new RuntimeException("config error: failed to create UploadManager " + cname, ex);
             }
@@ -240,7 +240,7 @@ public class PluginFactory
                 Class c = Class.forName(cname);
                 ret = (TableWriter) c.newInstance();
             }
-            catch(Exception ex)
+            catch(Throwable ex)
             {
                 throw new RuntimeException("config error: failed to create TableWriter " + cname, ex);
             }
@@ -263,7 +263,7 @@ public class PluginFactory
                 Class c = Class.forName(cname);
                 ret = (FormatFactory) c.newInstance();
             }
-            catch(Exception ex)
+            catch(Throwable ex)
             {
                 throw new RuntimeException("config error: failed to create FormatFactory " + cname, ex);
             }
@@ -286,7 +286,7 @@ public class PluginFactory
                 Class c = Class.forName(cname);
                 ret = (TapSchemaDAO) c.newInstance();
             }
-            catch(Exception ex)
+            catch(Throwable ex)
             {
                 throw new RuntimeException("config error: failed to create TapSchemaDAO " + cname, ex);
             }
@@ -307,7 +307,7 @@ public class PluginFactory
             log.debug("loaded: " + ret.getClass().getName());
             return  ret;
         }
-        catch(Exception ex)
+        catch(Throwable ex)
         {
             throw new RuntimeException("config error: failed to create ResultStore " + cname, ex);
         }
