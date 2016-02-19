@@ -239,6 +239,7 @@ public class DefaultTableWriter implements TableWriter
             VOTableField newField = createVOTableField(paramDesc);
 
             Format<Object> format = formats.get(listIndex);
+            log.debug("format: " + listIndex + " " + format.getClass().getName());
             newField.setFormat(format);
 
             resultsTable.getFields().add(newField);
