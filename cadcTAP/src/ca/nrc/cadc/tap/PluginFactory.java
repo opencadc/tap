@@ -246,6 +246,7 @@ public class PluginFactory
             }
         }
         ret.setJob(job);
+        ret.setFormatFactory(getFormatFactory());
         return  ret;
     }
     

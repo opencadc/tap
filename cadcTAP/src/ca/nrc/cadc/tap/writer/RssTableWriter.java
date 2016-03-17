@@ -156,6 +156,13 @@ public class RssTableWriter implements TableWriter
     {
         this.formatFactory = formatFactory;
     }
+
+    public void write(Throwable t, OutputStream out) 
+        throws IOException
+    {
+        throw new UnsupportedOperationException("write error message in RSS format", t);
+    }
+    
     
     @Override
     public void write(ResultSet resultSet, Writer writer) throws IOException

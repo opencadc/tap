@@ -335,8 +335,6 @@ public class QueryRunner implements JobRunner
 
             log.debug("creating TapTableWriter...");
             TableWriter tableWriter = pfac.getTableWriter();
-            tableWriter.setFormatFactory(pfac.getFormatFactory());
-            tableWriter.setJob(job);
             tableWriter.setSelectList(selectList);
             tableWriter.setQueryInfo(queryInfo);
 
@@ -485,12 +483,15 @@ public class QueryRunner implements JobRunner
                 errorMessage = t.getClass().getSimpleName() + ":" + t.getMessage();
                 log.debug("BADNESS", t);
                 log.debug("Error message: " + errorMessage);
-                VOTableWriter ewriter = new VOTableWriter();
+                
+                log.debug("creating TableWriter for error...");
+                TableWriter ewriter = pfac.getTableWriter();
+            
                 String filename = "error_" + job.getID() + "." + ewriter.getExtension();
                 if (syncOutput != null)
                 {
                     syncOutput.setResponseCode(errorCode);
-                    syncOutput.setHeader("Content-Type", ewriter.getContentType());
+                    syncOutput.setHeader("Content-Type", ewriter.getErrorContentType());
                     String disp = "attachment; filename=\""+filename+"\"";
                     syncOutput.setHeader("Content-Disposition", disp);
                     ewriter.write(t, syncOutput.getOutputStream());

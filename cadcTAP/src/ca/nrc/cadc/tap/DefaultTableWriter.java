@@ -43,7 +43,8 @@ public class DefaultTableWriter implements TableWriter
 
     private static final Logger log = Logger.getLogger(DefaultTableWriter.class);
 
-    private static final String FORMAT = "FORMAT";
+    private static final String FORMAT = "RESPONSEFORMAT";
+    private static final String FORMAT_ALT = "FORMAT";
 
     // shortcuts
     public static final String CSV = "csv";
@@ -119,7 +120,12 @@ public class DefaultTableWriter implements TableWriter
     @Override
     public String getContentType()
     {
-        return contentType;
+        return tableWriter.getContentType();
+    }
+
+    public String getErrorContentType()
+    {
+        return tableWriter.getErrorContentType();
     }
 
     @Override
@@ -131,6 +137,8 @@ public class DefaultTableWriter implements TableWriter
     private void initFormat()
     {
         String format = ParameterUtil.findParameterValue(FORMAT, job.getParameterList());
+        if (format == null)
+            format = ParameterUtil.findParameterValue(FORMAT_ALT, job.getParameterList());
         if (format == null)
             format = VOTABLE;
         
@@ -169,6 +177,7 @@ public class DefaultTableWriter implements TableWriter
             this.contentType = tableWriter.getContentType();
             this.extension = tableWriter.getExtension();
         }
+        log.debug("created: " + tableWriter.getClass().getName());
     }
 
     public void setFormatFactory(FormatFactory formatFactory)
@@ -182,6 +191,13 @@ public class DefaultTableWriter implements TableWriter
         throw new UnsupportedOperationException("Use custom tap format factory implementation class");
     }
 
+    public void write(Throwable t, OutputStream out) 
+        throws IOException
+    {
+        tableWriter.write(t, out);
+    }
+
+    
     @Override
     public void write(ResultSet rs, OutputStream out) throws IOException
     {

@@ -116,7 +116,7 @@ public interface ResultStore
         throws IOException;
 
     /**
-     * Stores the Throwable as a VOTable, and returns an
+     * Stores the Throwable using the specified writer and returns a
      * URL to the stored file.
      *
      * @param t Throwable to store.
@@ -124,7 +124,7 @@ public interface ResultStore
      * @return an URL to the stored Throwable.
      * @throws IOException
      */
-    URL put(Throwable t, VOTableWriter writer)
+    URL put(Throwable t, TableWriter writer)
         throws IOException;
 
     /**
