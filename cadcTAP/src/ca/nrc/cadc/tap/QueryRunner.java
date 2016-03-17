@@ -499,6 +499,8 @@ public class QueryRunner implements JobRunner
                     syncOutput.setResponseCode(errorCode);
                     syncOutput.setHeader("Content-Type", ewriter.getErrorContentType());
                     syncOutput.setHeader("Content-Length", Integer.toString(emsg.length()));
+                    String disp = "inline; filename=\""+filename+"\"";
+                    syncOutput.setHeader("Content-Disposition", disp);
                     Writer w = new OutputStreamWriter(syncOutput.getOutputStream());
                     w.write(emsg);
                     w.flush();
