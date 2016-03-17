@@ -93,6 +93,7 @@ import ca.nrc.cadc.tap.writer.format.FormatFactory;
 import ca.nrc.cadc.tap.writer.format.ResultSetFormat;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
+import javax.swing.TransferHandler;
 
 /**
  *
@@ -141,6 +142,13 @@ public class RssTableWriter implements TableWriter
     {
         return "application/rss+xml";
     }
+
+    public String getErrorContentType()
+    {
+        return getContentType();
+    }
+    
+    
 
     public void setSelectList(List<ParamDesc> selectList)
     {
