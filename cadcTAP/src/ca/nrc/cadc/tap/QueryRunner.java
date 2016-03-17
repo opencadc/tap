@@ -69,7 +69,6 @@
 
 package ca.nrc.cadc.tap;
 
-import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
 import ca.nrc.cadc.log.WebServiceLogInfo;
 import ca.nrc.cadc.tap.schema.ParamDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
@@ -86,6 +85,9 @@ import ca.nrc.cadc.uws.server.JobRunner;
 import ca.nrc.cadc.uws.server.JobUpdater;
 import ca.nrc.cadc.uws.server.SyncOutput;
 import ca.nrc.cadc.uws.util.JobLogInfo;
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -486,15 +488,20 @@ public class QueryRunner implements JobRunner
                 
                 log.debug("creating TableWriter for error...");
                 TableWriter ewriter = pfac.getTableWriter();
-            
+                
+                // write to buffer so we can determine content-length
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                ewriter.write(t, bos);
+                String emsg = bos.toString();
                 String filename = "error_" + job.getID() + "." + ewriter.getExtension();
                 if (syncOutput != null)
                 {
                     syncOutput.setResponseCode(errorCode);
                     syncOutput.setHeader("Content-Type", ewriter.getErrorContentType());
-                    String disp = "attachment; filename=\""+filename+"\"";
-                    syncOutput.setHeader("Content-Disposition", disp);
-                    ewriter.write(t, syncOutput.getOutputStream());
+                    syncOutput.setHeader("Content-Length", Integer.toString(emsg.length()));
+                    Writer w = new OutputStreamWriter(syncOutput.getOutputStream());
+                    w.write(emsg);
+                    w.flush();
                 }
                 else
                 {
