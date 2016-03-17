@@ -379,7 +379,7 @@ public class QueryRunner implements JobRunner
                     
                     log.debug("streaming output: " + contentType);
                     syncOutput.setHeader("Content-Type", contentType);
-                    String disp = "attachment; filename=\""+filename+"\"";
+                    String disp = "inline; filename=\""+filename+"\"";
                     syncOutput.setHeader("Content-Disposition", disp);
                     if (maxRows == null)
                         tableWriter.write(resultSet, syncOutput.getOutputStream());
