@@ -90,8 +90,8 @@ import ca.nrc.cadc.tap.schema.TapSchema;
  */
 public class BlobClobColumnValidator extends TapSchemaColumnValidator
 {
-    public static final String BLOB = "BLOB";
-    public static final String CLOB = "CLOB";
+    public static final String BLOB = "adql:BLOB";
+    public static final String CLOB = "adql:CLOB";
 
     protected static Logger log = Logger.getLogger(BlobClobColumnValidator.class);
 
@@ -104,7 +104,6 @@ public class BlobClobColumnValidator extends TapSchemaColumnValidator
     public void visit(Column column)
     {
         super.visit(column); // Perform default standard validation
-
         PlainSelect plainSelect = selectNavigator.getPlainSelect();
         VisitingPart visiting = selectNavigator.getVisitingPart();
 
@@ -119,21 +118,29 @@ public class BlobClobColumnValidator extends TapSchemaColumnValidator
             ColumnDesc columnDesc = null;
 
             Table table = column.getTable();
+            //log.debug("column.getTable: " + table);
             if (table == null || table.getName() == null || table.getName().equals(""))
             {
                 // form: alias, or columnName
+                
                 String columnNameOrAlias = column.getColumnName();
+                //log.debug("columnNameOrAlias: " + columnNameOrAlias);
                 SelectItem si = ParserUtil.findSelectItemByAlias(plainSelect, columnNameOrAlias);
-
+                
                 if (si != null || si instanceof SelectExpressionItem)
                 {
                     isAlias = true; // ok
                     Expression ex = ((SelectExpressionItem) si).getExpression();
                     if (ex instanceof Column) columnDesc = TapSchemaUtil.findColumnDesc(super.tapSchema, plainSelect, (Column) ex);
                 }
+                //log.debug("columnDesc from alias: " + columnDesc);
             }
 
-            if (!isAlias) columnDesc = TapSchemaUtil.findColumnDesc(super.tapSchema, plainSelect, column);
+            if (!isAlias)
+            {
+                columnDesc = TapSchemaUtil.findColumnDesc(super.tapSchema, plainSelect, column);
+                //log.debug("columnDesc from columnName: " + columnDesc);
+            }
 
             if (columnDesc != null)
             {
@@ -144,6 +151,10 @@ public class BlobClobColumnValidator extends TapSchemaColumnValidator
                 else if (CLOB.equalsIgnoreCase(dataType))
                     throw new IllegalArgumentException("The column [" + column
                             + "] of CLOB type cannot be used in place other than select item.");
+            }
+            else
+            {
+                log.debug("columnDesc not found: " + column);
             }
         }
     }
