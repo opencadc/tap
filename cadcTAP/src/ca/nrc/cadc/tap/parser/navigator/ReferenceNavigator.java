@@ -86,7 +86,7 @@ import net.sf.jsqlparser.statement.select.OrderByVisitor;
  */
 public class ReferenceNavigator extends SubNavigator implements ColumnReferenceVisitor, OrderByVisitor
 {
-    protected static Logger log = Logger.getLogger(ReferenceNavigator.class);
+    private static final Logger log = Logger.getLogger(ReferenceNavigator.class);
 
     public ReferenceNavigator()
     {

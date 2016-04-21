@@ -87,6 +87,7 @@ import ca.nrc.cadc.tap.schema.ParamDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import org.apache.log4j.Logger;
 
 /**
  * Extract a list of TapSelectItem from query.
@@ -96,6 +97,8 @@ import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
  */
 public class SelectListExpressionExtractor extends ExpressionNavigator
 {
+    private static final Logger log = Logger.getLogger(SelectListExpressionExtractor.class);
+    
     protected TapSchema tapSchema;
     protected List<ParamDesc> selectList;
 
@@ -116,22 +119,6 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
     public void visit(AllColumns allColumns)
     {
         throw new UnsupportedOperationException("AllColumns must have previously been visited");
-//        PlainSelect ps = selectNavigator.getPlainSelect();
-//        List<Table> fromTableList = ParserUtil.getFromTableList(ps);
-//
-//        try
-//        {
-//            List<TapSelectItem> tableTsiList;
-//            for (Table table : fromTableList)
-//            {
-//                tableTsiList = TapSchemaUtil.getTapSelectItemList(this.tapSchema, table);
-//                this.tapSelectItemList.addAll(tableTsiList);
-//            }
-//        }
-//        catch (TapParserException ex)
-//        {
-//            throw new UnsupportedOperationException(ex);
-//        }
     }
 
     /* (non-Javadoc)
@@ -141,20 +128,6 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
     public void visit(AllTableColumns allTableColumns)
     {
         throw new UnsupportedOperationException("AllTableColumns must have previously been visited");
-//        PlainSelect ps = selectNavigator.getPlainSelect();
-//        String tableNameOrAlias = allTableColumns.getTable().getName();
-//        Table table = ParserUtil.findFromTable(ps, tableNameOrAlias);
-//        log.debug(table);
-//
-//        try
-//        {
-//            List<TapSelectItem> tableTsiList = TapSchemaUtil.getTapSelectItemList(this.tapSchema, table);
-//            this.tapSelectItemList.addAll(tableTsiList);
-//        }
-//        catch (TapParserException ex)
-//        {
-//            throw new UnsupportedOperationException(ex);
-//        }
     }
 
     /* (non-Javadoc)

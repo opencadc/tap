@@ -126,7 +126,7 @@ import net.sf.jsqlparser.statement.select.SubSelect;
  */
 public class ExpressionNavigator extends SubNavigator implements ExpressionVisitor, ItemsListVisitor, SelectItemVisitor
 {
-    protected static Logger log = Logger.getLogger(ExpressionNavigator.class);
+    private static Logger log = Logger.getLogger(ExpressionNavigator.class);
 
     public ExpressionNavigator()
     {

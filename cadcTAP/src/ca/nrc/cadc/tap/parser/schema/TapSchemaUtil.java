@@ -169,22 +169,12 @@ public class TapSchemaUtil
      * @param column
      * @return
      */
-    public static boolean isValidColumn(TapSchema tapSchema, Column column)
-    {
-        boolean rtn = false;
-        String cname = stripQuotes(column.getColumnName());
-        Table table = column.getTable();
-        TableDesc td = findTableDesc(tapSchema, table);
-        for (ColumnDesc cd : td.getColumnDescs())
-        {
-            if (cname.equalsIgnoreCase(cd.getColumnName()))
-            {
-                rtn = true;
-                break;
-            }
-        }
-        return rtn;
-    }
+    //private static boolean isValidColumn(TapSchema tapSchema, Column column)
+    //{
+    //    Table table = column.getTable();
+    //    TableDesc td = findTableDesc(tapSchema, table);
+    //    return isValidColumnName(td, column.getColumnName());
+    //}
 
     /**
      * For a columnName and a plainSelect, find the Table from TAP Schema.
@@ -193,11 +183,10 @@ public class TapSchemaUtil
      * @param plainSelect
      * @param columnName
      * @return
-     * @throws TapParserException 
      */
     public static Table findTableForColumnName(TapSchema tapSchema, PlainSelect plainSelect, String columnName)
     {
-        columnName = stripQuotes(columnName);
+        //columnName = stripQuotes(columnName);
         TableDesc rtnTd = null;
         int matchCount = 0;
         TableDesc td;
@@ -205,7 +194,9 @@ public class TapSchemaUtil
         for (Table fromTable : fromTableList)
         {
             td = findTableDesc(tapSchema, fromTable);
-            if (td == null) throw new IllegalArgumentException("Table [" + fromTable + "] does not exist.");
+            if (td == null) 
+                throw new IllegalArgumentException("Table [" + fromTable + "] does not exist.");
+            log.debug("findTableForColumnName: " + columnName + " in " + td.getTableName());
             if (isValidColumnName(td, columnName))
             {
                 matchCount++;
@@ -214,10 +205,12 @@ public class TapSchemaUtil
             }
         }
         if (matchCount == 0)
-            throw new IllegalArgumentException("Column [" + columnName + "] does not exist.");
-        else if (matchCount > 1) throw new IllegalArgumentException("Column [" + columnName + "] is ambiguous.");
+            throw new IllegalArgumentException("findTableForColumnName: Column [" + columnName + "] does not exist.");
+        else if (matchCount > 1) 
+            throw new IllegalArgumentException("Column [" + columnName + "] is ambiguous.");
 
         Table rtn = getTable(rtnTd);
+        log.debug("findTableForColumnName: found " + rtn);
         return rtn;
     }
 
@@ -230,16 +223,36 @@ public class TapSchemaUtil
      */
     private static boolean isValidColumnName(TableDesc td, String columnName)
     {
-        boolean rtn = false;
-        for (ColumnDesc cd : td.getColumnDescs())
+        ColumnDesc cd = findColumnDesc(td, columnName);
+        return (cd != null);
+    }
+    
+    /**
+     * find ColumnDesc for given TableDesc and columnName.
+     * 
+     * @param td
+     * @param columnName
+     * @return
+     */
+    private static ColumnDesc findColumnDesc(TableDesc tableDesc, String columnName)
+    {
+        String scol = stripQuotes(columnName);
+        List<ColumnDesc> cdList = tableDesc.getColumnDescs();
+        for (ColumnDesc cd : cdList)
         {
-            if (columnName.equalsIgnoreCase(cd.getColumnName()))
+            log.debug("findColumnDesc: " + cd.getColumnName() + " vs " + columnName + " " + scol);
+            if (cd.getColumnName().equalsIgnoreCase(columnName) || cd.getColumnName().equalsIgnoreCase(scol))
             {
-                rtn = true;
-                break;
+                return cd;
+            }
+            // support unquoted usage when tap_schema says it is quoted?
+            String tsCol = stripQuotes(cd.getColumnName());
+            if (tsCol.equalsIgnoreCase(columnName))
+            {
+                return cd;
             }
         }
-        return rtn;
+        return null;
     }
 
     /**
@@ -256,7 +269,7 @@ public class TapSchemaUtil
         return rtn;
     }
 
-    public static String stripQuotes(String col)
+    private static String stripQuotes(String col)
     {
         if (col != null && col.length() > 1)
         {
@@ -282,13 +295,14 @@ public class TapSchemaUtil
         // columnName, table.columnName, tableAilas.columnName, or schema.table.ColumnName
 
         Table table = column.getTable();
-        String columnName = stripQuotes(column.getColumnName());
+        //String columnName = stripQuotes(column.getColumnName());
+        String columnName = column.getColumnName();
         
         if (table == null || table.getName() == null || table.getName().equals(""))
         {
             // form: columnName
             Table fromTable = TapSchemaUtil.findTableForColumnName(tapSchema, plainSelect, columnName);
-            if (fromTable == null) throw new IllegalArgumentException("Column: [" + columnName + "] does not exist.");
+            if (fromTable == null) throw new IllegalArgumentException("validateColumnNonAlias: Column: [" + columnName + "] does not exist.");
         }
         else
         {
@@ -334,7 +348,7 @@ public class TapSchemaUtil
         TableDesc td = findTableDesc(tapSchema, table);
         for (ColumnDesc cd : td.getColumnDescs())
         {
-            SelectItem sei = TapSchemaUtil.newSelectExpressionItem(table, stripQuotes(cd.getColumnName()));
+            SelectItem sei = TapSchemaUtil.newSelectExpressionItem(table, cd.getColumnName());
             seiList.add(sei);
         }
         return seiList;
@@ -355,7 +369,7 @@ public class TapSchemaUtil
             siTable = new Table(null, alias);
         else
             siTable = table;
-        Column column = new Column(siTable, columnName);
+        Column column = new Column(siTable, columnName); 
         SelectExpressionItem sei = new SelectExpressionItem();
         sei.setExpression(column);
         return sei;
@@ -373,16 +387,11 @@ public class TapSchemaUtil
     {
         // Possible form as:
         // columnName, table.columnName, tableAilas.columnName, or schema.table.ColumnName
-
-        ColumnDesc columnDesc = null;
-
-        String columnName = stripQuotes(column.getColumnName());
-
         Table qualifiedTable = getQualifiedTable(tapSchema, plainSelect, column);
-
+        log.debug("findColumnDesc: found " + qualifiedTable);
         TableDesc tableDesc = findTableDesc(tapSchema, qualifiedTable);
-        columnDesc = findColumnDesc(tableDesc, columnName);
-        return columnDesc;
+        log.debug("findColumnDesc: found " + tableDesc);
+        return findColumnDesc(tableDesc, column.getColumnName());
     }
 
     /**
@@ -401,12 +410,11 @@ public class TapSchemaUtil
 
         Table qTable = null;
 
-        String columnName = stripQuotes(column.getColumnName());
         Table table = column.getTable();
         if (table == null || table.getName() == null || table.getName().equals(""))
         {
             // columnName only
-            qTable = findTableForColumnName(tapSchema, plainSelect, columnName);
+            qTable = findTableForColumnName(tapSchema, plainSelect, column.getColumnName());
         }
         else
         {
@@ -423,28 +431,6 @@ public class TapSchemaUtil
             }
         }
         return qTable;
-    }
-
-    /**
-     * find ColumnDesc for given TableDesc and columnName.
-     * 
-     * @param td
-     * @param columnName
-     * @return
-     */
-    private static ColumnDesc findColumnDesc(TableDesc tableDesc, String columnName)
-    {
-        ColumnDesc rtn = null;
-        List<ColumnDesc> cdList = tableDesc.getColumnDescs();
-        for (ColumnDesc cd : cdList)
-        {
-            if (columnName.equalsIgnoreCase(cd.getColumnName()))
-            {
-                rtn = cd;
-                break;
-            }
-        }
-        return rtn;
     }
 
     /**

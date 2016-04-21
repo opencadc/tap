@@ -46,12 +46,12 @@ insert into TAP_SCHEMA.tables (schema_name,table_name,table_type,description,uty
 ( 'TAP_SCHEMA', 'TAP_SCHEMA.key_columns', 'table', 'description of foreign key columns in this tableset', NULL )
 ;
 
-insert into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,size,principal,indexed,std) values
+insert into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std) values
 ( 'TAP_SCHEMA.schemas', 'schema_name', 'schema name for reference to TAP_SCHEMA.schemas', NULL, NULL, NULL, 'adql:VARCHAR', 64, 1,0,0 ),
 ( 'TAP_SCHEMA.schemas', 'utype', 'lists the utypes of schemas in the tableset',           NULL, NULL, NULL, 'adql:VARCHAR', 512, 1,0,0 ),
 ( 'TAP_SCHEMA.schemas', 'description', 'describes schemas in the tableset',               NULL, NULL, NULL, 'adql:VARCHAR', 512, 1,0,0 ),
 
-( 'TAP_SCHEMA.tables', 'schema_name', 'the schema this table belongs to',                 NULL, NULL, NULL, 'adql:VARCHAR', 64, 1,0,0 ),
+( 'TAP_SCHEMA.tables', 'schema_name', 'the schema this table belongs to',                 NULL, NULL, NULL, 'adql:VARCHAR', 512, 1,0,0 ),
 ( 'TAP_SCHEMA.tables', 'table_name', 'the fully qualified table name',                    NULL, NULL, NULL, 'adql:VARCHAR', 64, 1,0,0 ),
 ( 'TAP_SCHEMA.tables', 'table_type', 'one of: table view',                                NULL, NULL, NULL, 'adql:VARCHAR', 8, 1,0,0 ),
 ( 'TAP_SCHEMA.tables', 'utype', 'lists the utype of tables in the tableset',              NULL, NULL, NULL, 'adql:VARCHAR', 512, 1,0,0 ),
@@ -64,7 +64,8 @@ insert into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,uni
 ( 'TAP_SCHEMA.columns', 'unit', 'lists the unit used for column values in the tableset',  NULL, NULL, NULL, 'adql:VARCHAR', 64, 1,0,0 ),
 ( 'TAP_SCHEMA.columns', 'description', 'describes the columns in the tableset',           NULL, NULL, NULL, 'adql:VARCHAR', 512, 1,0,0 ),
 ( 'TAP_SCHEMA.columns', 'datatype', 'lists the ADQL datatype of columns in the tableset', NULL, NULL, NULL, 'adql:VARCHAR', 64, 1,0,0 ),
-( 'TAP_SCHEMA.columns', 'size', 'lists the size of variable-length columns in the tableset', NULL, NULL, NULL, 'adql:INTEGER', NULL, 1,0,0 ),
+( 'TAP_SCHEMA.columns', 'arraysize', 'lists the size of variable-length columns in the tableset', NULL, NULL, NULL, 'adql:INTEGER', NULL, 1,0,0 ),
+( 'TAP_SCHEMA.columns', '"size"', 'deprecated: use arraysize', NULL, NULL, NULL, 'adql:INTEGER', NULL, 1,0,0 ),
 ( 'TAP_SCHEMA.columns', 'principal', 'a principal column; 1 means 1, 0 means 0',      NULL, NULL, NULL, 'adql:INTEGER', NULL, 1,0,0 ),
 ( 'TAP_SCHEMA.columns', 'indexed', 'an indexed column; 1 means 1, 0 means 0',         NULL, NULL, NULL, 'adql:INTEGER', NULL, 1,0,0 ),
 ( 'TAP_SCHEMA.columns', 'std', 'a standard column; 1 means 1, 0 means 0',             NULL, NULL, NULL, 'adql:INTEGER', NULL, 1,0,0 ),
@@ -96,3 +97,4 @@ insert into TAP_SCHEMA.key_columns (key_id,from_column,target_column) values
 ( 'k5', 'key_id', 'key_id' )
 ;
 
+update TAP_SCHEMA.columns SET "size" = arraysize WHERE table_name LIKE 'TAP_SCHEMA.%';
