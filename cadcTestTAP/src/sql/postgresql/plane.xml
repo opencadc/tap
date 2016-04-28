@@ -1,0 +1,374 @@
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0<?xml version="1.0" encoding="UTF-8"?>
+<vosi:table xmlns:vosi="http://www.ivoa.net/xml/VOSITables/v1.0" xmlns:vod="http://www.ivoa.net/xml/VODataService/v1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" type="output">
+  <name>caom2.Plane</name>
+  <column>
+    <name>obsID</name>
+    <description>foreign key</description>
+    <dataType xsi:type="vod:TAPType">BIGINT</dataType>
+    <flag>indexed</flag>
+  </column>
+  <column>
+    <name>planeID</name>
+    <description>unique plane identifier</description>
+    <utype>caom2:Plane.id</utype>
+    <dataType xsi:type="vod:TAPType">BIGINT</dataType>
+    <flag>indexed</flag>
+  </column>
+  <column>
+    <name>productID</name>
+    <description>name of this product</description>
+    <utype>caom2:Plane.productID</utype>
+    <dataType xsi:type="vod:TAPType" size="32">VARCHAR</dataType>
+    <flag>indexed</flag>
+  </column>
+  <column>
+    <name>metaRelease</name>
+    <description>date the metadata for a plane is public (UTC)</description>
+    <utype>caom2:Plane.metaRelease</utype>
+    <dataType xsi:type="vod:TAPType">TIMESTAMP</dataType>
+    <flag>indexed</flag>
+  </column>
+  <column>
+    <name>dataRelease</name>
+    <description>date the data for a plane is public (UTC)</description>
+    <utype>caom2:Plane.dataRelease</utype>
+    <dataType xsi:type="vod:TAPType">TIMESTAMP</dataType>
+    <flag>indexed</flag>
+  </column>
+  <column>
+    <name>dataProductType</name>
+    <description>IVOA ObsCore data product type</description>
+    <utype>caom2:Plane.dataProductType</utype>
+    <dataType xsi:type="vod:TAPType" size="128">VARCHAR</dataType>
+  </column>
+  <column>
+    <name>calibrationLevel</name>
+    <description>IVOA ObsCore calibration level (0,1,2,3,...)</description>
+    <utype>caom2:Plane.calibrationLevel</utype>
+    <dataType xsi:type="vod:TAPType">INTEGER</dataType>
+  </column>
+  <column>
+    <name>provenance_name</name>
+    <description>name of the process that created this plane</description>
+    <utype>caom2:Plane.provenance.name</utype>
+    <dataType xsi:type="vod:TAPType" size="128">VARCHAR</dataType>
+  </column>
+  <column>
+    <name>provenance_version</name>
+    <description>version of the process/software</description>
+    <utype>caom2:Plane.provenance.version</utype>
+    <dataType xsi:type="vod:TAPType" size="32">VARCHAR</dataType>
+  </column>
+  <column>
+    <name>provenance_reference</name>
+    <description>external reference (URL)</description>
+    <utype>caom2:Plane.provenance.reference</utype>
+    <dataType xsi:type="vod:TAPType" size="256">VARCHAR</dataType>
+  </column>
+  <column>
+    <name>provenance_producer</name>
+    <description>responsible entity (e.g. person)</description>
+    <utype>caom2:Plane.provenance.producer</utype>
+    <dataType xsi:type="vod:TAPType" size="128">VARCHAR</dataType>
+  </column>
+  <column>
+    <name>provenance_project</name>
+    <description>responsible entity (e.g. person)</description>
+    <utype>caom2:Plane.provenance.project</utype>
+    <dataType xsi:type="vod:TAPType" size="256">VARCHAR</dataType>
+  </column>
+  <column>
+    <name>provenance_runID</name>
+    <description>responsible entity (e.g. person)</description>
+    <utype>caom2:Plane.provenance.runID</utype>
+    <dataType xsi:type="vod:TAPType" size="64">VARCHAR</dataType>
+    <flag>indexed</flag>
+  </column>
+  <column>
+    <name>provenance_lastExecuted</name>
+    <description>date this process was last executed</description>
+    <utype>caom2:Plane.provenance.lastExecuted</utype>
+    <dataType xsi:type="vod:TAPType">TIMESTAMP</dataType>
+  </column>
+  <column>
+    <name>provenance_keywords</name>
+    <description>provenance keywords (space-separated list)</description>
+    <utype>caom2:Plane.provenance.keywords</utype>
+    <dataType xsi:type="vod:TAPType" size="512">VARCHAR</dataType>
+  </column>
+  <column>
+    <name>provenance_inputs</name>
+    <description>inputs of the process that created this plane (space-separated list of Plane URIs)</description>
+    <utype>caom2:Plane.provenance.inputs</utype>
+    <dataType xsi:type="vod:TAPType">CLOB</dataType>
+  </column>
+  <column>
+    <name>metrics_sourceNumberDensity</name>
+    <description>number density of sources</description>
+    <unit>per sq. deg</unit>
+    <utype>caom2:Plane.metrics.sourceNumberDensity</utype>
+    <dataType xsi:type="vod:TAPType">DOUBLE</dataType>
+  </column>
+  <column>
+    <name>metrics_background</name>
+    <description>background intensity</description>
+    <unit>Jy/pix</unit>
+    <utype>caom2:Plane.metrics.background</utype>
+    <dataType xsi:type="vod:TAPType">DOUBLE</dataType>
+  </column>
+  <column>
+    <name>metrics_backgroundStddev</name>
+    <description>standard deviation in background</description>
+    <unit>Jy/pix</unit>
+    <utype>caom2:Plane.metrics.backgroundStddev</utype>
+    <dataType xsi:type="vod:TAPType">DOUBLE</dataType>
+  </column>
+  <column>
+    <name>metrics_fluxDensityLimit</name>
+    <description>flux density limit where S:N=5 for point source</description>
+    <unit>Jy</unit>
+    <utype>caom2:Plane.metrics.fluxDensityLimit</utype>
+    <dataType xsi:type="vod:TAPType">DOUBLE</dataType>
+  </column>
+  <column>
+    <name>metrics_magLimit</name>
+    <description>AB magnitude limit where S:N=5 for point source</description>
+    <utype>caom2:Plane.metrics.magLimit</utype>
+    <dataType xsi:type="vod:TAPType">DOUBLE</dataType>
+  </column>
+  <column>
+    <name>quality_flag</name>
+    <description>flag describing the data quality (possible values: junk)</description>
+    <utype>caom2:Plane.quality.flag</utype>
+    <dataType xsi:type="vod:TAPType" size="16">VARCHAR</dataType>
+  </column>
+  <column>
+    <name>position_bounds</name>
+    <description>positional coverage of the data</description>
+    <utype>caom2:Plane.position.bounds</utype>
+    <dataType xsi:type="vod:TAPType">REGION</dataType>
+  </column>
+  <column>
+    <name>position_bounds_size</name>
+    <description>size of the polygon bounds (diameter of minimum spanning circle)</description>
+    <unit>deg</unit>
+    <utype>caom2:Plane.position.bounds.size</utype>
+    <dataType xsi:type="vod:TAPType">DOUBLE</dataType>
+  </column>
+  <column>
+    <name>position_resolution</name>
+    <description>median spatial resolution (FWHM)</description>
+    <unit>arcsec</unit>
+    <utype>caom2:Plane.position.resolution</utype>
+    <dataType xsi:type="vod:TAPType">DOUBLE</dataType>
+  </column>
+  <column>
+    <name>position_sampleSize</name>
+    <description>median sample (pixel) size on spatial axes</description>
+    <unit>arcsec</unit>
+    <utype>caom2:Plane.position.sampleSize</utype>
+    <dataType xsi:type="vod:TAPType">DOUBLE</dataType>
+  </column>
+  <column>
+    <name>position_dimension1</name>
+    <description>dimensions (number of pixels) along one spatial axis</description>
+    <utype>caom2:Plane.position.dimension.naxis1</utype>
+    <dataType xsi:type="vod:TAPType">BIGINT</dataType>
+  </column>
+  <column>
+    <name>position_dimension2</name>
+    <description>dimensions (number of pixels) along other spatial axis</description>
+    <utype>caom2:Plane.position.dimension.naxis2</utype>
+    <dataType xsi:type="vod:TAPType">BIGINT</dataType>
+  </column>
+  <column>
+    <name>position_timeDependent</name>
+    <description>flag indicating that the position is time-dependent (0=false, 1=true)</description>
+    <utype>caom2:Plane.position.timeDependent</utype>
+    <dataType xsi:type="vod:TAPType">INTEGER</dataType>
+  </column>
+  <column>
+    <name>energy_emBand</name>
+    <description>generic name for energy band (Radio,Millimeter,Infrared,Optical,UV,EUV,X-ray,Gamma-ray)</description>
+    <utype>caom2:Plane.energy.emBand</utype>
+    <dataType xsi:type="vod:TAPType" size="32">VARCHAR</dataType>
+  </column>
+  <column>
+    <name>energy_bounds_cval1</name>
+    <description>lower bound on energy axis (barycentric wavelength)</description>
+    <unit>m</unit>
+    <utype>caom2:Plane.energy.bounds.lower</utype>
+    <dataType xsi:type="vod:TAPType">DOUBLE</dataType>
+  </column>
+  <column>
+    <name>energy_bounds_cval2</name>
+    <description>upper bound on energy axis (barycentric wavelength)</description>
+    <unit>m</unit>
+    <utype>caom2:Plane.energy.bounds.upper</utype>
+    <dataType xsi:type="vod:TAPType">DOUBLE</dataType>
+  </column>
+  <column>
+    <name>energy_bounds_width</name>
+    <description>width of the energy bounds</description>
+    <unit>m</unit>
+    <utype>caom2:Plane.energy.bounds.width</utype>
+    <dataType xsi:type="vod:TAPType">DOUBLE</dataType>
+  </column>
+  <column>
+    <name>energy_bounds_integrated</name>
+    <description>sum of width of subsamples</description>
+    <unit>m</unit>
+    <utype>caom2:Plane.energy.bounds.integrated</utype>
+    <dataType xsi:type="vod:TAPType">DOUBLE</dataType>
+  </column>
+  <column>
+    <name>energy_dimension</name>
+    <description>dimension (number of pixels) along energy axis</description>
+    <utype>caom2:Plane.energy.dimension</utype>
+    <dataType xsi:type="vod:TAPType">BIGINT</dataType>
+  </column>
+  <column>
+    <name>energy_resolvingPower</name>
+    <description>median spectral resolving power (R)</description>
+    <utype>caom2:Plane.energy.resolvingPower</utype>
+    <dataType xsi:type="vod:TAPType">DOUBLE</dataType>
+  </column>
+  <column>
+    <name>energy_sampleSize</name>
+    <description>median sample (pixel) size on energy axis</description>
+    <unit>m</unit>
+    <utype>caom2:Plane.energy.sampleSize</utype>
+    <dataType xsi:type="vod:TAPType">DOUBLE</dataType>
+  </column>
+  <column>
+    <name>energy_bandpassName</name>
+    <description>collection-specific name for energy band (e.g. filter name)</description>
+    <utype>caom2:Plane.energy.bandpassName</utype>
+    <dataType xsi:type="vod:TAPType" size="32">VARCHAR</dataType>
+  </column>
+  <column>
+    <name>energy_transition_species</name>
+    <description>atom or molecule</description>
+    <utype>caom2:Plane.energy.transition.species</utype>
+    <dataType xsi:type="vod:TAPType" size="32">VARCHAR</dataType>
+  </column>
+  <column>
+    <name>energy_transition_transition</name>
+    <description>specific energy transition of species</description>
+    <utype>caom2:Plane.energy.transition.transition</utype>
+    <dataType xsi:type="vod:TAPType" size="32">VARCHAR</dataType>
+  </column>
+  <column>
+    <name>energy_freqWidth</name>
+    <description>width of the energy bounds (convenience: in frequency)</description>
+    <unit>Hz</unit>
+    <utype>caom2:Plane.energy.freqWidth</utype>
+    <dataType xsi:type="vod:TAPType">DOUBLE</dataType>
+  </column>
+  <column>
+    <name>energy_freqSampleSize</name>
+    <description>median sample (pixel) size on energy axis (convenience: in frequency)</description>
+    <unit>Hz</unit>
+    <utype>caom2:Plane.energy.freqSampleSize</utype>
+    <dataType xsi:type="vod:TAPType">DOUBLE</dataType>
+  </column>
+  <column>
+    <name>energy_restwav</name>
+    <description>rest wavelength of target spectral feature (barycentric)</description>
+    <unit>m</unit>
+    <utype>caom2:Plane.energy.restwav</utype>
+    <dataType xsi:type="vod:TAPType">DOUBLE</dataType>
+  </column>
+  <column>
+    <name>time_bounds_cval1</name>
+    <description>lower bound on time axis (Modified Julian Day)</description>
+    <unit>d</unit>
+    <utype>caom2:Plane.time.bounds.lower</utype>
+    <dataType xsi:type="vod:TAPType">DOUBLE</dataType>
+  </column>
+  <column>
+    <name>time_bounds_cval2</name>
+    <description>upper bound on time axis (Modified Julian Day)</description>
+    <unit>d</unit>
+    <utype>caom2:Plane.time.bounds.upper</utype>
+    <dataType xsi:type="vod:TAPType">DOUBLE</dataType>
+  </column>
+  <column>
+    <name>time_bounds_width</name>
+    <description>width of the time bounds</description>
+    <unit>d</unit>
+    <utype>caom2:Plane.time.bounds.width</utype>
+    <dataType xsi:type="vod:TAPType">DOUBLE</dataType>
+  </column>
+  <column>
+    <name>time_bounds_integrated</name>
+    <description>sum of width of subsamples</description>
+    <unit>d</unit>
+    <utype>caom2:Plane.time.bounds.100 14709    0 14709    0     0   697k      0 --:--:-- --:--:-- --:--:--  718k
+integrated</utype>
+    <dataType xsi:type="vod:TAPType">DOUBLE</dataType>
+  </column>
+  <column>
+    <name>time_dimension</name>
+    <description>dimension (number of pixels) along time axis</description>
+    <utype>caom2:Plane.time.dimension</utype>
+    <dataType xsi:type="vod:TAPType">BIGINT</dataType>
+  </column>
+  <column>
+    <name>time_resolution</name>
+    <description>median resolution on the time axis</description>
+    <unit>d</unit>
+    <utype>caom2:Plane.time.resolution</utype>
+    <dataType xsi:type="vod:TAPType">DOUBLE</dataType>
+  </column>
+  <column>
+    <name>time_sampleSize</name>
+    <description>median sample (pixel) size on time axis</description>
+    <unit>d</unit>
+    <utype>caom2:Plane.time.sampleSize</utype>
+    <dataType xsi:type="vod:TAPType">DOUBLE</dataType>
+  </column>
+  <column>
+    <name>time_exposure</name>
+    <description>median exposure time per pixel</description>
+    <unit>s</unit>
+    <utype>caom2:Plane.time.exposure</utype>
+    <dataType xsi:type="vod:TAPType">DOUBLE</dataType>
+  </column>
+  <column>
+    <name>polarization_states</name>
+    <description>polarization letter codes in canonical order, separated by /</description>
+    <utype>caom2:Plane.polarization.states</utype>
+    <dataType xsi:type="vod:TAPType" size="32">VARCHAR</dataType>
+  </column>
+  <column>
+    <name>polarization_dimension</name>
+    <description>number of samples (pixels) along polarization axis</description>
+    <utype>caom2:Plane.polarization.dimension</utype>
+    <dataType xsi:type="vod:TAPType">INTEGER</dataType>
+  </column>
+  <column>
+    <name>lastModified</name>
+    <description>timestamp of last modification of this row</description>
+    <utype>caom2:Plane.lastModified</utype>
+    <dataType xsi:type="vod:TAPType">TIMESTAMP</dataType>
+    <flag>indexed</flag>
+  </column>
+  <column>
+    <name>planeURI</name>
+    <description>unique URI for this product</description>
+    <utype>caom2:Plane.uri</utype>
+    <dataType xsi:type="vod:TAPType" size="32">VARCHAR</dataType>
+    <flag>indexed</flag>
+  </column>
+  <foreignKey>
+    <targetTable>caom2.Observation</targetTable>
+    <fkColumn>
+      <fromColumn>obsID</fromColumn>
+      <targetColumn>obsID</targetColumn>
+    </fkColumn>
+    <description>standard way to join the caom2.Observation and caom2.Plane tables</description>
+  </foreignKey>
+</vosi:table>
