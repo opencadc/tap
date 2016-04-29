@@ -1,4 +1,4 @@
-<!--
+/*
 ************************************************************************
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -8,7 +8,7 @@
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 *  All rights reserved                  Tous droits réservés
-*                                       
+*
 *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 *  expressed, implied, or               énoncée, implicite ou légale,
 *  statutory, of any kind with          de quelque nature que ce
@@ -31,10 +31,10 @@
 *  software without specific prior      de ce logiciel sans autorisation
 *  written permission.                  préalable et particulière
 *                                       par écrit.
-*                                       
+*
 *  This file is part of the             Ce fichier fait partie du projet
 *  OpenCADC project.                    OpenCADC.
-*                                       
+*
 *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 *  you can redistribute it and/or       vous pouvez le redistribuer ou le
 *  modify it under the terms of         modifier suivant les termes de
@@ -44,7 +44,7 @@
 *  either version 3 of the              : soit la version 3 de cette
 *  License, or (at your option)         licence, soit (à votre gré)
 *  any later version.                   toute version ultérieure.
-*                                       
+*
 *  OpenCADC is distributed in the       OpenCADC est distribué
 *  hope that it will be useful,         dans l’espoir qu’il vous
 *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -54,7 +54,7 @@
 *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 *  General Public License for           Générale Publique GNU Affero
 *  more details.                        pour plus de détails.
-*                                       
+*
 *  You should have received             Vous devriez avoir reçu une
 *  a copy of the GNU Affero             copie de la Licence Générale
 *  General Public License along         Publique GNU Affero avec
@@ -65,73 +65,60 @@
 *  $Revision: 4 $
 *
 ************************************************************************
--->
+*/
 
+package ca.nrc.cadc.tap.datatype;
 
-<!DOCTYPE project>
-<project default="build" basedir=".">
-	
-    <property environment="env" />
-    <property file="local.build.properties" />
+import ca.nrc.cadc.conformance.uws.TestPropertiesList;
+import ca.nrc.cadc.date.DateUtil;
+import java.io.IOException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import org.apache.log4j.Logger;
+import org.junit.Before;
+import static org.junit.Assert.*;
 
-    <!-- site-specific build properties or overrides of values in opencadc.properties -->
-    <property file="${env.CADC_PREFIX}/etc/local.properties" />
+public class TimestampDatatypeTest extends AbstractDatatypeTest
+{
+    private static Logger log = Logger.getLogger(TimestampDatatypeTest.class);
 
-    <!-- site-specific targets, e.g. install, cannot duplicate those in opencadc.targets.xml -->
-    <import file="${env.CADC_PREFIX}/etc/local.targets.xml" optional="true" />
+    private static final String CLASS_NAME = "TimestampDatatypeTest";
 
-    <!-- default properties and targets -->
-    <property file="${env.CADC_PREFIX}/etc/opencadc.properties" />
-    <import file="${env.CADC_PREFIX}/etc/opencadc.targets.xml"/>
+    public TimestampDatatypeTest()
+    {
+        super();
+        setLoggingLevel(log);
+    }
 
-    <!-- developer convenience: place for extra targets and properties -->
-    <import file="extras.xml" optional="true" />
+    @Before
+    public void before()
+    {
+        super.before();
+        String propertiesDirectory = System.getProperty("properties.directory");
+        if (propertiesDirectory == null)
+            fail("properties.directory System property not set");
+        try
+        {
+            testPropertiesList = new TestPropertiesList(propertiesDirectory, CLASS_NAME);
+        }
+        catch (IOException e)
+        {
+            log.error(e);
+            fail(e.getMessage());
+        }
+    }
 
-    <property name="project" value="cadcTestTAP" />
+    protected void validateResult(String value)
+    {
+        try
+        {
+            DateFormat df = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
+            df.parse(value);
+        }
+        catch (ParseException e)
+        {
+            fail("failed to parse " + value + ": " + e);
+        }
+    }
 
-    <!-- jars from lib -->
-    <property name="cadcDALI" value="${lib}/cadcDALI.jar"/>
-    <property name="cadcTestUWS" value="${lib}/cadcTestUWS.jar"/>
-    <property name="cadcUtil" value="${lib}/cadcUtil.jar"/>
-    <property name="libjars" value="${cadcDALI}:${cadcTestUWS}:${cadcUtil}" />
-    <!-- jars from external lib -->
-    <property name="jdom2" value="${ext.lib}/jdom2.jar"/>
-    <property name="junit" value="${ext.lib}/junit.jar"/>
-    <property name="log4j" value="${ext.lib}/log4j.jar"/>
-    <property name="postgresql" value="${ext.lib}/postgresql-jdbc.jar"/>
-    <property name="extjars" value="${jdom2}:${junit}:${log4j}:${postgresql}" />
-    <!-- jars from external dev lib -->
-    <property name="httpunit" value="${ext.dev}/httpunit.jar"/>
-    <property name="devjars" value="${httpunit}" />
-
-    <property name="jars" value="${libjars}:${extjars}:${devjars}" />
-
-    <target name="build" depends="cadcTestTAP,resources" />
-
-    <target name="cadcTestTAP" depends="compile">
-        <copy todir="${build}/class">
-            <fileset dir="src/resources">
-                <include name="**.xml" />
-                <include name="**.properties" />
-            </fileset>
-        </copy>
-	    <jar jarfile="${build}/lib/${project}.jar"
-		    basedir="${build}/class" 
-		    update="no">
-        </jar>
-    </target>
-
-    <target name="resources">
-        <mkdir dir="${build}/resources/${project}/sql/valid"/>
-        <copy todir="${build}/resources/${project}/sql/valid">
-            <fileset dir="src/sql/valid">
-                <include name="**.sql" />
-            </fileset>
-        </copy>
-    </target>
-
-    <target name="test">
-        <echo message="no tests implemented" />
-    </target>
-	
-</project>
+}

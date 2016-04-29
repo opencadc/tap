@@ -1,4 +1,4 @@
-<!--
+/*
 ************************************************************************
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -8,7 +8,7 @@
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 *  All rights reserved                  Tous droits réservés
-*                                       
+*
 *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 *  expressed, implied, or               énoncée, implicite ou légale,
 *  statutory, of any kind with          de quelque nature que ce
@@ -31,10 +31,10 @@
 *  software without specific prior      de ce logiciel sans autorisation
 *  written permission.                  préalable et particulière
 *                                       par écrit.
-*                                       
+*
 *  This file is part of the             Ce fichier fait partie du projet
 *  OpenCADC project.                    OpenCADC.
-*                                       
+*
 *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 *  you can redistribute it and/or       vous pouvez le redistribuer ou le
 *  modify it under the terms of         modifier suivant les termes de
@@ -44,7 +44,7 @@
 *  either version 3 of the              : soit la version 3 de cette
 *  License, or (at your option)         licence, soit (à votre gré)
 *  any later version.                   toute version ultérieure.
-*                                       
+*
 *  OpenCADC is distributed in the       OpenCADC est distribué
 *  hope that it will be useful,         dans l’espoir qu’il vous
 *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -54,7 +54,7 @@
 *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 *  General Public License for           Générale Publique GNU Affero
 *  more details.                        pour plus de détails.
-*                                       
+*
 *  You should have received             Vous devriez avoir reçu une
 *  a copy of the GNU Affero             copie de la Licence Générale
 *  General Public License along         Publique GNU Affero avec
@@ -65,73 +65,101 @@
 *  $Revision: 4 $
 *
 ************************************************************************
--->
+*/
 
+package ca.nrc.cadc.tap.datatype;
 
-<!DOCTYPE project>
-<project default="build" basedir=".">
-	
-    <property environment="env" />
-    <property file="local.build.properties" />
+import ca.nrc.cadc.conformance.uws.ResultsTest;
+import ca.nrc.cadc.xml.XmlUtil;
+import com.meterware.httpunit.WebConversation;
+import com.meterware.httpunit.WebResponse;
+import java.net.URL;
+import java.util.Iterator;
+import java.util.List;
+import java.util.MissingResourceException;
+import org.apache.log4j.Logger;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.Namespace;
+import org.jdom2.filter.ElementFilter;
+import static org.junit.Assert.*;
+import org.junit.Before;
 
-    <!-- site-specific build properties or overrides of values in opencadc.properties -->
-    <property file="${env.CADC_PREFIX}/etc/local.properties" />
+public abstract class AbstractDatatypeTest extends ResultsTest
+{
+    private static Logger log = Logger.getLogger(AbstractDatatypeTest.class);
+    
+    private static final String VOTABLE_SCHEMA_RESOURCE = "VOTable-v1.2.xsd";
 
-    <!-- site-specific targets, e.g. install, cannot duplicate those in opencadc.targets.xml -->
-    <import file="${env.CADC_PREFIX}/etc/local.targets.xml" optional="true" />
+    private static String votableSchema;
 
-    <!-- default properties and targets -->
-    <property file="${env.CADC_PREFIX}/etc/opencadc.properties" />
-    <import file="${env.CADC_PREFIX}/etc/opencadc.targets.xml"/>
+    public AbstractDatatypeTest()
+    {
+        super();
+    }
 
-    <!-- developer convenience: place for extra targets and properties -->
-    <import file="extras.xml" optional="true" />
+    protected void setLoggingLevel(Logger log) { }
 
-    <property name="project" value="cadcTestTAP" />
+    @Before
+    public void before()
+    {
+        super.before();
+        
+        // Get an URL to the VOTable schema in the jar.
+        URL url = AbstractDatatypeTest.class.getClassLoader().getResource(VOTABLE_SCHEMA_RESOURCE);
+        if (url == null)
+            throw new MissingResourceException("Resource not found: " + VOTABLE_SCHEMA_RESOURCE,
+                                               "TestTest", VOTABLE_SCHEMA_RESOURCE);
+        votableSchema = url.toString();
+        log.debug("VOTable schema url: " + votableSchema);
+    }
 
-    <!-- jars from lib -->
-    <property name="cadcDALI" value="${lib}/cadcDALI.jar"/>
-    <property name="cadcTestUWS" value="${lib}/cadcTestUWS.jar"/>
-    <property name="cadcUtil" value="${lib}/cadcUtil.jar"/>
-    <property name="libjars" value="${cadcDALI}:${cadcTestUWS}:${cadcUtil}" />
-    <!-- jars from external lib -->
-    <property name="jdom2" value="${ext.lib}/jdom2.jar"/>
-    <property name="junit" value="${ext.lib}/junit.jar"/>
-    <property name="log4j" value="${ext.lib}/log4j.jar"/>
-    <property name="postgresql" value="${ext.lib}/postgresql-jdbc.jar"/>
-    <property name="extjars" value="${jdom2}:${junit}:${log4j}:${postgresql}" />
-    <!-- jars from external dev lib -->
-    <property name="httpunit" value="${ext.dev}/httpunit.jar"/>
-    <property name="devjars" value="${httpunit}" />
+    protected void validateResults(List<URL> resultUrls)
+    {
+        try
+        {
+            for (URL url : resultUrls)
+            {
+                // Download the url.
+                WebConversation conversation = new WebConversation();
+                WebResponse response = get(conversation, url.toString(), "application/x-votable+xml");
+                // TODO: content-type is for VOTable
 
-    <property name="jars" value="${libjars}:${extjars}:${devjars}" />
+                // Validate the XML against the schema and get a JDOM Document.
+                log.debug("XML:\r\n" + response.getText());
+                Document document = XmlUtil.buildDocument(response.getText());
 
-    <target name="build" depends="cadcTestTAP,resources" />
+                // Get the table data with the query result.
+                Element root = document.getRootElement();
+                assertNotNull("XML returned from GET of " + url.toString() + " missing root element", root);
+                Namespace namespace = root.getNamespace();
 
-    <target name="cadcTestTAP" depends="compile">
-        <copy todir="${build}/class">
-            <fileset dir="src/resources">
-                <include name="**.xml" />
-                <include name="**.properties" />
-            </fileset>
-        </copy>
-	    <jar jarfile="${build}/lib/${project}.jar"
-		    basedir="${build}/class" 
-		    update="no">
-        </jar>
-    </target>
+                // Iterator of TR elements.
+                Iterator it = root.getDescendants(new ElementFilter("TR", namespace));
+                assertTrue("No TR elements containing query results found", it.hasNext());
 
-    <target name="resources">
-        <mkdir dir="${build}/resources/${project}/sql/valid"/>
-        <copy todir="${build}/resources/${project}/sql/valid">
-            <fileset dir="src/sql/valid">
-                <include name="**.sql" />
-            </fileset>
-        </copy>
-    </target>
+                // Get the first TR Element.
+                Element tr = (Element) it.next();
 
-    <target name="test">
-        <echo message="no tests implemented" />
-    </target>
-	
-</project>
+                // List of TD elements.
+                List list = tr.getChildren("TD", namespace);
+                assertFalse("No TD elements containing query results found", list.isEmpty());
+                assertEquals("Query should only return a single column of data", 1, list.size());
+
+                // Validate the query result.
+                Element td = (Element) list.get(0);
+                if (td.getText() == null || td.getText().trim().length() == 0)
+                    fail(this.getClass().getSimpleName() + ": null or zero length value");
+                validateResult(td.getText());
+            }
+        }
+        catch (Exception unexpected)
+        {
+            log.error("unexpected exception", unexpected);
+            fail("unexpected exception: " + unexpected);
+        }
+    }
+
+    protected void validateResult(String value) {}
+    
+}
