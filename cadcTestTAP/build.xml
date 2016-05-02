@@ -91,9 +91,11 @@
 
     <!-- jars from lib -->
     <property name="cadcDALI" value="${lib}/cadcDALI.jar"/>
+    <property name="cadcReg" value="${lib}/cadcRegistry.jar"/>
     <property name="cadcTestUWS" value="${lib}/cadcTestUWS.jar"/>
     <property name="cadcUtil" value="${lib}/cadcUtil.jar"/>
-    <property name="libjars" value="${cadcDALI}:${cadcTestUWS}:${cadcUtil}" />
+    <property name="cadcUWS" value="${lib}/cadcUWS.jar"/>
+    <property name="libjars" value="${cadcDALI}:${cadcReg}:${cadcTestUWS}:${cadcUtil}:${cadcUWS}" />
     <!-- jars from external lib -->
     <property name="jdom2" value="${ext.lib}/jdom2.jar"/>
     <property name="junit" value="${ext.lib}/junit.jar"/>
