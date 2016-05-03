@@ -141,7 +141,7 @@ public class DefaultFormatFactory implements FormatFactory
         if (datatype.equalsIgnoreCase("adql:DOUBLE"))
             return getDoubleFormat(columnDesc);
 
-        if (datatype.equalsIgnoreCase("adql:CHAR") || datatype.equalsIgnoreCase("adql:CHAR"))
+        if (datatype.equalsIgnoreCase("adql:CHAR") || datatype.equalsIgnoreCase("adql:VARCHAR"))
             return getStringFormat(columnDesc);
 
         if (datatype.equalsIgnoreCase("adql:TIMESTAMP"))

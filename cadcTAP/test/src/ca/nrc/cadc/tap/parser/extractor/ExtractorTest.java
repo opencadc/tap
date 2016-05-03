@@ -178,13 +178,14 @@ public class ExtractorTest
                 if (!isValidQuery)
                     log.debug("expected exception: " + e.getMessage());
                 else
-                    log.error(e);
+                    throw e;
             }
             Assert.assertTrue(isValidQuery != exceptionThrown);
-        } catch (Exception ae)
+        } 
+        catch (Exception unexpected)
         {
-            ae.printStackTrace(System.out);
-            fail(ae.toString());
+            log.error("unexpected exception", unexpected);
+            fail("unexpected exception: " + unexpected);
         }
     }
 

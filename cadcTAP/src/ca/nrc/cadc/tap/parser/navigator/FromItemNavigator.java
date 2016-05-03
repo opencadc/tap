@@ -87,7 +87,7 @@ import net.sf.jsqlparser.statement.select.SubSelect;
  */
 public class FromItemNavigator extends SubNavigator implements FromItemVisitor
 {
-    protected static Logger log = Logger.getLogger(FromItemNavigator.class);
+    private static final Logger log = Logger.getLogger(FromItemNavigator.class);
 
     public FromItemNavigator()
     {

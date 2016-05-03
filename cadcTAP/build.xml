@@ -226,4 +226,18 @@
         </junit>
     </target>
 
+    <!-- convenient to put on of the tests in here to run it alone -->
+    <target name="single-test" depends="compile,compile-test">
+        <junit printsummary="yes" haltonfailure="yes" fork="yes">
+            <classpath>
+                <pathelement path="${resources.dir}"/>
+                <pathelement path="${build}/class"/>
+                <pathelement path="${build}/test/class"/>
+                <pathelement path="${jars}:${testingJars}"/>
+            </classpath>
+            <formatter type="plain" usefile="false"/>
+            
+            <test name="ca.nrc.cadc.tap.parser.extractor.ExtractorTest"/>
+        </junit>
+    </target>
 </project>

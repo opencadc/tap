@@ -97,7 +97,7 @@ import org.apache.log4j.Logger;
 // Prototype: AdqlSelectVisitorProto
 public class SelectNavigator implements SelectVisitor
 {
-    private static Logger log = Logger.getLogger(SelectNavigator.class);
+    private static final Logger log = Logger.getLogger(SelectNavigator.class);
 
     /**
      * Type of plainSelect.
