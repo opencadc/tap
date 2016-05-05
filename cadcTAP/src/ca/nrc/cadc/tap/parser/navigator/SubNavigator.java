@@ -85,19 +85,20 @@ public class SubNavigator implements Cloneable
         // TODO Auto-generated constructor stub
     }
 
-    public SubNavigator clone()
+    /**
+     * TODO - Why are we cloning classes?  This doesn't even maintain the
+     * TODO - members of this class, nor does this even get called anywhere.
+     * TODO - jenkinsd 2016.05.05
+     */
+    @Override
+    public SubNavigator clone() throws CloneNotSupportedException
     {
         SubNavigator rtn = null;
         try
         {
             rtn = this.getClass().newInstance();
         }
-        catch (InstantiationException e)
-        {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        catch (IllegalAccessException e)
+        catch (InstantiationException | IllegalAccessException e)
         {
             // TODO Auto-generated catch block
             e.printStackTrace();

@@ -132,10 +132,10 @@ public class ExpressionNavigator extends SubNavigator implements ExpressionVisit
     {
     }
 
-    public ExpressionNavigator clone()
+    @Override
+    public ExpressionNavigator clone() throws CloneNotSupportedException
     {
-        ExpressionNavigator rtn = (ExpressionNavigator) super.clone();
-        return rtn;
+        return (ExpressionNavigator) super.clone();
     }
 
     /* (non-Javadoc)

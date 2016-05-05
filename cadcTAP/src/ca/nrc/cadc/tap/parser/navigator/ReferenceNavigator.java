@@ -92,10 +92,10 @@ public class ReferenceNavigator extends SubNavigator implements ColumnReferenceV
     {
     }
 
-    public ReferenceNavigator clone()
+    @Override
+    public ReferenceNavigator clone() throws CloneNotSupportedException
     {
-        ReferenceNavigator rtn = (ReferenceNavigator) super.clone();
-        return rtn;
+        return (ReferenceNavigator) super.clone();
     }
 
 

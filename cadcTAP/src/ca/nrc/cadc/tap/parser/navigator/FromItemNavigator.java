@@ -93,10 +93,10 @@ public class FromItemNavigator extends SubNavigator implements FromItemVisitor
     {
     }
 
-    public FromItemNavigator clone()
+    @Override
+    public FromItemNavigator clone() throws CloneNotSupportedException
     {
-        FromItemNavigator rtn = (FromItemNavigator) super.clone();
-        return rtn;
+        return (FromItemNavigator) super.clone();
     }
 
     /* (non-Javadoc)

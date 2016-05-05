@@ -71,6 +71,8 @@ package ca.nrc.cadc.tap.parser.navigator;
 
 import java.util.List;
 import java.util.Stack;
+
+import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.ColumnReference;
@@ -136,6 +138,7 @@ public class SelectNavigator implements SelectVisitor
     {
     }
 
+
     public SelectNavigator(ExpressionNavigator en, ReferenceNavigator rn, FromItemNavigator fn)
     {
         if (en == null)
@@ -144,6 +147,14 @@ public class SelectNavigator implements SelectVisitor
             throw new IllegalArgumentException("BUG: SelectNavigator must haven ReferenceNavigator component");
         if (fn == null)
             throw new IllegalArgumentException("BUG: SelectNavigator must haven FromItemNavigator component");
+
+        /*
+            This is very confusing and has a big code smell potential.  Why are
+            the members being set, and then the arguments having their select
+            navigators set?
+            jenkinsd 2016.05.05
+         */
+
         this.expressionNavigator = en;
         this.referenceNavigator = rn;
         this.fromItemNavigator = fn;
@@ -175,6 +186,21 @@ public class SelectNavigator implements SelectVisitor
         log.debug("visit(PlainSelect) " + plainSelect);
         enterPlainSelect(plainSelect);
 
+        /*
+            TODO - Story 1918
+            TODO -
+            TODO - These need to be explicitly set here for each visit, or the
+            TODO - Expressions accepting the visitor won't have access to the
+            TODO - SelectNavigator instance.  This is weird as passing by
+            TODO - reference should hold it when this is set inside the
+            TODO - constructor.
+            TODO -
+            TODO - jenkinsd 2016.05.05
+         */
+        this.fromItemNavigator.setSelectNavigator(this);
+        this.expressionNavigator.setSelectNavigator(this);
+        this.referenceNavigator.setSelectNavigator(this);
+
         this.visitingPart = VisitingPart.FROM;
         navigateFromItem();
         if (isToStop()) return;
@@ -198,7 +224,8 @@ public class SelectNavigator implements SelectVisitor
         navigateOrderBy();
 
         this.visitingPart = VisitingPart.HAVING;
-        if (this.plainSelect.getHaving() != null) this.plainSelect.getHaving().accept(this.expressionNavigator);
+        final Expression having = this.plainSelect.getHaving();
+        if (having != null) having.accept(this.expressionNavigator);
 
         // other SELECT options
         navigateOthers();

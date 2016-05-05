@@ -69,12 +69,29 @@
 
 package ca.nrc.cadc.tap;
 
+import ca.nrc.cadc.tap.parser.ParserUtil;
+import ca.nrc.cadc.tap.parser.QuerySelectDeParser;
+import ca.nrc.cadc.tap.parser.converter.TableNameConverter;
+import ca.nrc.cadc.tap.parser.extractor.SelectListExpressionExtractor;
+import ca.nrc.cadc.tap.parser.extractor.SelectListExtractor;
+import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
+import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
+import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
 import ca.nrc.cadc.tap.schema.ParamDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.uws.Job;
+import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.select.Select;
+import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
+import net.sf.jsqlparser.util.deparser.SelectDeParser;
+import org.apache.log4j.Logger;
+
+import java.lang.ref.Reference;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  *
@@ -82,8 +99,11 @@ import java.util.Map;
  */
 public abstract class AbstractTapQuery implements TapQuery
 {
+    private static Logger log = Logger.getLogger(AbstractTapQuery.class);
+
     protected Job job;
     protected TapSchema tapSchema;
+    protected Statement statement;
     protected Map<String, TableDesc> extraTables;
     protected Integer maxRowCount;
     
@@ -109,9 +129,86 @@ public abstract class AbstractTapQuery implements TapQuery
         this.maxRowCount = maxRowCount;
     }
 
-    public abstract String getSQL();
-
     public abstract List<ParamDesc> getSelectList();
+
+    abstract void doNavigate();
+
+    abstract ExpressionDeParser getExpressionDeparser(
+            final SelectDeParser selectDeParser,
+            final StringBuffer stringBuffer);
+
+    /**
+     * Run all navigators on a statement.
+     *
+     * @param statement     The statement to navigate.
+     */
+    List<ParamDesc> navigateStatement(final Statement statement,
+                                      final List<SelectNavigator> navigatorList)
+    {
+        final List<ParamDesc> selectList = new ArrayList<ParamDesc>();
+
+        for (final SelectNavigator sn : navigatorList)
+        {
+            log.debug("Navigated by: " + sn.getClass().getName());
+
+            ParserUtil.parseStatement(statement, sn);
+
+            if (sn instanceof SelectListExtractor)
+            {
+                final SelectListExpressionExtractor slen =
+                        (SelectListExpressionExtractor) sn.getExpressionNavigator();
+                selectList.addAll(slen.getSelectList());
+            }
+        }
+
+        return selectList;
+    }
+
+    /**
+     * Provide implementation of select deparser if the default (SelectDeParser) is not sufficient.
+     *
+     * @return  QuerySelectDeParser  instance.
+     */
+    protected QuerySelectDeParser getSelectDeParser()
+    {
+        return new QuerySelectDeParser();
+    }
+
+    void appendExtraTablesNavigator(final List<SelectNavigator> navigatorList,
+                                    final ExpressionNavigator expressionNavigator,
+                                    final ReferenceNavigator referenceNavigator)
+    {
+        // support for file uploads to map the upload table name to the query table name.
+        if (extraTables != null && !extraTables.isEmpty())
+        {
+            TableNameConverter tnc = new TableNameConverter(true);
+            Set<Map.Entry<String, TableDesc>> entries = extraTables.entrySet();
+            for (Map.Entry entry : entries)
+            {
+                String newName = (String) entry.getKey();
+                TableDesc tableDesc = (TableDesc) entry.getValue();
+                tnc.put(tableDesc.tableName, newName);
+                log.debug("TableNameConverter " + tableDesc.tableName + " -> "
+                          + newName);
+            }
+
+            navigatorList.add(new SelectNavigator(expressionNavigator,
+                                                  referenceNavigator, tnc));
+        }
+    }
+
+    public String getSQL()
+    {
+        doNavigate();
+        StringBuffer sb = new StringBuffer();
+        SelectDeParser deParser = getSelectDeParser();
+        deParser.setBuffer(sb);
+        ExpressionDeParser expressionDeParser = getExpressionDeparser(deParser, sb);
+        deParser.setExpressionVisitor(expressionDeParser);
+        Select select = (Select) statement;
+        select.getSelectBody().accept(deParser);
+        return deParser.getBuffer().toString();
+    }
 
     /**
      * The default implementation returns null.
