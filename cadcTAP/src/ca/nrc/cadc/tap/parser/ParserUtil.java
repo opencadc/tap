@@ -116,7 +116,6 @@ public class ParserUtil
     {
         StatementNavigator statementNavigator = new StatementNavigator(sn);
         statement.accept(statementNavigator);
-        return;
     }
 
     /**
@@ -129,11 +128,9 @@ public class ParserUtil
     public static Statement receiveQuery(String query) throws JSQLParserException
     {
         log.debug(query);
-        Statement statement = null;
         StringReader sr = new StringReader(query);
         CCJSqlParserManager sqlParser = new CCJSqlParserManager();
-        statement = sqlParser.parse(sr);
-        return statement;
+        return sqlParser.parse(sr);
     }
 
     /**
@@ -170,7 +167,7 @@ public class ParserUtil
     /**
      * Find "from Table" by table name or alias.
      *
-     * @param plainSelect
+     * @param ps
      * @param tableNameOrAlias
      * @return Table object
      */
@@ -250,7 +247,7 @@ public class ParserUtil
     /**
      * Determine whether Expression parameter is a binary value (0 or 1).
      *
-     * @param Expression
+     * @param expr
      * @return true if parameter is 0/1, false for others.
      */
     public static boolean isBinaryValue(Expression expr)

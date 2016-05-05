@@ -84,21 +84,21 @@ import java.util.Map;
  */
 public interface TapQuery extends TapPlugin
 {
-    public void setExtraTables(Map<String, TableDesc> extraTables);
+    void setExtraTables(Map<String, TableDesc> extraTables);
 
-    public void setTapSchema(TapSchema tapSchema);
+    void setTapSchema(TapSchema tapSchema);
 
     /**
      * Convert the input query parameter(s) into SQL for execution.
      * 
      * @return the SQL query to execute
      */
-    public String getSQL();
+    String getSQL();
 
     /**
      * @return the metadata for columns in the result set
      */
-    public List<ParamDesc> getSelectList();
+    List<ParamDesc> getSelectList();
 
     /**
      * Provide a text description of the relevant part of the query. This should
@@ -109,12 +109,12 @@ public interface TapQuery extends TapPlugin
      * 
      * @return
      */
-    public String getInfo();
+    String getInfo();
 
     /**
      * Limit number of table rows.
      *
      * @param count
      */
-    public void setMaxRowCount(Integer count);
+    void setMaxRowCount(Integer count);
 }
