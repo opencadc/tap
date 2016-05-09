@@ -68,46 +68,24 @@
 
 package ca.nrc.cadc.tap.datatype;
 
-import ca.nrc.cadc.conformance.uws.TestPropertiesList;
 import ca.nrc.cadc.util.Log4jInit;
-import java.io.IOException;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.junit.Before;
 import static org.junit.Assert.*;
 
 public class DoubleArrayDatatypeTest extends AbstractDatatypeTest
 {
     private static Logger log = Logger.getLogger(DoubleArrayDatatypeTest.class);
 
-    private static final String CLASS_NAME = "DoubleArrayDatatypeTest";
-
     static
     {
-        Log4jInit.setLevel("ca.nrc.cadc.cat", Level.INFO);
+        className = "DoubleArrayDatatypeTest";
+        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
     }
     
     public DoubleArrayDatatypeTest()
     {
         super();
-    }
-
-    @Before
-    public void before()
-    {
-        super.before();
-        String propertiesDirectory = System.getProperty("properties.directory");
-        if (propertiesDirectory == null)
-            fail("properties.directory System property not set");
-        try
-        {
-            testPropertiesList = new TestPropertiesList(propertiesDirectory, CLASS_NAME);
-        }
-        catch (IOException e)
-        {
-            log.error(e);
-            fail(e.getMessage());
-        }
     }
 
     protected void validateResult(String value)

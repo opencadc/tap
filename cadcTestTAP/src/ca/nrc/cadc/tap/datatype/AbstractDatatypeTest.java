@@ -69,95 +69,46 @@
 
 package ca.nrc.cadc.tap.datatype;
 
-import ca.nrc.cadc.conformance.uws.ResultsTest;
-import ca.nrc.cadc.xml.XmlUtil;
-import com.meterware.httpunit.WebConversation;
-import com.meterware.httpunit.WebResponse;
-import java.net.URL;
 import java.util.Iterator;
 import java.util.List;
-import java.util.MissingResourceException;
 import org.apache.log4j.Logger;
 import org.jdom2.Document;
 import org.jdom2.Element;
-import org.jdom2.Namespace;
 import org.jdom2.filter.ElementFilter;
-import static org.junit.Assert.*;
-import org.junit.Before;
 
-public abstract class AbstractDatatypeTest extends ResultsTest
+import static org.junit.Assert.*;
+
+public abstract class AbstractDatatypeTest extends SyncResultTest
 {
     private static Logger log = Logger.getLogger(AbstractDatatypeTest.class);
-    
-    private static final String VOTABLE_SCHEMA_RESOURCE = "VOTable-v1.2.xsd";
-
-    private static String votableSchema;
 
     public AbstractDatatypeTest()
     {
         super();
     }
 
-    protected void setLoggingLevel(Logger log) { }
-
-    @Before
-    public void before()
+    @Override
+    protected void validateQueryStatus(String filename, Document document, String status)
     {
-        super.before();
-        
-        // Get an URL to the VOTable schema in the jar.
-        URL url = AbstractDatatypeTest.class.getClassLoader().getResource(VOTABLE_SCHEMA_RESOURCE);
-        if (url == null)
-            throw new MissingResourceException("Resource not found: " + VOTABLE_SCHEMA_RESOURCE,
-                                               "TestTest", VOTABLE_SCHEMA_RESOURCE);
-        votableSchema = url.toString();
-        log.debug("VOTable schema url: " + votableSchema);
-    }
+        super.validateQueryStatus(filename, document, status);
 
-    protected void validateResults(List<URL> resultUrls)
-    {
-        try
-        {
-            for (URL url : resultUrls)
-            {
-                // Download the url.
-                WebConversation conversation = new WebConversation();
-                WebResponse response = get(conversation, url.toString(), "application/x-votable+xml");
-                // TODO: content-type is for VOTable
+        // Iterator of TR elements.
+        Iterator<Element> it = root.getDescendants(new ElementFilter("TR", namespace));
+        assertTrue("No TR elements containing query results found", it.hasNext());
 
-                // Validate the XML against the schema and get a JDOM Document.
-                log.debug("XML:\r\n" + response.getText());
-                Document document = XmlUtil.buildDocument(response.getText());
+        // Get the first TR Element.
+        Element tr = it.next();
 
-                // Get the table data with the query result.
-                Element root = document.getRootElement();
-                assertNotNull("XML returned from GET of " + url.toString() + " missing root element", root);
-                Namespace namespace = root.getNamespace();
+        // List of TD elements.
+        List<Element> list = tr.getChildren("TD", namespace);
+        assertFalse("No TD elements containing query results found", list.isEmpty());
+        assertEquals("Query should only return a single column of data", 1, list.size());
 
-                // Iterator of TR elements.
-                Iterator it = root.getDescendants(new ElementFilter("TR", namespace));
-                assertTrue("No TR elements containing query results found", it.hasNext());
-
-                // Get the first TR Element.
-                Element tr = (Element) it.next();
-
-                // List of TD elements.
-                List list = tr.getChildren("TD", namespace);
-                assertFalse("No TD elements containing query results found", list.isEmpty());
-                assertEquals("Query should only return a single column of data", 1, list.size());
-
-                // Validate the query result.
-                Element td = (Element) list.get(0);
-                if (td.getText() == null || td.getText().trim().length() == 0)
-                    fail(this.getClass().getSimpleName() + ": null or zero length value");
-                validateResult(td.getText());
-            }
-        }
-        catch (Exception unexpected)
-        {
-            log.error("unexpected exception", unexpected);
-            fail("unexpected exception: " + unexpected);
-        }
+        // Validate the query result.
+        Element td = list.get(0);
+        if (td.getText() == null || td.getText().trim().length() == 0)
+            fail(this.getClass().getSimpleName() + ": null or zero length value");
+        validateResult(td.getText());
     }
 
     protected void validateResult(String value) {}
