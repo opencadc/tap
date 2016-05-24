@@ -76,6 +76,7 @@ import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.dali.util.DefaultFormat;
 import ca.nrc.cadc.dali.util.Format;
+import ca.nrc.cadc.dali.util.UUIDFormat;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.ParamDesc;
 import ca.nrc.cadc.uws.Job;
@@ -144,27 +145,40 @@ public class DefaultFormatFactory implements FormatFactory
         if (datatype.equalsIgnoreCase("adql:CHAR") || datatype.equalsIgnoreCase("adql:VARCHAR"))
             return getStringFormat(columnDesc);
 
-        if (datatype.equalsIgnoreCase("adql:TIMESTAMP"))
-            return getTimestampFormat(columnDesc);
-
         if (datatype.equalsIgnoreCase("adql:BINARY") || datatype.equalsIgnoreCase("adql:VARBINARY"))
             return getByteArrayFormat(columnDesc);
 
-        if (datatype.equalsIgnoreCase("adql:POINT"))
-            return getPointFormat(columnDesc);
-
-        if (datatype.equalsIgnoreCase("adql:REGION"))
-            return getRegionFormat(columnDesc);
-
-        if (datatype.equalsIgnoreCase("adql:proto:INTERVAL"))
-                return getIntervalFormat(columnDesc);
-        
         if (datatype.equalsIgnoreCase("adql:CLOB"))
             return getClobFormat(columnDesc);
 
-        // VOTable datatypes in the tap_schema.columns.datatype: legal?
-        // needed if the database has an array of numeric values since
-        // there is no adql equivalent
+        // TAP or DALI xtypes
+        if ( datatype.equalsIgnoreCase("timestamp") // DALI-1.1
+                || datatype.equalsIgnoreCase("adql:TIMESTAMP")) // TAP-1.0
+            return new UTCTimestampFormat();
+
+        if ( datatype.equalsIgnoreCase("point")) // DALI-1.1
+            return getPointFormat(columnDesc);
+        
+        if (datatype.equalsIgnoreCase("circle")) // DALI-1.1
+            return getCircleFormat(columnDesc);
+        
+        if (datatype.equalsIgnoreCase("polygon")) // DALI-1.1
+            return getPolygonFormat(columnDesc);
+        
+        if (datatype.equalsIgnoreCase("adql:POINT")) // TAP-1.0
+            return getPointFormat(columnDesc);
+        
+        if (datatype.equalsIgnoreCase("adql:REGION")) // TAP-1.0
+            return getRegionFormat(columnDesc);
+        
+        if (datatype.equalsIgnoreCase("interval")
+               || datatype.equalsIgnoreCase("adql:proto:INTERVAL"))
+                return getIntervalFormat(columnDesc);
+        
+        if (datatype.equalsIgnoreCase("UUID"))
+            return getUUIDFormat(columnDesc);
+
+        // VOTable datatypes in the tap_schema.columns.datatype
         if (datatype.equalsIgnoreCase("votable:int"))
             if (columnDesc.size != null && columnDesc.size > 1)
                 return getIntArrayFormat(columnDesc);
@@ -203,16 +217,27 @@ public class DefaultFormatFactory implements FormatFactory
         if (datatype == null)
             return getDefaultFormat();
 
-        if (datatype.equalsIgnoreCase("adql:TIMESTAMP"))
+        if ( datatype.equalsIgnoreCase("timestamp") // DALI-1.1
+                || datatype.equalsIgnoreCase("adql:TIMESTAMP")) // TAP-1.0
             return new UTCTimestampFormat();
 
-        if (datatype.equalsIgnoreCase("adql:POINT"))
+        if ( datatype.equalsIgnoreCase("point")) // DALI-1.1
             return getPointFormat(paramDesc.columnDesc);
-
-        if (datatype.equalsIgnoreCase("adql:REGION"))
+        
+        if (datatype.equalsIgnoreCase("circle")) // DALI-1.1
+            return getCircleFormat(paramDesc.columnDesc);
+        
+        if (datatype.equalsIgnoreCase("polygon")) // DALI-1.1
+            return getPolygonFormat(paramDesc.columnDesc);
+        
+        if (datatype.equalsIgnoreCase("adql:POINT")) // TAP-1.0
+            return getPointFormat(paramDesc.columnDesc);
+        
+        if (datatype.equalsIgnoreCase("adql:REGION")) // TAP-1.0
             return getRegionFormat(paramDesc.columnDesc);
         
-        if (datatype.equalsIgnoreCase("adql:proto:INTERVAL"))
+        if (datatype.equalsIgnoreCase("interval")
+               || datatype.equalsIgnoreCase("adql:proto:INTERVAL"))
                 return getIntervalFormat(paramDesc.columnDesc);
 
         return getDefaultFormat();
@@ -332,6 +357,24 @@ public class DefaultFormatFactory implements FormatFactory
      * @param columnDesc
      * @throws UnsupportedOperationException
      */
+    protected Format<Object> getCircleFormat(ColumnDesc columnDesc)
+    {
+        throw new UnsupportedOperationException("no formatter for column " + columnDesc.columnName);
+    }
+    
+    /**
+     * @param columnDesc
+     * @throws UnsupportedOperationException
+     */
+    protected Format<Object> getPolygonFormat(ColumnDesc columnDesc)
+    {
+        throw new UnsupportedOperationException("no formatter for column " + columnDesc.columnName);
+    }
+    
+    /**
+     * @param columnDesc
+     * @throws UnsupportedOperationException
+     */
     protected Format<Object> getRegionFormat(ColumnDesc columnDesc)
     {
         throw new UnsupportedOperationException("no formatter for column " + columnDesc.columnName);
@@ -356,4 +399,13 @@ public class DefaultFormatFactory implements FormatFactory
         return getDefaultFormat();
     }
 
+    /**
+     * @param columnDesc
+     * @return a DefaultFormat
+     * @throws UnsupportedOperationException
+     */
+    protected Format<Object> getUUIDFormat(ColumnDesc columnDesc)
+    {
+        return getDefaultFormat();
+    }
 }
