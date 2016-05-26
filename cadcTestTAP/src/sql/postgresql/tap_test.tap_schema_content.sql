@@ -23,7 +23,7 @@ insert into TAP_SCHEMA.columns (table_name,column_name,description,ucd,unit,data
 ( 'tap_test.AllDataTypes', 't_double', 'double (64-bit)',  NULL, NULL, 'adql:DOUBLE', 1, 1,0,0 ),
 ( 'tap_test.AllDataTypes', 't_date', 'Date',  NULL, NULL, 'adql:TIMESTAMP', NULL, 1,0,0 ),
 ( 'tap_test.AllDataTypes', 't_poly_char', 'TAP 1.0 region in characters', NULL, NULL, 'adql:REGION', NULL, 1,0,0 ),
-( 'tap_test.AllDataTypes', 't_point_char', 'TAP 1.0 point in characters', NULL, NULL, 'adql:POINT', NULL, 1,0,0 ),
+( 'tap_test.AllDataTypes', 't_point_char', 'TAP 1.0 point in characters', NULL, NULL, 'adql:POINT', NULL, 1,0,0 )
 ;
 
 -- compatibility with TAP-1.0: fill "size" column with arraysize values
