@@ -4,7 +4,7 @@ delete from TAP_SCHEMA.columns where table_name = 'tap_test.AllDataTypes';
 delete from TAP_SCHEMA.tables where table_name = 'tap_test.AllDataTypes';
 
 insert into TAP_SCHEMA.tables (schema_name,table_name,description) values
-( 'tap_test', 'TEST.AllDataTypes', 'sample table with all current internal datatypes and one row of values');
+( 'tap_test', 'tap_test.AllDataTypes', 'sample table with all current internal datatypes and one row of values');
 
 insert into TAP_SCHEMA.columns (table_name,column_name,description,ucd,unit,datatype,arraysize,principal,indexed,std) values
 ( 'tap_test.AllDataTypes', 't_char', 'char or char(1)',  NULL, NULL, 'adql:CHAR', NULL, 1,0,0 ),
