@@ -34,6 +34,7 @@ insert into tap_test.AllDataTypes
     t_clob,
     t_char_n, 
     t_string,
+    t_string_64,
     t_unsignedByte_1, 
     t_blob,          
     t_unsignedByte_n,
@@ -57,6 +58,8 @@ values
 'fixedlen',
 -- string with variable length
 'variable length character string',
+-- string with variable length with length set to 64 max.
+'variable length character string with length set to 64 max.',
 -- single quote in binary
 '''',
 -- BLOB
@@ -85,3 +88,62 @@ Point('GALACTIC', 10, 20)
 )
 ;
 
+
+insert into tap_test.AllDataTypes 
+(
+    t_char,
+    t_clob,
+    t_char_n, 
+    t_string,
+    t_string_64,
+    t_unsignedByte_1, 
+    t_blob,          
+    t_unsignedByte_n,
+    t_unsignedByte_n_any,
+    t_short,            
+    t_int,             
+    t_long,           
+    t_float,         
+    t_double,       
+    t_date,        
+    t_poly_char,  
+    t_point_char
+) 
+values
+( 
+-- a row of NULL values
+NULL,
+-- CLOB
+NULL,
+-- string with fixed length
+NULL,
+-- string with variable length
+NULL,
+-- string with variable length with length set to 64 max.
+NULL,
+-- single quote in binary
+NULL,
+-- BLOB
+NULL,
+-- binary with fixed length
+NULL,
+-- array of binary
+NULL,
+-- short
+NULL,
+-- int
+NULL,
+-- long
+NULL,
+-- float
+NULL,
+-- double
+NULL,
+-- date aka timestamp in IVOA ISO8601 format
+NULL,
+-- poly
+NULL,
+-- point
+NULL
+)
+;
