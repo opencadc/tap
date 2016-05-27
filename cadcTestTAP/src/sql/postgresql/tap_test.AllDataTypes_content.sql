@@ -7,11 +7,11 @@ drop table tap_test.AllDataTypes;
 
 create table tap_test.AllDataTypes
 (
-    t_char                char,
-    t_clob                varchar,
-    t_char_n              char(8),
-    t_string              varchar,
-    t_string_n            varchar(64),
+    t_char                character,
+    t_clob                character varying,
+    t_char_n              character(8),
+    t_string              character varying,
+    t_string_n            character varying(64),
     t_unsignedByte_1      bytea,
     t_blob                bytea,
     t_unsignedByte_n      bytea(16),
