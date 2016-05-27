@@ -53,8 +53,8 @@ values
 ( 
 -- single character
 'h',
--- CLOB
-'test data for character large object, CLOB',
+-- CLOB, an accessURL
+'ad:CFHT/1530283p',
 -- string with fixed length
 'fixedlen',
 -- string with variable length
