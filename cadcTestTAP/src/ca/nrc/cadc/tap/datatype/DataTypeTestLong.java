@@ -76,17 +76,17 @@ import ca.nrc.cadc.util.Log4jInit;
 
 import static org.junit.Assert.*;
 
-public class DatatypeTestInt extends AbstractDatatypeTest
+public class DataTypeTestLong extends AbstractDatatypeTest
 {
-    private static Logger log = Logger.getLogger(DatatypeTestInt.class);
+    private static Logger log = Logger.getLogger(DataTypeTestLong.class);
 
     static
     {
-        className = "DatatypeTestInt";
+        className = "DataTypeTestLong";
         Log4jInit.setLevel("ca.nrc.cadc.tap", Level.DEBUG);
     }
 
-    public DatatypeTestInt()
+    public DataTypeTestLong()
     {
         super();
     }
@@ -95,14 +95,14 @@ public class DatatypeTestInt extends AbstractDatatypeTest
     {
         try
         {
-            new Integer(value);
+            new Long(value);
         }
         catch (NumberFormatException e)
         {
             log.error(e);
             fail(e.getMessage());
         }
-        log.info("DatatypeTestInt.validateResult passed.");
+        log.info("DataTypeTestLong.validateResult passed.");
     }
 
 }

@@ -76,17 +76,17 @@ import ca.nrc.cadc.util.Log4jInit;
 
 import static org.junit.Assert.*;
 
-public class DatatypeTestBlob extends AbstractDatatypeTest
+public class DataTypeTestBlob extends AbstractDatatypeTest
 {
-    private static Logger log = Logger.getLogger(DatatypeTestBlob.class);
+    private static Logger log = Logger.getLogger(DataTypeTestBlob.class);
 
     static
     {
-        className = "DatatypeTestBlob";
+        className = "DataTypeTestBlob";
         Log4jInit.setLevel("ca.nrc.cadc.tap", Level.DEBUG);
     }
 
-    public DatatypeTestBlob()
+    public DataTypeTestBlob()
     {
         super();
     }
@@ -97,7 +97,7 @@ public class DatatypeTestBlob extends AbstractDatatypeTest
     	{
     		fail("Data is not a blob.");
     	}
-        log.info("DatatypeTestBlob.validateResult passed.");
+        log.info("DataTypeTestBlob.validateResult passed.");
     }
 
 }

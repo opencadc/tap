@@ -69,35 +69,47 @@
 
 package ca.nrc.cadc.tap.datatype;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-
+import ca.nrc.cadc.stc.Position;
+import ca.nrc.cadc.stc.Region;
+import ca.nrc.cadc.stc.STC;
+import ca.nrc.cadc.stc.StcsParsingException;
 import ca.nrc.cadc.util.Log4jInit;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import static org.junit.Assert.*;
 
-public class DatatypeTestChar extends AbstractDatatypeTest
+public class DataTypeTestPoint extends AbstractDatatypeTest
 {
-    private static Logger log = Logger.getLogger(DatatypeTestChar.class);
+    private static Logger log = Logger.getLogger(DataTypeTestPoint.class);
 
     static
     {
-        className = "DatatypeTestChar";
-        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.DEBUG);
+        className = "DataTypeTestPoint";
+        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
     }
 
-    public DatatypeTestChar()
+    public DataTypeTestPoint()
     {
         super();
     }
 
     protected void validateResult(String value)
     {
-    	if (value == null || value.length() != 1)
-    	{
-    		fail("Data is not a character.");
-    	}
-        log.info("DatatypeTestChar.validateResult passed.");
+        try
+        {
+            Region region = STC.parse(value);
+            if ((region == null) || !(region instanceof Position))
+            {
+            	fail("Data type is a point.");
+            }
+        }
+        catch (StcsParsingException e)
+        {
+            log.error(e);
+            fail(e.getMessage());
+        }
+        log.info("DataTypeTestPoint.validateResult passed.");
     }
 
 }

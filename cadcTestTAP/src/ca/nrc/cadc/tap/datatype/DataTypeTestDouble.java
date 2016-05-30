@@ -69,27 +69,24 @@
 
 package ca.nrc.cadc.tap.datatype;
 
-import ca.nrc.cadc.stc.Polygon;
-import ca.nrc.cadc.stc.Region;
-import ca.nrc.cadc.stc.STC;
-import ca.nrc.cadc.stc.StcsParsingException;
-import ca.nrc.cadc.util.Log4jInit;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.util.Log4jInit;
+
 import static org.junit.Assert.*;
 
-public class DatatypeTestPoly extends AbstractDatatypeTest
+public class DataTypeTestDouble extends AbstractDatatypeTest
 {
-    private static Logger log = Logger.getLogger(DatatypeTestPoly.class);
+    private static Logger log = Logger.getLogger(DataTypeTestDouble.class);
 
     static
     {
-        className = "DatatypeTestPoly";
-        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
+        className = "DataTypeTestDouble";
+        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.DEBUG);
     }
 
-    public DatatypeTestPoly()
+    public DataTypeTestDouble()
     {
         super();
     }
@@ -98,18 +95,14 @@ public class DatatypeTestPoly extends AbstractDatatypeTest
     {
         try
         {
-            Region region = STC.parse(value);
-            if ((region == null) || !(region instanceof Polygon))
-            {
-            	fail("Data type is a polygon.");
-            }
+            new Double(value);
         }
-        catch (StcsParsingException e)
+        catch (NumberFormatException e)
         {
             log.error(e);
             fail(e.getMessage());
         }
-        log.info("DatatypeTestPoly.validateResult passed.");
+        log.info("DataTypeTestDouble.validateResult passed.");
     }
 
 }

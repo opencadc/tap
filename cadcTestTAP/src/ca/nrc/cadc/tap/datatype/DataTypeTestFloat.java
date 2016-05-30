@@ -76,28 +76,33 @@ import ca.nrc.cadc.util.Log4jInit;
 
 import static org.junit.Assert.*;
 
-public class DatatypeTestBinary extends AbstractDatatypeTest
+public class DataTypeTestFloat extends AbstractDatatypeTest
 {
-    private static Logger log = Logger.getLogger(DatatypeTestBinary.class);
+    private static Logger log = Logger.getLogger(DataTypeTestFloat.class);
 
     static
     {
-        className = "DatatypeTestBinary";
+        className = "DataTypeTestFloat";
         Log4jInit.setLevel("ca.nrc.cadc.tap", Level.DEBUG);
     }
 
-    public DatatypeTestBinary()
+    public DataTypeTestFloat()
     {
         super();
     }
 
     protected void validateResult(String value)
     {
-    	if (value == null || value.length() != 1)
-    	{
-    		fail("Data is not a binary.");
-    	}
-        log.info("DatatypeTestBinary.validateResult passed.");
+        try
+        {
+            new Float(value);
+        }
+        catch (NumberFormatException e)
+        {
+            log.error(e);
+            fail(e.getMessage());
+        }
+        log.info("DataTypeTestFloat.validateResult passed.");
     }
 
 }

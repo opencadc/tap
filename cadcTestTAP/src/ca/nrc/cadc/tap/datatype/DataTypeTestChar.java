@@ -76,33 +76,28 @@ import ca.nrc.cadc.util.Log4jInit;
 
 import static org.junit.Assert.*;
 
-public class DatatypeTestDouble extends AbstractDatatypeTest
+public class DataTypeTestChar extends AbstractDatatypeTest
 {
-    private static Logger log = Logger.getLogger(DatatypeTestDouble.class);
+    private static Logger log = Logger.getLogger(DataTypeTestChar.class);
 
     static
     {
-        className = "DatatypeTestDouble";
+        className = "DataTypeTestChar";
         Log4jInit.setLevel("ca.nrc.cadc.tap", Level.DEBUG);
     }
 
-    public DatatypeTestDouble()
+    public DataTypeTestChar()
     {
         super();
     }
 
     protected void validateResult(String value)
     {
-        try
-        {
-            new Double(value);
-        }
-        catch (NumberFormatException e)
-        {
-            log.error(e);
-            fail(e.getMessage());
-        }
-        log.info("DatatypeTestDouble.validateResult passed.");
+    	if (value == null || value.length() != 1)
+    	{
+    		fail("Data is not a character.");
+    	}
+        log.info("DataTypeTestChar.validateResult passed.");
     }
 
 }

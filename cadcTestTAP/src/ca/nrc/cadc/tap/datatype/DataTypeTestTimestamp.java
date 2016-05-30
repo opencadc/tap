@@ -69,27 +69,27 @@
 
 package ca.nrc.cadc.tap.datatype;
 
-import ca.nrc.cadc.stc.Position;
-import ca.nrc.cadc.stc.Region;
-import ca.nrc.cadc.stc.STC;
-import ca.nrc.cadc.stc.StcsParsingException;
+import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.util.Log4jInit;
+
+import java.text.DateFormat;
+import java.text.ParseException;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import static org.junit.Assert.*;
 
-public class DatatypeTestPoint extends AbstractDatatypeTest
+public class DataTypeTestTimestamp extends AbstractDatatypeTest
 {
-    private static Logger log = Logger.getLogger(DatatypeTestPoint.class);
+    private static Logger log = Logger.getLogger(DataTypeTestTimestamp.class);
 
     static
     {
-        className = "DatatypeTestPoint";
+        className = "DataTypeTestTimestamp";
         Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
     }
 
-    public DatatypeTestPoint()
+    public DataTypeTestTimestamp()
     {
         super();
     }
@@ -98,18 +98,14 @@ public class DatatypeTestPoint extends AbstractDatatypeTest
     {
         try
         {
-            Region region = STC.parse(value);
-            if ((region == null) || !(region instanceof Position))
-            {
-            	fail("Data type is a point.");
-            }
+            DateFormat df = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
+            df.parse(value);
         }
-        catch (StcsParsingException e)
+        catch (ParseException e)
         {
-            log.error(e);
-            fail(e.getMessage());
+            fail("failed to parse " + value + ": " + e);
         }
-        log.info("DatatypeTestPoint.validateResult passed.");
+        log.info("DataTypeTestShort.validateResult passed.");
     }
 
 }

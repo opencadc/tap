@@ -76,17 +76,17 @@ import ca.nrc.cadc.util.Log4jInit;
 
 import static org.junit.Assert.*;
 
-public class DatatypeTestClob extends AbstractDatatypeTest
+public class DataTypeTestVarchar extends AbstractDatatypeTest
 {
-    private static Logger log = Logger.getLogger(DatatypeTestClob.class);
+    private static Logger log = Logger.getLogger(DataTypeTestVarchar.class);
 
     static
     {
-        className = "DatatypeTestClob";
+        className = "DataTypeTestVarchar";
         Log4jInit.setLevel("ca.nrc.cadc.tap", Level.DEBUG);
     }
 
-    public DatatypeTestClob()
+    public DataTypeTestVarchar()
     {
         super();
     }
@@ -95,9 +95,9 @@ public class DatatypeTestClob extends AbstractDatatypeTest
     {
     	if (value == null || value.length() == 0)
     	{
-    		fail("Data is not a clob.");
+    		fail("Data is not a varchar.");
     	}
-        log.info("DatatypeTestClob.validateResult passed.");
+        log.info("DataTypeTestVarchar.validateResult passed.");
     }
 
 }

@@ -76,28 +76,33 @@ import ca.nrc.cadc.util.Log4jInit;
 
 import static org.junit.Assert.*;
 
-public class DatatypeTestCharFixedLength extends AbstractDatatypeTest
+public class DataTypeTestShort extends AbstractDatatypeTest
 {
-    private static Logger log = Logger.getLogger(DatatypeTestCharFixedLength.class);
+    private static Logger log = Logger.getLogger(DataTypeTestShort.class);
 
     static
     {
-        className = "DatatypeTestCharFixedLength";
+        className = "DataTypeTestShort";
         Log4jInit.setLevel("ca.nrc.cadc.tap", Level.DEBUG);
     }
 
-    public DatatypeTestCharFixedLength()
+    public DataTypeTestShort()
     {
         super();
     }
 
     protected void validateResult(String value)
     {
-    	if (value == null || value.length() == 0)
-    	{
-    		fail("Data is not a string with fixed length.");
-    	}
-        log.info("DatatypeTestCharFixedLength.validateResult passed.");
+        try
+        {
+            new Short(value);
+        }
+        catch (NumberFormatException e)
+        {
+            log.error(e);
+            fail(e.getMessage());
+        }
+        log.info("DataTypeTestShort.validateResult passed.");
     }
 
 }

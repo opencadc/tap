@@ -76,33 +76,38 @@ import ca.nrc.cadc.util.Log4jInit;
 
 import static org.junit.Assert.*;
 
-public class DatatypeTestShort extends AbstractDatatypeTest
+public class DataTypeTestVarcharArray extends AbstractDatatypeTest
 {
-    private static Logger log = Logger.getLogger(DatatypeTestShort.class);
+    private static Logger log = Logger.getLogger(DataTypeTestVarcharArray.class);
 
     static
     {
-        className = "DatatypeTestShort";
+        className = "DataTypeTestVarcharArray";
         Log4jInit.setLevel("ca.nrc.cadc.tap", Level.DEBUG);
     }
 
-    public DatatypeTestShort()
+    public DataTypeTestVarcharArray()
     {
         super();
     }
 
     protected void validateResult(String value)
     {
-        try
+        String[] values = value.split(" ");
+        if (values.length == 0)
         {
-            new Short(value);
+    		fail("Data is not a varchar array.");	
         }
-        catch (NumberFormatException e)
+        
+        for (int i = 0; i < values.length; i++)
         {
-            log.error(e);
-            fail(e.getMessage());
+	        if (values[i] == null || values[i].length() == 0)
+	    	{
+	    		fail("Data is not a varchar array.");
+	    	}
         }
-        log.info("DatatypeTestShort.validateResult passed.");
+        
+        log.info("DataTypeTestVarcharArray.validateResult passed.");
     }
 
 }

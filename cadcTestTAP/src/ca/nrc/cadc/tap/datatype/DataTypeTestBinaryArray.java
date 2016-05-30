@@ -76,28 +76,38 @@ import ca.nrc.cadc.util.Log4jInit;
 
 import static org.junit.Assert.*;
 
-public class DatatypeTestVarchar extends AbstractDatatypeTest
+public class DataTypeTestBinaryArray extends AbstractDatatypeTest
 {
-    private static Logger log = Logger.getLogger(DatatypeTestVarchar.class);
+    private static Logger log = Logger.getLogger(DataTypeTestBinaryArray.class);
 
     static
     {
-        className = "DatatypeTestVarchar";
+        className = "DataTypeTestBinaryArray";
         Log4jInit.setLevel("ca.nrc.cadc.tap", Level.DEBUG);
     }
 
-    public DatatypeTestVarchar()
+    public DataTypeTestBinaryArray()
     {
         super();
     }
 
     protected void validateResult(String value)
     {
-    	if (value == null || value.length() == 0)
-    	{
-    		fail("Data is not a varchar.");
-    	}
-        log.info("DatatypeTestVarchar.validateResult passed.");
+        String[] values = value.split(" ");
+        if (values.length == 0)
+        {
+    		fail("Data is not a binary array.");	
+        }
+        
+        for (int i = 0; i < values.length; i++)
+        {
+	        if (values[i] == null || values[i].length() == 0)
+	    	{
+	    		fail("Data is not a binary array.");
+	    	}
+        }
+        
+        log.info("DataTypeTestBinaryArray.validateResult passed.");
     }
 
 }

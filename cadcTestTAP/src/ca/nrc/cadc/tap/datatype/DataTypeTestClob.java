@@ -69,43 +69,35 @@
 
 package ca.nrc.cadc.tap.datatype;
 
-import ca.nrc.cadc.date.DateUtil;
-import ca.nrc.cadc.util.Log4jInit;
-
-import java.text.DateFormat;
-import java.text.ParseException;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.util.Log4jInit;
+
 import static org.junit.Assert.*;
 
-public class DatatypeTestTimestamp extends AbstractDatatypeTest
+public class DataTypeTestClob extends AbstractDatatypeTest
 {
-    private static Logger log = Logger.getLogger(DatatypeTestTimestamp.class);
+    private static Logger log = Logger.getLogger(DataTypeTestClob.class);
 
     static
     {
-        className = "DatatypeTestTimestamp";
-        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
+        className = "DataTypeTestClob";
+        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.DEBUG);
     }
 
-    public DatatypeTestTimestamp()
+    public DataTypeTestClob()
     {
         super();
     }
 
     protected void validateResult(String value)
     {
-        try
-        {
-            DateFormat df = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
-            df.parse(value);
-        }
-        catch (ParseException e)
-        {
-            fail("failed to parse " + value + ": " + e);
-        }
-        log.info("DatatypeTestShort.validateResult passed.");
+    	if (value == null || value.length() == 0)
+    	{
+    		fail("Data is not a clob.");
+    	}
+        log.info("DataTypeTestClob.validateResult passed.");
     }
 
 }
