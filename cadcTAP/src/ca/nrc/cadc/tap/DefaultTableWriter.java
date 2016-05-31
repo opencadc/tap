@@ -373,7 +373,7 @@ public class DefaultTableWriter implements TableWriter
             newField.ucd = paramDesc.ucd;
             newField.unit = paramDesc.unit;
 
-            if (paramDesc.datatype != null && paramDesc.datatype.startsWith("adql:"))
+            if (paramDesc.datatype != null && !paramDesc.datatype.startsWith("votable:"))
                 newField.xtype = paramDesc.datatype;
 
             newField.description = paramDesc.description;
@@ -522,6 +522,27 @@ public class DefaultTableWriter implements TableWriter
         {
             return "char";
         }
+        
+        if (datatype.equals("point"))
+        {
+            return "double";
+        }
+        else if (datatype.equals("circle"))
+        {
+            return "double";
+        }
+        else if (datatype.equals("polygon"))
+        {
+            return "double";
+        }
+        else if (datatype.equals("interval"))
+        {
+            return "double";
+        }
+        else if (datatype.equals("UUID"))
+        {
+            return "char";
+        }
 
         return null;
     }
@@ -643,6 +664,27 @@ public class DefaultTableWriter implements TableWriter
         else if (datatype.equals("votable:char*"))
         {
             field.setVariableSize(true);
+        }
+        
+        if (datatype.equals("point"))
+        {
+            field.setArraysize(2);
+        }
+        else if (datatype.equals("circle"))
+        {
+            field.setArraysize(3);
+        }
+        else if (datatype.equals("polygon"))
+        {
+            field.setVariableSize(true);
+        }
+        else if (datatype.equals("interval"))
+        {
+            field.setArraysize(2);
+        }
+        else if (datatype.equals("UUID"))
+        {
+            field.setArraysize(36);
         }
     }
 
