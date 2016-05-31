@@ -83,7 +83,7 @@ public class DataTypeTestVarchar extends AbstractDatatypeTest
     static
     {
         className = "DataTypeTestVarchar";
-        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
     }
 
     public DataTypeTestVarchar()

@@ -69,47 +69,45 @@
 
 package ca.nrc.cadc.tap.datatype;
 
-import ca.nrc.cadc.stc.Polygon;
-import ca.nrc.cadc.stc.Region;
-import ca.nrc.cadc.stc.STC;
-import ca.nrc.cadc.stc.StcsParsingException;
-import ca.nrc.cadc.util.Log4jInit;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.util.Log4jInit;
+
 import static org.junit.Assert.*;
 
-public class DataTypeTestPoly extends AbstractDatatypeTest
+public class DataTypeTestFixedLengthVarchar extends AbstractDatatypeTest
 {
-    private static Logger log = Logger.getLogger(DataTypeTestPoly.class);
+    private static Logger log = Logger.getLogger(DataTypeTestFixedLengthVarchar.class);
 
     static
     {
-        className = "DataTypeTestPoly";
+        className = "DataTypeTestFixedLengthVarchar";
         Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
     }
 
-    public DataTypeTestPoly()
+    public DataTypeTestFixedLengthVarchar()
     {
         super();
     }
 
     protected void validateResult(String value)
     {
-        try
+        String[] values = value.split(" ");
+        if (values.length == 0)
         {
-            Region region = STC.parse(value);
-            if ((region == null) || !(region instanceof Polygon))
-            {
-            	fail("Data type is a polygon.");
-            }
+    		fail("Data is not a fixed length varchar.");	
         }
-        catch (StcsParsingException e)
+        
+        for (int i = 0; i < values.length; i++)
         {
-            log.error(e);
-            fail(e.getMessage());
+	        if (values[i] == null || values[i].length() == 0)
+	    	{
+	    		fail("Data is not a fixed length varchar.");
+	    	}
         }
-        log.info("DataTypeTestPoly.validateResult passed.");
+        
+        log.info("DataTypeTestFixedLengthVarchar.validateResult passed.");
     }
 
 }

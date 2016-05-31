@@ -69,47 +69,35 @@
 
 package ca.nrc.cadc.tap.datatype;
 
-import ca.nrc.cadc.stc.Position;
-import ca.nrc.cadc.stc.Region;
-import ca.nrc.cadc.stc.STC;
-import ca.nrc.cadc.stc.StcsParsingException;
-import ca.nrc.cadc.util.Log4jInit;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.util.Log4jInit;
+
 import static org.junit.Assert.*;
 
-public class DataTypeTestPoint extends AbstractDatatypeTest
+public class DataTypeTestVarbinary extends AbstractDatatypeTest
 {
-    private static Logger log = Logger.getLogger(DataTypeTestPoint.class);
+    private static Logger log = Logger.getLogger(DataTypeTestVarbinary.class);
 
     static
     {
-        className = "DataTypeTestPoint";
+        className = "DataTypeTestVarbinary";
         Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
     }
 
-    public DataTypeTestPoint()
+    public DataTypeTestVarbinary()
     {
         super();
     }
 
     protected void validateResult(String value)
     {
-        try
-        {
-            Region region = STC.parse(value);
-            if ((region == null) || !(region instanceof Position))
-            {
-            	fail("Data type is a point.");
-            }
-        }
-        catch (StcsParsingException e)
-        {
-            log.error(e);
-            fail(e.getMessage());
-        }
-        log.info("DataTypeTestPoint.validateResult passed.");
+    	if (value == null || value.length() == 0)
+    	{
+    		fail("Data is not a varbinary.");
+    	}
+        log.info("DataTypeTestVarbinary.validateResult passed.");
     }
 
 }

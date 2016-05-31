@@ -76,33 +76,28 @@ import ca.nrc.cadc.util.Log4jInit;
 
 import static org.junit.Assert.*;
 
-public class DataTypeTestFloat extends AbstractDatatypeTest
+public class DataTypeTestFixedLengthBinary extends AbstractDatatypeTest
 {
-    private static Logger log = Logger.getLogger(DataTypeTestFloat.class);
+    private static Logger log = Logger.getLogger(DataTypeTestFixedLengthBinary.class);
 
     static
     {
-        className = "DataTypeTestFloat";
+        className = "DataTypeTestFixedLengthBinary";
         Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
     }
 
-    public DataTypeTestFloat()
+    public DataTypeTestFixedLengthBinary()
     {
         super();
     }
 
     protected void validateResult(String value)
     {
-        try
-        {
-            new Float(value);
-        }
-        catch (NumberFormatException e)
-        {
-            log.error(e);
-            fail(e.getMessage());
-        }
-        log.info("DataTypeTestFloat.validateResult passed.");
+    	if (value == null || value.length() == 0)
+    	{
+    		fail("Data is not a fixed length binary.");
+    	}
+        log.info("DataTypeTestFixedLengthBinary.validateResult passed.");
     }
 
 }

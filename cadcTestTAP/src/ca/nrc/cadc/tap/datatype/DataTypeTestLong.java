@@ -83,7 +83,7 @@ public class DataTypeTestLong extends AbstractDatatypeTest
     static
     {
         className = "DataTypeTestLong";
-        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
     }
 
     public DataTypeTestLong()

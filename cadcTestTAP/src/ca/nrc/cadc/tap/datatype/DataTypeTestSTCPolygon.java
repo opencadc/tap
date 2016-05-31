@@ -69,45 +69,47 @@
 
 package ca.nrc.cadc.tap.datatype;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-
+import ca.nrc.cadc.stc.Polygon;
+import ca.nrc.cadc.stc.Region;
+import ca.nrc.cadc.stc.STC;
+import ca.nrc.cadc.stc.StcsParsingException;
 import ca.nrc.cadc.util.Log4jInit;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import static org.junit.Assert.*;
 
-public class DataTypeTestBinaryArray extends AbstractDatatypeTest
+public class DataTypeTestSTCPolygon extends AbstractDatatypeTest
 {
-    private static Logger log = Logger.getLogger(DataTypeTestBinaryArray.class);
+    private static Logger log = Logger.getLogger(DataTypeTestSTCPolygon.class);
 
     static
     {
-        className = "DataTypeTestBinaryArray";
-        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.DEBUG);
+        className = "DataTypeTestSTCPolygon";
+        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
     }
 
-    public DataTypeTestBinaryArray()
+    public DataTypeTestSTCPolygon()
     {
         super();
     }
 
     protected void validateResult(String value)
     {
-        String[] values = value.split(" ");
-        if (values.length == 0)
+        try
         {
-    		fail("Data is not a binary array.");	
+            Region region = STC.parse(value);
+            if ((region == null) || !(region instanceof Polygon))
+            {
+            	fail("Data type is an STC polygon.");
+            }
         }
-        
-        for (int i = 0; i < values.length; i++)
+        catch (StcsParsingException e)
         {
-	        if (values[i] == null || values[i].length() == 0)
-	    	{
-	    		fail("Data is not a binary array.");
-	    	}
+            log.error(e);
+            fail(e.getMessage());
         }
-        
-        log.info("DataTypeTestBinaryArray.validateResult passed.");
+        log.info("DataTypeTestSTCPolygon.validateResult passed.");
     }
 
 }

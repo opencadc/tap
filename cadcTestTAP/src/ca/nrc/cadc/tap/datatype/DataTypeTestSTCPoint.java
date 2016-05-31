@@ -69,35 +69,47 @@
 
 package ca.nrc.cadc.tap.datatype;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-
+import ca.nrc.cadc.stc.Position;
+import ca.nrc.cadc.stc.Region;
+import ca.nrc.cadc.stc.STC;
+import ca.nrc.cadc.stc.StcsParsingException;
 import ca.nrc.cadc.util.Log4jInit;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import static org.junit.Assert.*;
 
-public class DataTypeTestCharFixedLength extends AbstractDatatypeTest
+public class DataTypeTestSTCPoint extends AbstractDatatypeTest
 {
-    private static Logger log = Logger.getLogger(DataTypeTestCharFixedLength.class);
+    private static Logger log = Logger.getLogger(DataTypeTestSTCPoint.class);
 
     static
     {
-        className = "DataTypeTestCharFixedLength";
-        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.DEBUG);
+        className = "DataTypeTestSTCPoint";
+        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
     }
 
-    public DataTypeTestCharFixedLength()
+    public DataTypeTestSTCPoint()
     {
         super();
     }
 
     protected void validateResult(String value)
     {
-    	if (value == null || value.length() == 0)
-    	{
-    		fail("Data is not a string with fixed length.");
-    	}
-        log.info("DataTypeTestCharFixedLength.validateResult passed.");
+        try
+        {
+            Region region = STC.parse(value);
+            if ((region == null) || !(region instanceof Position))
+            {
+            	fail("Data type is an STC point.");
+            }
+        }
+        catch (StcsParsingException e)
+        {
+            log.error(e);
+            fail(e.getMessage());
+        }
+        log.info("DataTypeTestSTCPoint.validateResult passed.");
     }
 
 }

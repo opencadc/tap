@@ -76,38 +76,28 @@ import ca.nrc.cadc.util.Log4jInit;
 
 import static org.junit.Assert.*;
 
-public class DataTypeTestVarcharArray extends AbstractDatatypeTest
+public class DataTypeTestFixedLengthVarbinary extends AbstractDatatypeTest
 {
-    private static Logger log = Logger.getLogger(DataTypeTestVarcharArray.class);
+    private static Logger log = Logger.getLogger(DataTypeTestFixedLengthVarbinary.class);
 
     static
     {
-        className = "DataTypeTestVarcharArray";
-        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.DEBUG);
+        className = "DataTypeTestFixedLengthVarbinary";
+        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
     }
 
-    public DataTypeTestVarcharArray()
+    public DataTypeTestFixedLengthVarbinary()
     {
         super();
     }
 
     protected void validateResult(String value)
     {
-        String[] values = value.split(" ");
-        if (values.length == 0)
-        {
-    		fail("Data is not a varchar array.");	
-        }
-        
-        for (int i = 0; i < values.length; i++)
-        {
-	        if (values[i] == null || values[i].length() == 0)
-	    	{
-	    		fail("Data is not a varchar array.");
-	    	}
-        }
-        
-        log.info("DataTypeTestVarcharArray.validateResult passed.");
+    	if (value == null || value.length() == 0)
+    	{
+    		fail("Data is not a fixed length varbinary.");
+    	}
+        log.info("DataTypeTestFixedLengthVarbinary.validateResult passed.");
     }
 
 }

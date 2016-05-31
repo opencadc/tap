@@ -76,17 +76,17 @@ import ca.nrc.cadc.util.Log4jInit;
 
 import static org.junit.Assert.*;
 
-public class DataTypeTestBinaryFixedLength extends AbstractDatatypeTest
+public class DataTypeTestFixedLengthChar extends AbstractDatatypeTest
 {
-    private static Logger log = Logger.getLogger(DataTypeTestBinaryFixedLength.class);
+    private static Logger log = Logger.getLogger(DataTypeTestFixedLengthChar.class);
 
     static
     {
-        className = "DataTypeTestBinaryFixedLength";
-        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.DEBUG);
+        className = "DataTypeTestFixedLengthChar";
+        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
     }
 
-    public DataTypeTestBinaryFixedLength()
+    public DataTypeTestFixedLengthChar()
     {
         super();
     }
@@ -95,9 +95,9 @@ public class DataTypeTestBinaryFixedLength extends AbstractDatatypeTest
     {
     	if (value == null || value.length() == 0)
     	{
-    		fail("Data is not a binary with fixed length.");
+    		fail("Data is not a fixed length string.");
     	}
-        log.info("DataTypeTestBinaryFixedLength.validateResult passed.");
+        log.info("DataTypeTestFixedLengthChar.validateResult passed.");
     }
 
 }
