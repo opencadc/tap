@@ -253,7 +253,6 @@ public class AuthQueryTest
             String adql = "SELECT TOP 1 * from tap_schema.tables";
 
             Map<String,Object> params = new TreeMap<String,Object>();
-            params.put("REQUEST", "doQuery");
             params.put("LANG", "ADQL");
             params.put("QUERY", adql);
 
@@ -286,7 +285,6 @@ public class AuthQueryTest
             String adql = "SELECT top 1 * from tap_schema.tables";
 
             Map<String,Object> params = new TreeMap<String,Object>();
-            params.put("REQUEST", "doQuery");
             params.put("LANG", "ADQL");
             params.put("QUERY", adql);
             params.put("DEST", "vos://cadc.nrc.ca~vospace/CADCAuthtest1/test/tapTestVOSAuthQuery");
