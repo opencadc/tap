@@ -1,7 +1,14 @@
 
--- cleanup TEST description
-delete from TAP_SCHEMA.columns where table_name = 'tap_test.AllDataTypes';
-delete from TAP_SCHEMA.tables where table_name = 'tap_test.AllDataTypes';
+-- cleanup
+-- cleanup
+delete from TAP_SCHEMA.columns where table_name in (select table_name from tap_schema.tables where schema_name = 'tap_test');
+
+delete from TAP_SCHEMA.tables where schema_name = 'tap_test';
+
+delete from TAP_SCHEMA.schemas where schema_name = 'tap_test';
+
+insert into TAP_SCHEMA.schemas (schema_name,description) values
+( 'tap_test', 'Tables for the client and service testing');
 
 insert into TAP_SCHEMA.tables (schema_name,table_name,description) values
 ( 'tap_test', 'tap_test.AllDataTypes', 'sample table with all current internal datatypes and sample values');
