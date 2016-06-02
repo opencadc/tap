@@ -73,6 +73,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.util.Log4jInit;
+import junit.framework.Assert;
 
 import static org.junit.Assert.*;
 
@@ -83,7 +84,7 @@ public class DataTypeTestDouble extends AbstractDatatypeTest
     static
     {
         className = "DataTypeTestDouble";
-        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
     }
 
     public DataTypeTestDouble()
@@ -91,18 +92,10 @@ public class DataTypeTestDouble extends AbstractDatatypeTest
         super();
     }
 
-    protected void validateResult(String value)
+    protected void validateResult(Object value)
     {
-        try
-        {
-            new Double(value);
-        }
-        catch (NumberFormatException e)
-        {
-            log.error(e);
-            fail(e.getMessage());
-        }
-        log.info("DataTypeTestDouble.validateResult passed.");
+    	Assert.assertNotNull(value);
+        Assert.assertEquals(Double.class, value.getClass());
     }
 
 }

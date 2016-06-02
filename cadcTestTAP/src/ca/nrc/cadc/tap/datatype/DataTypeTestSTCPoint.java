@@ -70,14 +70,11 @@
 package ca.nrc.cadc.tap.datatype;
 
 import ca.nrc.cadc.stc.Position;
-import ca.nrc.cadc.stc.Region;
-import ca.nrc.cadc.stc.STC;
-import ca.nrc.cadc.stc.StcsParsingException;
 import ca.nrc.cadc.util.Log4jInit;
+import junit.framework.Assert;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import static org.junit.Assert.*;
 
 public class DataTypeTestSTCPoint extends AbstractDatatypeTest
 {
@@ -94,22 +91,9 @@ public class DataTypeTestSTCPoint extends AbstractDatatypeTest
         super();
     }
 
-    protected void validateResult(String value)
+    protected void validateResult(Object value)
     {
-        try
-        {
-            Region region = STC.parse(value);
-            if ((region == null) || !(region instanceof Position))
-            {
-            	fail("Data type is an STC point.");
-            }
-        }
-        catch (StcsParsingException e)
-        {
-            log.error(e);
-            fail(e.getMessage());
-        }
-        log.info("DataTypeTestSTCPoint.validateResult passed.");
+    	Assert.assertNotNull(value);
+        Assert.assertEquals(Position.class, value.getClass());
     }
-
 }

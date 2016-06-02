@@ -73,6 +73,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.util.Log4jInit;
+import junit.framework.Assert;
 
 import static org.junit.Assert.*;
 
@@ -91,23 +92,10 @@ public class DataTypeTestFixedLengthVarchar extends AbstractDatatypeTest
         super();
     }
 
-    protected void validateResult(String value)
+    protected void validateResult(Object value)
     {
-        String[] values = value.split(" ");
-        if (values.length == 0)
-        {
-    		fail("Data is not a fixed length varchar.");	
-        }
-        
-        for (int i = 0; i < values.length; i++)
-        {
-	        if (values[i] == null || values[i].length() == 0)
-	    	{
-	    		fail("Data is not a fixed length varchar.");
-	    	}
-        }
-        
-        log.info("DataTypeTestFixedLengthVarchar.validateResult passed.");
+        Assert.assertNotNull(value);
+        Assert.assertEquals(String.class, value.getClass());
     }
 
 }

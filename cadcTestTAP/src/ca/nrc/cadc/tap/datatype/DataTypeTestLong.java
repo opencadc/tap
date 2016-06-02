@@ -73,6 +73,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.util.Log4jInit;
+import junit.framework.Assert;
 
 import static org.junit.Assert.*;
 
@@ -91,18 +92,10 @@ public class DataTypeTestLong extends AbstractDatatypeTest
         super();
     }
 
-    protected void validateResult(String value)
+    protected void validateResult(Object value)
     {
-        try
-        {
-            new Long(value);
-        }
-        catch (NumberFormatException e)
-        {
-            log.error(e);
-            fail(e.getMessage());
-        }
-        log.info("DataTypeTestLong.validateResult passed.");
+    	Assert.assertNotNull(value);
+        Assert.assertEquals(Long.class, value.getClass());
     }
 
 }

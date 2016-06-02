@@ -69,15 +69,13 @@
 
 package ca.nrc.cadc.tap.datatype;
 
-import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.util.Log4jInit;
 
-import java.text.DateFormat;
-import java.text.ParseException;
+import java.util.Date;
+import junit.framework.Assert;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import static org.junit.Assert.*;
 
 public class DataTypeTestTimestamp extends AbstractDatatypeTest
 {
@@ -94,18 +92,10 @@ public class DataTypeTestTimestamp extends AbstractDatatypeTest
         super();
     }
 
-    protected void validateResult(String value)
+    protected void validateResult(Object value)
     {
-        try
-        {
-            DateFormat df = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
-            df.parse(value);
-        }
-        catch (ParseException e)
-        {
-            fail("failed to parse " + value + ": " + e);
-        }
-        log.info("DataTypeTestShort.validateResult passed.");
+    	Assert.assertNotNull(value);
+        Assert.assertEquals(Date.class, value.getClass());
     }
 
 }

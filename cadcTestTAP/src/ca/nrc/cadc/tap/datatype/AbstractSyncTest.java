@@ -17,6 +17,8 @@ import ca.nrc.cadc.conformance.uws.AbstractUWSTest;
 import ca.nrc.cadc.conformance.uws.TestProperties;
 import ca.nrc.cadc.conformance.uws.TestPropertiesList;
 import ca.nrc.cadc.conformance.uws.Util;
+import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
+import ca.nrc.cadc.dali.tables.votable.VOTableReader;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.xml.XmlUtil;
 
@@ -77,6 +79,7 @@ public abstract class AbstractSyncTest extends AbstractUWSTest
     @Test
     public void testFunctions()
     {
+        String label = null;
         try
         {
             if (testPropertiesList.propertiesList.isEmpty())
@@ -86,6 +89,7 @@ public abstract class AbstractSyncTest extends AbstractUWSTest
             for (TestProperties properties : testPropertiesList.propertiesList)
             {
                 log.info("test properties file: " + properties.filename);
+                label = properties.filename;
                 log.debug(properties);
 
                 // Create a new Job with UPLOAD parameters.
@@ -137,20 +141,23 @@ public abstract class AbstractSyncTest extends AbstractUWSTest
                 Assert.assertEquals(properties.filename + ": response code", this.expectedResponseCode, responseCode);
                 
                 // Validate the XML against the schema and get a DOM Document.
-                log.debug("XML:\r\n" + response.getText());
-                Map<String, String> map = new HashMap<String, String>();
-                map.put(VOTABLE_NAMESPACE, votableSchema);
-                Document document = XmlUtil.buildDocument(new StringReader(response.getText()), map);
-                validateQueryStatus(properties.filename, document, expectedQueryStatus);
+                //log.debug("XML:\r\n" + response.getText());
+                //Map<String, String> map = new HashMap<String, String>();
+                //map.put(VOTABLE_NAMESPACE, votableSchema);
+                //Document document = XmlUtil.buildDocument(new StringReader(response.getText()), map);
+                //validateQueryStatus(properties.filename, document, expectedQueryStatus);
+                VOTableReader vtr = new VOTableReader();
+                VOTableDocument doc = vtr.read(response.getText());
+                validateQueryStatus(properties.filename, doc, expectedQueryStatus);
             }
         }
         catch (Exception unexpected)
         {
             log.error("unexpected exception", unexpected);
-             Assert.fail("unexpected exception: " + unexpected);
+             Assert.fail(label + " unexpected exception: " + unexpected);
         }
     }
 
-    protected abstract void validateQueryStatus(String filename, Document document, String status);
+    protected abstract void validateQueryStatus(String filename, VOTableDocument document, String status);
 
 }

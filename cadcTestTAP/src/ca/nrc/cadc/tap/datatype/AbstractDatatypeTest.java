@@ -69,14 +69,15 @@
 
 package ca.nrc.cadc.tap.datatype;
 
+import ca.nrc.cadc.dali.tables.TableData;
+import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
+import ca.nrc.cadc.dali.tables.votable.VOTableResource;
+import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import java.util.Iterator;
 import java.util.List;
 import org.apache.log4j.Logger;
-import org.jdom2.Document;
-import org.jdom2.Element;
-import org.jdom2.filter.ElementFilter;
+import org.junit.Assert;
 
-import static org.junit.Assert.*;
 
 public abstract class AbstractDatatypeTest extends SyncResultTest
 {
@@ -88,29 +89,27 @@ public abstract class AbstractDatatypeTest extends SyncResultTest
     }
 
     @Override
-    protected void validateQueryStatus(String filename, Document document, String status)
+    protected void validateQueryStatus(String filename, VOTableDocument document, String status)
     {
         super.validateQueryStatus(filename, document, status);
 
-        // Iterator of TR elements.
-        Iterator<Element> it = root.getDescendants(new ElementFilter("TR", namespace));
-        assertTrue("No TR elements containing query results found", it.hasNext());
-
-        // Get the first TR Element.
-        Element tr = it.next();
-
-        // List of TD elements.
-        List<Element> list = tr.getChildren("TD", namespace);
-        assertFalse("No TD elements containing query results found", list.isEmpty());
-        assertEquals("Query should only return a single column of data", 1, list.size());
-
-        // Validate the query result.
-        Element td = list.get(0);
-        if (td.getText() == null || td.getText().trim().length() == 0)
-            fail(this.getClass().getSimpleName() + ": null or zero length value");
-        validateResult(td.getText());
+        VOTableResource resource = document.getResourceByType("results");
+        Assert.assertNotNull(filename, resource);
+        
+        VOTableTable tab = resource.getTable();
+        TableData tdata = tab.getTableData();
+        Iterator<List<Object>> rows = tdata.iterator();
+        Assert.assertTrue(filename + " found row", rows.hasNext());
+        List<Object> r = rows.next();
+        Iterator cols = r.iterator();
+        Assert.assertTrue(filename + " found column", cols.hasNext());
+        
+        validateResult(cols.next());
+        
+        Assert.assertFalse(filename + " found single column", cols.hasNext());
+        Assert.assertFalse(filename + " found single row", rows.hasNext());
     }
 
-    protected void validateResult(String value) {}
+    protected abstract void validateResult(Object value);
     
 }

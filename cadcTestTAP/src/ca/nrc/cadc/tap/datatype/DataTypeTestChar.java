@@ -73,6 +73,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.util.Log4jInit;
+import junit.framework.Assert;
 
 import static org.junit.Assert.*;
 
@@ -83,7 +84,7 @@ public class DataTypeTestChar extends AbstractDatatypeTest
     static
     {
         className = "DataTypeTestChar";
-        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
     }
 
     public DataTypeTestChar()
@@ -91,13 +92,10 @@ public class DataTypeTestChar extends AbstractDatatypeTest
         super();
     }
 
-    protected void validateResult(String value)
+    protected void validateResult(Object value)
     {
-    	if (value == null || value.length() != 1)
-    	{
-    		fail("Data is not a character.");
-    	}
-        log.info("DataTypeTestChar.validateResult passed.");
+    	Assert.assertNotNull(value);
+        Assert.assertEquals(String.class, value.getClass());
     }
 
 }

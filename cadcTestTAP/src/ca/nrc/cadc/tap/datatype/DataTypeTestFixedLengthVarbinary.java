@@ -73,6 +73,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.util.Log4jInit;
+import junit.framework.Assert;
 
 import static org.junit.Assert.*;
 
@@ -91,13 +92,12 @@ public class DataTypeTestFixedLengthVarbinary extends AbstractDatatypeTest
         super();
     }
 
-    protected void validateResult(String value)
+    protected void validateResult(Object value)
     {
-    	if (value == null || value.length() == 0)
-    	{
-    		fail("Data is not a fixed length varbinary.");
-    	}
-        log.info("DataTypeTestFixedLengthVarbinary.validateResult passed.");
+    	Assert.assertNotNull(value);
+        
+        byte[] b = new byte[0];
+        Assert.assertEquals(b.getClass(), value.getClass());
     }
 
 }

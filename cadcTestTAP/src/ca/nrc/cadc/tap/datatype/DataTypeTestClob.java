@@ -73,6 +73,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.util.Log4jInit;
+import junit.framework.Assert;
 
 import static org.junit.Assert.*;
 
@@ -83,7 +84,7 @@ public class DataTypeTestClob extends AbstractDatatypeTest
     static
     {
         className = "DataTypeTestClob";
-        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
     }
 
     public DataTypeTestClob()
@@ -91,13 +92,10 @@ public class DataTypeTestClob extends AbstractDatatypeTest
         super();
     }
 
-    protected void validateResult(String value)
+    protected void validateResult(Object value)
     {
-    	if (value == null || value.length() == 0)
-    	{
-    		fail("Data is not a clob.");
-    	}
-        log.info("DataTypeTestClob.validateResult passed.");
+    	Assert.assertNotNull(value);
+        Assert.assertEquals(String.class, value.getClass());
     }
 
 }
