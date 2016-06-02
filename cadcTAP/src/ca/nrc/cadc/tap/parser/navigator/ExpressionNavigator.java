@@ -69,6 +69,10 @@
 
 package ca.nrc.cadc.tap.parser.navigator;
 
+import ca.nrc.cadc.tap.parser.OperatorVisitor;
+import ca.nrc.cadc.tap.parser.function.Concatenate;
+import ca.nrc.cadc.tap.parser.function.Operator;
+import ca.nrc.cadc.tap.parser.operator.postgresql.TextSearchMatch;
 import java.util.Iterator;
 
 import org.apache.log4j.Logger;
@@ -124,7 +128,7 @@ import net.sf.jsqlparser.statement.select.SubSelect;
  * @author zhangsa
  *
  */
-public class ExpressionNavigator extends SubNavigator implements ExpressionVisitor, ItemsListVisitor, SelectItemVisitor
+public class ExpressionNavigator extends SubNavigator implements ExpressionVisitor, ItemsListVisitor, SelectItemVisitor, OperatorVisitor
 {
     private static Logger log = Logger.getLogger(ExpressionNavigator.class);
 
@@ -138,6 +142,24 @@ public class ExpressionNavigator extends SubNavigator implements ExpressionVisit
         return rtn;
     }
 
+    public void visit(Operator operator)
+    {
+        operator.getLeftExpression().accept(this);
+        operator.getRightExpression().accept(this);
+    }
+
+    public void visit(Concatenate operator)
+    {
+        operator.getLeftExpression().accept(this);
+        operator.getRightExpression().accept(this);
+    }
+
+    public void visit(TextSearchMatch match)
+    {
+        match.getColumn().accept(this);
+    }
+
+    
     /* (non-Javadoc)
      * @see net.sf.jsqlparser.expression.ExpressionVisitor#visit(net.sf.jsqlparser.expression.NullValue)
      */

@@ -618,7 +618,7 @@ public class TapSchemaDAO implements TapPlugin
         functionDescs.add(new FunctionDesc("AREA", "deg**2", "adql:DOUBLE"));
         functionDescs.add(new FunctionDesc("BOX", "", "adql:DOUBLE"));
         functionDescs.add(new FunctionDesc("CENTROID", "", "adql:POINT"));
-        functionDescs.add(new FunctionDesc("CIRCLE", "", "adql:DOUBLE"));
+        functionDescs.add(new FunctionDesc("CIRCLE", "", "adql:REGION"));
         functionDescs.add(new FunctionDesc("CONTAINS", "", "adql:INTEGER"));
         functionDescs.add(new FunctionDesc("COORD1", "deg", "adql:DOUBLE"));
         functionDescs.add(new FunctionDesc("COORD2", "deg", "adql:DOUBLE"));
@@ -627,7 +627,7 @@ public class TapSchemaDAO implements TapPlugin
         functionDescs.add(new FunctionDesc("INTERSECTS", "", "adql:INTEGER"));
         functionDescs.add(new FunctionDesc("INTERVAL", "", "adql:DOUBLE"));
         functionDescs.add(new FunctionDesc("POINT", "", "adql:POINT"));
-        functionDescs.add(new FunctionDesc("POLYGON", "", "adql:DOUBLE"));
+        functionDescs.add(new FunctionDesc("POLYGON", "", "adql:REGION"));
         functionDescs.add(new FunctionDesc("REGION", "", "adql:REGION"));
 
         // ADQL reserved keywords that are functions.
@@ -636,7 +636,7 @@ public class TapSchemaDAO implements TapPlugin
         functionDescs.add(new FunctionDesc("ASIN", "radians", "adql:DOUBLE"));
         functionDescs.add(new FunctionDesc("ATAN", "radians", "adql:DOUBLE"));
         functionDescs.add(new FunctionDesc("ATAN2", "radians", "adql:DOUBLE"));
-        functionDescs.add(new FunctionDesc("CEILING", "", "adql:INTEGER"));
+        functionDescs.add(new FunctionDesc("CEILING", ""));
         functionDescs.add(new FunctionDesc("COS", "radians", "adql:DOUBLE"));
         functionDescs.add(new FunctionDesc("COT", "radians", "adql:DOUBLE"));
         functionDescs.add(new FunctionDesc("DEGREES", "deg", "adql:DOUBLE"));
@@ -671,8 +671,8 @@ public class TapSchemaDAO implements TapPlugin
          */
 
         // SQL Aggregate functions.
-        functionDescs.add(new FunctionDesc("AVG", ""));
-        functionDescs.add(new FunctionDesc("COUNT", "", "adql:INTEGER"));
+        functionDescs.add(new FunctionDesc("AVG", "", "adql:DOUBLE"));
+        functionDescs.add(new FunctionDesc("COUNT", "", "adql:BIGINT"));
         functionDescs.add(new FunctionDesc("MAX", ""));
         functionDescs.add(new FunctionDesc("MIN", ""));
         functionDescs.add(new FunctionDesc("STDDEV", "", "adql:DOUBLE"));

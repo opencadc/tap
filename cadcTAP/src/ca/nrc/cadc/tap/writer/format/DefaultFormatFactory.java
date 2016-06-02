@@ -150,6 +150,9 @@ public class DefaultFormatFactory implements FormatFactory
 
         if (datatype.equalsIgnoreCase("adql:CLOB"))
             return getClobFormat(columnDesc);
+        
+        if (datatype.equalsIgnoreCase("adql:BLOB"))
+            return getBlobFormat(columnDesc);
 
         // TAP or DALI xtypes
         if ( datatype.equalsIgnoreCase("timestamp") // DALI-1.1
@@ -232,6 +235,11 @@ public class DefaultFormatFactory implements FormatFactory
         
         if (datatype.equalsIgnoreCase("adql:POINT")) // TAP-1.0
             return getPointFormat(paramDesc.columnDesc);
+        
+        // circle function call in select list
+        if (datatype.equalsIgnoreCase("adql:REGION") 
+                && paramDesc.name.equalsIgnoreCase("circle")) // TAP-1.0 HACK
+            return getCircleFormat(paramDesc.columnDesc);
         
         if (datatype.equalsIgnoreCase("adql:REGION")) // TAP-1.0
             return getRegionFormat(paramDesc.columnDesc);
@@ -389,6 +397,16 @@ public class DefaultFormatFactory implements FormatFactory
         throw new UnsupportedOperationException("no formatter for column " + columnDesc.columnName);
     }
 
+    /**
+     * @param columnDesc
+     * @return a DefaultFormat
+     * @throws UnsupportedOperationException
+     */
+    protected Format<Object> getBlobFormat(ColumnDesc columnDesc)
+    {
+        return new ByteArrayFormat();
+    }
+    
     /**
      * @param columnDesc
      * @return a DefaultFormat

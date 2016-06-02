@@ -73,7 +73,8 @@ import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.ExpressionVisitor;
 import org.apache.log4j.Logger;
 
-import java.util.List;
+import net.sf.jsqlparser.expression.StringValue;
+import net.sf.jsqlparser.schema.Column;
 
 /**
  * Text search expression to match a tsvector to a tsquery.
@@ -82,12 +83,12 @@ public class TextSearchMatch implements Expression
 {
     private static Logger log = Logger.getLogger(TextSearchMatch.class);
 
-    private String columnName;
+    private Column column;
     private String query;
 
-    public TextSearchMatch(String columnName, String query)
+    public TextSearchMatch(Column column, String query)
     {
-        this.columnName = columnName;
+        this.column = column;
         this.query = query;
     }
 
@@ -98,14 +99,19 @@ public class TextSearchMatch implements Expression
         ((OperatorVisitor) expressionVisitor).visit(this);
     }
 
-    public void setColumnName(String columnName)
+    public Column getColumn()
     {
-        this.columnName = columnName;
+        return column;
     }
 
-    public String getColumnName()
+    public void setColumn(Column column)
     {
-        return this.columnName;
+        this.column = column;
+    }
+
+    public String getQuery()
+    {
+        return query;
     }
 
     public void setQuery(String query)
@@ -113,18 +119,13 @@ public class TextSearchMatch implements Expression
         this.query = query;
     }
 
-    public String getQuery()
-    {
-        return this.query;
-    }
-
     public String toString()
     {
         StringBuilder sb = new StringBuilder();
-        sb.append(columnName);
-        sb.append(" @@ '");
+        sb.append(column.getWholeColumnName());
+        sb.append(" @@ ");
         sb.append(query);
-        sb.append("'::tsquery");
+        sb.append("::tsquery");
         return sb.toString();
     }
 }
