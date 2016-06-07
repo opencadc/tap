@@ -107,10 +107,10 @@ public class MySQLDataType implements DatabaseDataType
      */
     public String getDataType(ColumnDesc columnDesc)
     {
-        String dataType = dataTypes.get(columnDesc.datatype);
+        String dataType = dataTypes.get(columnDesc.getDatatype());
         if (dataType.equals("CHAR") || dataType.equals("VARCHAR"))
         {
-            dataType += "(" + columnDesc.size + ")";
+            dataType += "(" + columnDesc.getArraysize() + ")";
         }
         return dataType;
     }

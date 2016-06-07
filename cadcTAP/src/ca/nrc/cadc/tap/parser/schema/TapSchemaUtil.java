@@ -152,7 +152,7 @@ public class TapSchemaUtil
             {
                 for (TableDesc td : sd.getTableDescs())
                 {
-                    if (td.getSimpleTableName().equalsIgnoreCase(table.getName()))
+                    if (td.getTableName().equalsIgnoreCase(table.getName()))
                     {
                         return td;
                     }
@@ -265,7 +265,7 @@ public class TapSchemaUtil
     {
 
         Table rtn = null;
-        if (rtnTd != null) rtn = new Table(rtnTd.getSchemaName(), rtnTd.getSimpleTableName());
+        if (rtnTd != null) rtn = new Table(rtnTd.getSchemaName(), rtnTd.getTableName());
         return rtn;
     }
 

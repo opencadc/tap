@@ -127,7 +127,8 @@ public class JDOMVOTableParser implements VOTableParser
     public TableDesc getTableDesc()
         throws VOTableParserException
     {
-        List<ColumnDesc> columns = new ArrayList<ColumnDesc>();
+        TableDesc tableDesc = new TableDesc(UploadManager.SCHEMA, tableName);
+        
         if (vtab != null)
         {
             for (VOTableField f : vtab.getFields())
@@ -137,21 +138,14 @@ public class JDOMVOTableParser implements VOTableParser
                 {
                     throw new VOTableParserException("invalid ADQL identifier (column name): " + f.getName(), ex);
                 }
-                ColumnDesc columnDesc = new ColumnDesc();
-                columnDesc.tableName = tableName;
-                columnDesc.columnName = f.getName();
-                columnDesc.datatype = ADQLDataType.getDataType(f.getDatatype(), f.getArraysize(), f.isVariableSize(), f.xtype);
-                columnDesc.size = f.getArraysize();
-                log.debug("ColumnDesc: " + f + " -> " + columnDesc.datatype);
-                columns.add(columnDesc);
-                log.debug("column: " + columnDesc);
+                ColumnDesc columnDesc = new ColumnDesc(tableName, f.getName(),
+                    ADQLDataType.getDataType(f.getDatatype(), f.getArraysize(), f.isVariableSize(), f.xtype),
+                    f.getArraysize());
+                log.debug("ColumnDesc: " + f + " -> " + columnDesc);
+                
+                tableDesc.getColumnDescs().add(columnDesc);
             }
         }
-
-        TableDesc tableDesc = new TableDesc();
-        tableDesc.schemaName = UploadManager.SCHEMA;
-        tableDesc.tableName = tableName;
-        tableDesc.columnDescs = columns;
         log.debug("table: " + tableDesc);
         return tableDesc;
     }

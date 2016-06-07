@@ -167,7 +167,7 @@ public class ExtractorTest
                     Assert.assertEquals(expected.description, actual.description);
                     Assert.assertEquals(expected.datatype, actual.datatype);
                     Assert.assertEquals(expected.utype, actual.utype);
-                    Assert.assertEquals(expected.size, actual.size);
+                    Assert.assertEquals(expected.arraysize, actual.arraysize);
                     Assert.assertEquals(expected.unit, actual.unit);
                     Assert.assertEquals(expected.ucd, actual.ucd);
                 }
@@ -195,10 +195,10 @@ public class ExtractorTest
         String query = "select t.table_name as tn, keys.from_table from tap_schema.tables t, tap_schema.keys where t.utype=keys.utype";
 
         List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
-        ColumnDesc columnDesc = new ColumnDesc("tables", "table_name", null, null, null, null, ADQL_VARCHAR, 16);
+        ColumnDesc columnDesc = new ColumnDesc("tables", "table_name", ADQL_VARCHAR, 16);
         ParamDesc paramDesc = new ParamDesc(columnDesc, "tn");
         expectedList.add(paramDesc);
-        columnDesc = new ColumnDesc("keys", "from_table", null, null, null, null, ADQL_VARCHAR, 16);
+        columnDesc = new ColumnDesc("keys", "from_table",  ADQL_VARCHAR, 16);
         paramDesc = new ParamDesc(columnDesc, null);
         expectedList.add(paramDesc);
         
@@ -211,7 +211,7 @@ public class ExtractorTest
         String query = "select \"table_name\" from tap_schema.tables";
 
         List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
-        ColumnDesc columnDesc = new ColumnDesc("tables", "table_name", null, null, null, null, ADQL_VARCHAR, 16);
+        ColumnDesc columnDesc = new ColumnDesc("tables", "table_name", ADQL_VARCHAR, 16);
         ParamDesc paramDesc = new ParamDesc(columnDesc, null);
         expectedList.add(paramDesc);
 
@@ -224,7 +224,7 @@ public class ExtractorTest
         String query = "select position_center_ra from caom.siav1";
 
         List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
-        ColumnDesc columnDesc = new ColumnDesc("siav1", "position_center_ra", null, null, null, null, ADQL_DOUBLE, null);
+        ColumnDesc columnDesc = new ColumnDesc("siav1", "position_center_ra", ADQL_DOUBLE, null);
         ParamDesc paramDesc = new ParamDesc(columnDesc, null);
         expectedList.add(paramDesc);
 

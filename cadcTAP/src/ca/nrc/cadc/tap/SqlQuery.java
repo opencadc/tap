@@ -154,8 +154,8 @@ public class SqlQuery extends AbstractTapQuery
             {
                 String newName = (String) entry.getKey();
                 TableDesc tableDesc = (TableDesc) entry.getValue();
-                tnc.put(tableDesc.tableName, newName);
-                log.debug("TableNameConverter " + tableDesc.tableName + " -> " + newName);
+                tnc.put(tableDesc.getTableName(), newName);
+                log.debug("TableNameConverter " + tableDesc.getTableName() + " -> " + newName);
             }
             sn = new SelectNavigator(endef, rndef, tnc);
             navigatorList.add(sn);

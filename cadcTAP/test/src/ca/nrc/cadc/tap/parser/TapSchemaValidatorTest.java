@@ -248,28 +248,20 @@ public class TapSchemaValidatorTest
     // makes a single schema
     private SchemaDesc mockSchema(String schemaName)
     {
-        SchemaDesc sd = new SchemaDesc();
-        sd.schemaName = schemaName;
-        sd.tableDescs = new ArrayList<TableDesc>();
+        SchemaDesc sd = new SchemaDesc(schemaName);
 
-        TableDesc td = new TableDesc();
-        td.schemaName = sd.schemaName;
-        td.tableName = "bar";
+        String tn = "bar_from_default";
+        
         if (schemaName != null)
-            td.tableName = schemaName+  ".bar_from_"+sd.schemaName;
-        else
-            td.tableName += "_from_default";
-        td.columnDescs = new ArrayList<ColumnDesc>();
+            tn = schemaName+  ".bar_from_"+schemaName;
+        TableDesc td = new TableDesc(schemaName, tn);
+        
+        ColumnDesc cd = new ColumnDesc(tn, "baz", "adql:INTEGER", null);
 
-        ColumnDesc cd = new ColumnDesc();
-        cd.tableName = td.tableName;
-        cd.columnName = "baz";
-
-        td.columnDescs.add(cd);
-        sd.tableDescs.add(td);
+        td.getColumnDescs().add(cd);
+        sd.getTableDescs().add(td);
         
         return sd;
-
     }
 
 }

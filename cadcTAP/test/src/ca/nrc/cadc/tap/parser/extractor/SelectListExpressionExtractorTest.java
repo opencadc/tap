@@ -236,14 +236,14 @@ public class SelectListExpressionExtractorTest
         try
         {
             TapSchema tapSchema = new TapSchema();
-            SchemaDesc schemaDesc = new SchemaDesc("schemaName", "description", "utype");
+            SchemaDesc schemaDesc = new SchemaDesc("schemaName");
             tapSchema.getSchemaDescs().add(schemaDesc);
             extractor.setTapSchema(tapSchema);
 
             TapSchema returnedSchema = extractor.getTapSchema();
             Assert.assertNotNull(returnedSchema);
             Assert.assertEquals(1, returnedSchema.getSchemaDescs().size());
-            Assert.assertEquals("schemaName", returnedSchema.getSchemaDescs().get(0).schemaName);
+            Assert.assertEquals("schemaName", returnedSchema.getSchemaDescs().get(0).getSchemaName());
         }
         catch (Exception unexpected)
         {

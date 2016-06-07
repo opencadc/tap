@@ -204,7 +204,7 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
                     ColumnDesc columnDesc = TapSchemaUtil.findColumnDesc(tapSchema, plainSelect, (Column) parameter);
                     if (columnDesc != null)
                     {
-                        datatype = columnDesc.datatype;
+                        datatype = columnDesc.getDatatype();
                         arg = columnDesc;
                     }
                 }

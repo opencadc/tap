@@ -130,13 +130,13 @@ public class PostgreSQLDataType implements DatabaseDataType
     public String getDataType(ColumnDesc columnDesc)
     {
         log.debug("getDataType: " + columnDesc);
-        String dataType = dataTypes.get(columnDesc.datatype);
+        String dataType = dataTypes.get(columnDesc.getDatatype());
         if (dataType.equals("CHAR") || dataType.equals("VARCHAR"))
         {
-            if (columnDesc.size != null)
-            	dataType += "(" + columnDesc.size + ")";
-            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_CLOB) 
-                        || columnDesc.datatype.equals(ADQLDataType.ADQL_VARCHAR))
+            if (columnDesc.getArraysize() != null)
+            	dataType += "(" + columnDesc.getArraysize() + ")";
+            else if (columnDesc.getDatatype().equals(ADQLDataType.ADQL_CLOB) 
+                        || columnDesc.getDatatype().equals(ADQLDataType.ADQL_VARCHAR))
                 dataType += "(4096)"; // HACK: arbitrary sensible limit
         }
         return dataType;

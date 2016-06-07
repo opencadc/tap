@@ -624,7 +624,7 @@ public class DefaultTableWriter implements TableWriter
     private void setSize(ParamDesc paramDesc, VOTableField field)
     {
         String datatype = paramDesc.datatype;
-        Integer size = paramDesc.size;
+        Integer size = paramDesc.arraysize;
 
         if (datatype == null)
             return;
