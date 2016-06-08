@@ -129,9 +129,14 @@
 
     <!-- compile the test classes -->
 
-    <!-- Run the test suite -->
-    <target name="test" depends="core-test,parser-test,vosi-test,writer-test,upload-test" />
-
+    <target name="setup-test">
+        <copy todir="${build}/test/class">
+            <fileset dir="test/resources">
+                <include name="**.xml"/>
+            </fileset>
+        </copy>
+    </target>
+    
     <target name="core-test" depends="compile,compile-test">
         <junit printsummary="yes" haltonfailure="yes" fork="yes">
             <classpath>
@@ -193,25 +198,7 @@
         </junit>
     </target>
 
-    <target name="vosi-test" depends="compile,compile-test">
-        <junit printsummary="yes" haltonfailure="yes" fork="yes">
-            <classpath>
-                <pathelement path="${resources.dir}"/>
-                <pathelement path="${build}/class"/>
-                <pathelement path="${build}/test/class"/>
-                <pathelement path="${jars}:${testingJars}"/>
-            </classpath>
-            <formatter type="plain" usefile="false"/>
-            <test name="ca.nrc.cadc.vosi.TableSetTest" />
-        </junit>
-    </target>
-    
     <target name="upload-test" depends="compile,compile-test">
-        <copy todir="${build}/test/class">
-            <fileset dir="test/resources">
-                <include name="**.xml"/>
-            </fileset>
-        </copy>
         <junit printsummary="yes" haltonfailure="yes" fork="yes">
             <classpath>
                 <pathelement path="${resources.dir}"/>
@@ -237,7 +224,7 @@
             </classpath>
             <formatter type="plain" usefile="false"/>
             
-            <test name="ca.nrc.cadc.tap.parser.extractor.ExtractorTest"/>
+            <test name="ca.nrc.cadc.tap.TapValidatorTest"/>
         </junit>
     </target>
 </project>

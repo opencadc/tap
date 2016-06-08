@@ -88,6 +88,7 @@ public class TapValidator
     {
         if (version != null)
             return;
+        
         if (paramList == null || paramList.isEmpty())
         {
             version = DEFAULT_VERSION;
@@ -95,7 +96,7 @@ public class TapValidator
         }
         
         this.version = ParameterUtil.findParameterValue("VERSION", paramList);
-        if (version == null)
+        if (version == null || version.isEmpty())
             version = DEFAULT_VERSION;
        
         if (DEFAULT_VERSION.equals(version) || "1.0".equals(version))

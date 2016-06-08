@@ -147,12 +147,17 @@ public class TapSchemaUtil
             return null;
         for (SchemaDesc sd : tapSchema.getSchemaDescs())
         {
-            if (table.getSchemaName() == null // unqualified table name, search all schemas
+            log.debug("findTableDesc: " + table.getWholeTableName() 
+                    + " aka " + table.getSchemaName() + " + " + table.getName()
+                    + " AS " + table.getAlias() + " vs " + sd.getSchemaName());
+            
+            if (table.getSchemaName() == null
                     || (sd.getSchemaName().equalsIgnoreCase(table.getSchemaName())))
             {
                 for (TableDesc td : sd.getTableDescs())
                 {
-                    if (td.getTableName().equalsIgnoreCase(table.getName()))
+                    log.debug("findTableDesc: " + td.getTableName() + " vs " + table.getWholeTableName());
+                    if (td.getTableName().equalsIgnoreCase(table.getWholeTableName()))
                     {
                         return td;
                     }
@@ -186,22 +191,20 @@ public class TapSchemaUtil
      */
     public static Table findTableForColumnName(TapSchema tapSchema, PlainSelect plainSelect, String columnName)
     {
-        //columnName = stripQuotes(columnName);
-        TableDesc rtnTd = null;
+        Table ret = null;
         int matchCount = 0;
-        TableDesc td;
+        
         List<Table> fromTableList = ParserUtil.getFromTableList(plainSelect);
         for (Table fromTable : fromTableList)
         {
-            td = findTableDesc(tapSchema, fromTable);
+            TableDesc td = findTableDesc(tapSchema, fromTable);
             if (td == null) 
                 throw new IllegalArgumentException("Table [" + fromTable + "] does not exist.");
             log.debug("findTableForColumnName: " + columnName + " in " + td.getTableName());
             if (isValidColumnName(td, columnName))
             {
+                ret = fromTable;
                 matchCount++;
-                rtnTd = td;
-                continue;
             }
         }
         if (matchCount == 0)
@@ -209,9 +212,8 @@ public class TapSchemaUtil
         else if (matchCount > 1) 
             throw new IllegalArgumentException("Column [" + columnName + "] is ambiguous.");
 
-        Table rtn = getTable(rtnTd);
-        log.debug("findTableForColumnName: found " + rtn);
-        return rtn;
+        log.debug("findTableForColumnName: found " + ret);
+        return ret;
     }
 
     /**
@@ -261,13 +263,12 @@ public class TapSchemaUtil
      * @param rtnTd
      * @return
      */
-    private static Table getTable(TableDesc rtnTd)
-    {
-
-        Table rtn = null;
-        if (rtnTd != null) rtn = new Table(rtnTd.getSchemaName(), rtnTd.getTableName());
-        return rtn;
-    }
+    //private static Table getTable(TableDesc td)
+    //{
+    //    if (td == null)
+    //        return null;
+    //    return new Table(td.getSchemaName(), td.getTableName());
+    //}
 
     private static String stripQuotes(String col)
     {
@@ -388,9 +389,9 @@ public class TapSchemaUtil
         // Possible form as:
         // columnName, table.columnName, tableAilas.columnName, or schema.table.ColumnName
         Table qualifiedTable = getQualifiedTable(tapSchema, plainSelect, column);
-        log.debug("findColumnDesc: found " + qualifiedTable);
+        log.debug("findColumnDesc: found qualified " + qualifiedTable);
         TableDesc tableDesc = findTableDesc(tapSchema, qualifiedTable);
-        log.debug("findColumnDesc: found " + tableDesc);
+        log.debug("findColumnDesc: found tableDesc " + tableDesc);
         return findColumnDesc(tableDesc, column.getColumnName());
     }
 

@@ -67,32 +67,41 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.test;
+package ca.nrc.cadc.tap.integration;
 
+import ca.nrc.cadc.util.Log4jInit;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.uws.Parameter;
+import org.apache.log4j.Level;
+import org.junit.Assert;
+import org.junit.Test;
 
-public class UploadManagerUploadTest extends UploadTestCase {
-    
-    //  Example files 1 and 2 are much more intersting but their use is
-    //  commented out in favour of examples 3 and 4 until we have more
-    //  examples that are both interesting and correct.
-    
-    // TODO: get test VOTable files from someplace sane
-    // TODO: test incorrect usage
-    
+/**
+ * Integration test (requires DB) for UploadManager implementation.
+ * 
+ * @author pdowler
+ */
+public class UploadManagerUploadTest
+{
     private static final Logger log = Logger.getLogger( UploadManagerUploadTest.class );
 
-	public void testUploadSingleParamPair() 
+    static
+    {
+        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
+    }
+    
+    @Test
+    public void testUploadSingleParamPair() 
     {
         List<Parameter> paramList = new ArrayList<Parameter>();
         paramList.add( new Parameter( "UPLOAD",  "mytable,http://localhost/voTableExample.xml" ) );
         doSuccessTest(paramList);
         log.debug( "*****  Finished test method: testUploadSingleParamPair()  *****" );
+        
     }
 	
     public void testUploadSchemaInTableName() 
@@ -125,49 +134,34 @@ public class UploadManagerUploadTest extends UploadTestCase {
     // TODO: handle tests that should fail or write a dofail() method
     void doSuccessTest(List<Parameter> paramList)
     {
-        try 
+        try
         {
-            manager.upload( paramList, "0" );
-            assertTrue( true );  //  Toggle this as required until UPLOAD is here to stay
+            // TODO
         }
-        catch ( Throwable t ) 
+        catch(Exception ex)
         {
-            assertTrue(t.toString(), false);
+            log.error("unexpected exception", ex);
+            Assert.fail("unexpected exception: " + ex);
         }
-        finally 
-        {
-            /*
-            try {
-                Statement  stmt = conn.createStatement();
-                stmt.execute("drop table tap_upload.mytable_0");
-            }
-            catch (SQLException e) {
-                assertTrue( e.getMessage(), false );
-            }
-            */
-        }
+        
+        
     }
     void doFailTest(List<Parameter> paramList)
     {
-        try 
+        try
         {
-            manager.upload( paramList, "0" );
-            assertTrue("expected an exception", false );
+            // TODO
+            
+            Assert.fail("expected IllegalArgumentException");
         }
-        catch ( Throwable t ) {
-            assertTrue( true );
-        }
-        finally 
+        catch(IllegalArgumentException expected)
         {
-            /*
-            try {
-                Statement  stmt = conn.createStatement();
-                stmt.execute("drop table tap_upload.mytable_0");
-            }
-            catch (SQLException e) {
-                assertTrue( e.getMessage(), false );
-            }
-            */
+            log.info("caught expected: " + expected);
+        }
+        catch(Exception ex)
+        {
+            log.error("unexpected exception", ex);
+            Assert.fail("unexpected exception: " + ex);
         }
     }
 }

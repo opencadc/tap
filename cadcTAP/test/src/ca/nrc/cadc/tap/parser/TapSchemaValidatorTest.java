@@ -89,12 +89,12 @@ import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -106,37 +106,9 @@ public class TapSchemaValidatorTest
 {
     private static Logger log = Logger.getLogger(TapSchemaValidatorTest.class);
 
-    /**
-     * @throws java.lang.Exception
-     */
-    @BeforeClass
-    public static void setUpBeforeClass() throws Exception
+    static
     {
-        Log4jInit.setLevel("ca.nrc.cadc.tap.parser", org.apache.log4j.Level.INFO);
-    }
-
-    /**
-     * @throws java.lang.Exception
-     */
-    @AfterClass
-    public static void tearDownAfterClass() throws Exception
-    {
-    }
-
-    /**
-     * @throws java.lang.Exception
-     */
-    @Before
-    public void setUp() throws Exception
-    {
-    }
-
-    /**
-     * @throws java.lang.Exception
-     */
-    @After
-    public void tearDown() throws Exception
-    {
+        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
     }
 
     Job job = new Job() 
@@ -145,22 +117,22 @@ public class TapSchemaValidatorTest
         public String getID() { return "abcdefg"; }
     };
 
-    @Test
-    public void testDefaultSchema()
+    //@Test
+    public void testNoSchema()
     {
         try
         {
             String query = "select baz from bar_from_default";
-            log.debug("testDefaultSchema, before: " + query);
+            log.debug("testNoSchema, before: " + query);
             job.getParameterList().add(new Parameter("QUERY", query));
             TapQuery tq = new TestQuery();
             tq.setJob(job);
             String sql = tq.getSQL();
             // valid
         }
-        catch(Throwable unexpected)
+        catch(Exception unexpected)
         {
-            log.debug("FAIL", unexpected);
+            log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
         }
         finally
@@ -175,16 +147,16 @@ public class TapSchemaValidatorTest
         try
         {
             String query = "select baz from foo.bar_from_foo";
-            log.debug("testDefaultSchema, before: " + query);
+            log.debug("testExplicitSchema, before: " + query);
             job.getParameterList().add(new Parameter("QUERY", query));
             TapQuery tq = new TestQuery();
             tq.setJob(job);
             String sql = tq.getSQL();
             // valid
         }
-        catch(Throwable unexpected)
+        catch(Exception unexpected)
         {
-            log.debug("FAIL", unexpected);
+            log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
         }
         finally
@@ -206,9 +178,9 @@ public class TapSchemaValidatorTest
             String sql = tq.getSQL();
             // valid
         }
-        catch(Throwable unexpected)
+        catch(Exception unexpected)
         {
-            log.debug("FAIL", unexpected);
+            log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
         }
         finally
@@ -240,23 +212,19 @@ public class TapSchemaValidatorTest
         List<SchemaDesc> sdList = new ArrayList<SchemaDesc>();
 
         TapSchema ret = new TapSchema();
-        ret.getSchemaDescs().add(mockSchema("foo"));
-        ret.getSchemaDescs().add(mockSchema(null));
+        ret.getSchemaDescs().add(mockSchema("foo", "foo.bar_from_foo"));
+        ret.getSchemaDescs().add(mockSchema("default", "bar_from_default"));
         return ret;
     }
 
     // makes a single schema
-    private SchemaDesc mockSchema(String schemaName)
+    private SchemaDesc mockSchema(String schemaName, String tableName)
     {
         SchemaDesc sd = new SchemaDesc(schemaName);
 
-        String tn = "bar_from_default";
+        TableDesc td = new TableDesc(schemaName, tableName);
         
-        if (schemaName != null)
-            tn = schemaName+  ".bar_from_"+schemaName;
-        TableDesc td = new TableDesc(schemaName, tn);
-        
-        ColumnDesc cd = new ColumnDesc(tn, "baz", "adql:INTEGER", null);
+        ColumnDesc cd = new ColumnDesc(tableName, "baz", "adql:INTEGER", null);
 
         td.getColumnDescs().add(cd);
         sd.getTableDescs().add(td);

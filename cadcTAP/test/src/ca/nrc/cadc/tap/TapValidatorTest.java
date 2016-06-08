@@ -66,38 +66,42 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.tap.test;
+package ca.nrc.cadc.tap;
 
+import ca.nrc.cadc.util.Log4jInit;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
 
-import junit.framework.TestCase;
-
-import ca.nrc.cadc.tap.TapValidator;
 import ca.nrc.cadc.uws.Parameter;
 import junit.framework.Assert;
+import org.apache.log4j.Level;
+import org.junit.Test;
 
-public class TapValidatorTest extends TestCase
+public class TapValidatorTest
 {
 
     static
     {
-        BasicConfigurator.configure();
+        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
     }
 
     private static final Logger log = Logger.getLogger(TapValidatorTest.class);
 
     TapValidator validator = new TapValidator();
 
+    @Test
     public void testNullParamList()
     {
         try
         {
             validator.validate(null);
-            assertTrue(false);
+            Assert.assertEquals(TapValidator.DEFAULT_VERSION, validator.getVersion());
+        }
+        catch(IllegalArgumentException expected)
+        {
+            log.debug("expected exception: " + expected);
         }
         catch (Exception unexpected)
         {
@@ -106,12 +110,13 @@ public class TapValidatorTest extends TestCase
         }
     }
 
+    @Test
     public void testEmptyParamList()
     {
         try
         {
             validator.validate(new ArrayList<Parameter>());
-            assertTrue(false);
+            Assert.assertEquals(TapValidator.DEFAULT_VERSION, validator.getVersion());
         }
         catch (Exception unexpected)
         {
@@ -120,6 +125,7 @@ public class TapValidatorTest extends TestCase
         }
     }
 
+    @Test
     public void testCaseInsenseParamNames()
     {
         try
@@ -128,7 +134,6 @@ public class TapValidatorTest extends TestCase
             paramList.add(new Parameter("request", "doQuery"));
             paramList.add(new Parameter("version", "1.0"));
             validator.validate(paramList);
-            assertTrue(true);
         }
         catch (Exception unexpected)
         {
@@ -137,6 +142,7 @@ public class TapValidatorTest extends TestCase
         }
     }
 
+    @Test
     public void testCaseSenseRequestValue()
     {
         try
@@ -158,6 +164,7 @@ public class TapValidatorTest extends TestCase
         }
     }
 
+    @Test
     public void testRequestMissing()
     {
         try
@@ -178,6 +185,7 @@ public class TapValidatorTest extends TestCase
         }
     }
 
+    @Test
     public void testRequestNullValue()
     {
         try
@@ -199,6 +207,7 @@ public class TapValidatorTest extends TestCase
         }
     }
 
+    @Test
     public void testRequestEmptyValue()
     {
         try
@@ -220,6 +229,7 @@ public class TapValidatorTest extends TestCase
         }
     }
 
+    @Test
     public void testRequestUnknownValue()
     {
         try
@@ -241,6 +251,7 @@ public class TapValidatorTest extends TestCase
         }
     }
 
+    @Test
     public void testVersionNullValue()
     {
         try
@@ -256,6 +267,7 @@ public class TapValidatorTest extends TestCase
         }
     }
 
+    @Test
     public void testVersionEmptyValue()
     {
         try
@@ -271,6 +283,7 @@ public class TapValidatorTest extends TestCase
         }
     }
 
+    @Test
     public void testVersionUnsupportedValue()
     {
         try
@@ -292,6 +305,7 @@ public class TapValidatorTest extends TestCase
         }
     }
 
+    @Test
     public void testVersion10()
     {
         try
@@ -308,6 +322,7 @@ public class TapValidatorTest extends TestCase
         }
     }
     
+    @Test
     public void testNoRequestVersion10()
     {
         try

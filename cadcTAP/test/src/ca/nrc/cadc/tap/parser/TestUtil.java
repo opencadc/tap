@@ -117,16 +117,16 @@ public class TestUtil
     {
         TapSchema ts = new TapSchema();
 
-        String schemaName = "tap_schema";
-        SchemaDesc sd = new SchemaDesc(schemaName);
+        String sn = "tap_schema";
+        SchemaDesc sd = new SchemaDesc(sn);
         ts.getSchemaDescs().add(sd);
 
         String tn;
         TableDesc td;
 
         // custom test table in tap_schema
-        tn = "alldatatypes";
-        td = new TableDesc(schemaName, tn);
+        tn = sn + ".alldatatypes";
+        td = new TableDesc(sn, tn);
         sd.getTableDescs().add(td);
         td.getColumnDescs().add( newColumnDesc(tn, "t_integer", "int column", null, null, null, "adql:INTEGER", null) );
         td.getColumnDescs().add( newColumnDesc(tn, "t_long", "long column", null, null, null, "adql:BIGINT", null) );
@@ -146,8 +146,8 @@ public class TestUtil
 
 
         // standard minimal self-describing tap_schema tables
-        tn = "tables";
-        td = new TableDesc(schemaName, tn);
+        tn = sn + ".tables";
+        td = new TableDesc(sn, tn);
         sd.getTableDescs().add(td);
         td.getColumnDescs().add( newColumnDesc(tn, "schema_name", null, null, null, null, "adql:VARCHAR", 16) );
         td.getColumnDescs().add( newColumnDesc(tn, "table_name", null, null, null, null, "adql:VARCHAR", 16) );
@@ -158,8 +158,8 @@ public class TestUtil
         td.getKeyDescs().add(k);
 
 
-        tn = "columns";
-        td = new TableDesc(schemaName, tn);
+        tn = sn + ".columns";
+        td = new TableDesc(sn, tn);
         sd.getTableDescs().add(td);
         td.getColumnDescs().add( newColumnDesc(tn, "table_name", null, null, null, null, "adql:VARCHAR", 16) );
         td.getColumnDescs().add( newColumnDesc(tn, "column_name", null, null, null, null, "adql:VARCHAR", 16) );
@@ -177,8 +177,8 @@ public class TestUtil
         td.getKeyDescs().add(k);
 
 
-        tn = "keys";
-        td = new TableDesc(schemaName, tn);
+        tn = sn + ".keys";
+        td = new TableDesc(sn, tn);
         sd.getTableDescs().add(td);
         td.getColumnDescs().add( newColumnDesc(tn, "key_id", null, null, null, null, "adql:VARCHAR", 16) );
         td.getColumnDescs().add( newColumnDesc(tn, "from_table", null, null, null, null, "adql:VARCHAR", 16) );
@@ -193,8 +193,8 @@ public class TestUtil
         td.getKeyDescs().add(k);
 
 
-        tn = "key_columns";
-        td = new TableDesc(schemaName, tn);
+        tn = sn + ".key_columns";
+        td = new TableDesc(sn, tn);
         sd.getTableDescs().add(td);
         td.getColumnDescs().add( newColumnDesc(tn, "key_id", null, null, null, null, "adql:VARCHAR", 16) );
         td.getColumnDescs().add( newColumnDesc(tn, "from_column", null, null, null, null, "adql:VARCHAR", 16) );
@@ -203,12 +203,12 @@ public class TestUtil
         k.getKeyColumnDescs().add(new KeyColumnDesc("k5", "key_id", "key_id"));
         td.getKeyDescs().add(k);
 
-        schemaName = "caom";
-        sd = new SchemaDesc(schemaName);
+        sn = "caom";
+        sd = new SchemaDesc(sn);
         ts.getSchemaDescs().add(sd);
 
-        tn = "siav1";
-        td = new TableDesc(schemaName, tn);
+        tn = sn + ".siav1";
+        td = new TableDesc(sn, tn);
         sd.getTableDescs().add(td);
         td.getColumnDescs().add( newColumnDesc(tn, "position_center_ra", null, null, null, null, "adql:DOUBLE", null) );
 

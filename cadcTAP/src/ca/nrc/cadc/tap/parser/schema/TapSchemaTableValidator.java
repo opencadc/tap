@@ -113,7 +113,8 @@ public class TapSchemaTableValidator extends FromItemNavigator
         log.debug("visit(table) " + table);
         String tableNameOrAlias = table.getName();
         Table qTable = ParserUtil.findFromTable(selectNavigator.getPlainSelect(), tableNameOrAlias);
-        // all table should be in TapSchema
+        if (qTable == null)
+            throw new IllegalArgumentException("Table [ " + table + " ] is not found in FROM clause");
         TableDesc td = TapSchemaUtil.findTableDesc(tapSchema, qTable);
         if (td == null)
             throw new IllegalArgumentException("Table [ " + table + " ] is not found in TapSchema");
