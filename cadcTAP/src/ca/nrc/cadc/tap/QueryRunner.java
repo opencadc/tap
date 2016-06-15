@@ -371,7 +371,8 @@ public class QueryRunner implements JobRunner
                 tList.add(System.currentTimeMillis());
                 sList.add("execute query and get ResultSet: ");
                 
-                String filename = "result_" + job.getID() + "." + tableWriter.getExtension();
+                String filename =
+                        getSyncOutputFilename(tableWriter.getExtension());
                 String contentType = tableWriter.getContentType();
                 
                 if (syncOutput != null)
@@ -547,4 +548,14 @@ public class QueryRunner implements JobRunner
         }
     }
 
+    /**
+     * Allow overriding of the filename to be saved as.
+     *
+     * @param extension     The file extension, as derived from the Table Writer.
+     * @return              String filename.  Never null
+     */
+    protected String getSyncOutputFilename(final String extension)
+    {
+        return "result_" + job.getID() + "." + extension;
+    }
 }
