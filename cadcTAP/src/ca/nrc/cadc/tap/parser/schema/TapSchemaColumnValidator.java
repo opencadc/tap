@@ -71,7 +71,6 @@ package ca.nrc.cadc.tap.parser.schema;
 
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
-import net.sf.jsqlparser.statement.select.ColumnIndex;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.SelectItem;
 
@@ -111,15 +110,15 @@ public class TapSchemaColumnValidator extends ReferenceNavigator
     /* (non-Javadoc)
      * @see net.sf.jsqlparser.statement.select.ColumnReferenceVisitor#visit(net.sf.jsqlparser.statement.select.ColumnIndex)
      */
-    @Override
-    public void visit(ColumnIndex columnIndex)
-    {
-        log.debug("visit(columnIndex)" + columnIndex);
-        // TODO this is non-tapschema validation, move to someplace else?
-        int ci = columnIndex.getIndex();
-        if (ci > ParserUtil.countSelectItems(selectNavigator.getPlainSelect()))
-            throw new IllegalArgumentException("ColumnIndex " + columnIndex + " is out of scope.");
-    }
+//    @Override
+//    public void visit(ColumnIndex columnIndex)
+//    {
+//        log.debug("visit(columnIndex)" + columnIndex);
+//        // TODO this is non-tapschema validation, move to someplace else?
+//        int ci = columnIndex.getIndex();
+//        if (ci > ParserUtil.countSelectItems(selectNavigator.getPlainSelect()))
+//            throw new IllegalArgumentException("ColumnIndex " + columnIndex + " is out of scope.");
+//    }
 
     /* (non-Javadoc)
      * @see net.sf.jsqlparser.statement.select.ColumnReferenceVisitor#visit(net.sf.jsqlparser.schema.Column)

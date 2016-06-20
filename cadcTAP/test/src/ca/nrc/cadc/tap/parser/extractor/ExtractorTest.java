@@ -76,6 +76,7 @@ import static org.junit.Assert.fail;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.sf.jsqlparser.expression.Alias;
 import net.sf.jsqlparser.statement.Statement;
 
 import org.junit.Before;
@@ -196,7 +197,7 @@ public class ExtractorTest
 
         List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
         ColumnDesc columnDesc = new ColumnDesc("tables", "table_name", null, null, null, null, ADQL_VARCHAR, 16);
-        ParamDesc paramDesc = new ParamDesc(columnDesc, "tn");
+        ParamDesc paramDesc = new ParamDesc(columnDesc, new Alias("tn"));
         expectedList.add(paramDesc);
         columnDesc = new ColumnDesc("keys", "from_table", null, null, null, null, ADQL_VARCHAR, 16);
         paramDesc = new ParamDesc(columnDesc, null);
@@ -318,7 +319,7 @@ public class ExtractorTest
         String query = "select 1 from caom.siav1";
 
         List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
-        ParamDesc paramDesc = new ParamDesc("1", "1", ADQL_VARCHAR);
+        ParamDesc paramDesc = new ParamDesc("1", new Alias("1"));
         expectedList.add(paramDesc);
 
         doit(query, expectedList);
@@ -330,7 +331,7 @@ public class ExtractorTest
         String query = "select 1 as one from caom.siav1";
 
         List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
-        ParamDesc paramDesc = new ParamDesc("1", "one", ADQL_VARCHAR);
+        ParamDesc paramDesc = new ParamDesc("1", new Alias("one"));
         expectedList.add(paramDesc);
 
         doit(query, expectedList);
@@ -341,8 +342,8 @@ public class ExtractorTest
     {
         String query = "select max(1) from caom.siav1";
 
-        List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
-        FunctionDesc functionDesc = new FunctionDesc("MAX", null, ADQL_VARCHAR);
+        List<ParamDesc> expectedList = new ArrayList<>();
+        FunctionDesc functionDesc = new FunctionDesc("MAX", null);
         ParamDesc paramDesc = new ParamDesc(functionDesc, null);
         expectedList.add(paramDesc);
 
@@ -354,9 +355,9 @@ public class ExtractorTest
     {
         String query = "select max(1) as foo from caom.siav1";
 
-        List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
-        FunctionDesc functionDesc = new FunctionDesc("MAX", null, ADQL_VARCHAR);
-        ParamDesc paramDesc = new ParamDesc(functionDesc, "foo");
+        List<ParamDesc> expectedList = new ArrayList<>();
+        FunctionDesc functionDesc = new FunctionDesc("MAX", null);
+        ParamDesc paramDesc = new ParamDesc(functionDesc, new Alias("foo"));
         expectedList.add(paramDesc);
 
         doit(query, expectedList);

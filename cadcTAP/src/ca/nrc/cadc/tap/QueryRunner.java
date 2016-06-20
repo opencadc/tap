@@ -232,8 +232,8 @@ public class QueryRunner implements JobRunner
     
     private void doIt()
     {
-        List<Long> tList = new ArrayList<Long>();
-        List<String> sList = new ArrayList<String>();
+        List<Long> tList = new ArrayList<>();
+        List<String> sList = new ArrayList<>();
 
         tList.add(System.currentTimeMillis());
         sList.add("start");
@@ -279,7 +279,7 @@ public class QueryRunner implements JobRunner
             tList.add(System.currentTimeMillis());
             sList.add("initialisation: ");
 
-            DataSource queryDataSource = (DataSource) getQueryDataSource();
+            DataSource queryDataSource = getQueryDataSource();
             // this one is optional, so take care
             DataSource uploadDataSource = null;
             try
@@ -312,7 +312,8 @@ public class QueryRunner implements JobRunner
                 log.debug("adding TAP_UPLOAD SchemaDesc to TapSchema...");
                 SchemaDesc tapUploadSchema = new SchemaDesc();
                 tapUploadSchema.setSchemaName("TAP_UPLOAD");
-                tapUploadSchema.setTableDescs(new ArrayList(tableDescs.values()));
+                tapUploadSchema.setTableDescs(
+                        new ArrayList<>(tableDescs.values()));
                 tapSchema.getSchemaDescs().add(tapUploadSchema);
             }
 
@@ -349,7 +350,7 @@ public class QueryRunner implements JobRunner
             URL url = null;
             try
             {
-                if (maxRows == null || maxRows.intValue() > 0)
+                if ((maxRows == null) || (maxRows > 0))
                 {
                     log.debug("getting database connection...");
                     connection = queryDataSource.getConnection();
@@ -450,7 +451,7 @@ public class QueryRunner implements JobRunner
                 try
                 {
                     Result res = new Result("result", new URI(url.toExternalForm()));
-                    List<Result> results = new ArrayList<Result>();
+                    List<Result> results = new ArrayList<>();
                     results.add(res);
                     log.debug("setting ExecutionPhase = " + ExecutionPhase.COMPLETED + " with results");
                     jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING, ExecutionPhase.COMPLETED, results, new Date());

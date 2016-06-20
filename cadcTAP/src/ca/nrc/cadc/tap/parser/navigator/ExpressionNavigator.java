@@ -69,46 +69,14 @@
 
 package ca.nrc.cadc.tap.parser.navigator;
 
-import java.util.Iterator;
 
+import net.sf.jsqlparser.expression.*;
+import net.sf.jsqlparser.expression.operators.arithmetic.*;
+import net.sf.jsqlparser.expression.operators.relational.*;
 import org.apache.log4j.Logger;
 
-import net.sf.jsqlparser.expression.AllComparisonExpression;
-import net.sf.jsqlparser.expression.AnyComparisonExpression;
-import net.sf.jsqlparser.expression.CaseExpression;
-import net.sf.jsqlparser.expression.DateValue;
-import net.sf.jsqlparser.expression.DoubleValue;
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.ExpressionVisitor;
-import net.sf.jsqlparser.expression.Function;
-import net.sf.jsqlparser.expression.InverseExpression;
-import net.sf.jsqlparser.expression.JdbcParameter;
-import net.sf.jsqlparser.expression.LongValue;
-import net.sf.jsqlparser.expression.NullValue;
-import net.sf.jsqlparser.expression.Parenthesis;
-import net.sf.jsqlparser.expression.StringValue;
-import net.sf.jsqlparser.expression.TimeValue;
-import net.sf.jsqlparser.expression.TimestampValue;
-import net.sf.jsqlparser.expression.WhenClause;
-import net.sf.jsqlparser.expression.operators.arithmetic.Addition;
-import net.sf.jsqlparser.expression.operators.arithmetic.Division;
-import net.sf.jsqlparser.expression.operators.arithmetic.Multiplication;
-import net.sf.jsqlparser.expression.operators.arithmetic.Subtraction;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
-import net.sf.jsqlparser.expression.operators.relational.Between;
-import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
-import net.sf.jsqlparser.expression.operators.relational.ExistsExpression;
-import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
-import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
-import net.sf.jsqlparser.expression.operators.relational.GreaterThanEquals;
-import net.sf.jsqlparser.expression.operators.relational.InExpression;
-import net.sf.jsqlparser.expression.operators.relational.IsNullExpression;
-import net.sf.jsqlparser.expression.operators.relational.ItemsListVisitor;
-import net.sf.jsqlparser.expression.operators.relational.LikeExpression;
-import net.sf.jsqlparser.expression.operators.relational.MinorThan;
-import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
-import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.statement.select.AllColumns;
 import net.sf.jsqlparser.statement.select.AllTableColumns;
@@ -124,7 +92,8 @@ import net.sf.jsqlparser.statement.select.SubSelect;
  * @author zhangsa
  *
  */
-public class ExpressionNavigator extends SubNavigator implements ExpressionVisitor, ItemsListVisitor, SelectItemVisitor
+public class ExpressionNavigator extends SubNavigator
+        implements ExpressionVisitor, ItemsListVisitor, SelectItemVisitor
 {
     private static Logger log = Logger.getLogger(ExpressionNavigator.class);
 
@@ -134,13 +103,168 @@ public class ExpressionNavigator extends SubNavigator implements ExpressionVisit
 
     public ExpressionNavigator clone()
     {
-        ExpressionNavigator rtn = (ExpressionNavigator) super.clone();
-        return rtn;
+        return (ExpressionNavigator) super.clone();
+    }
+
+    @Override
+    public void visit(SignedExpression signedExpression)
+    {
+
+    }
+
+    @Override
+    public void visit(JdbcNamedParameter jdbcNamedParameter)
+    {
+
+    }
+
+    @Override
+    public void visit(HexValue hexValue)
+    {
+
+    }
+
+    @Override
+    public void visit(Concat concat)
+    {
+
+    }
+
+    @Override
+    public void visit(Matches matches)
+    {
+
+    }
+
+    @Override
+    public void visit(BitwiseAnd bitwiseAnd)
+    {
+
+    }
+
+    @Override
+    public void visit(BitwiseOr bitwiseOr)
+    {
+
+    }
+
+    @Override
+    public void visit(BitwiseXor bitwiseXor)
+    {
+
+    }
+
+    @Override
+    public void visit(CastExpression cast)
+    {
+
+    }
+
+    @Override
+    public void visit(Modulo modulo)
+    {
+
+    }
+
+    @Override
+    public void visit(AnalyticExpression aexpr)
+    {
+
+    }
+
+    @Override
+    public void visit(WithinGroupExpression wgexpr)
+    {
+
+    }
+
+    @Override
+    public void visit(ExtractExpression eexpr)
+    {
+
+    }
+
+    @Override
+    public void visit(IntervalExpression iexpr)
+    {
+
+    }
+
+    @Override
+    public void visit(OracleHierarchicalExpression oexpr)
+    {
+
+    }
+
+    @Override
+    public void visit(RegExpMatchOperator rexpr)
+    {
+
+    }
+
+    @Override
+    public void visit(JsonExpression jsonExpr)
+    {
+
+    }
+
+    @Override
+    public void visit(RegExpMySQLOperator regExpMySQLOperator)
+    {
+
+    }
+
+    @Override
+    public void visit(UserVariable var)
+    {
+
+    }
+
+    @Override
+    public void visit(NumericBind bind)
+    {
+
+    }
+
+    @Override
+    public void visit(KeepExpression aexpr)
+    {
+
+    }
+
+    @Override
+    public void visit(MySQLGroupConcat groupConcat)
+    {
+
+    }
+
+    @Override
+    public void visit(RowConstructor rowConstructor)
+    {
+
+    }
+
+    @Override
+    public void visit(OracleHint hint)
+    {
+
+    }
+
+    @Override
+    public void visit(TimeKeyExpression timeKeyExpression)
+    {
+
+    }
+
+    @Override
+    public void visit(MultiExpressionList multiExprList)
+    {
+
     }
 
     /* (non-Javadoc)
-     * @see net.sf.jsqlparser.expression.ExpressionVisitor#visit(net.sf.jsqlparser.expression.NullValue)
-     */
+         * @see net.sf.jsqlparser.expression.ExpressionVisitor#visit(net.sf.jsqlparser.expression.NullValue)
+         */
     @Override
     public void visit(NullValue nullValue)
     {
@@ -157,16 +281,6 @@ public class ExpressionNavigator extends SubNavigator implements ExpressionVisit
         log.debug("visit(function)" + function);
         if (function.getParameters() != null)
             function.getParameters().accept(this);
-    }
-
-    /* (non-Javadoc)
-     * @see net.sf.jsqlparser.expression.ExpressionVisitor#visit(net.sf.jsqlparser.expression.InverseExpression)
-     */
-    @Override
-    public void visit(InverseExpression inverseExpression)
-    {
-        log.debug("visit(inverseExpression)" + inverseExpression);
-        inverseExpression.getExpression().accept(this);
     }
 
     /* (non-Javadoc)
@@ -370,7 +484,8 @@ public class ExpressionNavigator extends SubNavigator implements ExpressionVisit
     {
         log.debug("visit(inExpression)" + expr);
         expr.getLeftExpression().accept(this);
-        expr.getItemsList().accept(this);
+        expr.getLeftItemsList().accept(this);
+        expr.getRightItemsList().accept(this);
     }
 
     /* (non-Javadoc)
@@ -459,10 +574,9 @@ public class ExpressionNavigator extends SubNavigator implements ExpressionVisit
         // when
         if (ce.getWhenClauses() != null)
         {
-            Iterator i = ce.getWhenClauses().iterator();
-            while (i.hasNext())
+            for (Expression expression : ce.getWhenClauses())
             {
-                WhenClause wc = (WhenClause) i.next();
+                WhenClause wc = (WhenClause) expression;
                 wc.accept(this);
             }
         }
@@ -499,7 +613,7 @@ public class ExpressionNavigator extends SubNavigator implements ExpressionVisit
     public void visit(AllComparisonExpression allComparisonExpression)
     {
         log.debug("visit(allComparisonExpression)" + allComparisonExpression);
-        allComparisonExpression.GetSubSelect().accept(this.selectNavigator.getFromItemNavigator());
+        allComparisonExpression.getSubSelect().accept(this.selectNavigator.getFromItemNavigator());
     }
 
     /* (non-Javadoc)
@@ -509,7 +623,7 @@ public class ExpressionNavigator extends SubNavigator implements ExpressionVisit
     public void visit(AnyComparisonExpression anyComparisonExpression)
     {
         log.debug("visit(anyComparisonExpression)" + anyComparisonExpression);
-        anyComparisonExpression.GetSubSelect().accept(this.selectNavigator.getFromItemNavigator());
+        anyComparisonExpression.getSubSelect().accept(this.selectNavigator.getFromItemNavigator());
     }
 
     /* (non-Javadoc)
@@ -519,10 +633,8 @@ public class ExpressionNavigator extends SubNavigator implements ExpressionVisit
     public void visit(ExpressionList expressionList)
     {
         log.debug("visit(expressionList)" + expressionList);
-        Iterator i = expressionList.getExpressions().iterator();
-        while (i.hasNext())
+        for (final Expression e : expressionList.getExpressions())
         {
-            Expression e = (Expression) i.next();
             e.accept(this);
         }
     }

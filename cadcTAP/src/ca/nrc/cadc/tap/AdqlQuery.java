@@ -92,6 +92,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import net.sf.jsqlparser.JSQLParserException;
+import net.sf.jsqlparser.expression.LongValue;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
@@ -216,15 +217,17 @@ public class AdqlQuery extends AbstractTapQuery
                 if (top == null)
                 {
                     top = new Top();
-                    top.setRowCount(new Long(maxRowCount));
+                    top.setExpression(new LongValue((long) maxRowCount));
                     log.debug("added TOP " + maxRowCount);
                 }
                 else
                 {
-                    if (maxRowCount < top.getRowCount())
+                    final int topRowCount =
+                            Integer.parseInt(top.getExpression().toString());
+                    if (maxRowCount < topRowCount)
                     {
-                        log.debug("updated TOP " + top.getRowCount() + " to TOP " + maxRowCount);
-                        top.setRowCount(maxRowCount);
+                        log.debug("updated TOP " + topRowCount + " to TOP " + maxRowCount);
+                        top.setExpression(new LongValue((long) maxRowCount));
                     }
                 }
                 plainSelect.setTop(top);
@@ -277,7 +280,8 @@ public class AdqlQuery extends AbstractTapQuery
      * @param sb
      * @return expression deparser impl
      */
-    protected ExpressionDeParser getExpressionDeparser(SelectDeParser dep, StringBuffer sb)
+    protected ExpressionDeParser getExpressionDeparser(SelectDeParser dep,
+                                                       StringBuilder sb)
     {
         // backwards compat: return the PgsphereDeParser like we used to for now
         return new PgsphereDeParser(dep, sb);
@@ -287,7 +291,7 @@ public class AdqlQuery extends AbstractTapQuery
     public String getSQL()
     {
         doNavigate();
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         SelectDeParser deParser = getSelectDeParser();
         deParser.setBuffer(sb);
         ExpressionDeParser expressionDeParser = getExpressionDeparser(deParser, sb);

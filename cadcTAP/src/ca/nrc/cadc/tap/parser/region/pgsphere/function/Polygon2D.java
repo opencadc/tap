@@ -71,6 +71,8 @@ package ca.nrc.cadc.tap.parser.region.pgsphere.function;
 
 
 import java.util.List;
+
+import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import org.apache.log4j.Logger;
@@ -84,7 +86,7 @@ public class Polygon2D  extends Function
 {
     private static final Logger log = Logger.getLogger(Polygon2D.class);
 
-    public Polygon2D(List<Point2D> vertices)
+    public Polygon2D(List<Expression> vertices)
     {
         super();
         

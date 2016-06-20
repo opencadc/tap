@@ -71,8 +71,10 @@ package ca.nrc.cadc.tap.parser.converter;
 
 import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.util.CaseInsensitiveStringComparator;
+
 import java.util.Map;
 import java.util.TreeMap;
+
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import org.apache.log4j.Logger;
@@ -81,21 +83,21 @@ import org.apache.log4j.Logger;
  * Converts table names foudn in references (e.g. fully qualified column references).
  * You need to use both this and the TableNameConverter with the same underlying map
  * to convert all places a table name can be used.
- * 
+ *
  * @author pdowler
  */
 public class TableNameReferenceConverter extends ReferenceNavigator
 {
-    protected static Logger log = Logger.getLogger(TableNameReferenceConverter.class);
+    protected static Logger log = Logger
+            .getLogger(TableNameReferenceConverter.class);
 
     public Map<String, Table> map;
 
     public TableNameReferenceConverter(boolean ignoreCase)
     {
-        if (ignoreCase)
-            this.map = new TreeMap<String,Table>(new CaseInsensitiveStringComparator());
-        else
-            this.map = new TreeMap<String,Table>();
+        this.map = ignoreCase
+                   ? new TreeMap<String, Table>(new CaseInsensitiveStringComparator())
+                   : new TreeMap<String, Table>();
     }
 
     public TableNameReferenceConverter(Map<String, Table> map)
@@ -108,21 +110,25 @@ public class TableNameReferenceConverter extends ReferenceNavigator
      * Add new entries to the table name map.
      *
      * @param originalName a table name that should be replaced
-     * @param newName the value that originalName should be replaced with
+     * @param newName      the value that originalName should be replaced with
      */
     public void put(String originalName, String newName)
     {
         Table t = new Table();
         String[] parts = newName.split("[.]");
         if (parts.length == 1)
+        {
             t.setName(parts[0]);
+        }
         else if (parts.length == 2)
         {
             t.setSchemaName(parts[0]);
             t.setName(parts[1]);
         }
         else
+        {
             throw new IllegalArgumentException("expected new table name to have 1-2 parts, found " + parts.length);
+        }
 
         map.put(originalName, t);
     }
@@ -135,14 +141,16 @@ public class TableNameReferenceConverter extends ReferenceNavigator
         log.debug("table: " + table);
         if (table != null && table.getName() != null)
         {
-            String tabName = table.getWholeTableName();
+            String tabName = table.getFullyQualifiedName();
             log.debug("looking for " + tabName + " in conversion map...");
             Table ntab = map.get(tabName);
             log.debug("found: " + ntab);
             if (ntab != null)
             {
-                log.debug("convert: " + table.getSchemaName() + "." + table.getName()
-                        + " -> " + ntab.getSchemaName() + "." + ntab.getName());
+                log.debug("convert: " + table.getSchemaName() + "." + table
+                        .getName()
+                          + " -> " + ntab.getSchemaName() + "." + ntab
+                                  .getName());
                 table.setName(ntab.getName());
                 table.setSchemaName(ntab.getSchemaName());
                 // leave alias intact

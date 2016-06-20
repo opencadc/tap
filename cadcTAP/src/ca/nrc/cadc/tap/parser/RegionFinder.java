@@ -79,7 +79,6 @@ import java.util.ListIterator;
 import net.sf.jsqlparser.expression.BinaryExpression;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
-import net.sf.jsqlparser.expression.InverseExpression;
 import net.sf.jsqlparser.expression.NullValue;
 import net.sf.jsqlparser.expression.Parenthesis;
 import net.sf.jsqlparser.expression.StringValue;
@@ -229,14 +228,6 @@ public class RegionFinder extends SelectNavigator
             implExpr = expr1;
 
             implExpr = handleRegionPredicate((BinaryExpression) implExpr);
-        }
-        else if (expr instanceof InverseExpression)
-        {
-            InverseExpression expr1 = (InverseExpression) expr;
-            Expression child = expr1.getExpression();
-            Expression child2 = convertToImplementation(child);
-            expr1.setExpression(child2);
-            implExpr = expr1;
         }
         else if (expr instanceof Parenthesis)
         {

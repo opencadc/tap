@@ -72,8 +72,6 @@ package ca.nrc.cadc.tap.parser.navigator;
 import org.apache.log4j.Logger;
 
 import net.sf.jsqlparser.schema.Column;
-import net.sf.jsqlparser.statement.select.ColumnIndex;
-import net.sf.jsqlparser.statement.select.ColumnReferenceVisitor;
 import net.sf.jsqlparser.statement.select.OrderByElement;
 import net.sf.jsqlparser.statement.select.OrderByVisitor;
 
@@ -84,7 +82,8 @@ import net.sf.jsqlparser.statement.select.OrderByVisitor;
  * @author zhangsa
  *
  */
-public class ReferenceNavigator extends SubNavigator implements ColumnReferenceVisitor, OrderByVisitor
+public class ReferenceNavigator extends ExpressionNavigator
+        implements OrderByVisitor
 {
     private static final Logger log = Logger.getLogger(ReferenceNavigator.class);
 
@@ -94,19 +93,9 @@ public class ReferenceNavigator extends SubNavigator implements ColumnReferenceV
 
     public ReferenceNavigator clone()
     {
-        ReferenceNavigator rtn = (ReferenceNavigator) super.clone();
-        return rtn;
+        return (ReferenceNavigator) super.clone();
     }
 
-
-    /* (non-Javadoc)
-     * @see net.sf.jsqlparser.statement.select.ColumnReferenceVisitor#visit(net.sf.jsqlparser.statement.select.ColumnIndex)
-     */
-    @Override
-    public void visit(ColumnIndex columnIndex)
-    {
-        log.debug("visit(columnIndex)" + columnIndex);
-    }
 
     /* (non-Javadoc)
      * @see net.sf.jsqlparser.statement.select.ColumnReferenceVisitor#visit(net.sf.jsqlparser.schema.Column)
@@ -124,6 +113,6 @@ public class ReferenceNavigator extends SubNavigator implements ColumnReferenceV
     public void visit(OrderByElement orderBy)
     {
         log.debug("visit(orderByElement)" + orderBy);
-        orderBy.getColumnReference().accept(this);
+        orderBy.getExpression().accept(this);
     }
 }

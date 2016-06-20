@@ -24,7 +24,7 @@ public class PgsphereDeParser extends BaseExpressionDeParser
 {
     private static Logger log = Logger.getLogger(PgsphereDeParser.class);
 
-    public PgsphereDeParser(SelectVisitor selectVisitor, StringBuffer buffer)
+    public PgsphereDeParser(SelectVisitor selectVisitor, StringBuilder buffer)
     {
         super(selectVisitor, buffer);
     }
@@ -70,9 +70,9 @@ public class PgsphereDeParser extends BaseExpressionDeParser
             Spoint spoint = (Spoint) function;
             if (spoint.isOperand())
             {
-                buffer.append("cast(");
+                buffer("cast(");
                 super.visit(spoint);
-                buffer.append(" as scircle)");
+                buffer(" as scircle)");
             }
             else
             {
@@ -86,13 +86,13 @@ public class PgsphereDeParser extends BaseExpressionDeParser
         else if(function instanceof Spoly)
         {
             Spoly spoly = (Spoly) function;
-            buffer.append(spoly.getName());
-            buffer.append(" '{");
+            buffer(spoly.getName());
+            buffer(" '{");
             List<Expression> expressions = spoly.getParameters().getExpressions();
             String deli = "";
             for (Expression expression : expressions)
             {
-                buffer.append(deli);
+                buffer(deli);
                 deli = ",";
                 if (expression instanceof StringValue)
                 {
@@ -102,10 +102,10 @@ public class PgsphereDeParser extends BaseExpressionDeParser
                 else if (expression instanceof Spoint)
                 {
                     Spoint spoint = (Spoint) expression;
-                    buffer.append(spoint.toVertex());
+                    buffer(spoint.toVertex());
                 }
             }
-            buffer.append("}'");
+            buffer("}'");
         }
         else
         {
