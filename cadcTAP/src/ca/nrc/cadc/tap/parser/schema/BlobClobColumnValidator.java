@@ -69,6 +69,7 @@
 
 package ca.nrc.cadc.tap.parser.schema;
 
+import ca.nrc.cadc.util.StringUtil;
 import org.apache.log4j.Logger;
 
 import net.sf.jsqlparser.expression.Expression;
@@ -84,16 +85,16 @@ import ca.nrc.cadc.tap.schema.TapSchema;
 
 /**
  * Column cannot be BLOB/CLOB type if it's not in the SELECT ITEM part of query.
- * 
- * @author zhangsa
  *
+ * @author zhangsa
  */
 public class BlobClobColumnValidator extends TapSchemaColumnValidator
 {
     public static final String BLOB = "adql:BLOB";
     public static final String CLOB = "adql:CLOB";
 
-    protected static Logger log = Logger.getLogger(BlobClobColumnValidator.class);
+    protected static Logger log = Logger
+            .getLogger(BlobClobColumnValidator.class);
 
     public BlobClobColumnValidator(TapSchema ts)
     {
@@ -101,7 +102,7 @@ public class BlobClobColumnValidator extends TapSchemaColumnValidator
     }
 
     @Override
-    public void visit(Column column)
+    public void visit(final Column column)
     {
         super.visit(column); // Perform default standard validation
         PlainSelect plainSelect = selectNavigator.getPlainSelect();
@@ -116,41 +117,48 @@ public class BlobClobColumnValidator extends TapSchemaColumnValidator
             boolean isAlias = false;
 
             ColumnDesc columnDesc = null;
+            final Table table = column.getTable();
 
-            Table table = column.getTable();
-            //log.debug("column.getTable: " + table);
-            if (table == null || table.getName() == null || table.getName().equals(""))
+            if ((table == null) || !StringUtil.hasText(table.getName()))
             {
                 // form: alias, or columnName
-                
+
                 String columnNameOrAlias = column.getColumnName();
-                //log.debug("columnNameOrAlias: " + columnNameOrAlias);
-                SelectItem si = ParserUtil.findSelectItemByAlias(plainSelect, columnNameOrAlias);
-                
-                if (si != null || si instanceof SelectExpressionItem)
+                SelectItem si = ParserUtil
+                        .findSelectItemByAlias(plainSelect, columnNameOrAlias);
+
+                if (si != null)
                 {
                     isAlias = true; // ok
                     Expression ex = ((SelectExpressionItem) si).getExpression();
-                    if (ex instanceof Column) columnDesc = TapSchemaUtil.findColumnDesc(super.tapSchema, plainSelect, (Column) ex);
+                    if (ex instanceof Column)
+                    {
+                        columnDesc =
+                                TapSchemaUtil.findColumnDesc(super.tapSchema,
+                                                             plainSelect,
+                                                             (Column) ex);
+                    }
                 }
-                //log.debug("columnDesc from alias: " + columnDesc);
             }
 
             if (!isAlias)
             {
-                columnDesc = TapSchemaUtil.findColumnDesc(super.tapSchema, plainSelect, column);
-                //log.debug("columnDesc from columnName: " + columnDesc);
+                columnDesc = TapSchemaUtil.findColumnDesc(super.tapSchema,
+                                                          plainSelect, column);
             }
 
             if (columnDesc != null)
             {
                 String dataType = columnDesc.getDatatype();
-                if (BLOB.equalsIgnoreCase(dataType))
-                    throw new IllegalArgumentException("The column [" + column
-                            + "] of BLOB type cannot be used in place other than select item.");
-                else if (CLOB.equalsIgnoreCase(dataType))
-                    throw new IllegalArgumentException("The column [" + column
-                            + "] of CLOB type cannot be used in place other than select item.");
+                if (BLOB.equalsIgnoreCase(dataType)
+                    || CLOB.equalsIgnoreCase(dataType))
+                {
+                    throw new IllegalArgumentException(
+                            "The column [" + column + "] of "
+                            + dataType.toUpperCase()
+                            + " type cannot be used in place other than select "
+                            + "item.");
+                }
             }
             else
             {

@@ -118,9 +118,6 @@ public class QuerySelectDeParser extends SelectDeParser
 
         FromItem fromItem = join.getRightItem();
         fromItem.accept(this);
-//		if (fromItem.getAlias() != null) {
-//			buffer(" AS " + fromItem.getAlias());
-//		}
         if (join.getOnExpression() != null)
         {
             buffer(" ON ");
@@ -158,7 +155,7 @@ public class QuerySelectDeParser extends SelectDeParser
         if (top != null)
         {
             buffer("TOP ");
-            buffer(top.getExpression().toString());
+            buffer(Long.toString(top.getRowCount()));
             buffer(" ");
         }
         if (plainSelect.getDistinct() != null)
@@ -202,10 +199,8 @@ public class QuerySelectDeParser extends SelectDeParser
 
         if (plainSelect.getJoins() != null)
         {
-            for (Iterator iter = plainSelect.getJoins().iterator(); iter
-                    .hasNext(); )
+            for (final Join join : plainSelect.getJoins())
             {
-                Join join = (Join) iter.next();
                 deparseJoin(join);
             }
         }

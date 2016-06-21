@@ -139,18 +139,17 @@ public class ExtractorTest
 
     private void doit(String query, List<ParamDesc> expectedList)
     {
-        boolean isValidQuery = true;
-        doit(query, expectedList, isValidQuery);
+        doit(query, expectedList, true);
     }
 
-    private void doit(String query, List<ParamDesc> expectedList, boolean isValidQuery)
+    private void doit(String query, List<ParamDesc> expectedList,
+                      boolean isValidQuery)
     {
         log.debug("query: "  + query);
-        Statement s = null;
         try
         {
             boolean exceptionThrown = false;
-            s = ParserUtil.receiveQuery(query);
+            final Statement s = ParserUtil.receiveQuery(query);
             try
             {
                 ParserUtil.parseStatement(s, _sn);
@@ -195,7 +194,7 @@ public class ExtractorTest
     {
         String query = "select t.table_name as tn, keys.from_table from tap_schema.tables t, tap_schema.keys where t.utype=keys.utype";
 
-        List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
+        List<ParamDesc> expectedList = new ArrayList<>();
         ColumnDesc columnDesc = new ColumnDesc("tables", "table_name", null, null, null, null, ADQL_VARCHAR, 16);
         ParamDesc paramDesc = new ParamDesc(columnDesc, new Alias("tn"));
         expectedList.add(paramDesc);
@@ -211,7 +210,7 @@ public class ExtractorTest
     {
         String query = "select \"table_name\" from tap_schema.tables";
 
-        List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
+        List<ParamDesc> expectedList = new ArrayList<>();
         ColumnDesc columnDesc = new ColumnDesc("tables", "table_name", null, null, null, null, ADQL_VARCHAR, 16);
         ParamDesc paramDesc = new ParamDesc(columnDesc, null);
         expectedList.add(paramDesc);
@@ -224,7 +223,7 @@ public class ExtractorTest
     {
         String query = "select position_center_ra from caom.siav1";
 
-        List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
+        List<ParamDesc> expectedList = new ArrayList<>();
         ColumnDesc columnDesc = new ColumnDesc("siav1", "position_center_ra", null, null, null, null, ADQL_DOUBLE, null);
         ParamDesc paramDesc = new ParamDesc(columnDesc, null);
         expectedList.add(paramDesc);
@@ -237,7 +236,7 @@ public class ExtractorTest
     {
         String query = "select area(position_center_ra) from caom.siav1";
 
-        List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
+        List<ParamDesc> expectedList = new ArrayList<>();
         FunctionDesc functionDesc = new FunctionDesc("AREA", null, ADQL_DOUBLE);
         ParamDesc paramDesc = new ParamDesc(functionDesc, null);
         expectedList.add(paramDesc);
@@ -248,17 +247,15 @@ public class ExtractorTest
     @Test
     public void testAllColumnmsExpression()
     {
-        boolean isValidQuery = false;
         String query = "select * from caom.siav1";
-        doit(query, null, isValidQuery);
+        doit(query, null, false);
     }
 
     @Test
     public void testAllTableColumnmsExpression()
     {
-        boolean isValidQuery = false;
         String query = "select siav1.* from caom.siav1";
-        doit(query, null, isValidQuery);
+        doit(query, null, false);
     }
 
     @Test
@@ -266,7 +263,7 @@ public class ExtractorTest
     {
         String query = "select max(position_center_ra) from caom.siav1";
 
-        List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
+        List<ParamDesc> expectedList = new ArrayList<>();
         FunctionDesc functionDesc = new FunctionDesc("MAX", null, ADQL_DOUBLE);
         ParamDesc paramDesc = new ParamDesc(functionDesc, null);
         expectedList.add(paramDesc);
@@ -279,7 +276,7 @@ public class ExtractorTest
     {
         String query = "select max(area(position_center_ra)) from caom.siav1";
 
-        List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
+        List<ParamDesc> expectedList = new ArrayList<>();
         FunctionDesc functionDesc = new FunctionDesc("MAX", null, ADQL_DOUBLE);
         ParamDesc paramDesc = new ParamDesc(functionDesc, null);
         expectedList.add(paramDesc);
@@ -292,7 +289,7 @@ public class ExtractorTest
     {
         String query = "select area(max(position_center_ra)) from caom.siav1";
 
-        List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
+        List<ParamDesc> expectedList = new ArrayList<>();
         FunctionDesc functionDesc = new FunctionDesc("AREA", null, ADQL_DOUBLE);
         ParamDesc paramDesc = new ParamDesc(functionDesc, null);
         expectedList.add(paramDesc);
@@ -305,7 +302,7 @@ public class ExtractorTest
     {
         String query = "select max(min(avg(position_center_ra))) from caom.siav1";
 
-        List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
+        List<ParamDesc> expectedList = new ArrayList<>();
         FunctionDesc functionDesc = new FunctionDesc("MAX", null, ADQL_DOUBLE);
         ParamDesc paramDesc = new ParamDesc(functionDesc, null);
         expectedList.add(paramDesc);
@@ -318,7 +315,7 @@ public class ExtractorTest
     {
         String query = "select 1 from caom.siav1";
 
-        List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
+        List<ParamDesc> expectedList = new ArrayList<>();
         ParamDesc paramDesc = new ParamDesc("1", new Alias("1"));
         expectedList.add(paramDesc);
 
@@ -330,7 +327,7 @@ public class ExtractorTest
     {
         String query = "select 1 as one from caom.siav1";
 
-        List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
+        List<ParamDesc> expectedList = new ArrayList<>();
         ParamDesc paramDesc = new ParamDesc("1", new Alias("one"));
         expectedList.add(paramDesc);
 

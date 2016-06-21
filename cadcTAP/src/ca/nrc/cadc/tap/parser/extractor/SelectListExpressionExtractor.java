@@ -110,7 +110,7 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
     {
         super();
         this.tapSchema = tapSchema;
-        this.selectList = new ArrayList<ParamDesc>();
+        this.selectList = new ArrayList<>();
     }
 
     /* (non-Javadoc)

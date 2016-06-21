@@ -75,7 +75,6 @@ import net.sf.jsqlparser.statement.Statements;
 import net.sf.jsqlparser.statement.alter.Alter;
 import net.sf.jsqlparser.statement.create.index.CreateIndex;
 import net.sf.jsqlparser.statement.create.table.CreateTable;
-import net.sf.jsqlparser.statement.create.view.AlterView;
 import net.sf.jsqlparser.statement.create.view.CreateView;
 import net.sf.jsqlparser.statement.delete.Delete;
 import net.sf.jsqlparser.statement.drop.Drop;
@@ -205,12 +204,6 @@ class StatementNavigator implements StatementVisitor
 
     @Override
     public void visit(CreateView createView)
-    {
-
-    }
-
-    @Override
-    public void visit(AlterView alterView)
     {
 
     }

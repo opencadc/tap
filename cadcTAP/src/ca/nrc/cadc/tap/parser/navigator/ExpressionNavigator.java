@@ -251,12 +251,6 @@ public class ExpressionNavigator extends SubNavigator
     }
 
     @Override
-    public void visit(TimeKeyExpression timeKeyExpression)
-    {
-
-    }
-
-    @Override
     public void visit(MultiExpressionList multiExprList)
     {
 
@@ -658,13 +652,9 @@ public class ExpressionNavigator extends SubNavigator
         this.selectNavigator.getFromItemNavigator().visit(allTableColumns.getTable());
     }
 
-    /* (non-Javadoc)
-     * @see net.sf.jsqlparser.statement.select.SelectItemVisitor#visit(net.sf.jsqlparser.statement.select.SelectExpressionItem)
-     */
     @Override
     public void visit(SelectExpressionItem selectExpressionItem)
     {
-        log.debug("visit(selectExpressionItem)" + selectExpressionItem);
-        selectExpressionItem.getExpression().accept(this);
+//        this.selectNavigator.getExpressionNavigator().visit(selectExpressionItem);
     }
 }

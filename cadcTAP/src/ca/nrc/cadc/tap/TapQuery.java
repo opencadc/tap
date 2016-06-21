@@ -116,5 +116,5 @@ public interface TapQuery extends TapPlugin
      *
      * @param count
      */
-    public void setMaxRowCount(Integer count);
+    public void setMaxRowCount(Long count);
 }

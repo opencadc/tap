@@ -329,7 +329,7 @@ public class QueryRunner implements JobRunner
             query.setTapSchema(tapSchema);
             query.setExtraTables(tableDescs);
             if (maxRows != null)
-                query.setMaxRowCount(maxRows + 1); // +1 so the TableWriter can detect overflow
+                query.setMaxRowCount(maxRows + 1L); // +1 so the TableWriter can detect overflow
 
             log.debug("invoking TapQuery implementation: " + query.getClass().getCanonicalName());
             String sql = query.getSQL();

@@ -125,7 +125,7 @@ public class AdqlQuery extends AbstractTapQuery
 
     protected Statement statement;
     protected List<ParamDesc> selectList = null;
-    protected List<SelectNavigator> navigatorList = new ArrayList<SelectNavigator>();
+    protected List<SelectNavigator> navigatorList = new ArrayList<>();
 
     protected transient boolean navigated = false;
 
@@ -217,17 +217,16 @@ public class AdqlQuery extends AbstractTapQuery
                 if (top == null)
                 {
                     top = new Top();
-                    top.setExpression(new LongValue((long) maxRowCount));
+                    top.setRowCount((long) maxRowCount);
                     log.debug("added TOP " + maxRowCount);
                 }
                 else
                 {
-                    final int topRowCount =
-                            Integer.parseInt(top.getExpression().toString());
+                    final long topRowCount = top.getRowCount();
                     if (maxRowCount < topRowCount)
                     {
                         log.debug("updated TOP " + topRowCount + " to TOP " + maxRowCount);
-                        top.setExpression(new LongValue((long) maxRowCount));
+                        top.setRowCount(maxRowCount);
                     }
                 }
                 plainSelect.setTop(top);
