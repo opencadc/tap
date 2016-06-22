@@ -208,8 +208,9 @@ public class ParserUtil
             if (si instanceof SelectExpressionItem)
             {
                 SelectExpressionItem sei = (SelectExpressionItem) si;
-                if (columnNameOrAlias
-                        .equalsIgnoreCase(sei.getAlias().getName()))
+                final String tableAliasName = (sei.getAlias() == null)
+                                              ? "" : sei.getAlias().getName();
+                if (columnNameOrAlias.equalsIgnoreCase(tableAliasName))
                 {
                     rtn = sei;
                     break;
