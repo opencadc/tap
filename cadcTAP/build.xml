@@ -71,6 +71,10 @@
 <!DOCTYPE project>
 <project default="build" basedir=".">
     <property environment="env" />
+
+    <property name="java.target.version" value="1.7"/>
+    <property name="java.source.version" value="1.7"/>
+
     <property file="local.build.properties" />
 
     <!-- site-specific build properties or overrides of values in opencadc.properties -->
