@@ -69,13 +69,17 @@
 
 package ca.nrc.cadc.vosi;
 
+import ca.nrc.cadc.reg.XMLConstants;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.KeyColumnDesc;
 import ca.nrc.cadc.tap.schema.KeyDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
+import ca.nrc.cadc.xml.W3CConstants;
+
 import java.util.NoSuchElementException;
+
 import org.apache.log4j.Logger;
 import org.jdom2.Attribute;
 import org.jdom2.Document;
@@ -99,9 +103,9 @@ public class TableSet
 
     private TapSchema tapSchema;
 
-    private Namespace xsi = Namespace.getNamespace("xsi", VOSI.XSI_NS_URI);
-    private Namespace vosi = Namespace.getNamespace("vosi", VOSI.TABLES_NS_URI);
-    private Namespace vod = Namespace.getNamespace("vod", VOSI.VODATASERVICE_NS_URI);
+    private Namespace xsi = W3CConstants.XSI_NS;
+    private Namespace vosi = XMLConstants.TABLES_NS;
+    private Namespace vod = XMLConstants.VODATASERVICE_NS;;
 
     public TableSet(TapSchema tapSchema)
     {

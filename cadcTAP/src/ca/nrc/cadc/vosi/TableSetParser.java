@@ -69,11 +69,11 @@
 
 package ca.nrc.cadc.vosi;
 
+import ca.nrc.cadc.reg.XMLConstants;
 import ca.nrc.cadc.xml.XmlUtil;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
-import java.util.HashMap;
 import java.util.Map;
 import org.apache.log4j.Logger;
 import org.jdom2.Document;
@@ -103,62 +103,7 @@ public class TableSetParser
     {
         if (enableSchemaValidation)
         {
-            this.schemaMap = new HashMap<String,String>();
-            String url;
-
-            url = XmlUtil.getResourceUrlString(VOSI.TABLES_SCHEMA, TableSetParser.class);
-            if (url != null)
-            {
-                log.debug(VOSI.TABLES_NS_URI + " -> " + url);
-                schemaMap.put(VOSI.TABLES_NS_URI, url);
-            }
-            else
-                log.warn("failed to find resource: " + VOSI.TABLES_SCHEMA);
-
-            url = XmlUtil.getResourceUrlString(VOSI.VORESOURCE_SCHEMA, TableSetParser.class);
-            if (url != null)
-            {
-                log.debug(VOSI.VORESOURCE_NS_URI + " -> " + url);
-                schemaMap.put(VOSI.VORESOURCE_NS_URI, url);
-            }
-            else
-                log.warn("failed to find resource: " + VOSI.VORESOURCE_SCHEMA);
-
-            url = XmlUtil.getResourceUrlString(VOSI.VODATASERVICE_SCHEMA, TableSetParser.class);
-            if (url != null)
-            {
-                log.debug(VOSI.VODATASERVICE_NS_URI + " -> " + url);
-                schemaMap.put(VOSI.VODATASERVICE_NS_URI, url);
-            }
-            else
-                log.warn("failed to find resource: " + VOSI.VODATASERVICE_SCHEMA);
-
-            url = XmlUtil.getResourceUrlString(VOSI.STC_SCHEMA, CapabilitiesParser.class);
-            if (url != null)
-            {
-                log.debug(VOSI.STC_NS_URI + " -> " + url);
-                schemaMap.put(VOSI.STC_NS_URI, url);
-            }
-            else
-                log.warn("failed to find resource: " + VOSI.STC_SCHEMA);
-
-            url = XmlUtil.getResourceUrlString(VOSI.XSI_SCHEMA, CapabilitiesParser.class);
-            if (url != null)
-            {
-                log.debug(VOSI.XSI_NS_URI + " -> " + url);
-                schemaMap.put(VOSI.XSI_NS_URI, url);
-            }
-            else
-                log.warn("failed to find resource: " + VOSI.XLINK_SCHEMA);
-            
-            url = XmlUtil.getResourceUrlString(VOSI.XLINK_SCHEMA, CapabilitiesParser.class);
-            if (url != null)
-            {
-                log.debug(VOSI.XLINK_NS_URI + " -> " + url);
-                schemaMap.put(VOSI.XLINK_NS_URI, url);
-            }
-            else
-                log.warn("failed to find resource: " + VOSI.XLINK_SCHEMA);
+            this.schemaMap = XMLConstants.getSchemaMap();
         }
     }
 

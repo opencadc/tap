@@ -406,6 +406,7 @@ public class DefaultTableWriter implements TableWriter
                     {
                         Subject s = AuthenticationUtil.getCurrentSubject();
                         AuthMethod cur = AuthenticationUtil.getAuthMethod(s);
+                        // TODO: replace the null parameter with a suitable Standards standardID
                         URL accessURL = regClient.getServiceURL(resourceIdentifier, job.protocol, null, cur);
                         String surl = accessURL.toExternalForm();
                         VOTableParam accessParam = new VOTableParam("accessURL", "char", surl.length(), false, surl);
