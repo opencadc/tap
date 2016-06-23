@@ -103,7 +103,7 @@ public class TableSetParser
     {
         if (enableSchemaValidation)
         {
-            this.schemaMap = XMLConstants.getSchemaMap();
+            this.schemaMap = XMLConstants.SCHEMA_URL_MAP;
         }
     }
 
