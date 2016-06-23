@@ -72,6 +72,7 @@ package ca.nrc.cadc.tap.parser.extractor;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.sf.jsqlparser.expression.Alias;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.statement.select.AllColumns;
@@ -109,7 +110,7 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
     {
         super();
         this.tapSchema = tapSchema;
-        this.selectList = new ArrayList<ParamDesc>();
+        this.selectList = new ArrayList<>();
     }
 
     /* (non-Javadoc)
@@ -140,7 +141,7 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
         
         ParamDesc paramDesc = null;
         PlainSelect plainSelect = selectNavigator.getPlainSelect();
-        String alias = selectExpressionItem.getAlias();
+        Alias alias = selectExpressionItem.getAlias();
 
         Expression expression = selectExpressionItem.getExpression();
         if (expression instanceof Column)
@@ -161,10 +162,11 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
         else
         {
             String datatype = getDatatypeFromExpression(expression);
-            if (alias == null || alias.isEmpty())
-                paramDesc = new ParamDesc(expression.toString(), expression.toString(), datatype);
+            if (alias == null || alias.getName().isEmpty())
+                paramDesc = new ParamDesc(expression.toString(),
+                                          new Alias(expression.toString()));
             else
-                paramDesc = new ParamDesc(expression.toString(), alias, datatype);
+                paramDesc = new ParamDesc(expression.toString(), alias);
         }
         selectList.add(paramDesc);
     }

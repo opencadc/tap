@@ -193,7 +193,7 @@ public class SelectListExpressionExtractorTest
         try
         {
             List<ParamDesc> selectList = new ArrayList<ParamDesc>();
-            selectList.add(new ParamDesc("param one", null, null));
+            selectList.add(new ParamDesc("param one", null));
             extractor.setSelectList(selectList);
 
             List<ParamDesc> returnedList = extractor.getSelectList();

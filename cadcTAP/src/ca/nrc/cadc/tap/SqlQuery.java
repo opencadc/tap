@@ -112,7 +112,7 @@ public class SqlQuery extends AbstractTapQuery
     protected String queryString;
     protected Statement statement;
     protected List<ParamDesc> selectList;
-    protected List<SelectNavigator> navigatorList = new ArrayList<SelectNavigator>();
+    protected List<SelectNavigator> navigatorList = new ArrayList<>();
 
     protected transient boolean navigated = false;
 
@@ -216,7 +216,8 @@ public class SqlQuery extends AbstractTapQuery
      * @param sb
      * @return expression deparser impl
      */
-    protected BaseExpressionDeParser getExpressionDeparser(SelectDeParser dep, StringBuffer sb)
+    protected BaseExpressionDeParser getExpressionDeparser(SelectDeParser dep,
+                                                           StringBuilder sb)
     {
         return new BaseExpressionDeParser(dep, sb);
     }
@@ -224,7 +225,7 @@ public class SqlQuery extends AbstractTapQuery
     public String getSQL()
     {
         doNavigate();
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         SelectDeParser deParser = getSelectDeParser();
         deParser.setBuffer(sb);
         ExpressionDeParser expressionDeParser = getExpressionDeparser(deParser, sb);

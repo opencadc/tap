@@ -85,7 +85,7 @@ public abstract class AbstractTapQuery implements TapQuery
     protected Job job;
     protected TapSchema tapSchema;
     protected Map<String, TableDesc> extraTables;
-    protected Integer maxRowCount;
+    protected Long maxRowCount;
     
     protected AbstractTapQuery() { }
 
@@ -104,7 +104,7 @@ public abstract class AbstractTapQuery implements TapQuery
         this.extraTables = extraTables;
     }
 
-    public void setMaxRowCount(Integer maxRowCount)
+    public void setMaxRowCount(Long maxRowCount)
     {
         this.maxRowCount = maxRowCount;
     }

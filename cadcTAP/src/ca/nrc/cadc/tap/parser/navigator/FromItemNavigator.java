@@ -70,20 +70,17 @@
 
 package ca.nrc.cadc.tap.parser.navigator;
 
+import net.sf.jsqlparser.statement.select.*;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.tap.parser.navigator.SelectNavigator.VisitingPart;
 
 import net.sf.jsqlparser.schema.Table;
-import net.sf.jsqlparser.statement.select.FromItemVisitor;
-import net.sf.jsqlparser.statement.select.SubJoin;
-import net.sf.jsqlparser.statement.select.SubSelect;
 
 /**
  * This super class basically visits Tables in a select statement.
- * 
- * @author zhangsa
  *
+ * @author zhangsa
  */
 public class FromItemNavigator extends SubNavigator implements FromItemVisitor
 {
@@ -95,8 +92,7 @@ public class FromItemNavigator extends SubNavigator implements FromItemVisitor
 
     public FromItemNavigator clone()
     {
-        FromItemNavigator rtn = (FromItemNavigator) super.clone();
-        return rtn;
+        return (FromItemNavigator) super.clone();
     }
 
     /* (non-Javadoc)
@@ -118,11 +114,17 @@ public class FromItemNavigator extends SubNavigator implements FromItemVisitor
         log.debug("visit(subSelect) " + subSelect);
         VisitingPart visiting = selectNavigator.getVisitingPart();
         if (visiting.equals(VisitingPart.FROM))
+        {
             throw new UnsupportedOperationException("sub-select not supported in FROM clause.");
+        }
         else if (visiting.equals(VisitingPart.SELECT_ITEM))
+        {
             throw new UnsupportedOperationException("sub-select not supported in SELECT ITEM.");
+        }
         else
+        {
             subSelect.getSelectBody().accept(selectNavigator);
+        }
     }
 
     /* (non-Javadoc)
@@ -132,7 +134,24 @@ public class FromItemNavigator extends SubNavigator implements FromItemVisitor
     public void visit(SubJoin subjoin)
     {
         log.debug("visit(subjoin) " + subjoin);
+    }
+
+
+    @Override
+    public void visit(LateralSubSelect lateralSubSelect)
+    {
 
     }
 
+    @Override
+    public void visit(ValuesList valuesList)
+    {
+
+    }
+
+    @Override
+    public void visit(TableFunction tableFunction)
+    {
+
+    }
 }

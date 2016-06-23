@@ -72,6 +72,7 @@ package ca.nrc.cadc.tap.parser.schema;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.sf.jsqlparser.expression.Alias;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.PlainSelect;
@@ -230,7 +231,7 @@ public class TapSchemaUtil
     /**
      * find ColumnDesc for given TableDesc and columnName.
      * 
-     * @param td
+     * @param tableDesc
      * @param columnName
      * @return
      */
@@ -364,9 +365,9 @@ public class TapSchemaUtil
     private static SelectExpressionItem newSelectExpressionItem(Table table, String columnName)
     {
         Table siTable;
-        String alias = table.getAlias();
-        if (alias != null && !alias.isEmpty())
-            siTable = new Table(null, alias);
+        Alias alias = table.getAlias();
+        if (alias != null && !alias.getName().isEmpty())
+            siTable = new Table(null, alias.getName());
         else
             siTable = table;
         Column column = new Column(siTable, columnName); 

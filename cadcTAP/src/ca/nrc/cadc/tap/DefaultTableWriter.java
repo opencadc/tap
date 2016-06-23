@@ -36,6 +36,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import javax.security.auth.Subject;
+
+import net.sf.jsqlparser.expression.Alias;
 import org.apache.log4j.Logger;
 
 public class DefaultTableWriter implements TableWriter
@@ -393,13 +395,15 @@ public class DefaultTableWriter implements TableWriter
     private String getParamName(ParamDesc paramDesc)
     {
         String name = paramDesc.name;
-        String alias = paramDesc.alias;
+        Alias alias = paramDesc.alias;
         if (alias != null)
         {
+            final String aliasName = alias.getName();
             // strip off double-quotes used for an alias with spaces or dots in it
-            if (alias.charAt(0) == '"' && alias.charAt(alias.length()-1) == '"')
-                alias = alias.substring(1, alias.length() - 1);
-            return alias;
+            if (aliasName.charAt(0) == '"' && aliasName.charAt(aliasName.length()-1) == '"')
+                return aliasName.substring(1, aliasName.length() - 1);
+            else
+                return aliasName;
         }
         else if (name != null)
             return name;

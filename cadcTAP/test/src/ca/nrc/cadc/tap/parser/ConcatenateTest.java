@@ -14,6 +14,7 @@ import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.SelectExpressionItem;
+import net.sf.jsqlparser.statement.select.SelectItem;
 import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
 import net.sf.jsqlparser.util.deparser.SelectDeParser;
 import org.apache.log4j.Level;
@@ -55,31 +56,31 @@ public class ConcatenateTest
 
         StringBuilder sb = new StringBuilder();
         sb.append("select ");
-        sb.append(columnA.getWholeColumnName());
+        sb.append(columnA.getFullyQualifiedName());
         sb.append(concatenate.getOperator());
         sb.append("'");
         sb.append(concatenate.getSeparator());
         sb.append("'");
         sb.append(concatenate.getOperator());
-        sb.append(columnB.getWholeColumnName());
+        sb.append(columnB.getFullyQualifiedName());
         sb.append(concatenate.getOperator());
         sb.append("'");
         sb.append(concatenate.getSeparator());
         sb.append("'");
         sb.append(concatenate.getOperator());
-        sb.append(columnC.getWholeColumnName());
+        sb.append(columnC.getFullyQualifiedName());
         String expResult = sb.toString();
 
         SelectExpressionItem expressionItem = new SelectExpressionItem();
         expressionItem.setExpression(concatenate);
 
-        List<SelectExpressionItem> selectItems = new ArrayList<SelectExpressionItem>();
+        List<SelectItem> selectItems = new ArrayList<>();
         selectItems.add(expressionItem);
 
         PlainSelect plainSelect = new PlainSelect();
         plainSelect.setSelectItems(selectItems);
 
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder buffer = new StringBuilder();
         SelectDeParser deParser = new SelectDeParser();
         deParser.setBuffer(buffer);
         ExpressionDeParser expressionDeParser = new BaseExpressionDeParser(deParser, buffer);

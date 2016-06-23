@@ -6,23 +6,23 @@
 package ca.nrc.cadc.tap.parser;
 
 import java.util.Iterator;
+
+import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.ExpressionVisitor;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
-import net.sf.jsqlparser.statement.select.ColumnReference;
 import net.sf.jsqlparser.statement.select.FromItem;
 import net.sf.jsqlparser.statement.select.Join;
-import net.sf.jsqlparser.statement.select.Limit;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.SelectItem;
 import net.sf.jsqlparser.statement.select.Top;
 import net.sf.jsqlparser.util.deparser.SelectDeParser;
 import org.apache.log4j.Logger;
 
+
 /**
  * The methods in this class override JSQLParser SelectDeParser methods to
  * fix de-parsing bugs.
- *
  *
  * @author jburke
  */
@@ -31,19 +31,23 @@ public class QuerySelectDeParser extends SelectDeParser
     private static Logger log = Logger.getLogger(QuerySelectDeParser.class);
 
     private boolean tableAliasWithAS = true;
-    
+
     public QuerySelectDeParser()
     {
         super();
     }
 
-    public QuerySelectDeParser(ExpressionVisitor expressionVisitor, StringBuffer buffer)
+    public QuerySelectDeParser(ExpressionVisitor expressionVisitor,
+                               StringBuilder buffer)
     {
         super(expressionVisitor, buffer);
     }
 
-    public void setTableAliasWithAS(boolean enabled) { this.tableAliasWithAS = enabled; }
-    
+    public void setTableAliasWithAS(boolean enabled)
+    {
+        this.tableAliasWithAS = enabled;
+    }
+
     /**
      * The table alias, if it exists, was not appended to the table name.
      *
@@ -53,15 +57,19 @@ public class QuerySelectDeParser extends SelectDeParser
     public void visit(Table table)
     {
         log.debug("visit(Table) " + table);
-        buffer.append(table.getWholeTableName());
+        buffer(table.getFullyQualifiedName());
         if (table.getAlias() != null)
         {
-			if (tableAliasWithAS)
-                buffer.append(" AS ");
+            if (tableAliasWithAS)
+            {
+                buffer(" AS ");
+            }
             else
-                buffer.append(" ");
-            buffer.append(table.getAlias());
-		}
+            {
+                buffer(" ");
+            }
+            buffer(table.getAlias().getName());
+        }
     }
 
     /**
@@ -73,47 +81,63 @@ public class QuerySelectDeParser extends SelectDeParser
     @Override
     public void deparseJoin(Join join)
     {
-		if (join.isSimple())
-			buffer.append(", ");
-		else
-		{
-			if (join.isRight())
-				buffer.append(" RIGHT");
-			else if (join.isNatural())
-				buffer.append(" NATURAL");
-			else if (join.isFull())
-				buffer.append(" FULL");
-			else if (join.isLeft())
-				buffer.append(" LEFT");
+        if (join.isSimple())
+        {
+            buffer(", ");
+        }
+        else
+        {
+            if (join.isRight())
+            {
+                buffer(" RIGHT");
+            }
+            else if (join.isNatural())
+            {
+                buffer(" NATURAL");
+            }
+            else if (join.isFull())
+            {
+                buffer(" FULL");
+            }
+            else if (join.isLeft())
+            {
+                buffer(" LEFT");
+            }
 
-			if (join.isOuter())
-				buffer.append(" OUTER");
-			else if (join.isInner())
-				buffer.append(" INNER");
+            if (join.isOuter())
+            {
+                buffer(" OUTER");
+            }
+            else if (join.isInner())
+            {
+                buffer(" INNER");
+            }
 
-			buffer.append(" JOIN ");
-		}
+            buffer(" JOIN ");
+        }
 
-		FromItem fromItem = join.getRightItem();
-		fromItem.accept(this);
-//		if (fromItem.getAlias() != null) {
-//			buffer.append(" AS " + fromItem.getAlias());
-//		}
-		if (join.getOnExpression() != null) {
-			buffer.append(" ON ");
-			join.getOnExpression().accept(expressionVisitor);
-		}
-		if (join.getUsingColumns() != null) {
-			buffer.append(" USING ( ");
-			for (Iterator iterator = join.getUsingColumns().iterator(); iterator.hasNext();) {
-				Column column = (Column) iterator.next();
-				buffer.append(column.getWholeColumnName());
-				if (iterator.hasNext()) {
-					buffer.append(" ,");
-				}
-			}
-			buffer.append(")");
-		}
+        FromItem fromItem = join.getRightItem();
+        fromItem.accept(this);
+        if (join.getOnExpression() != null)
+        {
+            buffer(" ON ");
+            join.getOnExpression().accept(getExpressionVisitor());
+        }
+        if (join.getUsingColumns() != null)
+        {
+            buffer(" USING ( ");
+            for (Iterator iterator = join.getUsingColumns().iterator(); iterator
+                    .hasNext(); )
+            {
+                Column column = (Column) iterator.next();
+                buffer(column.getFullyQualifiedName());
+                if (iterator.hasNext())
+                {
+                    buffer(" ,");
+                }
+            }
+            buffer(")");
+        }
     }
 
     /**
@@ -124,182 +148,94 @@ public class QuerySelectDeParser extends SelectDeParser
     @Override
     public void visit(PlainSelect plainSelect)
     {
-        log.debug("visit(" +  plainSelect.getClass().getSimpleName() + ") " + plainSelect);
-        buffer.append("SELECT ");
-		Top top = plainSelect.getTop();
-		if (top != null)
+        log.debug("visit(" + plainSelect.getClass()
+                .getSimpleName() + ") " + plainSelect);
+        buffer("SELECT ");
+        Top top = plainSelect.getTop();
+        if (top != null)
         {
-            buffer.append("TOP ");
-			buffer.append(top.getRowCount());
-            buffer.append(" ");
+            buffer("TOP ");
+            buffer(Long.toString(top.getRowCount()));
+            buffer(" ");
         }
-		if (plainSelect.getDistinct() != null) {
-			buffer.append("DISTINCT ");
-			if (plainSelect.getDistinct().getOnSelectItems() != null) {
-				buffer.append("ON (");
-				for (Iterator iter = plainSelect.getDistinct().getOnSelectItems().iterator(); iter.hasNext();) {
-					SelectItem selectItem = (SelectItem) iter.next();
-					selectItem.accept(this);
-					if (iter.hasNext()) {
-						buffer.append(", ");
-					}
-				}
-				buffer.append(") ");
-			}
-		}
+        if (plainSelect.getDistinct() != null)
+        {
+            buffer("DISTINCT ");
+            if (plainSelect.getDistinct().getOnSelectItems() != null)
+            {
+                buffer("ON (");
+                for (Iterator iter = plainSelect.getDistinct()
+                        .getOnSelectItems().iterator(); iter.hasNext(); )
+                {
+                    SelectItem selectItem = (SelectItem) iter.next();
+                    selectItem.accept(this);
+                    if (iter.hasNext())
+                    {
+                        buffer(", ");
+                    }
+                }
+                buffer(") ");
+            }
+        }
 
-		for (Iterator iter = plainSelect.getSelectItems().iterator(); iter.hasNext();) {
-			SelectItem selectItem = (SelectItem) iter.next();
-			selectItem.accept(this);
-			if (iter.hasNext()) {
-				buffer.append(", ");
-			}
-		}
+        for (Iterator iter = plainSelect.getSelectItems().iterator(); iter
+                .hasNext(); )
+        {
+            SelectItem selectItem = (SelectItem) iter.next();
+            selectItem.accept(this);
+            if (iter.hasNext())
+            {
+                buffer(", ");
+            }
+        }
 
-		buffer.append(" ");
+        buffer(" ");
 
-		if (plainSelect.getFromItem() != null) {
-			buffer.append("FROM ");
-			plainSelect.getFromItem().accept(this);
-		}
+        if (plainSelect.getFromItem() != null)
+        {
+            buffer("FROM ");
+            plainSelect.getFromItem().accept(this);
+        }
 
-		if (plainSelect.getJoins() != null) {
-			for (Iterator iter = plainSelect.getJoins().iterator(); iter.hasNext();) {
-				Join join = (Join) iter.next();
-				deparseJoin(join);
-			}
-		}
+        if (plainSelect.getJoins() != null)
+        {
+            for (final Join join : plainSelect.getJoins())
+            {
+                deparseJoin(join);
+            }
+        }
 
-		if (plainSelect.getWhere() != null) {
-			buffer.append(" WHERE ");
-			plainSelect.getWhere().accept(expressionVisitor);
-		}
+        if (plainSelect.getWhere() != null)
+        {
+            buffer(" WHERE ");
+            plainSelect.getWhere().accept(getExpressionVisitor());
+        }
 
-		if (plainSelect.getGroupByColumnReferences() != null) {
-			buffer.append(" GROUP BY ");
-			for (Iterator iter = plainSelect.getGroupByColumnReferences().iterator(); iter.hasNext();) {
-				ColumnReference columnReference = (ColumnReference) iter.next();
-				columnReference.accept(this);
-				if (iter.hasNext()) {
-					buffer.append(", ");
-				}
-			}
-		}
+        if (plainSelect.getGroupByColumnReferences() != null)
+        {
+            buffer(" GROUP BY ");
+            for (Iterator<Expression> iter
+                 = plainSelect.getGroupByColumnReferences().iterator();
+                 iter.hasNext(); )
+            {
+                Expression columnReference =  iter.next();
+                columnReference.accept(getExpressionVisitor());
+                if (iter.hasNext())
+                {
+                    buffer(", ");
+                }
+            }
+        }
 
-		if (plainSelect.getHaving() != null) {
-			buffer.append(" HAVING ");
-			plainSelect.getHaving().accept(expressionVisitor);
-		}
-
-		if (plainSelect.getOrderByElements() != null) {
-			deparseOrderBy(plainSelect.getOrderByElements());
-		}
-
-		if (plainSelect.getLimit() != null) {
-			deparseLimit(plainSelect.getLimit());
-		}
+        if (plainSelect.getHaving() != null)
+        {
+            buffer(" HAVING ");
+            plainSelect.getHaving().accept(getExpressionVisitor());
+        }
     }
 
-    /**
-     * Incorrectly handles limit of 0 by setting the limit to BigInt.MAX when
-     * the limit is 0 so hard code LIMIT 0.
-     * 
-     * @param limit
-     */
-    @Override
-    public void deparseLimit(Limit limit)
+    void buffer(final String s)
     {
-        log.debug("visit(" +  limit.getClass().getSimpleName() + ") " + limit);
-        if (limit.getRowCount() == 0)
-        {
-            buffer.append(" LIMIT 0");
-        }
-        else
-        {
-            super.deparseLimit(limit);
-        }
+        getBuffer().append(s);
     }
-
 }
-
-    /**
-     * The following are overridden for debugging purposes only.
-     */
-    /*
-    @Override
-    public void deparseLimit(Limit limit)
-    {
-        log.debug("visit(" +  limit.getClass().getSimpleName() + ") " + limit);
-        super.deparseLimit(limit);
-    }
-
-    @Override
-    public void deparseOrderBy(List orderByElements)
-    {
-        log.debug("visit(" +  orderByElements.getClass().getSimpleName() + ") " + orderByElements);
-        super.deparseOrderBy(orderByElements);
-    }
-
-    @Override
-    public void visit(Union union)
-    {
-        log.debug("visit(" +  union.getClass().getSimpleName() + ") " + union);
-        super.visit(union);
-    }
-
-    @Override
-    public void visit(OrderByElement orderBy)
-    {
-        log.debug("visit(" +  orderBy.getClass().getSimpleName() + ") " + orderBy);
-        super.visit(orderBy);
-    }
-
-    @Override
-    public void visit(Column column)
-    {
-        log.debug("visit(" +  column.getClass().getSimpleName() + ") " + column);
-        super.visit(column);
-    }
-
-    @Override
-    public void visit(ColumnIndex columnIndex)
-    {
-        log.debug("visit(" +  columnIndex.getClass().getSimpleName() + ") " + columnIndex);
-        super.visit(columnIndex);
-    }
-
-    @Override
-    public void visit(AllColumns allColumns)
-    {
-        log.debug("visit(" +  allColumns.getClass().getSimpleName() + ") " + allColumns);
-        super.visit(allColumns);
-    }
-
-    @Override
-    public void visit(AllTableColumns allTableColumns)
-    {
-        log.debug("visit(" +  allTableColumns.getClass().getSimpleName() + ") " + allTableColumns);
-        super.visit(allTableColumns);
-    }
-
-    @Override
-    public void visit(SelectExpressionItem selectExpressionItem)
-    {
-        log.debug("visit(" +  selectExpressionItem.getClass().getSimpleName() + ") " + selectExpressionItem);
-        super.visit(selectExpressionItem);
-    }
-
-    @Override
-    public void visit(SubSelect subSelect)
-    {
-        log.debug("visit(" +  subSelect.getClass().getSimpleName() + ") " + subSelect);
-        super.visit(subSelect);
-    }
-
-    @Override
-    public void visit(SubJoin subjoin)
-    {
-        log.debug("visit(" +  subjoin.getClass().getSimpleName() + ") " + subjoin);
-        super.visit(subjoin);
-    }
-    */

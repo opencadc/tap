@@ -1,0 +1,99 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+}
+
+plugins {
+    id "java"
+    id "maven-publish"
+    id "com.jfrog.bintray" version "1.6"
+}
+
+publishing {
+    publications {
+        MyPublication(MavenPublication) {
+            from components.java
+            groupId = 'canfar.net'
+            artifactId = 'cadcTAP_at88mph'
+            version = '2.2'
+        }
+    }
+}
+
+bintray {
+    user = "${bintray_user}"
+    key = "${bintray_api_key}"
+
+    pkg {
+        repo = 'canfar'
+        name = 'net.canfar.cadcTAP'
+        userOrg = 'canfar'
+        websiteUrl = 'http://www.canfar.net'
+        issueTrackerUrl = 'https://github.com/at88mph/tap/issues'
+        licenses = ['AGPL-V3']
+        vcsUrl = 'https://github.com/at88mph/tap.git'
+        version {
+            name = '2.2'
+        }
+    }
+
+    publications = ['MyPublication']
+}
+
+repositories {
+    jcenter()
+    maven {
+        url  "http://dl.bintray.com/canfar/canfar"
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src'
+
+            resources {
+                srcDir 'src/resources'
+            }
+        }
+    }
+
+    test {
+        java {
+            srcDir 'test/src'
+
+            exclude '**/tap/test*'
+            exclude '**/Abstract*Test'
+            exclude '**/*$*'
+            exclude '**/integration/**'
+            exclude '**/*IntTest'
+            exclude '**/*IntegrationTest'
+        }
+
+        resources {
+            srcDir 'test/resources'
+        }
+    }
+}
+
+dependencies {
+    compile group: 'log4j', name: 'log4j', version: '1.2.17'
+    compile group: 'org.jdom', name: 'jdom2', version: '2.0.6'
+    compile 'jaxen:jaxen:1.1.6'
+    compile group: 'net.sourceforge.javacsv', name: 'javacsv', version: '2.0'
+    compile group: 'javax.servlet', name: 'javax.servlet-api', version: '3.1.+'
+    compile 'com.github.jsqlparser:jsqlparser:0.9.+'
+    compile 'canfar.net:cadcUtil:3.+'
+    compile 'canfar.net:cadcLog:3.+'
+    compile 'canfar.net:cadcRegistry:1.+'
+    compile 'canfar.net:cadcVOSI:3.+'
+    compile 'canfar.net:cadcDALI:1.+'
+    compile 'canfar.net:cadcUWS:2.+'
+    compile 'canfar.net:cadcUWS-Server:2.+'
+
+    testCompile 'org.postgresql:postgresql:9.4.1208.jre7'
+    testCompile group: 'junit', name: 'junit', version: '4.+'
+    testCompile group: 'org.easymock', name: 'easymock', version: '3.+'
+    testCompile group: 'org.skyscreamer', name: 'jsonassert', version: '1.+'
+}

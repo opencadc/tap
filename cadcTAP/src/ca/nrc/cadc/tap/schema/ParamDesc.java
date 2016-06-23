@@ -68,6 +68,8 @@
  */
 package ca.nrc.cadc.tap.schema;
 
+import net.sf.jsqlparser.expression.Alias;
+
 public class ParamDesc
 {
     public ColumnDesc columnDesc;
@@ -82,7 +84,7 @@ public class ParamDesc
     /**
      * The alias of the param (can be null).
      */
-    public String alias;
+    public Alias alias;
 
     /**
      * Describes the param (can be null).
@@ -134,7 +136,7 @@ public class ParamDesc
         this.size = size;
     }
     
-    public ParamDesc(ColumnDesc columnDesc, String alias)
+    public ParamDesc(ColumnDesc columnDesc, Alias alias)
     {
         this.columnDesc = columnDesc;
         this.name = columnDesc.columnName;
@@ -148,7 +150,7 @@ public class ParamDesc
         this.id = columnDesc.id;
     }
 
-    public ParamDesc(FunctionDesc functionDesc, String alias)
+    public ParamDesc(FunctionDesc functionDesc, Alias alias)
     {
         this.columnDesc = null;
         this.name = functionDesc.name;
@@ -161,7 +163,7 @@ public class ParamDesc
         this.alias = alias;
     }
 
-    public ParamDesc(String name, String alias, String datatype)
+    public ParamDesc(String name, Alias alias)
     {
         this.columnDesc = null;
         this.name = name;
@@ -178,19 +180,17 @@ public class ParamDesc
     @Override
     public String toString()
     {
-        StringBuilder sb = new StringBuilder();
-        sb.append("ParamDesc[");
-        sb.append(name).append(",");
-        sb.append(id).append(",");
-        sb.append(alias == null ? "" : alias).append(",");
-        sb.append(description == null ? "" : description).append(",");
-        sb.append(utype == null ? "" : utype).append(",");
-        sb.append(ucd == null ? "" : ucd).append(",");
-        sb.append(unit == null ? "" : unit).append(",");
-        sb.append(datatype).append(",");
-        sb.append(size == null ? "" : size);
-        sb.append("]");
-        return sb.toString();
+        return "ParamDesc[" +
+               name + "," +
+               id + "," +
+               (alias == null ? "" : alias) + "," +
+               (description == null ? "" : description) + "," +
+               (utype == null ? "" : utype) + "," +
+               (ucd == null ? "" : ucd) + "," +
+               (unit == null ? "" : unit) + "," +
+               datatype + "," +
+               (size == null ? "" : size) +
+               "]";
     }
     
 }

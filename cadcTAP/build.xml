@@ -71,6 +71,10 @@
 <!DOCTYPE project>
 <project default="build" basedir=".">
     <property environment="env" />
+
+    <property name="java.target.version" value="1.7"/>
+    <property name="java.source.version" value="1.7"/>
+
     <property file="local.build.properties" />
 
     <!-- site-specific build properties or overrides of values in opencadc.properties -->
@@ -90,7 +94,7 @@
 
     <property name="cadc" value="${lib}/cadcUtil.jar:${lib}/cadcUWS.jar:${lib}/cadcUWS-Server.jar:${lib}/cadcLog.jar:${lib}/cadcVOSI.jar:${lib}/cadcDALI.jar:${lib}/cadcRegistry.jar" />
 
-    <property name="jsqlparser" value="${ext.lib}/jsqlparser.jar" />
+    <property name="jsqlparser" value="${ext.lib}/jsqlparser-0.9.5.jar" />
     <property name="log4j" value="${ext.lib}/log4j.jar" />
     <property name="spring" value="${ext.lib}/spring.jar" />
     <property name="jdom2" value="${ext.lib}/jdom2.jar" />

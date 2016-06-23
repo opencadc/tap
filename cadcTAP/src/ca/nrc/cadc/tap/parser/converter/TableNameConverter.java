@@ -61,7 +61,7 @@ public class TableNameConverter extends FromItemNavigator
     public void visit(Table table)
     {
         log.debug("visit(table)" + table);
-        String tabName = table.getWholeTableName();
+        String tabName = table.getFullyQualifiedName();
         log.debug("looking for " + tabName + " in conversion map...");
         Table ntab = map.get(tabName);
         log.debug("found: " + ntab);

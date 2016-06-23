@@ -69,6 +69,7 @@
 
 package ca.nrc.cadc.tap.parser;
 
+import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
@@ -98,12 +99,11 @@ import ca.nrc.cadc.stc.Frame;
 import ca.nrc.cadc.stc.ReferencePosition;
 import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
 
+
 /**
  * Utility class for the use of Tap Parser.
  *
  * @author zhangsa
- *
- *
  */
 public class ParserUtil
 {
@@ -114,9 +114,9 @@ public class ParserUtil
      */
     public static void parseStatement(Statement statement, SelectNavigator sn)
     {
-        StatementNavigator statementNavigator = new StatementNavigator(sn);
+        final StatementNavigator statementNavigator =
+                new StatementNavigator(sn);
         statement.accept(statementNavigator);
-        return;
     }
 
     /**
@@ -126,41 +126,39 @@ public class ParserUtil
      * @return
      * @throws JSQLParserException SQL syntax error
      */
-    public static Statement receiveQuery(String query) throws JSQLParserException
+    public static Statement receiveQuery(String query)
+            throws JSQLParserException
     {
         log.debug(query);
-        Statement statement = null;
-        StringReader sr = new StringReader(query);
+        final Reader sr = new StringReader(query);
         CCJSqlParserManager sqlParser = new CCJSqlParserManager();
-        statement = sqlParser.parse(sr);
-        return statement;
+        return sqlParser.parse(sr);
     }
 
     /**
      * Extract a list of Table from the FROM part of query.
-     *
      */
     @SuppressWarnings("unchecked")
     public static List<Table> getFromTableList(PlainSelect ps)
     {
-        List<Table> fromTableList = new ArrayList<Table>();
+        final List<Table> fromTableList = new ArrayList<>();
+        final FromItem fromItem = ps.getFromItem();
 
-        FromItem fromItem = ps.getFromItem();
         if (fromItem instanceof Table)
         {
             fromTableList.add((Table) fromItem);
         }
 
-        List<Join> joins = ps.getJoins();
+        final List<Join> joins = ps.getJoins();
+
         if (joins != null)
         {
-            for (Join join : joins)
+            for (final Join join : joins)
             {
-                fromItem = join.getRightItem();
-                if (fromItem instanceof Table)
+                final FromItem rightItem = join.getRightItem();
+                if (rightItem instanceof Table)
                 {
-                    Table rightTable = (Table) join.getRightItem();
-                    fromTableList.add(rightTable);
+                    fromTableList.add((Table) rightItem);
                 }
             }
         }
@@ -170,17 +168,20 @@ public class ParserUtil
     /**
      * Find "from Table" by table name or alias.
      *
-     * @param plainSelect
-     * @param tableNameOrAlias
+     * @param ps                    Plain Select object.
+     * @param tableNameOrAlias      The table name.
      * @return Table object
      */
     public static Table findFromTable(PlainSelect ps, String tableNameOrAlias)
     {
         Table rtn = null;
         List<Table> fromTableList = getFromTableList(ps);
-        for (Table table : fromTableList)
+        for (final Table table : fromTableList)
         {
-            if (tableNameOrAlias.equalsIgnoreCase(table.getAlias()) || tableNameOrAlias.equalsIgnoreCase(table.getName()))
+            final String tableAliasName = (table.getAlias() == null)
+                                          ? "" : table.getAlias().getName();
+            if (tableNameOrAlias.equalsIgnoreCase(tableAliasName)
+                || tableNameOrAlias.equalsIgnoreCase(table.getName()))
             {
                 rtn = table;
                 break;
@@ -192,12 +193,13 @@ public class ParserUtil
     /**
      * find SelectItem by column name or alias.
      *
-     * @param plainSelect
-     * @param columnNameOrAlias
+     * @param plainSelect           Plain Select object.
+     * @param columnNameOrAlias     The column name or alias to refer to.
      * @return SelectItem object
      */
     @SuppressWarnings("unchecked")
-    public static SelectItem findSelectItemByAlias(PlainSelect plainSelect, String columnNameOrAlias)
+    public static SelectItem findSelectItemByAlias(PlainSelect plainSelect,
+                                                   String columnNameOrAlias)
     {
         SelectItem rtn = null;
         List<SelectItem> siList = plainSelect.getSelectItems();
@@ -206,7 +208,9 @@ public class ParserUtil
             if (si instanceof SelectExpressionItem)
             {
                 SelectExpressionItem sei = (SelectExpressionItem) si;
-                if (columnNameOrAlias.equalsIgnoreCase(sei.getAlias()))
+                final String tableAliasName = (sei.getAlias() == null)
+                                              ? "" : sei.getAlias().getName();
+                if (columnNameOrAlias.equalsIgnoreCase(tableAliasName))
                 {
                     rtn = sei;
                     break;
@@ -235,14 +239,19 @@ public class ParserUtil
      * @param alias
      * @return Column
      */
-    public static Column findSelectItemColumn(PlainSelect plainSelect, String alias)
+    public static Column findSelectItemColumn(PlainSelect plainSelect,
+                                              String alias)
     {
         Column rtn = null;
-        SelectItem si = findSelectItemByAlias(plainSelect, alias);
-        if (si != null || si instanceof SelectExpressionItem)
+        final SelectItem si = findSelectItemByAlias(plainSelect, alias);
+
+        if (si != null)
         {
             Expression ex = ((SelectExpressionItem) si).getExpression();
-            if (ex instanceof Column) rtn = (Column) ex;
+            if (ex instanceof Column)
+            {
+                rtn = (Column) ex;
+            }
         }
         return rtn;
     }
@@ -250,7 +259,7 @@ public class ParserUtil
     /**
      * Determine whether Expression parameter is a binary value (0 or 1).
      *
-     * @param Expression
+     * @param expr      The Expression to test.
      * @return true if parameter is 0/1, false for others.
      */
     public static boolean isBinaryValue(Expression expr)
@@ -275,9 +284,13 @@ public class ParserUtil
         Box box = null;
         if (RegionFinder.BOX.equalsIgnoreCase(adqlFunction.getName()))
         {
-            List<Expression> adqlParams = adqlFunction.getParameters().getExpressions();
+            List<Expression> adqlParams = adqlFunction.getParameters()
+                    .getExpressions();
             int size = adqlParams.size();
-            if (size != 5) throw new IllegalArgumentException("Not recognized as a valid BOX function: " + adqlFunction);
+            if (size != 5)
+            {
+                throw new IllegalArgumentException("Not recognized as a valid BOX function: " + adqlFunction);
+            }
             String coordsys = parseToString(adqlParams.get(0));
             log.debug("coordsys=" + coordsys);
             String frame = null;
@@ -290,8 +303,14 @@ public class ParserUtil
                 {
                     String[] parts = coordsys.split(" ");
                     frame = parts[0];
-                    if (parts.length > 1) refpos = parts[1];
-                    if (parts.length > 2) flavor = parts[2];
+                    if (parts.length > 1)
+                    {
+                        refpos = parts[1];
+                    }
+                    if (parts.length > 2)
+                    {
+                        flavor = parts[2];
+                    }
                 }
             }
             log.debug("frame=" + frame + " refpos=" + refpos + " flavor=" + flavor);
@@ -304,7 +323,9 @@ public class ParserUtil
             box = new Box(getFrame(frame), getReferencePosition(refpos), getFlavor(flavor), ra, dec, width, height);
         }
         else
+        {
             throw new IllegalArgumentException("Not recognized as a BOX function: " + adqlFunction);
+        }
         return box;
     }
 
@@ -320,7 +341,9 @@ public class ParserUtil
             rtn = Double.parseDouble(sv);
         }
         else
+        {
             throw new IllegalArgumentException("Cannot be parsed as double value: " + param);
+        }
         return rtn;
     }
 
@@ -329,9 +352,15 @@ public class ParserUtil
      */
     public static String parseToString(Expression param)
     {
-        if (param instanceof NullValue) return null;
+        if (param instanceof NullValue)
+        {
+            return null;
+        }
 
-        if (param instanceof StringValue) return ((StringValue) param).getNotExcapedValue();
+        if (param instanceof StringValue)
+        {
+            return ((StringValue) param).getNotExcapedValue();
+        }
 
         throw new IllegalArgumentException("Cannot be parsed as double value: " + param);
     }
@@ -339,21 +368,27 @@ public class ParserUtil
     public static Frame getFrame(String frame)
     {
         if (frame == null || frame.length() == 0)
+        {
             return null;
+        }
         return Frame.toValue(frame);
     }
 
     public static ReferencePosition getReferencePosition(String refpos)
     {
         if (refpos == null || refpos.length() == 0)
+        {
             return null;
+        }
         return ReferencePosition.toValue(refpos);
     }
 
     public static Flavor getFlavor(String flavor)
     {
         if (flavor == null || flavor.length() == 0)
+        {
             return null;
+        }
         return Flavor.toValue(flavor);
     }
 }

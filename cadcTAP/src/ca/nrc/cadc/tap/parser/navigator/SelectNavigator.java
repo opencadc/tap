@@ -69,22 +69,17 @@
 
 package ca.nrc.cadc.tap.parser.navigator;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Stack;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
+
+import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
-import net.sf.jsqlparser.statement.select.ColumnReference;
-import net.sf.jsqlparser.statement.select.Distinct;
-import net.sf.jsqlparser.statement.select.FromItem;
-import net.sf.jsqlparser.statement.select.Join;
-import net.sf.jsqlparser.statement.select.Limit;
-import net.sf.jsqlparser.statement.select.OrderByElement;
-import net.sf.jsqlparser.statement.select.PlainSelect;
-import net.sf.jsqlparser.statement.select.SelectItem;
-import net.sf.jsqlparser.statement.select.SelectVisitor;
-import net.sf.jsqlparser.statement.select.SubSelect;
-import net.sf.jsqlparser.statement.select.Top;
-import net.sf.jsqlparser.statement.select.Union;
+import net.sf.jsqlparser.statement.select.*;
+
 import org.apache.log4j.Logger;
 
 /**
@@ -94,7 +89,7 @@ import org.apache.log4j.Logger;
  * 
  * @author pdowler, Sailor Zhang
  */
-// Prototype: AdqlSelectVisitorProto
+
 public class SelectNavigator implements SelectVisitor
 {
     private static final Logger log = Logger.getLogger(SelectNavigator.class);
@@ -124,19 +119,16 @@ public class SelectNavigator implements SelectVisitor
 
     protected boolean toStop = false;
     protected PlainSelect plainSelect;
-    protected Stack<PlainSelect> psStack = new Stack<PlainSelect>();
-    protected Stack<VisitingPart> visitingPartStack = new Stack<VisitingPart>();
+    protected Stack<PlainSelect> psStack = new Stack<>();
+    protected Stack<VisitingPart> visitingPartStack = new Stack<>();
 
     // Other navigators controlled by SelectNavigator
     protected ExpressionNavigator expressionNavigator;
-    protected ReferenceNavigator referenceNavigator;
+    protected ExpressionNavigator referenceNavigator;
     protected FromItemNavigator fromItemNavigator;
 
-    private SelectNavigator()
-    {
-    }
 
-    public SelectNavigator(ExpressionNavigator en, ReferenceNavigator rn, FromItemNavigator fn)
+    public SelectNavigator(ExpressionNavigator en, ExpressionNavigator rn, FromItemNavigator fn)
     {
         if (en == null)
             throw new IllegalArgumentException("BUG: SelectNavigator must haven ExpressionNavigator component");
@@ -175,6 +167,20 @@ public class SelectNavigator implements SelectVisitor
         log.debug("visit(PlainSelect) " + plainSelect);
         enterPlainSelect(plainSelect);
 
+//        TODO - Story 1918
+//        TODO -
+//        TODO - These need to be explicitly set here for each visit, or the
+//        TODO - Expressions accepting the visitor won't have access to the
+//        TODO - SelectNavigator instance.  This is weird as passing by
+//        TODO - reference should hold it when this is set inside the
+//        TODO - constructor.
+//        TODO -
+//        TODO - jenkinsd 2016.05.05
+
+        this.fromItemNavigator.setSelectNavigator(this);
+        this.expressionNavigator.setSelectNavigator(this);
+        this.referenceNavigator.setSelectNavigator(this);
+
         this.visitingPart = VisitingPart.FROM;
         navigateFromItem();
         if (isToStop()) return;
@@ -190,8 +196,8 @@ public class SelectNavigator implements SelectVisitor
         if (this.plainSelect.getWhere() != null) this.plainSelect.getWhere().accept(this.expressionNavigator);
 
         this.visitingPart = VisitingPart.GROUP_BY;
-        List<ColumnReference> crs = this.plainSelect.getGroupByColumnReferences();
-        if (crs != null) for (ColumnReference cr : crs)
+        List<Expression> crs = this.plainSelect.getGroupByColumnReferences();
+        if (crs != null) for (Expression cr : crs)
             cr.accept(this.referenceNavigator);
 
         this.visitingPart = VisitingPart.ORDER_BY;
@@ -252,7 +258,7 @@ public class SelectNavigator implements SelectVisitor
         {
             for (OrderByElement obe : obes)
             {
-                ColumnReference cr = obe.getColumnReference();
+                Expression cr = obe.getExpression();
                 if (cr != null) cr.accept(this.referenceNavigator);
             }
         }
@@ -262,7 +268,7 @@ public class SelectNavigator implements SelectVisitor
     {
         if (this.plainSelect.getLimit() != null) handleLimit(this.plainSelect.getLimit());
         if (this.plainSelect.getDistinct() != null) handleDistinct(this.plainSelect.getDistinct());
-        if (this.plainSelect.getInto() != null) handleInto(this.plainSelect.getInto());
+        if (this.plainSelect.getIntoTables() != null) handleInto(this.plainSelect.getIntoTables());
         if (this.plainSelect.getTop() != null) handleTop(this.plainSelect.getTop());
     }
 
@@ -325,16 +331,30 @@ public class SelectNavigator implements SelectVisitor
     {
         log.debug("handleDistinct: " + distinct);
         List<SelectItem> onSelectItems = distinct.getOnSelectItems();
-        if (onSelectItems != null) for (SelectItem si : onSelectItems)
+        if (onSelectItems != null)
         {
-            if (si != null) si.accept(this.expressionNavigator);
+            final Stream<SelectItem> selectItemStream =
+                    onSelectItems.stream().filter(new Predicate<SelectItem>()
+            {
+                @Override
+                public boolean test(SelectItem selectItem)
+                {
+                    return selectItem != null;
+                }
+            });
+
+            for (final Iterator<SelectItem> iterator = selectItemStream.iterator();
+                 iterator.hasNext();)
+            {
+                iterator.next().accept(this.expressionNavigator);
+            }
         }
     }
 
     /**
      * Handle use of SELECT INTO. The implementation logs and throws an Exception.
      */
-    protected void handleInto(Table dest)
+    protected void handleInto(List<Table> dest)
     {
         log.debug("handleInto: " + dest);
         throw new UnsupportedOperationException("SELECT INTO is not supported.");
@@ -360,12 +380,12 @@ public class SelectNavigator implements SelectVisitor
         this.expressionNavigator = expressionNavigator;
     }
 
-    public ReferenceNavigator getReferenceNavigator()
+    public ExpressionNavigator getReferenceNavigator()
     {
         return this.referenceNavigator;
     }
 
-    public void setReferenceNavigator(ReferenceNavigator referenceNavigator)
+    public void setReferenceNavigator(ExpressionNavigator referenceNavigator)
     {
         this.referenceNavigator = referenceNavigator;
     }
@@ -380,14 +400,15 @@ public class SelectNavigator implements SelectVisitor
         this.fromItemNavigator = fromItemNavigator;
     }
 
-    /* (non-Javadoc)
-     * @see net.sf.jsqlparser.statement.select.SelectVisitor#visit(net.sf.jsqlparser.statement.select.Union)
-     */
     @Override
-    public void visit(Union union)
+    public void visit(SetOperationList setOpList)
     {
-        log.debug("visit(union) " + union);
-        throw new UnsupportedOperationException("UNION is not supported.");
+        throw new UnsupportedOperationException("Set OP is not supported.");
     }
 
+    @Override
+    public void visit(WithItem withItem)
+    {
+        throw new UnsupportedOperationException("WITH ITEM is not supported.");
+    }
 }
