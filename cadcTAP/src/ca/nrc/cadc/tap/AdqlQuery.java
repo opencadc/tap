@@ -158,8 +158,8 @@ public class AdqlQuery extends AbstractTapQuery
 
         // extract select-list
         en = new SelectListExpressionExtractor(tapSchema);
-        rn = rndef;
-        fn = fndef;
+        rn = new ReferenceNavigator();
+        fn = new FromItemNavigator();
         sn = new SelectListExtractor(en, rn, fn);
         navigatorList.add(sn);
 
@@ -175,6 +175,10 @@ public class AdqlQuery extends AbstractTapQuery
                 tnc.put(tableDesc.tableName, newName);
                 log.debug("TableNameConverter " + tableDesc.tableName + " -> " + newName);
             }
+
+            endef = new ExpressionNavigator();
+            rndef = new ReferenceNavigator();
+
             sn = new SelectNavigator(endef, rndef, tnc);
             navigatorList.add(sn);
         }
