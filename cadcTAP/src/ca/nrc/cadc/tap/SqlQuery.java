@@ -134,14 +134,16 @@ public class SqlQuery extends AbstractTapQuery
         SelectNavigator sn = new SelectNavigator(endef, rn, fn);
         navigatorList.add(sn);
 
+        endef = new ExpressionNavigator();
+
         // convert * to fixed select-list
         sn = new AllColumnConverter(endef, rndef, fndef, tapSchema);
         navigatorList.add(sn);
 
         // extract select-list
         ExpressionNavigator en = new SelectListExpressionExtractor(tapSchema);
-        rn = rndef;
-        fn = fndef;
+        rn = new ReferenceNavigator();
+        fn = new FromItemNavigator();
         sn = new SelectListExtractor(en, rn, fn);
         navigatorList.add(sn);
         
@@ -157,6 +159,10 @@ public class SqlQuery extends AbstractTapQuery
                 tnc.put(tableDesc.tableName, newName);
                 log.debug("TableNameConverter " + tableDesc.tableName + " -> " + newName);
             }
+
+            endef = new ExpressionNavigator();
+            rndef = new ReferenceNavigator();
+
             sn = new SelectNavigator(endef, rndef, tnc);
             navigatorList.add(sn);
         }

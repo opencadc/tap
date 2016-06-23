@@ -175,21 +175,6 @@ public class SelectNavigator implements SelectVisitor
         log.debug("visit(PlainSelect) " + plainSelect);
         enterPlainSelect(plainSelect);
 
-        /*
-          TODO - Story 1918
-          TODO -
-          TODO - These need to be explicitly set here for each visit, or the
-          TODO - Expressions accepting the visitor won't have access to the
-          TODO - SelectNavigator instance.  This is weird as passing by
-          TODO - reference should hold it when this is set inside the
-          TODO - constructor.
-          TODO -
-          TODO - jenkinsd 2016.05.05
-        */
-        this.fromItemNavigator.setSelectNavigator(this);
-        this.expressionNavigator.setSelectNavigator(this);
-        this.referenceNavigator.setSelectNavigator(this);
-
         this.visitingPart = VisitingPart.FROM;
         navigateFromItem();
         if (isToStop()) return;

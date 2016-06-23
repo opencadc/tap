@@ -112,6 +112,12 @@ public class SubNavigator implements Cloneable
 
     public void setSelectNavigator(SelectNavigator selectNavigator)
     {
+        if (this.selectNavigator != null)
+        {
+            throw new IllegalStateException(
+                    "BUG: cannot reset SelectNavigator to " + selectNavigator);
+        }
+
         this.selectNavigator = selectNavigator;
     }
 }
