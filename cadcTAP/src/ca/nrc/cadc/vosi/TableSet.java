@@ -104,7 +104,7 @@ public class TableSet
     private TapSchema tapSchema;
 
     private Namespace xsi = W3CConstants.XSI_NS;
-    private Namespace vosi = XMLConstants.TABLES_NS;
+    private Namespace vosi = VOSI.TABLES_NS;
     private Namespace vod = XMLConstants.VODATASERVICE_NS;;
 
     public TableSet(TapSchema tapSchema)
