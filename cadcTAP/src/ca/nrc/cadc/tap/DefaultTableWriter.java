@@ -82,6 +82,7 @@ import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
 import ca.nrc.cadc.dali.util.Format;
+import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.tap.schema.ParamDesc;
 import ca.nrc.cadc.tap.writer.ResultSetTableData;
@@ -406,7 +407,7 @@ public class DefaultTableWriter implements TableWriter
                     {
                         Subject s = AuthenticationUtil.getCurrentSubject();
                         AuthMethod cur = AuthenticationUtil.getAuthMethod(s);
-                        URL accessURL = regClient.getServiceURL(resourceIdentifier, job.protocol, null, cur);
+                        URL accessURL = regClient.getServiceURL(resourceIdentifier, Standards.TAP_TABLES_11_URI, cur);
                         String surl = accessURL.toExternalForm();
                         VOTableParam accessParam = new VOTableParam("accessURL", "char", surl.length(), false, surl);
                         metaResource.getParams().add(accessParam);
