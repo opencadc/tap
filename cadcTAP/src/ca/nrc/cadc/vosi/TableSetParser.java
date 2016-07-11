@@ -104,6 +104,17 @@ public class TableSetParser
         if (enableSchemaValidation)
         {
             this.schemaMap = XMLConstants.SCHEMA_URL_MAP;
+            
+            String url = XmlUtil.getResourceUrlString(VOSI.TABLES_SCHEMA, TableSetParser.class);
+            if (url != null)
+            {
+                log.debug(VOSI.TABLES_NS_URI + " -> " + url);
+                this.schemaMap.put(VOSI.TABLES_NS_URI, url);
+            }
+            else
+            {
+                log.warn("failed to find resource: " + VOSI.TABLES_SCHEMA);
+            }
         }
     }
 
