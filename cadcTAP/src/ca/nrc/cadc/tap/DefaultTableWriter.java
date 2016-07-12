@@ -407,7 +407,8 @@ public class DefaultTableWriter implements TableWriter
                     {
                         Subject s = AuthenticationUtil.getCurrentSubject();
                         AuthMethod cur = AuthenticationUtil.getAuthMethod(s);
-                        URL accessURL = regClient.getServiceURL(resourceIdentifier, Standards.TAP_TABLES_11_URI, cur);
+                        log.debug("resourceIdentifier=" + resourceIdentifier + ", standardID=" + Standards.DATALINK_10_URI + ", authMethod=" + cur);
+                        URL accessURL = regClient.getServiceURL(resourceIdentifier, Standards.DATALINK_10_URI, cur);
                         String surl = accessURL.toExternalForm();
                         VOTableParam accessParam = new VOTableParam("accessURL", "char", surl.length(), false, surl);
                         metaResource.getParams().add(accessParam);
