@@ -5,7 +5,7 @@
     <INFO name="file_uri" ID="fileURIRef" value="this will be dropped..." />
 
     <RESOURCE type="meta" ID="datalink">
-        <PARAM name="resourceIdentifier" datatype="char" arraysize="*" value="ivo://cadc.nrc.ca/datalink" />
+        <PARAM name="resourceIdentifier" datatype="char" arraysize="*" value="ivo://cadc.nrc.ca/caom2ops" />
         <PARAM name="accessURL" datatype="char" arraysize="*" value="change me to the datalink registry lookup value" />
         <GROUP name="input">
             <PARAM name="uri" datatype="char" arraysize="*" ref="fileURIRef" value=""/>
