@@ -164,7 +164,7 @@ public class ResultStoreImpl implements ResultStore
         return ret;
     }
 
-    public URL put(Throwable t, VOTableWriter writer) throws IOException
+    public URL put(Throwable t, TableWriter writer) throws IOException
     {
         File dest = getDestFile(filename);
         URL ret = getURL(filename);
