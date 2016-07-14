@@ -394,6 +394,7 @@ public class DefaultTableWriter implements TableWriter
                 try
                 {
                     URI resourceIdentifier = null;
+                    URI standardID = null;
                     Iterator<VOTableParam> i = metaResource.getParams().iterator();
                     while ( i.hasNext() )
                     {
@@ -402,13 +403,17 @@ public class DefaultTableWriter implements TableWriter
                         {
                             resourceIdentifier = new URI(vp.getValue());
                         }
+                        else if (vp.getName().equals("standardID"))
+                        {
+                            standardID = new URI(vp.getValue());
+                        }
                     }
                     if (resourceIdentifier != null)
                     {
                         Subject s = AuthenticationUtil.getCurrentSubject();
                         AuthMethod cur = AuthenticationUtil.getAuthMethod(s);
-                        log.debug("resourceIdentifier=" + resourceIdentifier + ", standardID=" + Standards.DATALINK_10_URI + ", authMethod=" + cur);
-                        URL accessURL = regClient.getServiceURL(resourceIdentifier, Standards.DATALINK_10_URI, cur);
+                        log.debug("resourceIdentifier=" + resourceIdentifier + ", standardID=" + standardID + ", authMethod=" + cur);
+                        URL accessURL = regClient.getServiceURL(resourceIdentifier, standardID, cur);
                         String surl = accessURL.toExternalForm();
                         VOTableParam accessParam = new VOTableParam("accessURL", "char", surl.length(), false, surl);
                         metaResource.getParams().add(accessParam);
