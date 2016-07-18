@@ -103,7 +103,7 @@ public class TableSetParser
     {
         if (enableSchemaValidation)
         {
-            this.schemaMap = XMLConstants.SCHEMA_URL_MAP;
+            this.schemaMap = XMLConstants.SCHEMA_MAP;
             
             String url = XmlUtil.getResourceUrlString(VOSI.TABLES_SCHEMA, TableSetParser.class);
             if (url != null)
