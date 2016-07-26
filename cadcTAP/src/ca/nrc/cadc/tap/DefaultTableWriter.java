@@ -412,6 +412,10 @@ public class DefaultTableWriter implements TableWriter
                     {
                         Subject s = AuthenticationUtil.getCurrentSubject();
                         AuthMethod cur = AuthenticationUtil.getAuthMethod(s);
+                        if (cur == null)
+                        {
+                            cur = AuthMethod.ANON;
+                        }
                         log.debug("resourceIdentifier=" + resourceIdentifier + ", standardID=" + standardID + ", authMethod=" + cur);
                         URL accessURL = regClient.getServiceURL(resourceIdentifier, standardID, cur);
                         String surl = accessURL.toExternalForm();
