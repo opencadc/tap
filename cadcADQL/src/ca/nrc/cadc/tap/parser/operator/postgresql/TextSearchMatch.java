@@ -85,6 +85,7 @@ public class TextSearchMatch implements Expression
 
     private Column column;
     private String query;
+    private boolean negate = false;
 
     public TextSearchMatch(Column column, String query)
     {
@@ -119,6 +120,16 @@ public class TextSearchMatch implements Expression
         this.query = query;
     }
 
+    public void negate()
+    {
+        this.negate = true;
+    }
+
+    public boolean isNegate()
+    {
+        return negate;
+    }
+    
     public String toString()
     {
         StringBuilder sb = new StringBuilder();

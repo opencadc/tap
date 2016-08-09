@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2011.                            (c) 2011.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,58 +62,128 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
+*  $Revision: 5 $
 *
 ************************************************************************
 */
-package ca.nrc.cadc.tap.parser.schema;
 
+package ca.nrc.cadc.tap.parser.converter.postgresql;
+
+
+import ca.nrc.cadc.tap.AdqlQuery;
+import ca.nrc.cadc.tap.TapQuery;
+import ca.nrc.cadc.tap.parser.RegionFinder;
+import ca.nrc.cadc.tap.parser.RegionFinderTest;
+import ca.nrc.cadc.tap.parser.TestUtil;
 import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
-import ca.nrc.cadc.tap.schema.FunctionDesc;
+import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
+import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
+import ca.nrc.cadc.tap.parser.schema.BlobClobColumnValidator;
+import ca.nrc.cadc.tap.parser.schema.ExpressionValidator;
+import ca.nrc.cadc.tap.parser.schema.TapSchemaTableValidator;
 import ca.nrc.cadc.tap.schema.TapSchema;
-import net.sf.jsqlparser.expression.Function;
+import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.uws.Job;
+import ca.nrc.cadc.uws.Parameter;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
- * Validates that the Function being visited exists in the TapSchema.
  *
- * @author jburke
+ * @author pdowler
  */
-public class ExpressionValidator extends ExpressionNavigator
+public class MatchConverterTest 
 {
-    protected static Logger log = Logger.getLogger(ExpressionValidator.class);
+    private static final Logger log = Logger.getLogger(MatchConverterTest.class);
 
-    protected TapSchema tapSchema;
-
-    public ExpressionValidator(TapSchema tapSchema)
+    static
     {
-        this.tapSchema = tapSchema;
-    }
-
-    /* (non-Javadoc)
-     * @see net.sf.jsqlparser.expression.ExpressionVisitor#visit(net.sf.jsqlparser.expression.Function)
-     */
-    @Override
-    public void visit(Function function)
-    {
-        log.debug("visit(function)" + function);
-        boolean found = false;
-        
-        for (FunctionDesc functionDesc : tapSchema.getFunctionDescs())
-        {
-            if (functionDesc.name.equalsIgnoreCase(function.getName()))
-            {
-                found = true;
-                break;
-            }
-        }
-        if (!found)
-            throw new IllegalArgumentException("Function [" + function.getName() + "] is not found in TapSchema");
-
-        selectNavigator.enterFunctionCall(function);
-        if (function.getParameters() != null)
-            function.getParameters().accept(this);
-        selectNavigator.leaveFunctionCall();
+        Log4jInit.setLevel("ca.nrc.cadc.tap.parser", Level.INFO);
     }
     
+    public MatchConverterTest() { }
+    
+    Job job = new Job() 
+    {
+        @Override
+        public String getID() { return "abcdefg"; }
+    };
+    
+    private String doit(String method, String query)
+    {
+        try
+        {
+            log.debug("IN: " + query);
+            Parameter para = new Parameter("QUERY", query);
+            job.getParameterList().add(para);
+            TapQuery tapQuery = new TestQuery();
+            tapQuery.setJob(job);
+            String sql = tapQuery.getSQL();
+            log.debug(method + " OUT: " + sql);
+            return sql;
+        }
+        finally
+        {
+            job.getParameterList().clear();
+        }
+    }
+    
+    @Test
+    public void testMatch()
+    {
+        try
+        {
+            // re-use t_text since it is CLOB
+            String query = "select count(*) from SomeTable where match(t_text, 'foo|bar') = 1";
+            String sql = doit("testMatch", query);
+            sql = sql.toLowerCase();
+            Assert.assertTrue("expected t_text @@, got: " + sql, sql.contains("t_text @@ 'foo|bar'::tsquery"));
+        }
+        catch(Exception unexpected)
+        {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception" + unexpected);
+        }
+    }
+    
+    @Test
+    public void testNotMatch()
+    {
+        try
+        {
+            // re-use t_text since it is CLOB
+            String query = "select count(*) from SomeTable where match(t_text, 'foo|bar') = 0";
+            String sql = doit("testNotMatch", query);
+            sql = sql.toLowerCase();
+            Assert.assertTrue("expected not t_text @@, got: " + sql, sql.contains("not (t_text @@ 'foo|bar'::tsquery)"));
+        }
+        catch(Exception unexpected)
+        {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception" + unexpected);
+        }
+    }
+    
+    @Test
+    public void testCountStar()
+    {
+        String query = "select count(*) from SomeTable";
+        String sql = doit("testCountStart", query);
+    }
+    
+    static class TestQuery extends AdqlQuery
+    {
+        @Override
+        protected void init()
+        {
+            //super.init();
+            TapSchema tapSchema = TestUtil.mockTapSchema();
+            ExpressionNavigator en = new ExpressionValidator(tapSchema);
+            ReferenceNavigator rn = new BlobClobColumnValidator(tapSchema);
+            FromItemNavigator fn = new TapSchemaTableValidator(tapSchema);
+            super.navigatorList.add(new MatchConverter(en, rn, fn));
+        }
+    }
 }

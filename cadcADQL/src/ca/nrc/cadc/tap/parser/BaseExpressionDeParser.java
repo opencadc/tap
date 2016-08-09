@@ -138,9 +138,13 @@ public class BaseExpressionDeParser extends ExpressionDeParser implements Operat
     public void visit(TextSearchMatch match)
     {
         log.debug("visit(TextSearchMatch) " + match);
+        if (match.isNegate())
+            buffer.append("NOT (");
         match.getColumn().accept(this);
         buffer.append(" @@ ");
         buffer.append("'").append(match.getQuery()).append("'::tsquery");
+        if (match.isNegate())
+            buffer.append(")");
     }
 
     /**

@@ -172,7 +172,7 @@
             </classpath>
             <formatter type="plain" usefile="false"/>
             
-            <test name="ca.nrc.cadc.tap.parser.extractor.ExtractorTest"/>
+            <test name="ca.nrc.cadc.tap.parser.converter.postgresql.MatchConverterTest"/>
         </junit>
     </target>
 </project>

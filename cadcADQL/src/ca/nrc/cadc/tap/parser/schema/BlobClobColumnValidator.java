@@ -107,7 +107,15 @@ public class BlobClobColumnValidator extends TapSchemaColumnValidator
         PlainSelect plainSelect = selectNavigator.getPlainSelect();
         VisitingPart visiting = selectNavigator.getVisitingPart();
 
-        if (!visiting.equals(VisitingPart.SELECT_ITEM))
+        if (visiting.equals(VisitingPart.SELECT_ITEM))
+        {
+            log.debug("visit(Column) for SELECT_ITEM: skip");
+        }
+        else if (selectNavigator.getCurrentFunction() != null)
+        {
+            log.debug("visit(Column) for Function arg: skip");
+        }
+        else
         {
             log.debug("validating column:" + column);
             // can be by alias

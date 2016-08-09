@@ -72,6 +72,9 @@ package ca.nrc.cadc.tap.parser.schema;
 import org.apache.log4j.Level;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.tap.parser.TestUtil;
+import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
+import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
+import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
 import ca.nrc.cadc.util.Log4jInit;
 import java.util.ArrayList;
 import java.util.List;
@@ -108,6 +111,7 @@ public class ExpressionValidatorTest
     public void setUp() throws Exception
     {
         validator = new ExpressionValidator(TAP_SCHEMA);
+        SelectNavigator selectNav = new SelectNavigator(validator, new ReferenceNavigator(), new FromItemNavigator());
     }
 
     /**
@@ -119,15 +123,9 @@ public class ExpressionValidatorTest
         try
         {
             Function function = new Function();
-            function.setName("area");            
-            try
-            {
-                validator.visit(function);
-            }
-            catch (Exception e)
-            {
-                Assert.fail("" + e.getMessage());
-            }
+            function.setName("area");         
+            
+            validator.visit(function);
         }
         catch (Exception unexpected)
         {
@@ -148,7 +146,7 @@ public class ExpressionValidatorTest
                 validator.visit(function);
                 Assert.fail("select is not a valid function name");
             }
-            catch (Exception ignore) { }
+            catch (IllegalArgumentException ignore) { }
         }
         catch (Exception unexpected)
         {
@@ -172,14 +170,7 @@ public class ExpressionValidatorTest
             list.add(parameter);
             function.getParameters().setExpressions(list);
 
-            try
-            {
-                validator.visit(function);
-            }
-            catch (Exception e)
-            {
-                Assert.fail("" + e.getMessage());
-            }
+            validator.visit(function);
         }
         catch (Exception unexpected)
         {
@@ -208,7 +199,7 @@ public class ExpressionValidatorTest
                 validator.visit(function);
                 Assert.fail("select is not a valid function name");
             }
-            catch (Exception ignore) { }
+            catch (IllegalArgumentException ignore) { }
         }
         catch (Exception unexpected)
         {

@@ -100,7 +100,7 @@ import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
  * 
  * @author pdowler
  */
-public class RegionFinder extends SelectNavigator
+public class RegionFinder extends FunctionFinder
 {
     public static final String ICRS = "ICRS GEOCENTER";
     public static final String ICRS_PREFIX = "ICRS";
@@ -129,159 +129,13 @@ public class RegionFinder extends SelectNavigator
     }
 
     /**
-     * Overwrite method in super class SelectNavigator.  
-     * It navigates all parts of the select statement,
-     * trying to locate all occurrence of region functions.
-     * 
-     */
-    @SuppressWarnings("unchecked")
-    @Override
-    public void visit(PlainSelect plainSelect)
-    {
-        log.debug("visit(PlainSelect): " + plainSelect);
-        super.enterPlainSelect(plainSelect);
-
-        // Visiting select items
-        this.visitingPart = VisitingPart.SELECT_ITEM;
-        ListIterator i = plainSelect.getSelectItems().listIterator();
-        while (i.hasNext())
-        {
-            Object obj = i.next();
-            if (obj instanceof SelectExpressionItem)
-            {
-                SelectExpressionItem s = (SelectExpressionItem) obj;
-                Expression ex = s.getExpression();
-                Expression implExpression = convertToImplementation(ex);
-                s.setExpression(implExpression);
-            }
-        }
-
-        this.visitingPart = VisitingPart.FROM;
-        List<Join> joins = plainSelect.getJoins();
-        if (joins != null)
-        {
-            for (Join join : joins)
-            {
-                Expression e = join.getOnExpression();
-                Expression implExpression = convertToImplementation(e);
-                log.debug("PlainSelect/JOIN: replacing " + e + " with " + implExpression);
-                join.setOnExpression(implExpression);
-            }
-        }
-
-        this.visitingPart = VisitingPart.WHERE;
-        if (plainSelect.getWhere() != null)
-        {
-            Expression e = plainSelect.getWhere();
-            Expression implExpression = convertToImplementation(e);
-            log.debug("PlainSelect/WHERE: replacing " + e + " with " + implExpression);
-            plainSelect.setWhere(implExpression);
-        }
-
-        this.visitingPart = VisitingPart.HAVING;
-        if (plainSelect.getHaving() != null)
-        {
-            Expression e = plainSelect.getHaving();
-            Expression implExpression = convertToImplementation(e);
-            log.debug("PlainSelect/HAVING: replacing " + e + " with " + implExpression);
-            plainSelect.setHaving(implExpression);
-        }
-
-        log.debug("visit(PlainSelect) done: " + plainSelect);
-        super.leavePlainSelect();
-    }
-
-    /**
-     * Convert an expression and all parameters of it, 
-     * using provided implementation in the sub-class.
-     * 
-     * @param expr
-     * @return Expression converted by implementation 
-     */
-    public Expression convertToImplementation(Expression expr)
-    {
-        log.debug("convertToImplementation(Expression):" + expr);
-
-        Expression implExpr = expr;
-
-        if (expr instanceof Function)
-        {
-            Function f = (Function) expr;
-
-            // Convert parameters of the function first.
-            ExpressionList exprList = f.getParameters();
-            ExpressionList implExprList = convertToImplementation(exprList);
-            f.setParameters(implExprList);
-            implExpr = convertToImplementation(f);
-        }
-        else if (expr instanceof BinaryExpression)
-        {
-            BinaryExpression expr1 = (BinaryExpression) expr;
-
-            Expression left = expr1.getLeftExpression();
-            Expression right = expr1.getRightExpression();
-
-            Expression left2 = convertToImplementation(left);
-            Expression right2 = convertToImplementation(right);
-
-            expr1.setLeftExpression(left2);
-            expr1.setRightExpression(right2);
-            implExpr = expr1;
-
-            implExpr = handleRegionPredicate((BinaryExpression) implExpr);
-        }
-        else if (expr instanceof InverseExpression)
-        {
-            InverseExpression expr1 = (InverseExpression) expr;
-            Expression child = expr1.getExpression();
-            Expression child2 = convertToImplementation(child);
-            expr1.setExpression(child2);
-            implExpr = expr1;
-        }
-        else if (expr instanceof Parenthesis)
-        {
-            Parenthesis expr1 = (Parenthesis) expr;
-            Expression child = expr1.getExpression();
-            Expression child2 = convertToImplementation(child);
-            expr1.setExpression(child2);
-            implExpr = expr1;
-        }
-        return implExpr;
-    }
-
-    /**
-     * Convert a list of expressions and all parameters of them 
-     * using provided implementation in the sub-class.
-     * 
-     * @param adqlExprList Expression List
-     * @return converted expression list
-     */
-    @SuppressWarnings("unchecked")
-    public ExpressionList convertToImplementation(ExpressionList exprList)
-    {
-        log.debug("convertToImplementation(ExpressionList): " + exprList);
-        if (exprList == null || exprList.getExpressions() == null) return exprList;
-        List<Expression> adqlExprs = exprList.getExpressions();
-        List<Expression> implExprs = new ArrayList<Expression>();
-        Expression e1 = null;
-        Expression e2 = null;
-
-        for (int i = 0; i < adqlExprs.size(); i++)
-        {
-            e1 = adqlExprs.get(i);
-            e2 = convertToImplementation(e1);
-            implExprs.add(e2);
-        }
-        return new ExpressionList(implExprs);
-    }
-
-    /**
      * If the function is an ADQL Function,
      * convert it using implementation in sub-class.
      * 
      * @param adqlFunction
      * @return converted expression
      */
+    @Override
     public Expression convertToImplementation(Function func)
     {
         log.debug("convertToImplementation(Function): " + func);
@@ -389,11 +243,19 @@ public class RegionFinder extends SelectNavigator
         if (!valid) throw new UnsupportedOperationException(firstPara.toString() + " is not a supported coordinate system.");
     }
 
+    @Override
+    protected Expression handlePredicateFunction(BinaryExpression expr)
+    {
+        // for backwards compat: call the old method name
+        return handleRegionPredicate(expr);
+    }
+
+    
     /**
     * This method is called when a REGION PREDICATE function is one of the arguments in a binary expression, 
     * and after the direct function conversion.
     * 
-    * Supported functions: CINTAINS, INTERSECTS
+    * Supported functions: CONTAINS, INTERSECTS
     * 
     * Examples:
     * 
@@ -403,6 +265,7 @@ public class RegionFinder extends SelectNavigator
      * 0 = CONTAINS()
      * 
     * @param biExpr the binary expression which one side is a converted region function
+     * @return 
     */
     protected Expression handleRegionPredicate(BinaryExpression biExpr)
     {

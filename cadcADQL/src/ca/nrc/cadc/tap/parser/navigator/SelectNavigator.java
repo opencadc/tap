@@ -71,6 +71,7 @@ package ca.nrc.cadc.tap.parser.navigator;
 
 import java.util.List;
 import java.util.Stack;
+import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.ColumnReference;
@@ -126,6 +127,7 @@ public class SelectNavigator implements SelectVisitor
     protected PlainSelect plainSelect;
     protected Stack<PlainSelect> psStack = new Stack<PlainSelect>();
     protected Stack<VisitingPart> visitingPartStack = new Stack<VisitingPart>();
+    protected Stack<Function> functionCallStack = new Stack<Function>();
 
     // Other navigators controlled by SelectNavigator
     protected ExpressionNavigator expressionNavigator;
@@ -167,6 +169,25 @@ public class SelectNavigator implements SelectVisitor
 
         this.psStack.pop();
         if (!this.psStack.empty()) this.plainSelect = this.psStack.peek();
+    }
+    
+    public void enterFunctionCall(Function f)
+    {
+        log.debug("enterFunctionCall: " + f);
+        this.functionCallStack.push(f);
+    }
+
+    public void leaveFunctionCall()
+    {
+        Function f = this.functionCallStack.pop();
+        log.debug("leaveFunctionCall: " + f);
+    }
+    
+    public Function getCurrentFunction()
+    {
+        if (functionCallStack.isEmpty())
+            return null;
+        return functionCallStack.peek();
     }
 
     @SuppressWarnings("unchecked")
