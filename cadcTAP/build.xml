@@ -90,7 +90,7 @@
 
     <property name="core" value="${lib}/cadcUtil.jar:${lib}/cadcLog.jar:${lib}/cadcVOSI.jar:${lib}/cadcRegistry.jar" />
     <property name="uws" value="${lib}/cadcUWS.jar:${lib}/cadcUWS-Server.jar" />
-    <property name="dal" value="${lib}/cadcDALI.jar:${lib}/cadcTapSchema.jar:${lib}/cadcADQL.jar" />
+    <property name="dal" value="${lib}/cadcDALI.jar:${lib}/cadcTapSchema.jar" />
     <property name="cadc" value="${core}:${uws}:${dal}" />
     
     <property name="jsqlparser" value="${ext.lib}/jsqlparser.jar" />
