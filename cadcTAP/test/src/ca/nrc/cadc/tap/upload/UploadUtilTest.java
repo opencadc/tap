@@ -69,9 +69,10 @@
 package ca.nrc.cadc.tap.upload;
 
 import ca.nrc.cadc.util.Log4jInit;
-import junit.framework.Assert;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -85,7 +86,7 @@ public class UploadUtilTest
     private static Logger log = Logger.getLogger(UploadUtilTest.class);
     static
     {
-        Log4jInit.setLevel("ca.nrc.cadc.tap.upload", org.apache.log4j.Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.tap.upload", Level.INFO);
     }
     
     public UploadUtilTest()

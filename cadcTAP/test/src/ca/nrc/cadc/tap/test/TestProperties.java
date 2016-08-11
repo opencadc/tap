@@ -81,6 +81,7 @@ import org.junit.Test;
 
 import ca.nrc.cadc.tap.TapProperties;
 import ca.nrc.cadc.util.Log4jInit;
+import org.apache.log4j.Level;
 
 /**
  * @author zhangsa
@@ -114,7 +115,7 @@ public class TestProperties
     @Before
     public void setUp() throws Exception
     {
-        Log4jInit.setLevel("ca.nrc.cadc", org.apache.log4j.Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc", Level.INFO);
         sqlProp = SqlPropertiesFactory.getInstance();
         pgProp = PgspherePropertiesFactory.getInstance();
         sqlProp2 = SqlPropertiesFactory.getInstance();

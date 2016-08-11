@@ -84,8 +84,19 @@ import java.util.Map;
  */
 public interface TapQuery extends TapPlugin
 {
+    /**
+     * Add additional tables to the query context. These tables are normally expected
+     * to be temporary tables from use of the UPLOAD feature.
+     * 
+     * @param extraTables map of name : table description
+     */
     public void setExtraTables(Map<String, TableDesc> extraTables);
 
+    /**
+     * Set the permanent TapSchema content to use in validating the query.
+     * 
+     * @param tapSchema 
+     */
     public void setTapSchema(TapSchema tapSchema);
 
     /**

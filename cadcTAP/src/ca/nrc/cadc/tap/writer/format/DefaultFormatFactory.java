@@ -132,7 +132,7 @@ public class DefaultFormatFactory implements FormatFactory
     @Override
     public Format<Object> getFormat(ColumnDesc columnDesc)
     {
-        String datatype = columnDesc.datatype;
+        String datatype = columnDesc.getDatatype();
         if (datatype.equalsIgnoreCase("adql:INTEGER"))
             return getIntegerFormat(columnDesc);
 
@@ -183,25 +183,25 @@ public class DefaultFormatFactory implements FormatFactory
 
         // VOTable datatypes in the tap_schema.columns.datatype
         if (datatype.equalsIgnoreCase("votable:int"))
-            if (columnDesc.size != null && columnDesc.size > 1)
+            if (columnDesc.getArraysize() != null && columnDesc.getArraysize() > 1)
                 return getIntArrayFormat(columnDesc);
             else
                 return getIntegerFormat(columnDesc);
 
         if (datatype.equalsIgnoreCase("votable:long"))
-            if (columnDesc.size != null && columnDesc.size > 1)
+            if (columnDesc.getArraysize() != null && columnDesc.getArraysize() > 1)
                 return getLongArrayFormat(columnDesc);
             else
                 return getLongFormat(columnDesc);
 
         if (datatype.equalsIgnoreCase("votable:float"))
-            if (columnDesc.size != null && columnDesc.size > 1)
+            if (columnDesc.getArraysize() != null && columnDesc.getArraysize() > 1)
                 return getFloatArrayFormat(columnDesc);
             else
                 return getRealFormat(columnDesc);
 
         if (datatype.equalsIgnoreCase("votable:double"))
-            if (columnDesc.size != null && columnDesc.size > 1)
+            if (columnDesc.getArraysize() != null && columnDesc.getArraysize() > 1)
                 return getDoubleArrayFormat(columnDesc);
             else
                 return getDoubleFormat(columnDesc);
@@ -358,7 +358,7 @@ public class DefaultFormatFactory implements FormatFactory
      */
     protected Format<Object> getPointFormat(ColumnDesc columnDesc)
     {
-        throw new UnsupportedOperationException("no formatter for column " + columnDesc.columnName);
+        throw new UnsupportedOperationException("no formatter for column " + columnDesc.getColumnName());
     }
 
     /**
@@ -367,7 +367,7 @@ public class DefaultFormatFactory implements FormatFactory
      */
     protected Format<Object> getCircleFormat(ColumnDesc columnDesc)
     {
-        throw new UnsupportedOperationException("no formatter for column " + columnDesc.columnName);
+        throw new UnsupportedOperationException("no formatter for column " + columnDesc.getColumnName());
     }
     
     /**
@@ -376,7 +376,7 @@ public class DefaultFormatFactory implements FormatFactory
      */
     protected Format<Object> getPolygonFormat(ColumnDesc columnDesc)
     {
-        throw new UnsupportedOperationException("no formatter for column " + columnDesc.columnName);
+        throw new UnsupportedOperationException("no formatter for column " + columnDesc.getColumnName());
     }
     
     /**
@@ -385,7 +385,7 @@ public class DefaultFormatFactory implements FormatFactory
      */
     protected Format<Object> getRegionFormat(ColumnDesc columnDesc)
     {
-        throw new UnsupportedOperationException("no formatter for column " + columnDesc.columnName);
+        throw new UnsupportedOperationException("no formatter for column " + columnDesc.getColumnName());
     }
     
     /**
@@ -394,7 +394,7 @@ public class DefaultFormatFactory implements FormatFactory
      */
     protected Format<Object> getIntervalFormat(ColumnDesc columnDesc)
     {
-        throw new UnsupportedOperationException("no formatter for column " + columnDesc.columnName);
+        throw new UnsupportedOperationException("no formatter for column " + columnDesc.getColumnName());
     }
 
     /**

@@ -116,9 +116,7 @@ public class PluginFactory
     private void init()
     {
         // default config
-        Class c = AdqlQuery.class;
-        langBindings.put("ADQL", c);
-        langBindings.put("ADQL-2.0", c);
+        Class c = null;
         
         this.config = new Properties();
         URL url = null;

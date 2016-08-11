@@ -71,12 +71,13 @@ package ca.nrc.cadc.tap;
 
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
+import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import ca.nrc.cadc.tap.writer.format.DefaultFormatFactory;
+import ca.nrc.cadc.tap.writer.format.FormatFactory;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -93,7 +94,7 @@ public class PluginFactoryTest
     
     static
     {
-        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
     }
     
     Job job = new Job() 
@@ -126,32 +127,39 @@ public class PluginFactoryTest
         
         try
         {
+            job.getParameterList().clear();
+            job.getParameterList().add(new Parameter("LANG", "ADQL"));
+            
             PluginFactory pf = new PluginFactory(job);
             
             try
             {
-                Assert.assertNull(pf.getTapQuery());
+                Assert.assertNull(pf.getTapQuery()); // no default
             }
             catch(IllegalArgumentException expected)
             {
                 log.debug("caught expected exception: " + expected);
             }
             
-            job.getParameterList().clear();
-            job.getParameterList().add(new Parameter("LANG", "ADQL"));
-            pf = new PluginFactory(job);
+            MaxRecValidator mrv = pf.getMaxRecValidator();
+            Assert.assertNotNull(mrv);
+            Assert.assertEquals(MaxRecValidator.class, mrv.getClass()); // default impl
             
-            TapQuery q = pf.getTapQuery();
-            Assert.assertNotNull(q);
-            Assert.assertEquals(AdqlQuery.class, q.getClass());
-            pf = new PluginFactory(job);
+            UploadManager um = pf.getUploadManager();
+            Assert.assertNotNull(um);
+            Assert.assertEquals(DefaultUploadManager.class, um.getClass()); // default impl
             
-            job.getParameterList().clear();
-            job.getParameterList().add(new Parameter("LANG", "ADQL-2.0"));
+            TableWriter tw = pf.getTableWriter();
+            Assert.assertNotNull(tw);
+            Assert.assertEquals(DefaultTableWriter.class, tw.getClass()); // default impl
             
-            q = pf.getTapQuery();
-            Assert.assertNotNull(q);
-            Assert.assertEquals(AdqlQuery.class, q.getClass());
+            FormatFactory ff = pf.getFormatFactory();
+            Assert.assertNotNull(ff);
+            Assert.assertEquals(DefaultFormatFactory.class, ff.getClass()); // default impl
+            
+            TapSchemaDAO tsd = pf.getTapSchemaDAO();
+            Assert.assertNotNull(tsd);
+            Assert.assertEquals(TapSchemaDAO.class, tsd.getClass()); // default impl
         }
         catch(Exception unexpected)
         {

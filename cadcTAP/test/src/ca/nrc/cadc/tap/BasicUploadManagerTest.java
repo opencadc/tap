@@ -186,7 +186,7 @@ public class BasicUploadManagerTest
             String tableName = keySet.iterator().next();
             TableDesc tableDesc = tableDescs.get(tableName);
 
-            Assert.assertEquals(0, tableDesc.columnDescs.size());
+            Assert.assertEquals(0, tableDesc.getColumnDescs().size());
 
             log.debug("testUploadEmptyTable passed.");
         }

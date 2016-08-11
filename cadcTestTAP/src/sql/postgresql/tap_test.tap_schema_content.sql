@@ -10,8 +10,8 @@ delete from TAP_SCHEMA.schemas where schema_name = 'tap_test';
 insert into TAP_SCHEMA.schemas (schema_name,description) values
 ( 'tap_test', 'Tables for the client and service testing');
 
-insert into TAP_SCHEMA.tables (schema_name,table_name,description) values
-( 'tap_test', 'tap_test.AllDataTypes', 'sample table with all current internal datatypes and sample values');
+insert into TAP_SCHEMA.tables (schema_name,table_name,table_type,description) values
+( 'tap_test', 'tap_test.AllDataTypes', 'table', 'sample table with all current internal datatypes and sample values');
 
 insert into TAP_SCHEMA.columns (table_name,column_name,description,ucd,unit,datatype,arraysize,principal,indexed,std) values
 ( 'tap_test.AllDataTypes', 't_char', 'char or char(1)',  NULL, NULL, 'adql:CHAR',                NULL,  1,0,0 ),

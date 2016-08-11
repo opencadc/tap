@@ -130,37 +130,37 @@ public abstract class PqlQuery extends AbstractTapQuery
         for (SchemaDesc schemaDesc : schemaDescs)
         {
             // Skip the tap_schema schema.
-            if (schemaDesc.schemaName != null && schemaDesc.schemaName.equals("tap_schema"))
+            if (schemaDesc.getSchemaName() != null && schemaDesc.getSchemaName().equals("tap_schema"))
                 continue;
 
             // Skip schemas with no tables.
-            if (schemaDesc.tableDescs == null || schemaDesc.tableDescs.isEmpty())
+            if (schemaDesc.getTableDescs() == null || schemaDesc.getTableDescs().isEmpty())
                 continue;
 
             // For each schema get the list of tables.
-            for (TableDesc tableDesc : schemaDesc.tableDescs)
+            for (TableDesc tableDesc : schemaDesc.getTableDescs())
             {
                 // Skip empty tables.
-                if (tableDesc.columnDescs == null || tableDesc.columnDescs.isEmpty())
+                if (tableDesc.getColumnDescs() == null || tableDesc.getColumnDescs().isEmpty())
                     continue;
 
                 // For each table get the list of columns.
-                for (ColumnDesc columnDesc : tableDesc.columnDescs)
+                for (ColumnDesc columnDesc : tableDesc.getColumnDescs())
                 {
                     // Skip empty columns, necessary?
-                    if (columnDesc.columnName == null || columnDesc.columnName.isEmpty())
+                    if (columnDesc.getColumnName() == null || columnDesc.getColumnName().isEmpty())
                         continue;
 
                     // Build the fully qualified name for this column.
                     StringBuilder sb = new StringBuilder();
-                    if (schemaDesc.schemaName != null && !schemaDesc.schemaName.isEmpty())
+                    if (schemaDesc.getSchemaName() != null && !schemaDesc.getSchemaName().isEmpty())
                     {
-                        sb.append(schemaDesc.schemaName);
+                        sb.append(schemaDesc.getSchemaName());
                         sb.append(".");
                     }
-                    sb.append(tableDesc.getSimpleTableName());
+                    sb.append(tableDesc.getTableName());
                     sb.append(".");
-                    sb.append(columnDesc.columnName);
+                    sb.append(columnDesc.getColumnName());
                     String fqn = sb.toString();
 
                     // Check if the paramList contains the fully qualified column name.
@@ -169,21 +169,13 @@ public abstract class PqlQuery extends AbstractTapQuery
                         continue;
 
                     // Create a new TableDesc and add with the values to the tableParameters.
-                    TableDesc newTableDesc = new TableDesc(tableDesc.schemaName,
-                                                           tableDesc.getSimpleTableName(),
-                                                           tableDesc.description,
-                                                           tableDesc.utype);
-                    ColumnDesc newColumnDesc = new ColumnDesc(columnDesc.tableName,
-                                                              columnDesc.columnName,
-                                                              columnDesc.description,
-                                                              columnDesc.utype,
-                                                              columnDesc.ucd,
-                                                              columnDesc.unit,
-                                                              columnDesc.datatype,
-                                                              columnDesc.size);
-                    List<ColumnDesc> newColumnDescs = new ArrayList<ColumnDesc>();
-                    newColumnDescs.add(newColumnDesc);
-                    newTableDesc.columnDescs = newColumnDescs;
+                    TableDesc newTableDesc = new TableDesc(tableDesc.getSchemaName(),
+                                                           tableDesc.getTableName());
+                    ColumnDesc newColumnDesc = new ColumnDesc(columnDesc.getTableName(),
+                                                              columnDesc.getColumnName(),
+                                                              columnDesc.getDatatype(),
+                                                              columnDesc.getArraysize());
+                    newTableDesc.getColumnDescs().add(newColumnDesc);
                     if (tapSchemaParameters == null)
                         tapSchemaParameters = new HashMap<TableDesc, String[]>();
                     tapSchemaParameters.put(newTableDesc, values.toArray(new String[0]));

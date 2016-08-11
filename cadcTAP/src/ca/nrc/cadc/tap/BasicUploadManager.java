@@ -262,7 +262,7 @@ public abstract class BasicUploadManager implements UploadManager
                     List<Object> row = it.next();
 
                     // Update the PreparedStatement with the row data.
-                    updatePreparedStatement(ps, tableDesc.columnDescs, row);
+                    updatePreparedStatement(ps, tableDesc.getColumnDescs(), row);
 
                     // Execute the update.
                     ps.executeUpdate();
@@ -395,14 +395,14 @@ public abstract class BasicUploadManager implements UploadManager
         sb.append("create table ");
         sb.append(databaseTableName);
         sb.append(" ( ");
-        for (int i = 0; i < tableDesc.columnDescs.size(); i++)
+        for (int i = 0; i < tableDesc.getColumnDescs().size(); i++)
         {
-            ColumnDesc columnDesc = tableDesc.columnDescs.get(i);
-            sb.append(columnDesc.columnName);
+            ColumnDesc columnDesc = tableDesc.getColumnDescs().get(i);
+            sb.append(columnDesc.getColumnName());
             sb.append(" ");
             sb.append(databaseDataType.getDataType(columnDesc));
             sb.append(" null ");
-            if (i + 1 < tableDesc.columnDescs.size())
+            if (i + 1 < tableDesc.getColumnDescs().size())
                 sb.append(", ");
         }
         sb.append(" ) ");
@@ -422,18 +422,18 @@ public abstract class BasicUploadManager implements UploadManager
         sb.append("insert into ");
         sb.append(databaseTableName);
         sb.append(" ( ");
-        for (int i = 0; i < tableDesc.columnDescs.size(); i++)
+        for (int i = 0; i < tableDesc.getColumnDescs().size(); i++)
         {
-            ColumnDesc columnDesc = tableDesc.columnDescs.get(i);
-            sb.append(columnDesc.columnName);
-            if (i + 1 < tableDesc.columnDescs.size())
+            ColumnDesc columnDesc = tableDesc.getColumnDescs().get(i);
+            sb.append(columnDesc.getColumnName());
+            if (i + 1 < tableDesc.getColumnDescs().size())
                 sb.append(", ");
         }
         sb.append(" ) values ( ");
-        for (int i = 0; i < tableDesc.columnDescs.size(); i++)
+        for (int i = 0; i < tableDesc.getColumnDescs().size(); i++)
         {
             sb.append("?");
-            if (i + 1 < tableDesc.columnDescs.size())
+            if (i + 1 < tableDesc.getColumnDescs().size())
                 sb.append(", ");
         }
         sb.append(" ) ");
@@ -456,16 +456,16 @@ public abstract class BasicUploadManager implements UploadManager
         for (Object value : row)
         {
             ColumnDesc columnDesc = columnDescs.get(i-1);
-            log.debug("update ps: " + columnDesc.columnName + "[" + columnDesc.datatype + "] = " + value);
+            log.debug("update ps: " + columnDesc.getColumnName() + "[" + columnDesc.getDatatype() + "] = " + value);
 
             if (value == null)
-                ps.setNull(i, ADQLDataType.getSQLType(columnDesc.datatype));
-            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_TIMESTAMP))
+                ps.setNull(i, ADQLDataType.getSQLType(columnDesc.getDatatype()));
+            else if (columnDesc.getDatatype().equals(ADQLDataType.ADQL_TIMESTAMP))
             {
                 Date date = (Date) value;
                 ps.setTimestamp(i, new Timestamp(date.getTime()));
             }
-            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_POINT))
+            else if (columnDesc.getDatatype().equals(ADQLDataType.ADQL_POINT))
             {
                 Region r = (Region) value;
                 if (r instanceof Position)
@@ -477,14 +477,14 @@ public abstract class BasicUploadManager implements UploadManager
                 else
                     throw new IllegalArgumentException("failed to parse " + value + " as an " + ADQLDataType.ADQL_POINT);
             }
-            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_REGION))
+            else if (columnDesc.getDatatype().equals(ADQLDataType.ADQL_REGION))
             {
                 Region reg = (Region) value;
                 Object o = getRegionObject(reg);
                 ps.setObject(i, o);
             }
             else
-                ps.setObject(i, value, ADQLDataType.getSQLType(columnDesc.datatype));
+                ps.setObject(i, value, ADQLDataType.getSQLType(columnDesc.getDatatype()));
             
             i++;
             

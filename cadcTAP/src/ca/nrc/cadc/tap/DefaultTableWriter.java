@@ -619,7 +619,7 @@ public class DefaultTableWriter implements TableWriter
         {
             return "double";
         }
-        else if (datatype.equals("UUID"))
+        else if (datatype.equals("uuid"))
         {
             return "char";
         }
@@ -635,7 +635,7 @@ public class DefaultTableWriter implements TableWriter
     private void setSize(ParamDesc paramDesc, VOTableField field)
     {
         String datatype = paramDesc.datatype;
-        Integer size = paramDesc.size;
+        Integer size = paramDesc.arraysize;
 
         if (datatype == null)
             return;
@@ -758,7 +758,7 @@ public class DefaultTableWriter implements TableWriter
         {
             field.setArraysize(2);
         }
-        else if (datatype.equals("UUID"))
+        else if (datatype.equals("uuid"))
         {
             field.setArraysize(36);
         }
