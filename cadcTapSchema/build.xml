@@ -88,7 +88,7 @@
 
     <property name="project" value="cadcTapSchema" />
 
-    <property name="cadc" value="${lib}/cadcUtil.jar:${lib}/cadcLog.jar:${lib}/cadcVOSI.jar:${lib}/cadcUWS.jar" />
+    <property name="cadc" value="${lib}/cadcUtil.jar:${lib}/cadcLog.jar:${lib}/cadcVOSI.jar:${lib}/cadcUWS.jar:${lib}/cadcRegistry.jar" />
 
     <property name="log4j" value="${ext.lib}/log4j.jar" />
     <property name="spring" value="${ext.lib}/spring.jar" />
