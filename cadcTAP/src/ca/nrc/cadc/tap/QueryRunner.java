@@ -370,7 +370,7 @@ public class QueryRunner implements JobRunner
                 tList.add(System.currentTimeMillis());
                 sList.add("execute query and get ResultSet: ");
                 
-                String filename = "result_" + job.getID() + "." + tableWriter.getExtension();
+                String filename = getResultOutputFilename(tableWriter.getExtension());
                 String contentType = tableWriter.getContentType();
                 
                 if (syncOutput != null)
@@ -492,7 +492,7 @@ public class QueryRunner implements JobRunner
                 ByteArrayOutputStream bos = new ByteArrayOutputStream();
                 ewriter.write(t, bos);
                 String emsg = bos.toString();
-                String filename = "error_" + job.getID() + "." + ewriter.getExtension();
+                String filename = getErrorOutputFilename(ewriter.getExtension());
                 if (syncOutput != null)
                 {
                     syncOutput.setResponseCode(errorCode);
@@ -546,4 +546,28 @@ public class QueryRunner implements JobRunner
         }
     }
 
+    /**
+     * Allow overriding of the filename of the successful results to be saved
+     * as.
+     *
+     * @param extension     The file extension, as derived from the Table
+     *                      Writer.
+     * @return              String filename.  Never null.
+     */
+    protected String getResultOutputFilename(final String extension)
+    {
+        return "result_" + job.getID() + "." + extension;
+    }
+
+    /**
+     * Allow overriding of the filename of the error results to be saved as.
+     *
+     * @param extension     The file extension, as derived from the Table
+     *                      Writer.
+     * @return              String filename.  Never null.
+     */
+    protected String getErrorOutputFilename(final String extension)
+    {
+        return "error_" + job.getID() + "." + extension;
+    }
 }
