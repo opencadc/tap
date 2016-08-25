@@ -1,0 +1,42 @@
+plugins {
+    id 'war'
+    id 'maven'
+}
+
+repositories {
+    jcenter()
+    mavenLocal()
+
+    // Only here until cadcUtil is in jcenter.
+    maven {
+        url  'http://dl.bintray.com/opencadc/software'
+    }
+}
+
+sourceCompatibility = 1.7
+
+group = 'org.opencadc'
+
+version = '1.0'
+
+dependencies {
+    compile 'org.opencadc:cadc-jsqlparser-compat:0.6.2a'
+    compile 'log4j:log4j:1.2.+'
+    compile 'org.jdom:jdom2:2.+'
+    compile 'org.restlet.jee:org.restlet:2.1.+'
+    compile 'org.restlet.jee:org.restlet.ext.fileupload:2.+'
+    compile 'org.springframework:spring-beans:4.2.7.RELEASE'
+    compile 'xerces:xercesImpl:2.+'
+
+    compile 'org.opencadc:cadc-log:1.+'
+    compile 'org.opencadc:cadc-util:1.+'
+    compile 'org.opencadc:cadc-dali:1.+'
+    compile 'org.opencadc:cadc-uws:1.+'
+    compile 'org.opencadc:cadc-uws-server:1.+'
+    compile 'org.opencadc:cadc-tap-server:1.+'
+    compile 'org.opencadc:cadc-vosi:1.+'
+    compile 'org.opencadc:cadc-adql:1.+'
+
+    testCompile 'junit:junit:4.+'
+    testCompile 'xmlunit:xmlunit:1.+'
+}
