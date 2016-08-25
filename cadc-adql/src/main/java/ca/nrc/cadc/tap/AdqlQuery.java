@@ -108,9 +108,8 @@ import org.apache.log4j.Logger;
  * matched to TapSchema.columns to support output of the ResultSet. In addition,
  * this implementation only allows BLOB and CLOB column references in the select
  * list.
- * </p><p>
  * This class supports extension by delegating calls to a subclass of itself 
- * named <code>ca..nrc.cadc.tap.impl.AdqlQueryImpl</code>. Delegate implementation
+ * named ca..nrc.cadc.tap.impl.AdqlQueryImpl. Delegate implementation
  * is optional.
  * 
  * @author pdowler
