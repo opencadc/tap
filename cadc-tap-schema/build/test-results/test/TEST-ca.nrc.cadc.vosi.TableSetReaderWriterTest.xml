@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="ca.nrc.cadc.vosi.TableSetReaderWriterTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2016-08-22T22:05:00" hostname="mach310.cadc.dao.nrc.ca" time="5.579">
+<testsuite name="ca.nrc.cadc.vosi.TableSetReaderWriterTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2016-08-25T20:24:38" hostname="mach310.cadc.dao.nrc.ca" time="0.469">
   <properties/>
-  <testcase name="testEmpty" classname="ca.nrc.cadc.vosi.TableSetReaderWriterTest" time="0.033"/>
-  <testcase name="testMultipleTables" classname="ca.nrc.cadc.vosi.TableSetReaderWriterTest" time="5.54"/>
-  <testcase name="testSingleTable" classname="ca.nrc.cadc.vosi.TableSetReaderWriterTest" time="0.004"/>
-  <system-out><![CDATA[2016-08-22 15:05:00.990 [Test worker] INFO  TableSetReaderWriterTest  - expected: java.lang.IllegalArgumentException: Error: at least one schema is required.
+  <testcase name="testEmpty" classname="ca.nrc.cadc.vosi.TableSetReaderWriterTest" time="0.031"/>
+  <testcase name="testMultipleTables" classname="ca.nrc.cadc.vosi.TableSetReaderWriterTest" time="0.432"/>
+  <testcase name="testSingleTable" classname="ca.nrc.cadc.vosi.TableSetReaderWriterTest" time="0.005"/>
+  <system-out><![CDATA[2016-08-25 13:24:38.238 [Test worker] INFO  TableSetReaderWriterTest  - expected: java.lang.IllegalArgumentException: Error: at least one schema is required.
 ]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

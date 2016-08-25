@@ -91,7 +91,7 @@ public class ColumnDesc
     public boolean std;
     
     /**
-     * An <em>id<//em> attribute value to tag the column so the VOTableField element gets an XML ID. 
+     * An id attribute value to tag the column so the VOTableField element gets an XML ID. 
      * This can normally be left null as it is only needed for including additional resources in the 
      * VOTable output.
      */

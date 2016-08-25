@@ -115,8 +115,8 @@ public class ParamDesc
     public Integer arraysize;
     
     /**
-     * An <em>id<//em> attribute value to tag the column with (for VOTable FIELD element). This
-     * can normally be left null as it is onyl needed for the prototype  getResultMeta/List<Group>
+     * An id attribute value to tag the column with (for VOTable FIELD element). This
+     * can normally be left null as it is onyl needed for the prototype  getResultMeta/ListGroup
      * hack.
      */
     public String id;
