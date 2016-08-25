@@ -122,7 +122,7 @@ public class DefaultFormatFactory implements FormatFactory
 
     /**
      * Create a formatter for the specified parameter description. The default implementation simply
-     * checks the datatype in the argument ParamDesc and then calls the appropriate (public) get<type>Formatter
+     * checks the datatype in the argument ParamDesc and then calls the appropriate (public) get.type.Formatter
      * method. Subclasses should override this method if they need to support additional datatypes
      * (as specified in the TapSchema: tap_schema.columns.datatype).
      *

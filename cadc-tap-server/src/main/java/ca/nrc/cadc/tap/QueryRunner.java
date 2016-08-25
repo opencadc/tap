@@ -110,25 +110,20 @@ import org.apache.log4j.Logger;
  * Implementation of the JobRunner interface from the cadcUWS framework. This is the
  * main class that implements TAP semantics; it is usable with both the async and sync
  * servlet configurations from cadcUWS.
- * </p><p>
  * This class dynamically loads and uses implementation classes as described in the
  * package documentation. This allows one to control the behavior of several key components:
  * query processing, upload support, and writing the result-set to the output file format.
- * </p><p>
- * In addition, this class uses JDNI to find <code>java.sql.DataSource</code> instances for
+ * In addition, this class uses JDNI to find java.sql.DataSource instances for
  * executing database statements.
- * </p>
- * <ul>
- * <li>A datasource named <b>jdbc/tapuser</b> is required; this datasource
+ * A datasource named jdbc/tapuser is required; this datasource
  * is used to query the TAP_SCHEMA and to run user-queries. The connection(s) provided by this
  * datasource must have read permission to the TAP_SCHEMA and all tables described within the
- * TAP_SCHEMA.</li>
- * <li>A datasource named <b>jdbc/tapuploadadm</b> is optional; this datasource is used to create tables
+ * TAP_SCHEMA.
+ * A datasource named jdbc/tapuploadadm is optional; this datasource is used to create tables
  * in the TAP_UPLOAD schema and to populate these tables with content from uploaded tables. If this
  * datasource is provided, it is passed to the UploadManager implementation. For uploads to actually work,
  * the connection(s) provided by the datasource must have create table permission in the current database and
- * TAP_UPLOAD schema.</li>
- * </ul>
+ * TAP_UPLOAD schema.
  *
  * @author pdowler
  */

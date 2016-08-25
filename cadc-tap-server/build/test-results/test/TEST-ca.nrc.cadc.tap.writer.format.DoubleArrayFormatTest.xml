@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="ca.nrc.cadc.tap.writer.format.DoubleArrayFormatTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2016-08-24T22:32:57" hostname="mach310.cadc.dao.nrc.ca" time="0.002">
+<testsuite name="ca.nrc.cadc.tap.writer.format.DoubleArrayFormatTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2016-08-25T20:51:32" hostname="mach310.cadc.dao.nrc.ca" time="0.004">
   <properties/>
-  <testcase name="testFormatWrappedDouble" classname="ca.nrc.cadc.tap.writer.format.DoubleArrayFormatTest" time="0.001"/>
-  <testcase name="testFormatNull" classname="ca.nrc.cadc.tap.writer.format.DoubleArrayFormatTest" time="0.001"/>
+  <testcase name="testFormatWrappedDouble" classname="ca.nrc.cadc.tap.writer.format.DoubleArrayFormatTest" time="0.002"/>
+  <testcase name="testFormatNull" classname="ca.nrc.cadc.tap.writer.format.DoubleArrayFormatTest" time="0.0"/>
   <testcase name="testFormatPrimitiveDouble" classname="ca.nrc.cadc.tap.writer.format.DoubleArrayFormatTest" time="0.0"/>
-  <system-out><![CDATA[2016-08-24 15:32:57.541 [Test worker] INFO  DoubleArrayFormatTest  - testFormatPrimitiveDouble passed
-2016-08-24 15:32:57.541 [Test worker] INFO  DoubleArrayFormatTest  - testFormat passed
-2016-08-24 15:32:57.542 [Test worker] INFO  DoubleArrayFormatTest  - testFormatPrimitiveDouble passed
+  <system-out><![CDATA[2016-08-25 13:51:32.476 [Test worker] INFO  DoubleArrayFormatTest  - testFormatPrimitiveDouble passed
+2016-08-25 13:51:32.477 [Test worker] INFO  DoubleArrayFormatTest  - testFormat passed
+2016-08-25 13:51:32.478 [Test worker] INFO  DoubleArrayFormatTest  - testFormatPrimitiveDouble passed
 ]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

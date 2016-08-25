@@ -79,7 +79,7 @@ public class UploadUtil
      * 
      * @param identifier String to be tested.
      * @return true if a valid ADQL identifier.
-     * @throws ADQLIndentifierException if the identifier is invalid.
+     * throws ADQLIndentifierException if the identifier is invalid.
      */
     public static boolean isValidateIdentifier(String identifier)
         throws ADQLIdentifierException

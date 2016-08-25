@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="ca.nrc.cadc.tap.BasicUploadManagerTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2016-08-24T22:32:55" hostname="mach310.cadc.dao.nrc.ca" time="1.621">
+<testsuite name="ca.nrc.cadc.tap.BasicUploadManagerTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2016-08-25T20:51:29" hostname="mach310.cadc.dao.nrc.ca" time="2.503">
   <properties/>
-  <testcase name="testInvalidTableNames" classname="ca.nrc.cadc.tap.BasicUploadManagerTest" time="0.016"/>
-  <testcase name="testUploadAllTypesNoRows" classname="ca.nrc.cadc.tap.BasicUploadManagerTest" time="1.428"/>
-  <testcase name="testColumnNameEndsWithInvalidLetter" classname="ca.nrc.cadc.tap.BasicUploadManagerTest" time="0.009"/>
-  <testcase name="testUploadAllTypes" classname="ca.nrc.cadc.tap.BasicUploadManagerTest" time="0.108"/>
-  <testcase name="testColumnNameContainsInvalidLetter" classname="ca.nrc.cadc.tap.BasicUploadManagerTest" time="0.009"/>
-  <testcase name="testUploadEmptyTable" classname="ca.nrc.cadc.tap.BasicUploadManagerTest" time="0.019"/>
-  <testcase name="testColumnNameContainsSpace" classname="ca.nrc.cadc.tap.BasicUploadManagerTest" time="0.008"/>
-  <testcase name="testColumnNameStartsWithInvalidLetter" classname="ca.nrc.cadc.tap.BasicUploadManagerTest" time="0.007"/>
-  <testcase name="testColumnNameStartsWithUnderscore" classname="ca.nrc.cadc.tap.BasicUploadManagerTest" time="0.007"/>
-  <testcase name="testColumnNameStartsWithDigit" classname="ca.nrc.cadc.tap.BasicUploadManagerTest" time="0.006"/>
+  <testcase name="testInvalidTableNames" classname="ca.nrc.cadc.tap.BasicUploadManagerTest" time="0.017"/>
+  <testcase name="testUploadAllTypesNoRows" classname="ca.nrc.cadc.tap.BasicUploadManagerTest" time="2.374"/>
+  <testcase name="testColumnNameEndsWithInvalidLetter" classname="ca.nrc.cadc.tap.BasicUploadManagerTest" time="0.007"/>
+  <testcase name="testUploadAllTypes" classname="ca.nrc.cadc.tap.BasicUploadManagerTest" time="0.061"/>
+  <testcase name="testColumnNameContainsInvalidLetter" classname="ca.nrc.cadc.tap.BasicUploadManagerTest" time="0.005"/>
+  <testcase name="testUploadEmptyTable" classname="ca.nrc.cadc.tap.BasicUploadManagerTest" time="0.008"/>
+  <testcase name="testColumnNameContainsSpace" classname="ca.nrc.cadc.tap.BasicUploadManagerTest" time="0.006"/>
+  <testcase name="testColumnNameStartsWithInvalidLetter" classname="ca.nrc.cadc.tap.BasicUploadManagerTest" time="0.006"/>
+  <testcase name="testColumnNameStartsWithUnderscore" classname="ca.nrc.cadc.tap.BasicUploadManagerTest" time="0.008"/>
+  <testcase name="testColumnNameStartsWithDigit" classname="ca.nrc.cadc.tap.BasicUploadManagerTest" time="0.007"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

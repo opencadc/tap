@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="ca.nrc.cadc.tap.TapValidatorTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2016-08-24T22:32:57" hostname="mach310.cadc.dao.nrc.ca" time="0.01">
+<testsuite name="ca.nrc.cadc.tap.TapValidatorTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2016-08-25T20:51:32" hostname="mach310.cadc.dao.nrc.ca" time="0.009">
   <properties/>
-  <testcase name="testRequestEmptyValue" classname="ca.nrc.cadc.tap.TapValidatorTest" time="0.001"/>
+  <testcase name="testRequestEmptyValue" classname="ca.nrc.cadc.tap.TapValidatorTest" time="0.0"/>
   <testcase name="testRequestMissing" classname="ca.nrc.cadc.tap.TapValidatorTest" time="0.0"/>
-  <testcase name="testEmptyParamList" classname="ca.nrc.cadc.tap.TapValidatorTest" time="0.001"/>
+  <testcase name="testEmptyParamList" classname="ca.nrc.cadc.tap.TapValidatorTest" time="0.002"/>
   <testcase name="testRequestNullValue" classname="ca.nrc.cadc.tap.TapValidatorTest" time="0.0"/>
   <testcase name="testVersion10" classname="ca.nrc.cadc.tap.TapValidatorTest" time="0.001"/>
-  <testcase name="testRequestUnknownValue" classname="ca.nrc.cadc.tap.TapValidatorTest" time="0.001"/>
+  <testcase name="testRequestUnknownValue" classname="ca.nrc.cadc.tap.TapValidatorTest" time="0.0"/>
   <testcase name="testNoRequestVersion10" classname="ca.nrc.cadc.tap.TapValidatorTest" time="0.0"/>
   <testcase name="testVersionUnsupportedValue" classname="ca.nrc.cadc.tap.TapValidatorTest" time="0.0"/>
   <testcase name="testNullParamList" classname="ca.nrc.cadc.tap.TapValidatorTest" time="0.0"/>
-  <testcase name="testCaseInsenseParamNames" classname="ca.nrc.cadc.tap.TapValidatorTest" time="0.001"/>
+  <testcase name="testCaseInsenseParamNames" classname="ca.nrc.cadc.tap.TapValidatorTest" time="0.0"/>
   <testcase name="testCaseSenseRequestValue" classname="ca.nrc.cadc.tap.TapValidatorTest" time="0.0"/>
   <testcase name="testVersionNullValue" classname="ca.nrc.cadc.tap.TapValidatorTest" time="0.0"/>
   <testcase name="testVersionEmptyValue" classname="ca.nrc.cadc.tap.TapValidatorTest" time="0.0"/>

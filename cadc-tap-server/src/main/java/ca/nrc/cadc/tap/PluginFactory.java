@@ -84,9 +84,8 @@ import org.apache.log4j.Logger;
  * Class for setting up the parsing of query parameters (LANG and associated 
  * parameters), instantiating, and executing a suitable TapQUery implementation.
  * 
- * </p><p>
  * This class supports extension by delegating calls to a subclass of itself 
- * named <code>ca..nrc.cadc.tap.impl.QueryProcessorImpl</code>. Delegate implementation
+ * named ca..nrc.cadc.tap.impl.QueryProcessorImpl. Delegate implementation
  * is optional. The purpose of creating  a delegate is to override the default binding 
  * of LANG values to TapQuery implementation classes via the getLangBindings() method.
  * 

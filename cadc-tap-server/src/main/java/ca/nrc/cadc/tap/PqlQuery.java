@@ -113,7 +113,7 @@ public abstract class PqlQuery extends AbstractTapQuery
      * [schema.]table.column name, create a new TableDesc and adds it to
      * the Map with the associated request parameter value.
      *
-     * It is expected that setParameterList(List<Parameter> params) and
+     * It is expected that setParameterList(ListParameter params) and
      * setTapSchema(TapSchema ts) will be invoked before calling this method.
      * 
      */

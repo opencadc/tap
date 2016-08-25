@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="ca.nrc.cadc.tap.upload.UploadUtilTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2016-08-24T22:32:57" hostname="mach310.cadc.dao.nrc.ca" time="0.001">
+<testsuite name="ca.nrc.cadc.tap.upload.UploadUtilTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2016-08-25T20:51:32" hostname="mach310.cadc.dao.nrc.ca" time="0.001">
   <properties/>
-  <testcase name="testIsValidateIdentifier" classname="ca.nrc.cadc.tap.upload.UploadUtilTest" time="0.001"/>
+  <testcase name="testIsValidateIdentifier" classname="ca.nrc.cadc.tap.upload.UploadUtilTest" time="0.0"/>
   <testcase name="testIsValidIdentifierCharacter" classname="ca.nrc.cadc.tap.upload.UploadUtilTest" time="0.0"/>
   <testcase name="testIsAscii" classname="ca.nrc.cadc.tap.upload.UploadUtilTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>
