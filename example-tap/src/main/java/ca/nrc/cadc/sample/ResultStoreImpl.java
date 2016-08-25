@@ -88,11 +88,8 @@ import org.apache.log4j.Logger;
  * and then returns a URL to that file. The filesystem-to-URL mapping is configurable
  * via two properties in a config file names ResultStoreImpl.properties which is 
  * loaded from the classpath.
- * </p>
- * <ul>
- * <li>ca.nrc.cadc.tap.impl.ResultStoreImpl.baseStorageDir=/path/to/storage
- * <li>ca.nrc.cadc.tap.impl.ResultStoreImpl.baseURL=http://hostname/storage
- * </ul>
+ * ca.nrc.cadc.tap.impl.ResultStoreImpl.baseStorageDir=/path/to/storage
+ * ca.nrc.cadc.tap.impl.ResultStoreImpl.baseURL=http://hostname/storage
  * 
  * @author pdowler
  */
