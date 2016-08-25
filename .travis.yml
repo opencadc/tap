@@ -2,5 +2,5 @@ language: java
 jdk:
   - openjdk7
   - oraclejdk8
-script: for mod in cadc-adql  cadc-tap-server  cadc-tap-schema  cadc-test-tap  example-tap; do cd $mod; gradle --debug build javadoc install || break -1; cd ..; done 
+script: for mod in cadc-jsqlparser-compat cadc-tap-server  cadc-tap-schema  cadc-adql cadc-test-tap  example-tap; do cd $mod; gradle --debug build javadoc install || break -1; cd ..; done 
 
