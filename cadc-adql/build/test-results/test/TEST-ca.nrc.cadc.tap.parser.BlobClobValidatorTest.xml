@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="ca.nrc.cadc.tap.parser.BlobClobValidatorTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2016-08-25T17:32:50" hostname="mach310.cadc.dao.nrc.ca" time="0.004">
+<testsuite name="ca.nrc.cadc.tap.parser.BlobClobValidatorTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2016-08-25T21:16:32" hostname="mach310.cadc.dao.nrc.ca" time="0.004">
   <properties/>
   <testcase name="testBad" classname="ca.nrc.cadc.tap.parser.BlobClobValidatorTest" time="0.002"/>
   <testcase name="testBad2" classname="ca.nrc.cadc.tap.parser.BlobClobValidatorTest" time="0.001"/>

@@ -119,7 +119,7 @@ public class SqlQuery extends AbstractTapQuery
     public SqlQuery() { }
 
     /**
-     * Set up the List<SelectNavigator>. Subclasses should override this method to
+     * Set up the List&#60;SelectNavigator&#62;. Subclasses should override this method to
      * add extra navigators that check or modify the parsed query statement. This
      * implementation creates: TapSchemaValidator, AllColumnConverter.
      */

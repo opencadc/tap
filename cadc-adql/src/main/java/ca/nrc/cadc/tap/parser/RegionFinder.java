@@ -132,7 +132,7 @@ public class RegionFinder extends FunctionFinder
      * If the function is an ADQL Function,
      * convert it using implementation in sub-class.
      * 
-     * @param adqlFunction
+     * @param func 
      * @return converted expression
      */
     @Override

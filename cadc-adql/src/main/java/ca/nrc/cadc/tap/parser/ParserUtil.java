@@ -170,7 +170,7 @@ public class ParserUtil
     /**
      * Find "from Table" by table name or alias.
      *
-     * @param plainSelect
+     * @param ps
      * @param tableNameOrAlias
      * @return Table object
      */
@@ -250,7 +250,7 @@ public class ParserUtil
     /**
      * Determine whether Expression parameter is a binary value (0 or 1).
      *
-     * @param Expression
+     * @param expr 
      * @return true if parameter is 0/1, false for others.
      */
     public static boolean isBinaryValue(Expression expr)

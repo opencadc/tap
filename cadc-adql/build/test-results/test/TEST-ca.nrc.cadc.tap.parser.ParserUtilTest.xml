@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="ca.nrc.cadc.tap.parser.ParserUtilTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2016-08-25T17:32:50" hostname="mach310.cadc.dao.nrc.ca" time="0.008">
+<testsuite name="ca.nrc.cadc.tap.parser.ParserUtilTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2016-08-25T21:16:32" hostname="mach310.cadc.dao.nrc.ca" time="0.006">
   <properties/>
   <testcase name="testAdqlToStcBoxFrame" classname="ca.nrc.cadc.tap.parser.ParserUtilTest" time="0.004"/>
-  <testcase name="testAdqlToStcBoxFrameRefPosFlavor" classname="ca.nrc.cadc.tap.parser.ParserUtilTest" time="0.002"/>
+  <testcase name="testAdqlToStcBoxFrameRefPosFlavor" classname="ca.nrc.cadc.tap.parser.ParserUtilTest" time="0.001"/>
   <testcase name="testAdqlToStcBoxFrameRefPos" classname="ca.nrc.cadc.tap.parser.ParserUtilTest" time="0.0"/>
-  <testcase name="testAdqlToStcBoxUnknownFrame" classname="ca.nrc.cadc.tap.parser.ParserUtilTest" time="0.001"/>
+  <testcase name="testAdqlToStcBoxUnknownFrame" classname="ca.nrc.cadc.tap.parser.ParserUtilTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

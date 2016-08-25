@@ -81,7 +81,7 @@ import org.apache.log4j.Logger;
 /**
  * Simple 1D interval encapsulation of a 2D polygon. The interval is logically 
  * a line segment from x = lower to x = upper at y = 0. In order to be usable
- * with the postgresql && (intersects) operator, we need to create a 2D polygon so
+ * with the postgresql intersects operator, we need to create a 2D polygon so
  * we actually use y from -0.1 to +0.1 instead of y = 0.
  * 
  * @author pdowler

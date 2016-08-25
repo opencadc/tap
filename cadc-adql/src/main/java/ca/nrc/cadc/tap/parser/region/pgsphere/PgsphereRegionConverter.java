@@ -160,7 +160,7 @@ public class PgsphereRegionConverter extends RegionFinder
      * 1 = CONTAINS()
      * 0 = CONTAINS()
      *
-     * Supported comparison operators are =, !=, <, >, <=, >=
+     * Supported comparison operators are =, !=, &#60;, &#62;, &#60;=, &#62;=
      */
     @Override
     protected Expression handleRegionPredicate(BinaryExpression binaryExpression)

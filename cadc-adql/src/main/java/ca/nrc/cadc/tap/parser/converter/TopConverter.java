@@ -86,7 +86,7 @@ import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
 /**
  * Only convert top level plainSelect.
  * 
- * SELECT TOP 1234 ... WHERE ... -> SELECT ... WHERE ... LIMIT 1234
+ * SELECT TOP 1234 ... WHERE ... -- SELECT ... WHERE ... LIMIT 1234
  * 
  * @author pdowler, Sailor Zhang
  */

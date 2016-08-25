@@ -74,18 +74,14 @@ import org.apache.log4j.Logger;
 
 /**
  * This visitor finds all occurances of timestamps. The default
- * implementations of the protected <code>handle</code> methods throw an
+ * implementations of the protected handle methods throw an
  * UnsupportedOperationException so this visitor can be used as-is to detect
  * the presence of timestamps in the query.
- * </p><p>
- * Subclasses can override the <code>handle</code> methods to manipulate timestamp 
+ * Subclasses can override the handle methods to manipulate timestamp 
  * values or usage in the query. Possible uses:
- * </p>
- * <ul>
- * <li>validate the format of the timestamp value
- * <li>convert the timestamp format to an internal format supported by the DB
- * <li>convert the timestamp value to the internally used timezone or offset
- * </ul>
+ * (1)validate the format of the timestamp value
+ * (2)convert the timestamp format to an internal format supported by the DB
+ * (3)convert the timestamp value to the internally used timezone or offset
  * 
  * @author pdowler
  */

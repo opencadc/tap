@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="ca.nrc.cadc.tap.parser.TableNameConverterTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2016-08-25T17:32:50" hostname="mach310.cadc.dao.nrc.ca" time="0.006">
+<testsuite name="ca.nrc.cadc.tap.parser.TableNameConverterTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2016-08-25T21:16:32" hostname="mach310.cadc.dao.nrc.ca" time="0.006">
   <properties/>
   <testcase name="testSubQuery" classname="ca.nrc.cadc.tap.parser.TableNameConverterTest" time="0.003"/>
-  <testcase name="testDatabaseSchemaTable" classname="ca.nrc.cadc.tap.parser.TableNameConverterTest" time="0.0"/>
+  <testcase name="testDatabaseSchemaTable" classname="ca.nrc.cadc.tap.parser.TableNameConverterTest" time="0.001"/>
   <testcase name="testCaseInsensitive" classname="ca.nrc.cadc.tap.parser.TableNameConverterTest" time="0.0"/>
-  <testcase name="testWithSchemaChange" classname="ca.nrc.cadc.tap.parser.TableNameConverterTest" time="0.001"/>
+  <testcase name="testWithSchemaChange" classname="ca.nrc.cadc.tap.parser.TableNameConverterTest" time="0.0"/>
   <testcase name="testFullyQualifiedColumnName" classname="ca.nrc.cadc.tap.parser.TableNameConverterTest" time="0.0"/>
-  <testcase name="testChangeBoth" classname="ca.nrc.cadc.tap.parser.TableNameConverterTest" time="0.0"/>
+  <testcase name="testChangeBoth" classname="ca.nrc.cadc.tap.parser.TableNameConverterTest" time="0.001"/>
   <testcase name="testWithSchema" classname="ca.nrc.cadc.tap.parser.TableNameConverterTest" time="0.0"/>
   <testcase name="testCaseSensitive" classname="ca.nrc.cadc.tap.parser.TableNameConverterTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>
