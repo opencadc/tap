@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ca.nrc.cadc.tap.parser.ValidateAdqlCoordSysTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2016-08-25T17:32:50" hostname="mach310.cadc.dao.nrc.ca" time="0.011">
+  <properties/>
+  <testcase name="testBox" classname="ca.nrc.cadc.tap.parser.ValidateAdqlCoordSysTest" time="0.001"/>
+  <testcase name="testEmpty" classname="ca.nrc.cadc.tap.parser.ValidateAdqlCoordSysTest" time="0.0"/>
+  <testcase name="testPoint" classname="ca.nrc.cadc.tap.parser.ValidateAdqlCoordSysTest" time="0.0"/>
+  <testcase name="testBox2" classname="ca.nrc.cadc.tap.parser.ValidateAdqlCoordSysTest" time="0.001"/>
+  <testcase name="testNull" classname="ca.nrc.cadc.tap.parser.ValidateAdqlCoordSysTest" time="0.001"/>
+  <testcase name="testPolygon" classname="ca.nrc.cadc.tap.parser.ValidateAdqlCoordSysTest" time="0.0"/>
+  <testcase name="testCircle2" classname="ca.nrc.cadc.tap.parser.ValidateAdqlCoordSysTest" time="0.001"/>
+  <testcase name="testCircle" classname="ca.nrc.cadc.tap.parser.ValidateAdqlCoordSysTest" time="0.0"/>
+  <testcase name="testPolygon2" classname="ca.nrc.cadc.tap.parser.ValidateAdqlCoordSysTest" time="0.0"/>
+  <testcase name="testPoint2" classname="ca.nrc.cadc.tap.parser.ValidateAdqlCoordSysTest" time="0.005"/>
+  <system-out><![CDATA[SELECT spoly(spoint(radians(-0.5), radians(0.0)), spoint(radians(-0.5036628471217584), radians(4.0)), spoint(radians(2.5036628471217584), radians(4.0)), spoint(radians(2.5), radians(0.0))) FROM tap_schema.alldatatypes
+SELECT spoly(spoint(radians(1), radians(2)), spoint(radians(3), radians(4)), spoint(radians(5), radians(6))) FROM tap_schema.alldatatypes
+SELECT spoint(radians(3), radians(4)) FROM tap_schema.alldatatypes
+java.lang.UnsupportedOperationException: 'GEOCENTER' is not a supported coordinate system.
+SELECT BOX('GEOCENTER', 1, 2, 3, 4) FROM tap_schema.alldatatypes
+SELECT spoly(spoint(radians(1), radians(2)), spoint(radians(3), radians(4)), spoint(radians(5), radians(6))) FROM tap_schema.alldatatypes
+SELECT spoly(spoint(radians(1), radians(2)), spoint(radians(3), radians(4)), spoint(radians(5), radians(6))) FROM tap_schema.alldatatypes
+java.lang.UnsupportedOperationException: 'GEOCENTER' is not a supported coordinate system.
+SELECT CIRCLE('GEOCENTER', 1, 2, 3) FROM tap_schema.alldatatypes
+SELECT scircle(spoint(radians(1), radians(2)), radians(3)) FROM tap_schema.alldatatypes
+java.lang.UnsupportedOperationException: 'TOPO' is not a supported coordinate system.
+SELECT POLYGON('TOPO', 1, 2, 3, 4, 5, 6) FROM tap_schema.alldatatypes
+java.lang.UnsupportedOperationException: 'V2' is not a supported coordinate system.
+SELECT POINT('V2', 3, 4) FROM tap_schema.alldatatypes
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

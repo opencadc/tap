@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ca.nrc.cadc.sample.AdqlQueryImplTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2016-08-25T18:56:53" hostname="mach310.cadc.dao.nrc.ca" time="0.057">
+  <properties/>
+  <testcase name="testTopConverter" classname="ca.nrc.cadc.sample.AdqlQueryImplTest" time="0.056"/>
+  <testcase name="testOrigConverters" classname="ca.nrc.cadc.sample.AdqlQueryImplTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

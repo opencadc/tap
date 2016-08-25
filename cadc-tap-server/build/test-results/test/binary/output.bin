@@ -1,0 +1,18 @@
+k2016-08-24 15:32:57.524 [Test worker] INFO  DatabaseDataTypeFactoryTest  - testGetDatabaseDataType passed.
+%$U2016-08-24 15:32:57.536 [Test worker] INFO  ByteArrayFormatTest  - testFormat passed
+'&f2016-08-24 15:32:57.541 [Test worker] INFO  DoubleArrayFormatTest  - testFormatPrimitiveDouble passed
+'(W2016-08-24 15:32:57.541 [Test worker] INFO  DoubleArrayFormatTest  - testFormat passed
+')f2016-08-24 15:32:57.542 [Test worker] INFO  DoubleArrayFormatTest  - testFormatPrimitiveDouble passed
++*`2016-08-24 15:32:57.548 [Test worker] INFO  IntArrayFormatTest  - testFormatPrimitiveInt passed
++,b2016-08-24 15:32:57.549 [Test worker] INFO  IntArrayFormatTest  - testFormatWrappedInteger passed
++-T2016-08-24 15:32:57.549 [Test worker] INFO  IntArrayFormatTest  - testFormat passed
+/.Z2016-08-24 15:32:57.555 [Test worker] INFO  LocalTimestampFormatTest  - testFormat passed
+/0Z2016-08-24 15:32:57.556 [Test worker] INFO  LocalTimestampFormatTest  - testFormat passed
+21V2016-08-24 15:32:57.561 [Test worker] INFO  SCircleFormatTest  - testGetCircle passed
+23S2016-08-24 15:32:57.564 [Test worker] INFO  SCircleFormatTest  - testFormat passed
+54W2016-08-24 15:32:57.567 [Test worker] INFO  SPointFormatTest  - testGetPosition passed
+56R2016-08-24 15:32:57.568 [Test worker] INFO  SPointFormatTest  - testFormat passed
+87V2016-08-24 15:32:57.572 [Test worker] INFO  SPointFormatTest  - testGetPolygon passed
+89R2016-08-24 15:32:57.573 [Test worker] INFO  SPointFormatTest  - testFormat passed
+;:X2016-08-24 15:32:57.577 [Test worker] INFO  UTCTimestampFormatTest  - testFormat passed
+;<X2016-08-24 15:32:57.577 [Test worker] INFO  UTCTimestampFormatTest  - testFormat passed

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ca.nrc.cadc.tap.parser.RegionFinderTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2016-08-25T17:32:50" hostname="mach310.cadc.dao.nrc.ca" time="0.003">
+  <properties/>
+  <testcase name="testAll" classname="ca.nrc.cadc.tap.parser.RegionFinderTest" time="0.003"/>
+  <testcase name="testCountStar" classname="ca.nrc.cadc.tap.parser.RegionFinderTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

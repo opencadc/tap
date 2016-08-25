@@ -1,0 +1,1 @@
+ž2016-08-22 15:05:00.990 [Test worker] INFO  TableSetReaderWriterTest  - expected: java.lang.IllegalArgumentException: Error: at least one schema is required.

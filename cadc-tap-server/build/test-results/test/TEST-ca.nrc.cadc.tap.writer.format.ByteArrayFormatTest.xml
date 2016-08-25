@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ca.nrc.cadc.tap.writer.format.ByteArrayFormatTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2016-08-24T22:32:57" hostname="mach310.cadc.dao.nrc.ca" time="0.003">
+  <properties/>
+  <testcase name="testFormat" classname="ca.nrc.cadc.tap.writer.format.ByteArrayFormatTest" time="0.003"/>
+  <system-out><![CDATA[2016-08-24 15:32:57.536 [Test worker] INFO  ByteArrayFormatTest  - testFormat passed
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

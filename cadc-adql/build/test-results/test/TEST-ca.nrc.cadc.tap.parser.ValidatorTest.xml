@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ca.nrc.cadc.tap.parser.ValidatorTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2016-08-25T17:32:50" hostname="mach310.cadc.dao.nrc.ca" time="0.019">
+  <properties/>
+  <testcase name="testAllTableColumns" classname="ca.nrc.cadc.tap.parser.ValidatorTest" time="0.001"/>
+  <testcase name="testSubSelectAndWhereColumnBad" classname="ca.nrc.cadc.tap.parser.ValidatorTest" time="0.001"/>
+  <testcase name="testSubSelectMulti" classname="ca.nrc.cadc.tap.parser.ValidatorTest" time="0.006"/>
+  <testcase name="testAllTableColumnsBad" classname="ca.nrc.cadc.tap.parser.ValidatorTest" time="0.001"/>
+  <testcase name="testColumnBad" classname="ca.nrc.cadc.tap.parser.ValidatorTest" time="0.0"/>
+  <testcase name="testAllTableColumns2" classname="ca.nrc.cadc.tap.parser.ValidatorTest" time="0.001"/>
+  <testcase name="testSubSelect" classname="ca.nrc.cadc.tap.parser.ValidatorTest" time="0.002"/>
+  <testcase name="testSubSelectAndWhereColumn" classname="ca.nrc.cadc.tap.parser.ValidatorTest" time="0.002"/>
+  <testcase name="testFunctionBad" classname="ca.nrc.cadc.tap.parser.ValidatorTest" time="0.002"/>
+  <testcase name="testFromTableBad" classname="ca.nrc.cadc.tap.parser.ValidatorTest" time="0.0"/>
+  <testcase name="testFunction" classname="ca.nrc.cadc.tap.parser.ValidatorTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
