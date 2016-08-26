@@ -1,6 +1,8 @@
 plugins {
     id "java"
     id "maven"
+    id 'maven-publish'
+    id 'com.jfrog.bintray' version '1.7.1'
 }
 
 repositories {
