@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ca.nrc.cadc.tap.AdqlQueryTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2016-08-25T21:16:32" hostname="mach310.cadc.dao.nrc.ca" time="0.084">
+  <properties/>
+  <testcase name="testColumnAlias" classname="ca.nrc.cadc.tap.AdqlQueryTest" time="0.081"/>
+  <testcase name="testBasic" classname="ca.nrc.cadc.tap.AdqlQueryTest" time="0.0"/>
+  <testcase name="testTopSelect" classname="ca.nrc.cadc.tap.AdqlQueryTest" time="0.001"/>
+  <testcase name="testTableAlias" classname="ca.nrc.cadc.tap.AdqlQueryTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

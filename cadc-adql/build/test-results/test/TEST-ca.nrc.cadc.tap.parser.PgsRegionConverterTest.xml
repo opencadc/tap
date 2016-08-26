@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" tests="29" skipped="0" failures="0" errors="0" timestamp="2016-08-25T21:16:32" hostname="mach310.cadc.dao.nrc.ca" time="0.087">
+  <properties/>
+  <testcase name="testNotIntersectsPoint" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.009"/>
+  <testcase name="testNotIntersectsValue" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.006"/>
+  <testcase name="testNotIntersectsRegion" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.015"/>
+  <testcase name="testIntersectsColumn" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.001"/>
+  <testcase name="testBox" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.001"/>
+  <testcase name="testNotContainsPoint" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.002"/>
+  <testcase name="testNotContainsValue" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.004"/>
+  <testcase name="testPoint" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.0"/>
+  <testcase name="testNone" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.0"/>
+  <testcase name="testRegionCircle" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.004"/>
+  <testcase name="testIntersectsRegion" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.005"/>
+  <testcase name="testPolygon" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.001"/>
+  <testcase name="testJoinAliasIntersects" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.001"/>
+  <testcase name="testContainsPoint" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.002"/>
+  <testcase name="testContainsValue" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.001"/>
+  <testcase name="testRegionPolygon" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.005"/>
+  <testcase name="testFunctionCoordsys" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.001"/>
+  <testcase name="testNotIntersectsRegionPos" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.005"/>
+  <testcase name="testRegionBox" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.005"/>
+  <testcase name="testNotContainsColumn" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.0"/>
+  <testcase name="testIntersectsRegionPos" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.004"/>
+  <testcase name="testCircle" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.001"/>
+  <testcase name="testFunctionCoord1" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.001"/>
+  <testcase name="testFunctionCoord2" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.001"/>
+  <testcase name="testRegionPosition" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.003"/>
+  <testcase name="testIntersectsPoint" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.001"/>
+  <testcase name="testIntersectsValue" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.001"/>
+  <testcase name="testNotIntersectsColumn" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.001"/>
+  <testcase name="testContainsColumn" classname="ca.nrc.cadc.tap.parser.PgsRegionConverterTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

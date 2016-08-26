@@ -1,0 +1,6 @@
+language: java
+jdk:
+  - openjdk7
+  - oraclejdk8
+script: for mod in cadc-tap-schema cadc-jsqlparser-compat cadc-tap-server   cadc-adql cadc-test-tap  example-tap; do cd $mod; gradle --stacktrace build javadoc install || break -1; cd ..; done 
+

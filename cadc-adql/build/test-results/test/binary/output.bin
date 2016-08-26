@@ -1,0 +1,14 @@
+XWÚSELECT spoly(spoint(radians(-0.5), radians(0.0)), spoint(radians(-0.5036628471217584), radians(4.0)), spoint(radians(2.5036628471217584), radians(4.0)), spoint(radians(2.5), radians(0.0))) FROM tap_schema.alldatatypes
+XYŠSELECT spoly(spoint(radians(1), radians(2)), spoint(radians(3), radians(4)), spoint(radians(5), radians(6))) FROM tap_schema.alldatatypes
+XZCSELECT spoint(radians(3), radians(4)) FROM tap_schema.alldatatypes
+X[[java.lang.UnsupportedOperationException: 'GEOCENTER' is not a supported coordinate system.
+X[ASELECT BOX('GEOCENTER', 1, 2, 3, 4) FROM tap_schema.alldatatypes
+X\ŠSELECT spoly(spoint(radians(1), radians(2)), spoint(radians(3), radians(4)), spoint(radians(5), radians(6))) FROM tap_schema.alldatatypes
+X]ŠSELECT spoly(spoint(radians(1), radians(2)), spoint(radians(3), radians(4)), spoint(radians(5), radians(6))) FROM tap_schema.alldatatypes
+X^[java.lang.UnsupportedOperationException: 'GEOCENTER' is not a supported coordinate system.
+X^ASELECT CIRCLE('GEOCENTER', 1, 2, 3) FROM tap_schema.alldatatypes
+X_XSELECT scircle(spoint(radians(1), radians(2)), radians(3)) FROM tap_schema.alldatatypes
+X`Vjava.lang.UnsupportedOperationException: 'TOPO' is not a supported coordinate system.
+X`FSELECT POLYGON('TOPO', 1, 2, 3, 4, 5, 6) FROM tap_schema.alldatatypes
+XaTjava.lang.UnsupportedOperationException: 'V2' is not a supported coordinate system.
+Xa6SELECT POINT('V2', 3, 4) FROM tap_schema.alldatatypes
