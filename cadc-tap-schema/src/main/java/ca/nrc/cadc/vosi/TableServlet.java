@@ -226,24 +226,26 @@ public class TableServlet extends HttpServlet
                 }
                 log.debug("table: " + tableName);
                 
-                String detail = request.getParameter("detail");
+                // default: configurable
                 int depth = TapSchemaDAO.MAX_DEPTH;
-                if ("min".equals(detail) && tableName == null)
-                {
+                if (defaultDetailMin)
                     depth = TapSchemaDAO.MIN_DEPTH;
-                }
-                else if (detail != null)
-                    throw new IllegalArgumentException("invalid parameter value detail="+detail + " for " + pathStr);
-
-                // enforce default detail level
-                if (defaultDetailMin && depth == TapSchemaDAO.MAX_DEPTH && tableName == null)
+                
+                if (tableName == null)
                 {
-                    StringBuffer sb = request.getRequestURL();
-                    sb.append("?detail=min");
-                    response.setHeader("Location", sb.toString());
-                    response.setStatus(303);
-                    return null;
-                }
+                    // always give the caller what they ask for
+                    String detail = request.getParameter("detail");
+                    if ("min".equalsIgnoreCase(detail))
+                    {
+                        depth = TapSchemaDAO.MIN_DEPTH;
+                    }
+                    else if ("max".equalsIgnoreCase(detail))
+                    {
+                        depth = TapSchemaDAO.MAX_DEPTH;
+                    }
+                    else if (detail != null)
+                        throw new IllegalArgumentException("invalid parameter value detail="+detail + " for " + pathStr);
+                }    
                 
                 TapSchema tapSchema = dao.get(tableName, depth);
                 started = true;
