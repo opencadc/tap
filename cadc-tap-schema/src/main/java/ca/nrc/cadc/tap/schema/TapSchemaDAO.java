@@ -104,11 +104,11 @@ public class TapSchemaDAO
 
     // SQL to select all rows from TAP_SCHEMA.tables.
     protected String SELECT_TABLES_COLS = "schema_name, table_name, description, utype";
-    protected String orderTablesClause = " ORDER BY schema_name,table_name";
+    protected String orderTablesClause = " ORDER BY schema_name,table_index,table_name";
 
     // SQL to select all rows from TAP_SCHEMA.colums.
     protected String SELECT_COLUMNS_COLS = "table_name, column_name, description, utype, ucd, unit, datatype, arraysize, principal, indexed, std, id";
-    protected String orderColumnsClause = " ORDER BY table_name,column_name";
+    protected String orderColumnsClause = " ORDER BY table_name,column_index,column_name";
     
     // SQL to select all rows from TAP_SCHEMA.keys.
     protected String SELECT_KEYS_COLS = "key_id, from_table, target_table, description,utype";
@@ -307,7 +307,7 @@ public class TapSchemaDAO
                     sb.append(" WHERE ");
                 sb.append(" table_name = ?");
             }
-            else if (orderBy != null)
+            if (orderBy != null)
                 sb.append(orderBy);
             
             String sql = sb.toString();
@@ -361,7 +361,7 @@ public class TapSchemaDAO
                     sb.append(" WHERE ");
                 sb.append(" table_name = ?");
             }
-            else if (orderBy != null)
+            if (orderBy != null)
                 sb.append(orderBy);
             
             String sql = sb.toString();
