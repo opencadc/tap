@@ -252,6 +252,28 @@ public class TableSet
                     eleDt.setAttribute("arraysize", cd.getArraysize().toString());
             }
         }
+        else if ("interval".equals(datatype))
+        {
+            Element eleDt = addChild(eleColumn, "dataType", "double");
+            if (eleDt != null)
+            {
+                Attribute attType = new Attribute("type", vod.getPrefix() + ":VOTableType", xsi);
+                eleDt.setAttribute(attType);
+                eleDt.setAttribute("arraysize", "2");
+                eleDt.setAttribute("extendedType", "interval");
+            }
+        }
+        else if ("uuid".equals(datatype))
+        {
+            Element eleDt = addChild(eleColumn, "dataType", "char");
+            if (eleDt != null)
+            {
+                Attribute attType = new Attribute("type", vod.getPrefix() + ":VOTableType", xsi);
+                eleDt.setAttribute(attType);
+                eleDt.setAttribute("arraysize", "36");
+                eleDt.setAttribute("extendedType", "uuid");
+            }
+        }
         else // custom type
         {
             log.warn("cannot convert " + cd + " to a legal VODataService column element, skipping");
