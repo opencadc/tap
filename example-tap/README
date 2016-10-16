@@ -32,30 +32,25 @@ from cadcLog. It also includes servlets for the VOSI-availability and VOSI-table
 
 ** TODO **
 
-1a. Set the CADC_PREFIX to the value of the top-level dir where OpenCADC files are installed. See the
-top-level README file in the OpenCADC repository for general instructions on building the software.
-
-1b. Make sure all the jars listed in the build.xml are available for inclusion in the war file. URLs
-to the appropriate sites are generally listed in the Dependencies.txt file... hopefully up-to-date.
+1. make sure you can build the project with gradle (2.5 and 3 are known to work)
 
 2. Tweak the context.xml to map the global data source name from the app server config.
 
 3. Set the values in the ResultStoreImpl.properties config file to suit your system setup.
 
-4. Create the tap_schema tables in your DB server and insert at least then content 
-that describes the TAP_SCHEMA tables themswelves (SQL from cadcTAP) . Make sure the datasource 
+4. Create the tap_schema tables in your DB server and insert at least the content 
+that describes the TAP_SCHEMA tables themselves (SQL from cadc-tap-schema) . Make sure the datasource 
 for tap queries (#2) can read it. Recommendation: create a special account with read-only permission
 to the TAP_SCHEMA and any tables you intend to expose via the TAP service and use this account with
 the "jdbc/tapuser" data source. 
 
-5. Build and deploy the war file (ant clean build test-deploy). We expect that the app has to be reachable 
+5. Build and deploy the war file. We expect that the app has to be reachable 
 via the default port 80 (some generated redirects are known to not include the port number - a bug - so I 
 recommend either an AJP or HTTP proxy rule from apache to the app server as the normal config).
 
 6. Try the test request in the tsQuery script (assumes localhost as it is for developers).
 
-7. Run the unit tests (ant test) and integration tests (ant int-test for deploy+test, ant do-int-test to 
-skip redeploy).
 
-Contact patrick.dowler@nrc-cnrc.gc.ca if you need help.
+
+Contact pdowler.cadc@gmail.com if you need help.
 
