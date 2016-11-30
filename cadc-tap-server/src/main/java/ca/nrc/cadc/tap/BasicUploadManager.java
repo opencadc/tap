@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2016.                            (c) 2016.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -70,16 +70,12 @@ package ca.nrc.cadc.tap;
 
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableReader;
-import ca.nrc.cadc.dali.tables.votable.VOTableResource;
-import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.stc.Position;
 import ca.nrc.cadc.stc.Region;
-import ca.nrc.cadc.stc.STC;
 import ca.nrc.cadc.stc.StcsParsingException;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.upload.DatabaseDataTypeFactory;
 import ca.nrc.cadc.tap.upload.JDOMVOTableParser;
 import ca.nrc.cadc.tap.upload.UploadParameters;
 import ca.nrc.cadc.tap.upload.UploadTable;
@@ -96,7 +92,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.text.DateFormat;
-import java.text.ParseException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -144,15 +139,23 @@ public abstract class BasicUploadManager implements UploadManager
         dateFormat = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
     }
 
+    @Override
+    public String getUploadSchema()
+    {
+        return "TAP_UPLOAD";
+    }
+    
     /**
      * Set the DataSource used for creating and populating tables.
      * @param ds
      */
+    @Override
     public void setDataSource(DataSource ds)
     {
         this.dataSource = ds;
     }
 
+    @Override
     public void setJob(Job job)
     {
         this.job = job;
@@ -168,6 +171,7 @@ public abstract class BasicUploadManager implements UploadManager
      * @param jobID the UWS jobID.
      * @return map of service generated upload table name to user-specified table metadata
      */
+    @Override
     public Map<String, TableDesc> upload(List<Parameter> paramList, String jobID)
     {
         log.debug("upload jobID " + jobID);

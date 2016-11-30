@@ -110,4 +110,6 @@ public interface UploadManager extends TapPlugin
      * @return map of service generated upload table name to user-specified table metadata
      */
     public Map<String, TableDesc> upload(List<Parameter> paramList, String jobID);
+    
+    public String getUploadSchema();
 }
