@@ -305,7 +305,7 @@ public class QueryRunner implements JobRunner
             if (tableDescs != null)
             {
                 log.debug("adding TAP_UPLOAD SchemaDesc to TapSchema...");
-                SchemaDesc tapUploadSchema = new SchemaDesc("TAP_UPLOAD");
+                SchemaDesc tapUploadSchema = new SchemaDesc(uploadManager.getUploadSchema());
                 tapUploadSchema.getTableDescs().addAll(tableDescs.values());
                 tapSchema.getSchemaDescs().add(tapUploadSchema);
             }

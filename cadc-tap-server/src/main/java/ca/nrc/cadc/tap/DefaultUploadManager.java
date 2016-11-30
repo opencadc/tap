@@ -94,16 +94,21 @@ public class DefaultUploadManager implements UploadManager
         throw new UnsupportedOperationException("UPLOAD parameter not supported by this service");
     }
 
+    @Override
     public void setDataSource(DataSource ds)
     {
         
     }
 
+    @Override
     public void setJob(Job job)
     {
         
     }
 
-    
-
+    @Override
+    public String getUploadSchema()
+    {
+        return "TAP_UPLOAD";
+    }
 }

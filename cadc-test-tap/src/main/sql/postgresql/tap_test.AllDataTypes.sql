@@ -29,6 +29,5 @@ create table tap_test.AllDataTypes
     t_stc_point           spoint,
     t_stc_polygon         spoly
 )
---tablespace tap_data
 ;
 

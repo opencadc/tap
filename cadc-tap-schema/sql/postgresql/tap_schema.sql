@@ -5,7 +5,7 @@
 
 -- sizes for fields are rather arbitrary and generous
 
--- tested with: PostgreSQL 8.x
+-- tested with: PostgreSQL 8.x, 9.x
 -- tested Sybase 15.x
 
 create table TAP_SCHEMA.schemas
