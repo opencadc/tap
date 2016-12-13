@@ -231,7 +231,9 @@ public class TableServlet extends HttpServlet
                 if (defaultDetailMin)
                     depth = TapSchemaDAO.MIN_DEPTH;
                 
-                if (tableName == null)
+                if (tableName != null)
+                    depth = TapSchemaDAO.MAX_DEPTH;
+                else
                 {
                     // always give the caller what they ask for
                     String detail = request.getParameter("detail");
