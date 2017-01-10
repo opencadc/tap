@@ -138,10 +138,20 @@ public class JDOMVOTableParser implements VOTableParser
                 {
                     throw new VOTableParserException("invalid ADQL identifier (column name): " + f.getName(), ex);
                 }
-                ColumnDesc columnDesc = new ColumnDesc(tableName, f.getName(),
-                    ADQLDataType.getDataType(f.getDatatype(), f.getArraysize(), f.isVariableSize(), f.xtype),
-                    f.getArraysize());
-                log.debug("ColumnDesc: " + f + " -> " + columnDesc);
+                ColumnDesc columnDesc;
+                if (f.getDatatype().startsWith("adql:"))
+                    columnDesc = new ColumnDesc(tableName, f.getName(),
+                        ADQLDataType.getDataType(f.getDatatype(), f.getArraysize(), f.isVariableSize(), f.xtype),
+                        f.getArraysize(), f.isVariableSize());
+                else 
+                    // plain votable type
+                    columnDesc = new ColumnDesc(tableName, f.getName(), f.getDatatype(), f.getArraysize(), f.isVariableSize());
+                columnDesc.xtype = f.xtype;
+                columnDesc.unit = f.unit;
+                columnDesc.utype = f.utype;
+                columnDesc.ucd = f.ucd;
+                columnDesc.description = f.description;
+                log.warn("ColumnDesc: " + f + " -> " + columnDesc + "+" + columnDesc.xtype);
                 
                 tableDesc.getColumnDescs().add(columnDesc);
             }

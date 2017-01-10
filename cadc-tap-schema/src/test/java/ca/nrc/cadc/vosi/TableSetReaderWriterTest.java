@@ -70,14 +70,11 @@
 package ca.nrc.cadc.vosi;
 
 import ca.nrc.cadc.tap.schema.ColumnDesc;
-import ca.nrc.cadc.tap.schema.FunctionDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.tap.schema.TestUtil;
 import ca.nrc.cadc.util.Log4jInit;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Iterator;
@@ -130,24 +127,24 @@ public class TableSetReaderWriterTest
     }
 
     @Test
-    public final void testSingleTable()
+    public final void testSingleTableTAP_10()
     {
         try
         {
-            TapSchema expected = TestUtil.createSimpleTapSchema(1, 1, 3, 3);
+            TapSchema expected = TestUtil.createSimpleTapSchema(10, 1, 1, 2, 2);
             
             TableSetWriter w = new TableSetWriter();
             StringWriter out = new StringWriter();
             w.write(expected, out);
             
             String xml = out.getBuffer().toString();
-            log.debug(" testSingleTable:\n" + xml);
+            log.info(" testSingleTable:\n" + xml);
                     
             StringReader in = new StringReader(xml);
             TableSetReader r = new TableSetReader();
             TapSchema actual = r.read(in);
             
-            assertEquiv(expected, actual);
+            assertEquiv(10, expected, actual);
         }
         catch (Exception unexpected)
         {
@@ -157,11 +154,38 @@ public class TableSetReaderWriterTest
     }
     
     @Test
-    public final void testMultipleTables()
+    public final void testSingleTableTAP_11()
     {
         try
         {
-            TapSchema expected = TestUtil.createSimpleTapSchema(2, 2, 3, 3);
+            TapSchema expected = TestUtil.createSimpleTapSchema(11, 1, 1, 3, 3);
+            
+            TableSetWriter w = new TableSetWriter();
+            StringWriter out = new StringWriter();
+            w.write(expected, out);
+            
+            String xml = out.getBuffer().toString();
+            log.info(" testSingleTable:\n" + xml);
+                    
+            StringReader in = new StringReader(xml);
+            TableSetReader r = new TableSetReader();
+            TapSchema actual = r.read(in);
+            
+            assertEquiv(11, expected, actual);
+        }
+        catch (Exception unexpected)
+        {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: "  + unexpected);
+        }
+    }
+    
+    @Test
+    public final void testMultipleTablesTAP_10()
+    {
+        try
+        {
+            TapSchema expected = TestUtil.createSimpleTapSchema(10, 2, 2, 2, 2);
             
             TableSetWriter w = new TableSetWriter();
             StringWriter out = new StringWriter();
@@ -174,7 +198,34 @@ public class TableSetReaderWriterTest
             TableSetReader r = new TableSetReader();
             TapSchema actual = r.read(in);
             
-            assertEquiv(expected, actual);
+            assertEquiv(10, expected, actual);
+        }
+        catch (Exception unexpected)
+        {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: "  + unexpected);
+        }
+    }
+    
+    @Test
+    public final void testMultipleTablesTAP_11()
+    {
+        try
+        {
+            TapSchema expected = TestUtil.createSimpleTapSchema(11, 2, 2, 3, 3);
+            
+            TableSetWriter w = new TableSetWriter();
+            StringWriter out = new StringWriter();
+            w.write(expected, out);
+            
+            String xml = out.getBuffer().toString();
+            log.debug(" testMultipleTables:\n" + xml);
+                    
+            StringReader in = new StringReader(xml);
+            TableSetReader r = new TableSetReader();
+            TapSchema actual = r.read(in);
+            
+            assertEquiv(11, expected, actual);
         }
         catch (Exception unexpected)
         {
@@ -184,7 +235,7 @@ public class TableSetReaderWriterTest
     }
     
     // TODO: add comparisons of optional elements to tests: description, utypes, units, etc
-    private void assertEquiv(TapSchema expected, TapSchema actual)
+    private void assertEquiv(int ver, TapSchema expected, TapSchema actual)
     {
         Assert.assertEquals("num schema", expected.getSchemaDescs().size(), actual.getSchemaDescs().size());
         Assert.assertEquals("num function", expected.getFunctionDescs().size(), actual.getFunctionDescs().size());
@@ -215,7 +266,12 @@ public class TableSetReaderWriterTest
                     Assert.assertEquals(ecd.getTableName(), acd.getTableName());
                     Assert.assertEquals(ecd.getColumnName(), acd.getColumnName());
                     Assert.assertEquals(ecd.getDatatype(), acd.getDatatype());
-                    Assert.assertEquals(ecd.getColumnName(), ecd.getArraysize(), acd.getArraysize());
+                    Integer expArraySize = ecd.getArraysize();
+                    if (expArraySize == null && !ecd.isVarsize() && ver >= 11)
+                        expArraySize = 1; // VODatasService XSD default value for VOtableType
+                    Assert.assertEquals(ecd.getColumnName(), expArraySize, acd.getArraysize());
+                    Assert.assertEquals(ecd.getColumnName(), ecd.isVarsize(), acd.isVarsize());
+                    Assert.assertEquals(ecd.getColumnName(), ecd.xtype, acd.xtype);
                 }
             }
             

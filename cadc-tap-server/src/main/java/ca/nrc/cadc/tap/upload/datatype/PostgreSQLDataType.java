@@ -129,7 +129,7 @@ public class PostgreSQLDataType implements DatabaseDataType
      */
     public String getDataType(ColumnDesc columnDesc)
     {
-        log.debug("getDataType: " + columnDesc);
+        log.warn("getDataType: " + columnDesc);
         String dataType = dataTypes.get(columnDesc.getDatatype());
         if (dataType.equals("CHAR") || dataType.equals("VARCHAR"))
         {

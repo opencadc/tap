@@ -107,7 +107,7 @@ public class TapSchemaDAO
     protected String orderTablesClause = " ORDER BY schema_name,table_index,table_name";
 
     // SQL to select all rows from TAP_SCHEMA.colums.
-    protected String SELECT_COLUMNS_COLS = "table_name, column_name, description, utype, ucd, unit, datatype, arraysize, principal, indexed, std, id";
+    protected String SELECT_COLUMNS_COLS = "table_name, column_name, description, utype, ucd, unit, datatype, arraysize, varsize, xtype, principal, indexed, std, id";
     protected String orderColumnsClause = " ORDER BY table_name,column_index,column_name";
     
     // SQL to select all rows from TAP_SCHEMA.keys.
@@ -758,8 +758,10 @@ public class TapSchemaDAO
             if (o != null && o instanceof Number)
                 as = new Integer( ((Number) o).intValue() );
             
+            boolean vsz = intToBoolean(rs.getInt("varsize"));
+            
             log.debug("ColumnMapper: " + tn + "," + cn + "," + dt + "," + as);
-            ColumnDesc col = new ColumnDesc(tn, cn, dt, as);
+            ColumnDesc col = new ColumnDesc(tn, cn, dt, as, vsz);
             
             col.description = rs.getString("description");
             col.utype = rs.getString("utype");

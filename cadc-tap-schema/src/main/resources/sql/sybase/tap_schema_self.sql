@@ -80,6 +80,9 @@ values ( 'tap_schema.columns', 'datatype', 'lists the ADQL datatype of columns i
 insert into tap_schema_columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std,column_index) 
 values ( 'tap_schema.columns', 'arraysize', 'lists the size of variable-length columns in the tableset',   NULL, NULL, NULL, 'adql:INTEGER', NULL, 1,0,0,5 );
 insert into tap_schema_columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std,column_index) 
+values ( 'tap_schema.columns', 'xtype', 'a DALI or custom extended type annotation',                  NULL, NULL, NULL, 'adql:VARCHAR', 16, 1,0,0,7 ),
+
+insert into tap_schema_columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std,column_index) 
 values ( 'tap_schema.columns', '"size"', 'deprecated: use arraysize',   NULL, NULL, NULL, 'adql:INTEGER', NULL, 1,0,0,6 );
 insert into tap_schema_columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std,column_index) 
 values ( 'tap_schema.columns', 'principal', 'a principal column; 1 means 1, 0 means 0',               NULL, NULL, NULL, 'adql:INTEGER', NULL, 1,0,0,7 );

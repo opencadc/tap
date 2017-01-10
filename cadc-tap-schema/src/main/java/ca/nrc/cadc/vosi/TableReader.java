@@ -136,15 +136,38 @@ public class TableReader extends TableSetParser
             Element dte = ce.getChild("dataType");
             String dtt = dte.getAttributeValue("type", xsi);
             String dtv = dte.getTextTrim();
-            if (TAP_TYPE.equals(dtt))
-                dtv = "adql:" + dtv;
-            else if (VOT_TYPE.equals(dtt))
-                dtv = "vot:" + dtv;
+            String xtype = dte.getAttributeValue("extendedType");
+            
             Integer arraysize = null;
-            String as = dte.getAttributeValue("size");
-            if (as != null)
-                arraysize = new Integer(as);
-            ColumnDesc cd = new ColumnDesc(tn, cn, dtv, arraysize);
+            boolean varsize = false;
+            if (TAP_TYPE.equals(dtt))
+            {
+                if (dtv.startsWith("VAR") || dtv.equalsIgnoreCase("REGION"))
+                    varsize = true;
+                dtv = "adql:" + dtv;
+                String as = dte.getAttributeValue("size");
+                if (as != null)
+                    arraysize = new Integer(as);
+            }
+            else if (VOT_TYPE.equals(dtt))
+            {
+                
+                String as = dte.getAttributeValue("arraysize");
+                String ss = as;
+                int star = as.indexOf('*');
+                log.warn(cn + ": " + dtv + " " + as +  " " + xtype + " " + star);
+                if (star > -1)
+                {
+                    varsize = true;
+                    ss = as.substring(0, star);
+                }
+                if (ss.length() > 0)
+                    arraysize = new Integer(ss);
+                log.warn(cn + ": " + dtv + " " + as +  " " + star + " -> " + ss + " -> " + arraysize + " " + varsize);
+            }
+            
+            ColumnDesc cd = new ColumnDesc(tn, cn, dtv, arraysize, varsize);
+            cd.xtype = xtype;
             td.getColumnDescs().add(cd);
         }
         

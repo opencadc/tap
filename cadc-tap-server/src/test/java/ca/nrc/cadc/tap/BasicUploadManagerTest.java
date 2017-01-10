@@ -279,7 +279,7 @@ public class BasicUploadManagerTest
         }
     }
 
-    @Test
+    //@Test
     public void testUploadAllTypes()
     {
         try

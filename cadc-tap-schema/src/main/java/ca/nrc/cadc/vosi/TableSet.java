@@ -230,7 +230,26 @@ public class TableSet
 
         String datatype = cd.getDatatype();
         String[] parts = datatype.split(":");
-        if (isTapType(parts))
+        // unprefixed datatype is a VOTable type by default
+        if (parts.length == 1 || isVOTableType(parts))
+        {
+            Element eleDt = addChild(eleColumn, "dataType", datatype);
+            if (eleDt != null)
+            {
+                Attribute attType = new Attribute("type", vod.getPrefix() + ":VOTableType", xsi);
+                eleDt.setAttribute(attType);
+                String asz = "";
+                if (cd.isVarsize())
+                    asz = "*";
+                if (cd.getArraysize() != null)
+                    asz = cd.getArraysize() + asz;
+                if (asz.length() > 0)
+                    eleDt.setAttribute("arraysize", asz);
+                if (cd.xtype != null)
+                    eleDt.setAttribute("extendedType", cd.xtype);
+            }
+        }
+        else if (isTapType(parts)) // backwards compatibility for TAP-1.0
         {
             Element eleDt = addChild(eleColumn, "dataType", parts[1]);
             if (eleDt != null)
@@ -241,19 +260,10 @@ public class TableSet
                     eleDt.setAttribute("size", cd.getArraysize().toString());
             }
         }
-        else if (isVOTableType(parts))
+        /*
+        else if ("interval".equals(datatype)) // deprecated: DALI style handled by VOTableType above
         {
-            Element eleDt = addChild(eleColumn, "dataType", parts[1]);
-            if (eleDt != null)
-            {
-                Attribute attType = new Attribute("type", vod.getPrefix() + ":VOTableType", xsi);
-                eleDt.setAttribute(attType);
-                if (cd.getArraysize() != null && cd.getArraysize() > 0)
-                    eleDt.setAttribute("arraysize", cd.getArraysize().toString());
-            }
-        }
-        else if ("interval".equals(datatype))
-        {
+            log.warn("DEPRECATED: found old-style column metadata not DALI style: " + cd);
             Element eleDt = addChild(eleColumn, "dataType", "double");
             if (eleDt != null)
             {
@@ -263,8 +273,10 @@ public class TableSet
                 eleDt.setAttribute("extendedType", "interval");
             }
         }
-        else if ("uuid".equals(datatype))
+        
+        else if ("uuid".equals(datatype)) // deprecated: DALI style handled by VOTableType above
         {
+            log.warn("DEPRECATED: found old-style column metadata not DALI style: " + cd);
             Element eleDt = addChild(eleColumn, "dataType", "char");
             if (eleDt != null)
             {
@@ -274,6 +286,7 @@ public class TableSet
                 eleDt.setAttribute("extendedType", "uuid");
             }
         }
+        */
         else // custom type
         {
             log.warn("cannot convert " + cd + " to a legal VODataService column element, skipping");
@@ -311,7 +324,6 @@ public class TableSet
     }
     private boolean isVOTableType(String[] parts)
     {
-
         if (parts.length == 2 && VOTABLE_PREFIX.equalsIgnoreCase(parts[0]))
             return true;
         return false;

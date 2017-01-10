@@ -133,6 +133,90 @@ public class DefaultFormatFactory implements FormatFactory
     public Format<Object> getFormat(ColumnDesc columnDesc)
     {
         String datatype = columnDesc.getDatatype();
+        String xtype = columnDesc.xtype;
+        
+        return getFormat(columnDesc, datatype, xtype);
+    }
+
+    @Override
+    public Format<Object> getFormat(ParamDesc paramDesc)
+    {
+        if (paramDesc.columnDesc != null)
+            return getFormat(paramDesc.columnDesc);
+
+        String datatype = paramDesc.datatype;
+        String xtype = null;
+
+        if (datatype == null)
+            return getDefaultFormat();
+
+        return getFormat(null, datatype, xtype);
+    }
+    
+    protected Format<Object> getFormat(ColumnDesc columnDesc, String datatype, String xtype)
+    {
+        // TAP or DALI xtypes
+        if ( datatype.equals("char") && xtype.equals("timestamp")) // DALI-1.1
+            return new UTCTimestampFormat();
+
+        if (xtype.equals("point")) // DALI-1.1
+            return getPointFormat(columnDesc);
+        
+        if (xtype.equals("circle")) // DALI-1.1
+            return getCircleFormat(columnDesc);
+        
+        if (xtype.equals("polygon")) // DALI-1.1
+            return getPolygonFormat(columnDesc);
+        
+        if (xtype.equalsIgnoreCase("interval")) // DALI-1.1
+                return getIntervalFormat(columnDesc);
+        
+        if (datatype.equalsIgnoreCase("uuid")) // custom
+            return getUUIDFormat(columnDesc);
+
+        if (datatype.equalsIgnoreCase("uri")) // custom
+            return getStringFormat(columnDesc);
+        
+        // VOTable datatypes in the tap_schema.columns.datatype
+        // unsupported: boolean, bit, unsignedByte, short, unicodeChar, floatComplex, doubleComplex
+        
+        if (datatype.equalsIgnoreCase("char"))
+            return getStringFormat(columnDesc);
+              
+        if (datatype.equalsIgnoreCase("int"))
+            if (columnDesc.getArraysize() != null && columnDesc.getArraysize() > 1)
+                return getIntArrayFormat(columnDesc);
+            else
+                return getIntegerFormat(columnDesc);
+
+        if (datatype.equalsIgnoreCase("long"))
+            if (columnDesc.getArraysize() != null && columnDesc.getArraysize() > 1)
+                return getLongArrayFormat(columnDesc);
+            else
+                return getLongFormat(columnDesc);
+
+        if (datatype.equalsIgnoreCase("float"))
+            if (columnDesc.getArraysize() != null && columnDesc.getArraysize() > 1)
+                return getFloatArrayFormat(columnDesc);
+            else
+                return getRealFormat(columnDesc);
+
+        if (datatype.equalsIgnoreCase("double"))
+            if (columnDesc.getArraysize() != null && columnDesc.getArraysize() > 1)
+                return getDoubleArrayFormat(columnDesc);
+            else
+                return getDoubleFormat(columnDesc);
+        
+        // TAP-1.0 ADQL types for backwards compatibility
+        if (datatype.equalsIgnoreCase("adql:POINT"))
+            return getPointFormat(columnDesc);
+        
+        if (datatype.equalsIgnoreCase("adql:REGION"))
+            return getRegionFormat(columnDesc);
+        
+        if (datatype.equalsIgnoreCase("adql:TIMESTAMP"))
+            return new UTCTimestampFormat();
+        
         if (datatype.equalsIgnoreCase("adql:INTEGER"))
             return getIntegerFormat(columnDesc);
 
@@ -153,100 +237,6 @@ public class DefaultFormatFactory implements FormatFactory
         
         if (datatype.equalsIgnoreCase("adql:BLOB"))
             return getBlobFormat(columnDesc);
-
-        // TAP or DALI xtypes
-        if ( datatype.equalsIgnoreCase("timestamp") // DALI-1.1
-                || datatype.equalsIgnoreCase("adql:TIMESTAMP")) // TAP-1.0
-            return new UTCTimestampFormat();
-
-        if ( datatype.equalsIgnoreCase("point")) // DALI-1.1
-            return getPointFormat(columnDesc);
-        
-        if (datatype.equalsIgnoreCase("circle")) // DALI-1.1
-            return getCircleFormat(columnDesc);
-        
-        if (datatype.equalsIgnoreCase("polygon")) // DALI-1.1
-            return getPolygonFormat(columnDesc);
-        
-        if (datatype.equalsIgnoreCase("adql:POINT")) // TAP-1.0
-            return getPointFormat(columnDesc);
-        
-        if (datatype.equalsIgnoreCase("adql:REGION")) // TAP-1.0
-            return getRegionFormat(columnDesc);
-        
-        if (datatype.equalsIgnoreCase("interval")
-               || datatype.equalsIgnoreCase("adql:proto:INTERVAL"))
-                return getIntervalFormat(columnDesc);
-        
-        if (datatype.equalsIgnoreCase("UUID"))
-            return getUUIDFormat(columnDesc);
-
-        // VOTable datatypes in the tap_schema.columns.datatype
-        if (datatype.equalsIgnoreCase("votable:int"))
-            if (columnDesc.getArraysize() != null && columnDesc.getArraysize() > 1)
-                return getIntArrayFormat(columnDesc);
-            else
-                return getIntegerFormat(columnDesc);
-
-        if (datatype.equalsIgnoreCase("votable:long"))
-            if (columnDesc.getArraysize() != null && columnDesc.getArraysize() > 1)
-                return getLongArrayFormat(columnDesc);
-            else
-                return getLongFormat(columnDesc);
-
-        if (datatype.equalsIgnoreCase("votable:float"))
-            if (columnDesc.getArraysize() != null && columnDesc.getArraysize() > 1)
-                return getFloatArrayFormat(columnDesc);
-            else
-                return getRealFormat(columnDesc);
-
-        if (datatype.equalsIgnoreCase("votable:double"))
-            if (columnDesc.getArraysize() != null && columnDesc.getArraysize() > 1)
-                return getDoubleArrayFormat(columnDesc);
-            else
-                return getDoubleFormat(columnDesc);
-
-        return getDefaultFormat();
-    }
-
-    @Override
-    public Format<Object> getFormat(ParamDesc paramDesc)
-    {
-        if (paramDesc.columnDesc != null)
-            return getFormat(paramDesc.columnDesc);
-
-        String datatype = paramDesc.datatype;
-
-        if (datatype == null)
-            return getDefaultFormat();
-
-        if ( datatype.equalsIgnoreCase("timestamp") // DALI-1.1
-                || datatype.equalsIgnoreCase("adql:TIMESTAMP")) // TAP-1.0
-            return new UTCTimestampFormat();
-
-        if ( datatype.equalsIgnoreCase("point")) // DALI-1.1
-            return getPointFormat(paramDesc.columnDesc);
-        
-        if (datatype.equalsIgnoreCase("circle")) // DALI-1.1
-            return getCircleFormat(paramDesc.columnDesc);
-        
-        if (datatype.equalsIgnoreCase("polygon")) // DALI-1.1
-            return getPolygonFormat(paramDesc.columnDesc);
-        
-        if (datatype.equalsIgnoreCase("adql:POINT")) // TAP-1.0
-            return getPointFormat(paramDesc.columnDesc);
-        
-        // circle function call in select list
-        if (datatype.equalsIgnoreCase("adql:REGION") 
-                && paramDesc.name.equalsIgnoreCase("circle")) // TAP-1.0 HACK
-            return getCircleFormat(paramDesc.columnDesc);
-        
-        if (datatype.equalsIgnoreCase("adql:REGION")) // TAP-1.0
-            return getRegionFormat(paramDesc.columnDesc);
-        
-        if (datatype.equalsIgnoreCase("interval")
-               || datatype.equalsIgnoreCase("adql:proto:INTERVAL"))
-                return getIntervalFormat(paramDesc.columnDesc);
 
         return getDefaultFormat();
     }

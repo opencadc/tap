@@ -174,7 +174,9 @@ public abstract class PqlQuery extends AbstractTapQuery
                     ColumnDesc newColumnDesc = new ColumnDesc(columnDesc.getTableName(),
                                                               columnDesc.getColumnName(),
                                                               columnDesc.getDatatype(),
-                                                              columnDesc.getArraysize());
+                                                              columnDesc.getArraysize(),
+                                                              columnDesc.isVarsize());
+                    newColumnDesc.xtype = columnDesc.xtype;
                     newTableDesc.getColumnDescs().add(newColumnDesc);
                     if (tapSchemaParameters == null)
                         tapSchemaParameters = new HashMap<TableDesc, String[]>();

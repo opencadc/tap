@@ -80,15 +80,19 @@ public class ColumnDesc
     private String columnName;
     private String datatype;
     private Integer arraysize;
+    private boolean varsize;
     
     public String description;
     public String utype;
     public String ucd;
     public String unit;
+    public String xtype;
     
     public boolean principal;
     public boolean indexed;
     public boolean std;
+    
+    
     
     /**
      * An id attribute value to tag the column so the VOTableField element gets an XML ID. 
@@ -97,7 +101,7 @@ public class ColumnDesc
      */
     public String id;
 
-    public ColumnDesc(String tableName, String columnName, String datatype, Integer arraysize)
+    public ColumnDesc(String tableName, String columnName, String datatype, Integer arraysize, boolean varsize)
     {
         TapSchema.assertNotNull(TableDesc.class, "tableName", tableName);
         TapSchema.assertNotNull(TableDesc.class, "columnName", columnName);
@@ -108,6 +112,7 @@ public class ColumnDesc
         this.columnName = columnName;
         this.datatype = datatype;
         this.arraysize = arraysize;
+        this.varsize = varsize;
     }
 
     public String getTableName()
@@ -130,6 +135,11 @@ public class ColumnDesc
         return arraysize;
     }
 
+    public boolean isVarsize()
+    {
+        return varsize;
+    }
+
     public String toString()
     {
         StringBuilder sb = new StringBuilder();
@@ -137,8 +147,8 @@ public class ColumnDesc
         sb.append(tableName).append(",");
         sb.append(columnName).append(",");
         sb.append(datatype).append(",");
-        sb.append(arraysize);
-        sb.append("]");
+        sb.append(arraysize).append(",");
+        sb.append(varsize).append("]");
         return sb.toString();
     }
 }
