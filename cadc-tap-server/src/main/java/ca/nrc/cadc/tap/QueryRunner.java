@@ -228,15 +228,11 @@ public class QueryRunner implements JobRunner
     
     private void doIt()
     {
-        //List<Long> tList = new ArrayList<Long>();
-        //List<String> sList = new ArrayList<String>();
         List<Result> diagnostics = new ArrayList<>();
 
         long t1 = System.currentTimeMillis();
         long t2;
         long dt;
-        //tList.add(System.currentTimeMillis());
-        //sList.add("start");
 
         log.debug("run: " + job.getID());
         List<Parameter> paramList = job.getParameterList();
@@ -265,8 +261,7 @@ public class QueryRunner implements JobRunner
                 return;
             }
             log.debug(job.getID() + ": QUEUED -> EXECUTING [OK]");
-            //tList.add(System.currentTimeMillis());
-            //sList.add("QUEUED -> EXECUTING: ");
+
             t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
             diagnostics.add(new Result("diag", URI.create("uws:executing:"+dt)));
 
@@ -277,9 +272,6 @@ public class QueryRunner implements JobRunner
             if ("1.0".equals(tapValidator.getVersion()))
                 responseCodeOnUserFail = HttpURLConnection.HTTP_OK; // TAP-1.0
             tapValidator.validate(paramList);
-
-            //tList.add(System.currentTimeMillis());
-            //sList.add("initialisation: ");
 
             DataSource queryDataSource = (DataSource) getQueryDataSource();
             // this one is optional, so take care
@@ -295,8 +287,7 @@ public class QueryRunner implements JobRunner
 
             if (queryDataSource == null) // application server config issue
                 throw new RuntimeException("failed to find the query DataSource");
-            //tList.add(System.currentTimeMillis());
-            //sList.add("find DataSources via JNDI: ");
+
             t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
             diagnostics.add(new Result("diag", URI.create("jndi:lookup:"+dt)));
 
@@ -304,8 +295,7 @@ public class QueryRunner implements JobRunner
             TapSchemaDAO dao = pfac.getTapSchemaDAO();
             dao.setDataSource(queryDataSource);
             TapSchema tapSchema = dao.get();
-            //tList.add(System.currentTimeMillis());
-            //sList.add("read tap_schema: ");
+
             t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
             diagnostics.add(new Result("diag", URI.create("read:tap_schema:"+dt)));
 
@@ -345,8 +335,6 @@ public class QueryRunner implements JobRunner
             tableWriter.setSelectList(selectList);
             tableWriter.setQueryInfo(queryInfo);
 
-            //tList.add(System.currentTimeMillis());
-            //sList.add("parse/convert query: ");
             t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
             diagnostics.add(new Result("diag", URI.create("query:parse:"+dt)));
 
@@ -360,8 +348,7 @@ public class QueryRunner implements JobRunner
                 {
                     log.debug("getting database connection...");
                     connection = queryDataSource.getConnection();
-                    //tList.add(System.currentTimeMillis());
-                    //sList.add("get connection from data source: ");
+
                     t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
                     diagnostics.add(new Result("diag", URI.create("jndi:connect:"+dt)));
 
@@ -377,8 +364,6 @@ public class QueryRunner implements JobRunner
                     resultSet = pstmt.executeQuery();
                 }
 
-                //tList.add(System.currentTimeMillis());
-                //sList.add("execute query and get ResultSet: ");
                 t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
                 diagnostics.add(new Result("diag", URI.create("query:execute:"+dt)));
                 
@@ -396,8 +381,7 @@ public class QueryRunner implements JobRunner
                         tableWriter.write(resultSet, syncOutput.getOutputStream());
                     else
                         tableWriter.write(resultSet, syncOutput.getOutputStream(), maxRows.longValue());
-                    //tList.add(System.currentTimeMillis());
-                    //sList.add("stream Result set as " + contentType + ": ");
+
                     t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
                     diagnostics.add(new Result("diag", URI.create("query:stream:"+dt)));
                 }
@@ -415,8 +399,7 @@ public class QueryRunner implements JobRunner
                     rs.setFilename(filename);
                     rs.setContentType(contentType);
                     url = rs.put(resultSet, tableWriter, maxRows);
-                    //tList.add(System.currentTimeMillis());
-                    //sList.add("write ResultSet to ResultStore as " + tableWriter.getContentType() + ": ");
+
                     t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
                     diagnostics.add(new Result("diag", URI.create("query:store:"+dt)));
                 }
@@ -499,8 +482,6 @@ public class QueryRunner implements JobRunner
             URL errorURL = null;
             try
             {
-                //tList.add(System.currentTimeMillis());
-                //sList.add("encounter failure: ");
                 t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
                 diagnostics.add(new Result("diag", URI.create("fail:"+dt)));
 
@@ -526,21 +507,22 @@ public class QueryRunner implements JobRunner
                     Writer w = new OutputStreamWriter(syncOutput.getOutputStream());
                     w.write(emsg);
                     w.flush();
+                    
                     t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
                     diagnostics.add(new Result("diag", URI.create("fail:stream:"+dt)));
                 }
-                else
+                else if (rs != null)
                 {
                     rs.setJob(job);
                     rs.setFilename(filename);
                     rs.setContentType(ewriter.getContentType());
                     errorURL = rs.put(t, ewriter);
 
-                    //tList.add(System.currentTimeMillis());
-                    //sList.add("store error with ResultStore ");
                     t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
                     diagnostics.add(new Result("diag", URI.create("fail:store:"+dt)));
                 }
+                else
+                    throw new RuntimeException("BUG: both syncOutput and ResultStore are null");
 
                 log.debug("Error URL: " + errorURL);
                 ErrorSummary es = new ErrorSummary(errorMessage, ErrorType.FATAL, errorURL);
@@ -566,13 +548,7 @@ public class QueryRunner implements JobRunner
         }
         finally
         {
-            //tList.add(System.currentTimeMillis());
-            //sList.add("set final job state: ");
-            //for (int i = 1; i < tList.size(); i++)
-            //{
-            //    long dt = tList.get(i) - tList.get(i - 1);
-            //    log.debug(job.getID() + " -- " + sList.get(i) + dt + "ms");
-            //}
+            
         }
     }
 
