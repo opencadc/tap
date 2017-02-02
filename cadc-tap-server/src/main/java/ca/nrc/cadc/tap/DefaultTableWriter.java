@@ -162,6 +162,8 @@ public class DefaultTableWriter implements TableWriter
     private RssTableWriter rssTableWriter;
     
     private FormatFactory formatFactory;
+    
+    private long rowcount = 0l;
 
     // once the RssTableWriter is converted to use the DALI format
     // of writing, this reference will not be needed
@@ -169,12 +171,14 @@ public class DefaultTableWriter implements TableWriter
 
     public DefaultTableWriter() { }
 
+    @Override
     public void setJob(Job job)
     {
         this.job = job;
         initFormat();
     }
 
+    @Override
     public void setSelectList(List<ParamDesc> selectList)
     {
         this.selectList = selectList;
@@ -182,6 +186,7 @@ public class DefaultTableWriter implements TableWriter
             rssTableWriter.setSelectList(selectList);
     }
     
+    @Override
     public void setQueryInfo(String queryInfo)
     {
         this.queryInfo = queryInfo;
@@ -193,11 +198,22 @@ public class DefaultTableWriter implements TableWriter
         return tableWriter.getContentType();
     }
 
+    @Override
     public String getErrorContentType()
     {
         return tableWriter.getErrorContentType();
     }
 
+    /**
+     * Get the number of rows the output table
+     * @return number of result rows written in output table
+     */
+    @Override
+    public long getRowCount()
+    {
+        return rowcount;
+    }
+    
     @Override
     public String getExtension()
     {
@@ -348,7 +364,7 @@ public class DefaultTableWriter implements TableWriter
         // list columnIDs that we recognize
         addMetaResources(votableDocument, serviceIDs);
 
-        TableData tableData = new ResultSetTableData(rs, formats);
+        ResultSetTableData tableData = new ResultSetTableData(rs, formats);
 
         VOTableInfo info = new VOTableInfo("QUERY_STATUS", "OK");
         resultsResource.getInfos().add(info);
@@ -366,6 +382,8 @@ public class DefaultTableWriter implements TableWriter
             tableWriter.write(votableDocument, out, maxrec);
         else
             tableWriter.write(votableDocument, out);
+        
+        this.rowcount = tableData.getRowCount();
     }
 
     private void addMetaResources(VOTableDocument votableDocument, List<String> serviceIDs)
