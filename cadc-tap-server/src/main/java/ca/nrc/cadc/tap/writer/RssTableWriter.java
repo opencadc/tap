@@ -115,17 +115,21 @@ public class RssTableWriter implements TableWriter
     
     private Job job;
     
+    private long rowcount = 0l;
+    
 
     public RssTableWriter()
     {
         
     }
 
+    @Override
     public void setJob(Job job)
     {
         this.job = job;
     }
 
+    @Override
     public void setQueryInfo(String info)
     {
         this.info = info;
@@ -143,28 +147,39 @@ public class RssTableWriter implements TableWriter
         return "application/rss+xml";
     }
 
+    @Override
     public String getErrorContentType()
     {
         return getContentType();
     }
+
+    @Override
+    public long getRowCount()
+    {
+        return rowcount;
+    }
     
     
 
+    @Override
     public void setSelectList(List<ParamDesc> selectList)
     {
         this.selectList = selectList;
     }
 
+    @Override
     public void setFormatFactory(ca.nrc.cadc.dali.util.FormatFactory ff)
     {
         
     }
 
+    @Override
     public void setFormatFactory(FormatFactory formatFactory)
     {
         this.formatFactory = formatFactory;
     }
 
+    @Override
     public void write(Throwable t, OutputStream out) 
         throws IOException
     {
@@ -314,7 +329,8 @@ public class RssTableWriter implements TableWriter
         {
             throw new RuntimeException(e.getMessage());
         }
-
+        this.rowcount = itemCount;
+        
         // channel description.
         Element channelDescription = new Element("description");
         channelDescription.setText("The " + itemCount + " most recent from " + info);

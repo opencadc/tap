@@ -93,4 +93,6 @@ public interface TableWriter extends ca.nrc.cadc.dali.tables.TableWriter<ResultS
 
     @Override
     public String getExtension();
+    
+    public long getRowCount();
 }

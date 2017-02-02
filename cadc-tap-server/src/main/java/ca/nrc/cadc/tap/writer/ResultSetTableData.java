@@ -92,4 +92,11 @@ public class ResultSetTableData implements TableData
         return iterator;
     }
 
+    /**
+     * @return number of rows converted from ResultSet to TableData
+     */
+    public long getRowCount()
+    {
+        return iterator.getRowCount();
+    }
 }
