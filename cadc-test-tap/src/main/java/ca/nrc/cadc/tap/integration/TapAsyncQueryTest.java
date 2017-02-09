@@ -101,8 +101,17 @@ public class TapAsyncQueryTest extends AsyncUWSTest
     {
         Assert.assertEquals(ExecutionPhase.COMPLETED, result.job.getExecutionPhase());
         
-        Result r = result.job.getResultsList().get(0);
-        Assert.assertEquals("result", r.getName());
+        //Result r = result.job.getResultsList().get(0);
+        Result r = null;
+        for (Result jr : result.job.getResultsList())
+        {
+            if ("result".equals(jr.getName()))
+            {
+                r = jr;
+                break;
+            }
+        }
+        Assert.assertNotNull("found result", r);
         Assert.assertEquals("http", r.getURI().getScheme());
         
         try
