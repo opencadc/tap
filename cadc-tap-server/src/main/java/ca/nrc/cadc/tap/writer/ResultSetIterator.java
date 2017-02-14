@@ -125,6 +125,17 @@ public class ResultSetIterator implements Iterator<List<Object>>
         }
     }
 
+    /**
+     * 
+     * @return number of rows returned
+     */
+    public long getRowCount()
+    {
+        return numRows;
+    }
+    
+    
+
     @Override
     public boolean hasNext()
     {
