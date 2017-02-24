@@ -69,11 +69,10 @@
 package ca.nrc.cadc.tap;
 
 import ca.nrc.cadc.tap.schema.ColumnDesc;
-import ca.nrc.cadc.tap.schema.ParamDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.uws.ParameterUtil;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -105,7 +104,7 @@ public abstract class PqlQuery extends AbstractTapQuery
     /**
      * @return the metadata for columns in the result set
      */
-    public abstract List<ParamDesc> getSelectList();
+    public abstract List<TapSelectItem> getSelectList();
 
     /**
      * Given the List of request Parameters, builds a Map of TableDesc to
@@ -171,12 +170,8 @@ public abstract class PqlQuery extends AbstractTapQuery
                     // Create a new TableDesc and add with the values to the tableParameters.
                     TableDesc newTableDesc = new TableDesc(tableDesc.getSchemaName(),
                                                            tableDesc.getTableName());
-                    ColumnDesc newColumnDesc = new ColumnDesc(columnDesc.getTableName(),
-                                                              columnDesc.getColumnName(),
-                                                              columnDesc.getDatatype(),
-                                                              columnDesc.getArraysize(),
-                                                              columnDesc.isVarsize());
-                    newColumnDesc.xtype = columnDesc.xtype;
+                    ColumnDesc newColumnDesc = new ColumnDesc(columnDesc.getTableName(), 
+                            columnDesc.getColumnName(), columnDesc.getDatatype());
                     newTableDesc.getColumnDescs().add(newColumnDesc);
                     if (tapSchemaParameters == null)
                         tapSchemaParameters = new HashMap<TableDesc, String[]>();

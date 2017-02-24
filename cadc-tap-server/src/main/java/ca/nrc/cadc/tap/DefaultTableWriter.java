@@ -71,7 +71,6 @@ package ca.nrc.cadc.tap;
 
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.dali.tables.TableData;
 import ca.nrc.cadc.dali.tables.ascii.AsciiTableWriter;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableField;
@@ -82,9 +81,8 @@ import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
 import ca.nrc.cadc.dali.util.Format;
-import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.RegistryClient;
-import ca.nrc.cadc.tap.schema.ParamDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.tap.writer.ResultSetTableData;
 import ca.nrc.cadc.tap.writer.RssTableWriter;
 import ca.nrc.cadc.tap.writer.format.FormatFactory;
@@ -167,7 +165,7 @@ public class DefaultTableWriter implements TableWriter
 
     // once the RssTableWriter is converted to use the DALI format
     // of writing, this reference will not be needed
-    List<ParamDesc> selectList;
+    List<TapSelectItem> selectList;
 
     public DefaultTableWriter() { }
 
@@ -179,7 +177,7 @@ public class DefaultTableWriter implements TableWriter
     }
 
     @Override
-    public void setSelectList(List<ParamDesc> selectList)
+    public void setSelectList(List<TapSelectItem> selectList)
     {
         this.selectList = selectList;
         if (rssTableWriter != null)
@@ -336,9 +334,9 @@ public class DefaultTableWriter implements TableWriter
         int listIndex = 0;
 
         // Add the metadata elements.
-        for (ParamDesc paramDesc : selectList)
+        for (TapSelectItem resultCol : selectList)
         {
-            VOTableField newField = createVOTableField(paramDesc);
+            VOTableField newField = createVOTableField(resultCol);
 
             Format<Object> format = formats.get(listIndex);
             log.debug("format: " + listIndex + " " + format.getClass().getName());
@@ -449,32 +447,19 @@ public class DefaultTableWriter implements TableWriter
         }
     }
 
-    protected VOTableField createVOTableField(ParamDesc paramDesc)
+    protected VOTableField createVOTableField(TapSelectItem resultCol)
     {
-        if (paramDesc != null)
+        if (resultCol != null)
         {
-            String name = getParamName(paramDesc);
-            String datatype = getDatatype(paramDesc);
-
-            VOTableField newField = new VOTableField(name, datatype);
-
-            setSize(paramDesc, newField);
-
-            if (paramDesc.id != null)
-                newField.id = paramDesc.id; // an XML id
-
-            if (paramDesc.columnDesc != null)
-                newField.utype = paramDesc.columnDesc.utype;
-            else
-                newField.utype = paramDesc.utype;
-
-            newField.ucd = paramDesc.ucd;
-            newField.unit = paramDesc.unit;
-
-            if (paramDesc.datatype != null && !paramDesc.datatype.startsWith("votable:"))
-                newField.xtype = paramDesc.datatype;
-
-            newField.description = paramDesc.description;
+            TapDataType tt = resultCol.getDatatype();
+            VOTableField newField = new VOTableField(resultCol.getName(),
+                    tt.getDatatype(), tt.arraysize, tt.varSize, null);
+            newField.xtype = tt.xtype;
+            newField.description = resultCol.description;
+            newField.id = resultCol.id;
+            newField.utype = resultCol.utype;
+            newField.ucd = resultCol.ucd;
+            newField.unit = resultCol.unit;
 
             return newField;
         }
@@ -482,13 +467,8 @@ public class DefaultTableWriter implements TableWriter
         return null;
     }
 
-    // Set the name using the alias first, then the column name.
-    /**
-     *
-     * @param alias
-     * @param name
-     */
-    private String getParamName(ParamDesc paramDesc)
+    /*
+    private String getParamName(TapSelectItem paramDesc)
     {
         String name = paramDesc.name;
         String alias = paramDesc.alias;
@@ -504,13 +484,10 @@ public class DefaultTableWriter implements TableWriter
 
         return null;
     }
-
-    /**
-     *
-     * @param datatype
-     * @param size
-     */
-    private String getDatatype(ParamDesc paramDesc)
+    */
+    
+    /*
+    private String getDatatype(TapSelectItem paramDesc)
     {
         String datatype = paramDesc.datatype;
 
@@ -644,16 +621,13 @@ public class DefaultTableWriter implements TableWriter
 
         return null;
     }
+    */
 
-    /**
-     *
-     * @param datatype
-     * @param size
-     */
-    private void setSize(ParamDesc paramDesc, VOTableField field)
+    /*
+    private void setSize(TapSelectItem paramDesc, VOTableField field)
     {
-        String datatype = paramDesc.datatype;
-        Integer size = paramDesc.arraysize;
+        String datatype = paramDesc.getDatatype();
+        Integer size = paramDesc.getArraysize();
 
         if (datatype == null)
             return;
@@ -781,6 +755,5 @@ public class DefaultTableWriter implements TableWriter
             field.setArraysize(36);
         }
     }
-
-
+    */
 }

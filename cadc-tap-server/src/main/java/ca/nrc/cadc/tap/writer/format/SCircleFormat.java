@@ -69,14 +69,11 @@
 
 package ca.nrc.cadc.tap.writer.format;
 
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.util.CircleFormat;
+import ca.nrc.cadc.dali.Circle;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
-import ca.nrc.cadc.stc.Circle;
-import ca.nrc.cadc.stc.Flavor;
-import ca.nrc.cadc.stc.Frame;
-import ca.nrc.cadc.stc.ReferencePosition;
-import ca.nrc.cadc.stc.STC;
 
 /**
  * Formatter for PostgreSQL+pgSphere column type scircle.
@@ -85,6 +82,7 @@ import ca.nrc.cadc.stc.STC;
  */
 public class SCircleFormat implements ResultSetFormat
 {
+    private final CircleFormat fmt = new CircleFormat();
 
     @Override
     public Object parse(String s)
@@ -96,17 +94,16 @@ public class SCircleFormat implements ResultSetFormat
     public Object extract(ResultSet resultSet, int columnIndex)
         throws SQLException
     {
-        return resultSet.getString(columnIndex);
+        String s = resultSet.getString(columnIndex);
+        return getCircle(s);
     }
 
     @Override
     public String format(Object object)
     {
-        Circle circle = getCircle(object);
-        if (circle == null)
-            return "";
-        return STC.format(circle);
+        return fmt.format((Circle) object);
     }
+
 
     public Circle getCircle(Object object)
     {
@@ -155,11 +152,7 @@ public class SCircleFormat implements ResultSetFormat
         y = y * (180/Math.PI);
         r = r * (180/Math.PI);
 
-
-        // Create STC Cirlce.
-        Circle circle = new Circle(Frame.ICRS, ReferencePosition.UNKNOWNREFPOS, Flavor.SPHERICAL2, x, y, r);
-
-        return circle;
+        return new Circle(new Point(x, y), r);
     }
 
 }

@@ -84,7 +84,6 @@ import ca.nrc.cadc.tap.parser.ParserUtil;
 import ca.nrc.cadc.tap.parser.exception.TapParserException;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.FunctionDesc;
-import ca.nrc.cadc.tap.schema.ParamDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
@@ -109,7 +108,7 @@ public class TapSchemaUtil
      * @return
      * @throws TapParserException when the parse fails
      */
-    public static List<ParamDesc> getParamDescList(TapSchema tapSchema, Table table) throws TapParserException
+    public static List<ColumnDesc> getParamDescList(TapSchema tapSchema, Table table) throws TapParserException
     {
         TableDesc tableDesc = findTableDesc(tapSchema, table);
         if (tableDesc != null)
@@ -119,18 +118,15 @@ public class TapSchemaUtil
     }
 
     /**
-     * Return the ParamDesc List of a given tableDesc.
+     * Deep copy.
      * 
      * @param tableDesc
-     * @return
+     * @return deep copy of the columns of a table
      */
-    public static List<ParamDesc> getParamDescList(TableDesc tableDesc)
+    public static List<ColumnDesc> getParamDescList(TableDesc tableDesc)
     {
-        List<ParamDesc> list = new ArrayList<ParamDesc>();
-        for (ColumnDesc cd : tableDesc.getColumnDescs())
-        {
-            list.add(new ParamDesc(cd, null));
-        }
+        List<ColumnDesc> list = new ArrayList<>();
+        list.addAll(tableDesc.getColumnDescs());
         return list;
     }
 
@@ -166,20 +162,6 @@ public class TapSchemaUtil
         }
         return null;
     }
-
-    /**
-     * Check whether a column exists in a tapSchema.
-     * 
-     * @param tapSchema
-     * @param column
-     * @return
-     */
-    //private static boolean isValidColumn(TapSchema tapSchema, Column column)
-    //{
-    //    Table table = column.getTable();
-    //    TableDesc td = findTableDesc(tapSchema, table);
-    //    return isValidColumnName(td, column.getColumnName());
-    //}
 
     /**
      * For a columnName and a plainSelect, find the Table from TAP Schema.
@@ -447,8 +429,7 @@ public class TapSchemaUtil
             return null;
 
         for (FunctionDesc functionDesc : tapSchema.getFunctionDescs())
-            if (functionDesc.name.equalsIgnoreCase(function.getName()))
-                return new FunctionDesc(functionDesc.name, functionDesc.unit, functionDesc.datatype);
+            return functionDesc;
         return null;
     }
     

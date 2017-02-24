@@ -72,6 +72,7 @@ package ca.nrc.cadc.vosi;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.tap.schema.TestUtil;
 import ca.nrc.cadc.util.Log4jInit;
@@ -265,13 +266,16 @@ public class TableSetReaderWriterTest
                     ColumnDesc acd = aci.next();
                     Assert.assertEquals(ecd.getTableName(), acd.getTableName());
                     Assert.assertEquals(ecd.getColumnName(), acd.getColumnName());
-                    Assert.assertEquals(ecd.getDatatype(), acd.getDatatype());
-                    Integer expArraySize = ecd.getArraysize();
-                    if (expArraySize == null && !ecd.isVarsize() && ver >= 11)
+                    TapDataType edt = ecd.getDatatype();
+                    TapDataType adt = acd.getDatatype();
+                    Assert.assertEquals(edt.getDatatype(), adt.getDatatype());
+                    
+                    Integer expArraySize = edt.arraysize;
+                    if (edt.arraysize == null && !edt.varSize && ver >= 11)
                         expArraySize = 1; // VODatasService XSD default value for VOtableType
-                    Assert.assertEquals(ecd.getColumnName(), expArraySize, acd.getArraysize());
-                    Assert.assertEquals(ecd.getColumnName(), ecd.isVarsize(), acd.isVarsize());
-                    Assert.assertEquals(ecd.getColumnName(), ecd.xtype, acd.xtype);
+                    Assert.assertEquals(ecd.getColumnName(), expArraySize, adt.arraysize);
+                    Assert.assertEquals(ecd.getColumnName(), edt.varSize, adt.varSize);
+                    Assert.assertEquals(ecd.getColumnName(), edt.xtype, adt.xtype);
                 }
             }
             

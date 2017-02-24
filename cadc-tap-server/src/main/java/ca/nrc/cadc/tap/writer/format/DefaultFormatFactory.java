@@ -72,13 +72,11 @@ package ca.nrc.cadc.tap.writer.format;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.dali.util.DefaultFormat;
 import ca.nrc.cadc.dali.util.Format;
-import ca.nrc.cadc.dali.util.UUIDFormat;
-import ca.nrc.cadc.tap.schema.ColumnDesc;
-import ca.nrc.cadc.tap.schema.ParamDesc;
+import ca.nrc.cadc.tap.TapSelectItem;
+import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.uws.Job;
 
 /**
@@ -97,10 +95,10 @@ public class DefaultFormatFactory implements FormatFactory
     }
 
     @Override
-    public List<Format<Object>> getFormats(List<ParamDesc> selectList)
+    public List<Format<Object>> getFormats(List<TapSelectItem> selectList)
     {
         List<Format<Object>> formats = new ArrayList<Format<Object>>();
-        for (ParamDesc paramDesc : selectList)
+        for (TapSelectItem paramDesc : selectList)
         {
             if (paramDesc != null)
             {
@@ -126,118 +124,110 @@ public class DefaultFormatFactory implements FormatFactory
      * method. Subclasses should override this method if they need to support additional datatypes
      * (as specified in the TapSchema: tap_schema.columns.datatype).
      *
-     * @param columnDesc
+     * @param item
      * @return
      */
     @Override
-    public Format<Object> getFormat(ColumnDesc columnDesc)
+    public Format<Object> getFormat(TapSelectItem item)
     {
-        String datatype = columnDesc.getDatatype();
-        String xtype = columnDesc.xtype;
+        TapDataType tt = item.getDatatype();
+        String datatype = tt.getDatatype();
+        String xtype = tt.xtype;
         
-        return getFormat(columnDesc, datatype, xtype);
-    }
-
-    @Override
-    public Format<Object> getFormat(ParamDesc paramDesc)
-    {
-        if (paramDesc.columnDesc != null)
-            return getFormat(paramDesc.columnDesc);
-
-        String datatype = paramDesc.datatype;
-        String xtype = null;
-
-        if (datatype == null)
-            return getDefaultFormat();
-
-        return getFormat(null, datatype, xtype);
-    }
-    
-    protected Format<Object> getFormat(ColumnDesc columnDesc, String datatype, String xtype)
-    {
-        // TAP or DALI xtypes
-        if ( datatype.equals("char") && xtype.equals("timestamp")) // DALI-1.1
+        // DALI-1.1
+        if ( datatype.equals("char") && "timestamp".equals(xtype)) // DALI-1.1
             return new UTCTimestampFormat();
 
-        if (xtype.equals("point")) // DALI-1.1
-            return getPointFormat(columnDesc);
+        if ("point".equals(xtype)) // DALI-1.1
+            return getPointFormat(item);
         
-        if (xtype.equals("circle")) // DALI-1.1
-            return getCircleFormat(columnDesc);
+        if ("circle".equals(xtype)) // DALI-1.1
+            return getCircleFormat(item);
         
-        if (xtype.equals("polygon")) // DALI-1.1
-            return getPolygonFormat(columnDesc);
+        if ("polygon".equals(xtype)) // DALI-1.1
+            return getPolygonFormat(item);
         
-        if (xtype.equalsIgnoreCase("interval")) // DALI-1.1
-                return getIntervalFormat(columnDesc);
+        if ("interval".equals(xtype)) // DALI-1.1
+            return getIntervalFormat(item);
         
-        if (datatype.equalsIgnoreCase("uuid")) // custom
-            return getUUIDFormat(columnDesc);
+        if ("uuid".equals(xtype)) // custom
+            return getUUIDFormat(item);
 
-        if (datatype.equalsIgnoreCase("uri")) // custom
-            return getStringFormat(columnDesc);
+        if ("uri".equals(xtype)) // custom
+            return getStringFormat(item);
         
-        // VOTable datatypes in the tap_schema.columns.datatype
+        if ("clob".equals(xtype)) // custom or ADQL-2.1?
+            return getClobFormat(item);
+        
+        // TAP-1.1 uses VOTable datatypes
         // unsupported: boolean, bit, unsignedByte, short, unicodeChar, floatComplex, doubleComplex
         
         if (datatype.equalsIgnoreCase("char"))
-            return getStringFormat(columnDesc);
+            return getStringFormat(item);
               
-        if (datatype.equalsIgnoreCase("int"))
-            if (columnDesc.getArraysize() != null && columnDesc.getArraysize() > 1)
-                return getIntArrayFormat(columnDesc);
+        if (datatype.equalsIgnoreCase("short"))
+            if (tt.arraysize != null && tt.arraysize > 1)
+                return getShortArrayFormat(item);
             else
-                return getIntegerFormat(columnDesc);
+                return getShortFormat(item);
+        
+        if (datatype.equalsIgnoreCase("int"))
+            if (tt.arraysize != null && tt.arraysize > 1)
+                return getIntArrayFormat(item);
+            else
+                return getIntegerFormat(item);
 
         if (datatype.equalsIgnoreCase("long"))
-            if (columnDesc.getArraysize() != null && columnDesc.getArraysize() > 1)
-                return getLongArrayFormat(columnDesc);
+            if (tt.arraysize != null && tt.arraysize > 1)
+                return getLongArrayFormat(item);
             else
-                return getLongFormat(columnDesc);
+                return getLongFormat(item);
 
         if (datatype.equalsIgnoreCase("float"))
-            if (columnDesc.getArraysize() != null && columnDesc.getArraysize() > 1)
-                return getFloatArrayFormat(columnDesc);
+            if (tt.arraysize != null && tt.arraysize > 1)
+                return getFloatArrayFormat(item);
             else
-                return getRealFormat(columnDesc);
+                return getRealFormat(item);
 
         if (datatype.equalsIgnoreCase("double"))
-            if (columnDesc.getArraysize() != null && columnDesc.getArraysize() > 1)
-                return getDoubleArrayFormat(columnDesc);
+            if (tt.arraysize != null && tt.arraysize > 1)
+                return getDoubleArrayFormat(item);
             else
-                return getDoubleFormat(columnDesc);
+                return getDoubleFormat(item);
         
         // TAP-1.0 ADQL types for backwards compatibility
+        /* TODO:
         if (datatype.equalsIgnoreCase("adql:POINT"))
-            return getPointFormat(columnDesc);
+            return getPointFormat(item);
         
         if (datatype.equalsIgnoreCase("adql:REGION"))
-            return getRegionFormat(columnDesc);
+            return getRegionFormat(item);
         
         if (datatype.equalsIgnoreCase("adql:TIMESTAMP"))
             return new UTCTimestampFormat();
         
         if (datatype.equalsIgnoreCase("adql:INTEGER"))
-            return getIntegerFormat(columnDesc);
+            return getIntegerFormat(item);
 
         if (datatype.equalsIgnoreCase("adql:BIGINT"))
-            return getLongFormat(columnDesc);
+            return getLongFormat(item);
 
         if (datatype.equalsIgnoreCase("adql:DOUBLE"))
-            return getDoubleFormat(columnDesc);
+            return getDoubleFormat(item);
 
         if (datatype.equalsIgnoreCase("adql:CHAR") || datatype.equalsIgnoreCase("adql:VARCHAR"))
-            return getStringFormat(columnDesc);
+            return getStringFormat(item);
 
         if (datatype.equalsIgnoreCase("adql:BINARY") || datatype.equalsIgnoreCase("adql:VARBINARY"))
-            return getByteArrayFormat(columnDesc);
+            return getByteArrayFormat(item);
 
         if (datatype.equalsIgnoreCase("adql:CLOB"))
-            return getClobFormat(columnDesc);
+            return getClobFormat(item);
         
         if (datatype.equalsIgnoreCase("adql:BLOB"))
-            return getBlobFormat(columnDesc);
-
+            return getBlobFormat(item);
+        */
+        
         return getDefaultFormat();
     }
 
@@ -245,7 +235,16 @@ public class DefaultFormatFactory implements FormatFactory
      * @param columnDesc
      * @return a DefaultFormat
      */
-    protected Format<Object> getIntegerFormat(ColumnDesc columnDesc)
+    protected Format<Object> getShortFormat(TapSelectItem columnDesc)
+    {
+        return getDefaultFormat();
+    }
+    
+    /**
+     * @param columnDesc
+     * @return a DefaultFormat
+     */
+    protected Format<Object> getIntegerFormat(TapSelectItem columnDesc)
     {
         return getDefaultFormat();
     }
@@ -254,7 +253,7 @@ public class DefaultFormatFactory implements FormatFactory
      * @param columnDesc
      * @return a DefaultFormat
      */
-    protected Format<Object> getRealFormat(ColumnDesc columnDesc)
+    protected Format<Object> getRealFormat(TapSelectItem columnDesc)
     {
         return getDefaultFormat();
     }
@@ -263,7 +262,7 @@ public class DefaultFormatFactory implements FormatFactory
      * @param columnDesc
      * @return a DefaultFormat
      */
-    protected Format<Object> getDoubleFormat(ColumnDesc columnDesc)
+    protected Format<Object> getDoubleFormat(TapSelectItem columnDesc)
     {
         return getDefaultFormat();
     }
@@ -273,7 +272,7 @@ public class DefaultFormatFactory implements FormatFactory
      * @param columnDesc
      * @return a DefaultFormat
      */
-    protected Format<Object> getLongFormat(ColumnDesc columnDesc)
+    protected Format<Object> getLongFormat(TapSelectItem columnDesc)
     {
         return getDefaultFormat();
     }
@@ -282,7 +281,7 @@ public class DefaultFormatFactory implements FormatFactory
      * @param columnDesc
      * @return a DefaultFormat
      */
-    protected Format<Object> getStringFormat(ColumnDesc columnDesc)
+    protected Format<Object> getStringFormat(TapSelectItem columnDesc)
     {
         return getDefaultFormat();
     }
@@ -291,7 +290,7 @@ public class DefaultFormatFactory implements FormatFactory
      * @param columnDesc
      * @return a ByteArrayFormat
      */
-    protected Format<Object> getByteArrayFormat(ColumnDesc columnDesc)
+    protected Format<Object> getByteArrayFormat(TapSelectItem columnDesc)
     {
         return new ByteArrayFormat();
     }
@@ -300,7 +299,16 @@ public class DefaultFormatFactory implements FormatFactory
      * @param columnDesc
      * @return an IntArrayFormat
      */
-    protected Format<Object> getIntArrayFormat(ColumnDesc columnDesc)
+    protected Format<Object> getShortArrayFormat(TapSelectItem columnDesc)
+    {
+        return new ShortArrayFormat();
+    }
+    
+    /**
+     * @param columnDesc
+     * @return an IntArrayFormat
+     */
+    protected Format<Object> getIntArrayFormat(TapSelectItem columnDesc)
     {
         return new IntArrayFormat();
     }
@@ -309,7 +317,7 @@ public class DefaultFormatFactory implements FormatFactory
      * @param columnDesc
      * @return an LongArrayFormat
      */
-    protected Format<Object> getLongArrayFormat(ColumnDesc columnDesc)
+    protected Format<Object> getLongArrayFormat(TapSelectItem columnDesc)
     {
         return new LongArrayFormat();
     }
@@ -318,7 +326,7 @@ public class DefaultFormatFactory implements FormatFactory
      * @param columnDesc
      * @return an FloatArrayFormat
      */
-    protected Format<Object> getFloatArrayFormat(ColumnDesc columnDesc)
+    protected Format<Object> getFloatArrayFormat(TapSelectItem columnDesc)
     {
         return new FloatArrayFormat();
     }
@@ -327,7 +335,7 @@ public class DefaultFormatFactory implements FormatFactory
      * @param columnDesc
      * @return an DoubleArrayFormat
      */
-    protected Format<Object> getDoubleArrayFormat(ColumnDesc columnDesc)
+    protected Format<Object> getDoubleArrayFormat(TapSelectItem columnDesc)
     {
         return new DoubleArrayFormat();
     }
@@ -337,7 +345,7 @@ public class DefaultFormatFactory implements FormatFactory
      * @param columnDesc
      * @return a UTCTimestampFormat
      */
-    protected Format<Object> getTimestampFormat(ColumnDesc columnDesc)
+    protected Format<Object> getTimestampFormat(TapSelectItem columnDesc)
     {
         return new UTCTimestampFormat();
     }
@@ -346,45 +354,45 @@ public class DefaultFormatFactory implements FormatFactory
      * @param columnDesc
      * @throws UnsupportedOperationException
      */
-    protected Format<Object> getPointFormat(ColumnDesc columnDesc)
+    protected Format<Object> getPointFormat(TapSelectItem columnDesc)
     {
-        throw new UnsupportedOperationException("no formatter for column " + columnDesc.getColumnName());
+        throw new UnsupportedOperationException("no formatter for column " + columnDesc.getName());
     }
 
     /**
      * @param columnDesc
      * @throws UnsupportedOperationException
      */
-    protected Format<Object> getCircleFormat(ColumnDesc columnDesc)
+    protected Format<Object> getCircleFormat(TapSelectItem columnDesc)
     {
-        throw new UnsupportedOperationException("no formatter for column " + columnDesc.getColumnName());
+        throw new UnsupportedOperationException("no formatter for column " + columnDesc.getName());
     }
     
     /**
      * @param columnDesc
      * @throws UnsupportedOperationException
      */
-    protected Format<Object> getPolygonFormat(ColumnDesc columnDesc)
+    protected Format<Object> getPolygonFormat(TapSelectItem columnDesc)
     {
-        throw new UnsupportedOperationException("no formatter for column " + columnDesc.getColumnName());
+        throw new UnsupportedOperationException("no formatter for column " + columnDesc.getName());
     }
     
     /**
      * @param columnDesc
      * @throws UnsupportedOperationException
      */
-    protected Format<Object> getRegionFormat(ColumnDesc columnDesc)
+    protected Format<Object> getRegionFormat(TapSelectItem columnDesc)
     {
-        throw new UnsupportedOperationException("no formatter for column " + columnDesc.getColumnName());
+        throw new UnsupportedOperationException("no formatter for column " + columnDesc.getName());
     }
     
     /**
      * @param columnDesc
      * @throws UnsupportedOperationException
      */
-    protected Format<Object> getIntervalFormat(ColumnDesc columnDesc)
+    protected Format<Object> getIntervalFormat(TapSelectItem columnDesc)
     {
-        throw new UnsupportedOperationException("no formatter for column " + columnDesc.getColumnName());
+        throw new UnsupportedOperationException("no formatter for column " + columnDesc.getName());
     }
 
     /**
@@ -392,7 +400,7 @@ public class DefaultFormatFactory implements FormatFactory
      * @return a DefaultFormat
      * @throws UnsupportedOperationException
      */
-    protected Format<Object> getBlobFormat(ColumnDesc columnDesc)
+    protected Format<Object> getBlobFormat(TapSelectItem columnDesc)
     {
         return new ByteArrayFormat();
     }
@@ -402,7 +410,7 @@ public class DefaultFormatFactory implements FormatFactory
      * @return a DefaultFormat
      * @throws UnsupportedOperationException
      */
-    protected Format<Object> getClobFormat(ColumnDesc columnDesc)
+    protected Format<Object> getClobFormat(TapSelectItem columnDesc)
     {
         return getDefaultFormat();
     }
@@ -412,7 +420,7 @@ public class DefaultFormatFactory implements FormatFactory
      * @return a DefaultFormat
      * @throws UnsupportedOperationException
      */
-    protected Format<Object> getUUIDFormat(ColumnDesc columnDesc)
+    protected Format<Object> getUUIDFormat(TapSelectItem columnDesc)
     {
         return getDefaultFormat();
     }

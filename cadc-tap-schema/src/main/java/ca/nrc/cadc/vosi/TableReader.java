@@ -74,6 +74,7 @@ import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.KeyColumnDesc;
 import ca.nrc.cadc.tap.schema.KeyDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -166,8 +167,8 @@ public class TableReader extends TableSetParser
                 log.warn(cn + ": " + dtv + " " + as +  " " + star + " -> " + ss + " -> " + arraysize + " " + varsize);
             }
             
-            ColumnDesc cd = new ColumnDesc(tn, cn, dtv, arraysize, varsize);
-            cd.xtype = xtype;
+            TapDataType tt = new TapDataType(dtv, arraysize, varsize, xtype);
+            ColumnDesc cd = new ColumnDesc(tn, cn, tt);
             td.getColumnDescs().add(cd);
         }
         

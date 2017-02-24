@@ -70,49 +70,21 @@
 package ca.nrc.cadc.tap.upload.datatype;
 
 import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.log4j.Logger;
 
 /**
  *
  * @author jburke
  */
-public class MySQLDataType implements DatabaseDataType
+public class MySQLDataType extends BasicDataTypeMapper
 {
-    public static Map<String, String> dataTypes;
-    static
+    private static final Logger log = Logger.getLogger(MySQLDataType.class);
+    
+    public MySQLDataType() 
     {
-        dataTypes = new HashMap<String, String>();
-        dataTypes.put(ADQLDataType.ADQL_SMALLINT, "SMALLINT");
-        dataTypes.put(ADQLDataType.ADQL_INTEGER, "INT");
-        dataTypes.put(ADQLDataType.ADQL_BIGINT, "BIGINT");
-        dataTypes.put(ADQLDataType.ADQL_REAL, "FLOAT");
-        dataTypes.put(ADQLDataType.ADQL_DOUBLE, "DOUBLE");
-        dataTypes.put(ADQLDataType.ADQL_CHAR, "CHAR");
-        dataTypes.put(ADQLDataType.ADQL_VARCHAR, "VARCHAR");
-        dataTypes.put(ADQLDataType.ADQL_TIMESTAMP, "TIMESTAMP");
+        
     }
-
-    /**
-     *
-     */
-    public MySQLDataType() { }
-
-    /**
-     * Given a ADQL data type, return the database
-     * specific data type.
-     *
-     * @param columnDesc ADQL description of the column
-     * @return database specific data type
-     */
-    public String getDataType(ColumnDesc columnDesc)
-    {
-        String dataType = dataTypes.get(columnDesc.getDatatype());
-        if (dataType.equals("CHAR") || dataType.equals("VARCHAR"))
-        {
-            dataType += "(" + columnDesc.getArraysize() + ")";
-        }
-        return dataType;
-    }
-
 }

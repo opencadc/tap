@@ -83,7 +83,6 @@ import ca.nrc.cadc.tap.parser.extractor.SelectListExtractor;
 import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
-import ca.nrc.cadc.tap.schema.ParamDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.uws.Job;
@@ -134,7 +133,7 @@ public class AdqlQueryTest
             tapQuery.setTapSchema(TAP_SCHEMA);
             tapQuery.setJob(job);
             String sql = tapQuery.getSQL();
-            List<ParamDesc> selectList = tapQuery.getSelectList();
+            List<TapSelectItem> selectList = tapQuery.getSelectList();
             log.debug("QUERY: \r\n" + _query);
             log.debug("SQL: \r\n" + sql);
             assertEquals(_expected.toLowerCase().trim(), sql.toLowerCase().trim());

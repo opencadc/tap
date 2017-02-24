@@ -87,7 +87,8 @@ public class SampleWebService implements WebService
     private static final Logger log = Logger.getLogger(SampleWebService.class);
     
     private static String TAPDS_NAME = "jdbc/tapuser";
-    private String TAPDS_TEST = "select schema_name from tap_schema.schemas where schema_name='tap_schema'";
+    // note tap_schema table names
+    private String TAPDS_TEST = "select schema_name from tap_schema.schemas11 where schema_name='tap_schema'";
     
     public SampleWebService()
     {

@@ -69,7 +69,6 @@
 
 package ca.nrc.cadc.tap;
 
-import ca.nrc.cadc.tap.parser.BaseExpressionDeParser;
 import ca.nrc.cadc.tap.parser.ParserUtil;
 import ca.nrc.cadc.tap.parser.PgsphereDeParser;
 import ca.nrc.cadc.tap.parser.QuerySelectDeParser;
@@ -84,7 +83,6 @@ import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
 import ca.nrc.cadc.tap.parser.schema.BlobClobColumnValidator;
 import ca.nrc.cadc.tap.parser.schema.ExpressionValidator;
 import ca.nrc.cadc.tap.parser.schema.TapSchemaTableValidator;
-import ca.nrc.cadc.tap.schema.ParamDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.uws.ParameterUtil;
 import java.util.ArrayList;
@@ -122,7 +120,7 @@ public class AdqlQuery extends AbstractTapQuery
     protected String queryString;
 
     protected Statement statement;
-    protected List<ParamDesc> selectList = null;
+    protected List<TapSelectItem> selectList = null;
     protected List<SelectNavigator> navigatorList = new ArrayList<SelectNavigator>();
 
     protected transient boolean navigated = false;
@@ -283,6 +281,7 @@ public class AdqlQuery extends AbstractTapQuery
         //return new BaseExpressionDeParser(dep, sb);
     }
 
+    @Override
     public String getSQL()
     {
         doNavigate();
@@ -296,7 +295,8 @@ public class AdqlQuery extends AbstractTapQuery
         return deParser.getBuffer().toString();
     }
 
-    public List<ParamDesc> getSelectList()
+    @Override
+    public List<TapSelectItem> getSelectList()
     {
         doNavigate();
         return selectList;

@@ -69,17 +69,12 @@
 
 package ca.nrc.cadc.tap.writer.format;
 
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.Polygon;
+import ca.nrc.cadc.dali.util.PolygonFormat;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 
-import ca.nrc.cadc.stc.CoordPair;
-import ca.nrc.cadc.stc.Flavor;
-import ca.nrc.cadc.stc.Frame;
-import ca.nrc.cadc.stc.Polygon;
-import ca.nrc.cadc.stc.ReferencePosition;
-import ca.nrc.cadc.stc.STC;
 
 /**
  * Formats a PGSphere spolygon as a String.
@@ -87,45 +82,26 @@ import ca.nrc.cadc.stc.STC;
  */
 public class SPolyFormat implements ResultSetFormat
 {
-
+    private final PolygonFormat fmt = new PolygonFormat();
+    
     @Override
     public Object parse(String s)
     {
         throw new UnsupportedOperationException("TAP Formats cannot parse strings.");
     }
 
-    /**
-     * Takes a ResultSet and column index of the spoly
-     * and returns a STC-S Polygon String.
-     *
-     * @param resultSet containing the spoint column.
-     * @param columnIndex index of the column in the ResultSet.
-     * @return STC-S Polygon String of the spoly.
-     * @throws SQLException if there is an error accessing the ResultSet.
-     */
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
         throws SQLException
     {
-        return resultSet.getString(columnIndex);
+        String s = resultSet.getString(columnIndex);
+        return getPolygon(s);
     }
 
-    /**
-     * Takes a String representation of the spoly
-     * and returns a STC-S Polygon String.
-     *
-     * @param object to format.
-     * @return STC-S Polygon String of the spoly.
-     * @throws IllegalArgumentException if the object is not a String, or if
-     *         the String cannot be parsed.
-     */
     @Override
     public String format(Object object)
     {
-        Polygon pos = getPolygon(object);
-        if (pos == null)
-            return "";
-        return STC.format(pos);
+        return fmt.format((Polygon)object);
     }
 
     public Polygon getPolygon(Object object)
@@ -157,8 +133,7 @@ public class SPolyFormat implements ResultSetFormat
         if (vertices.length < 3)
             throw new IllegalArgumentException("Minimum 3 vertices required to form a Polygon " + s);
 
-        // Create STC Polygon and set some defaults.
-        List<CoordPair> coordPairs = new ArrayList<CoordPair>();
+        Polygon ret = new Polygon();
 
         // Loop through each set of vertices.
         for (int i = 0; i < vertices.length; i++)
@@ -173,12 +148,12 @@ public class SPolyFormat implements ResultSetFormat
             Double x = Double.valueOf(values[0]);
             Double y = Double.valueOf(values[1]);
 
-            // convert to radians and add to Polygon.
+            // convert radians and add to Polygon.
             x = x * (180/Math.PI);
             y = y * (180/Math.PI);
-            coordPairs.add(new CoordPair(x, y));
+            ret.getVertices().add(new Point(x, y));
         }
-        return new Polygon(Frame.ICRS, ReferencePosition.UNKNOWNREFPOS, Flavor.SPHERICAL2, coordPairs);
+        return ret;
     }
 
 }

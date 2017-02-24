@@ -78,15 +78,17 @@ public class ColumnDesc
 {
     private String tableName;
     private String columnName;
-    private String datatype;
-    private Integer arraysize;
-    private boolean varsize;
+    //private String datatype;
+    //private Integer arraysize;
+    //private boolean varsize;
+    //public String xtype;
+    private TapDataType datatype;
     
     public String description;
     public String utype;
     public String ucd;
     public String unit;
-    public String xtype;
+    
     
     public boolean principal;
     public boolean indexed;
@@ -101,18 +103,14 @@ public class ColumnDesc
      */
     public String id;
 
-    public ColumnDesc(String tableName, String columnName, String datatype, Integer arraysize, boolean varsize)
+    public ColumnDesc(String tableName, String columnName, TapDataType datatype)
     {
         TapSchema.assertNotNull(TableDesc.class, "tableName", tableName);
         TapSchema.assertNotNull(TableDesc.class, "columnName", columnName);
         TapSchema.assertNotNull(TableDesc.class, "datatype", datatype);
-        if (arraysize != null && arraysize <= 0)
-            throw new IllegalArgumentException("invalid arraysize: " + arraysize);
         this.tableName = tableName;
         this.columnName = columnName;
         this.datatype = datatype;
-        this.arraysize = arraysize;
-        this.varsize = varsize;
     }
 
     public String getTableName()
@@ -125,19 +123,9 @@ public class ColumnDesc
         return columnName;
     }
 
-    public String getDatatype()
+    public TapDataType getDatatype()
     {
         return datatype;
-    }
-
-    public Integer getArraysize()
-    {
-        return arraysize;
-    }
-
-    public boolean isVarsize()
-    {
-        return varsize;
     }
 
     public String toString()
@@ -146,9 +134,7 @@ public class ColumnDesc
         sb.append("Column[");
         sb.append(tableName).append(",");
         sb.append(columnName).append(",");
-        sb.append(datatype).append(",");
-        sb.append(arraysize).append(",");
-        sb.append(varsize).append("]");
+        sb.append(datatype).append("]");
         return sb.toString();
     }
 }

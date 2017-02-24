@@ -75,7 +75,8 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
-import ca.nrc.cadc.stc.Circle;
+import ca.nrc.cadc.dali.Circle;
+import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.util.Log4jInit;
 
 /**
@@ -90,8 +91,8 @@ public class SCircleFormatTest
         Log4jInit.setLevel("ca", Level.INFO);
     }
     private static final String SCIRCLE = "<(0.174532925199433 , 0.174532925199433), 0.174532925199433>";
-    private static final String STCS_CIRCLE = "CIRCLE ICRS UNKNOWNREFPOS SPHERICAL2 10.000000000000004 10.000000000000004 10.000000000000004";
-
+    private static final String DALI_CIRCLE = "10.0 10.0 10.0";
+    private static final Circle circle = new Circle(new Point(10.0, 10.0), 10.0);
     public SCircleFormatTest() { }
 
     /**
@@ -100,13 +101,10 @@ public class SCircleFormatTest
     @Test
     public void testFormat()
     {
-        log.debug("testFormat");
-
         SCircleFormat formatter = new SCircleFormat();
-        String expResult = STCS_CIRCLE;
-        String result = formatter.format(SCIRCLE);
+        String expResult = DALI_CIRCLE;
+        String result = formatter.format(circle);
         assertEquals(expResult.toUpperCase(), result.toUpperCase());
-        log.info("testFormat passed");
     }
 
     /**
@@ -115,16 +113,11 @@ public class SCircleFormatTest
     @Test
     public void testGetCircle()
     {
-        log.debug("testGetCircle");
-
         SCircleFormat formatter = new SCircleFormat();
         Circle circle = formatter.getCircle(SCIRCLE);
-        assertEquals("CIRCLE", Circle.NAME.toUpperCase());
-        assertEquals("ICRS", circle.getFrame().name().toUpperCase());
-        assertEquals(10.0, circle.getCoordPair().getX(), 0.1);
-        assertEquals(10.0, circle.getCoordPair().getY(), 0.1);
+        assertEquals(10.0, circle.getCenter().getLongitude(), 0.1);
+        assertEquals(10.0, circle.getCenter().getLatitude(), 0.1);
         assertEquals(10.0, circle.getRadius(), 0.1);
-        log.info("testGetCircle passed");
     }
 
 }

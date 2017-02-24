@@ -68,23 +68,19 @@
 */
 package ca.nrc.cadc.tap.parser.extractor;
 
+import ca.nrc.cadc.tap.TapSelectItem;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import java.util.ArrayList;
 import org.junit.Before;
 import org.junit.Assert;
 import ca.nrc.cadc.tap.parser.TestUtil;
+import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.util.Log4jInit;
 import org.apache.log4j.Logger;
-import ca.nrc.cadc.tap.schema.ParamDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import java.util.List;
-import net.sf.jsqlparser.expression.Function;
-import net.sf.jsqlparser.expression.StringValue;
-import net.sf.jsqlparser.schema.Column;
-import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.AllColumns;
 import net.sf.jsqlparser.statement.select.AllTableColumns;
-import net.sf.jsqlparser.statement.select.SelectExpressionItem;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -173,7 +169,7 @@ public class SelectListExpressionExtractorTest
     {
         try
         {
-            List<ParamDesc> selectList = extractor.getSelectList();
+            List<TapSelectItem> selectList = extractor.getSelectList();
             Assert.assertNotNull(selectList);
 
         }
@@ -192,14 +188,14 @@ public class SelectListExpressionExtractorTest
     {
         try
         {
-            List<ParamDesc> selectList = new ArrayList<ParamDesc>();
-            selectList.add(new ParamDesc("param one", null, null));
+            List<TapSelectItem> selectList = new ArrayList<>();
+            selectList.add(new TapSelectItem("param one", new TapDataType("char", null, true, null)));
             extractor.setSelectList(selectList);
 
-            List<ParamDesc> returnedList = extractor.getSelectList();
+            List<TapSelectItem> returnedList = extractor.getSelectList();
             Assert.assertNotNull(returnedList);
             Assert.assertEquals(1, returnedList.size());
-            Assert.assertEquals("param one", returnedList.get(0).name);
+            Assert.assertEquals("param one", returnedList.get(0).getName());
         }
         catch (Exception unexpected)
         {

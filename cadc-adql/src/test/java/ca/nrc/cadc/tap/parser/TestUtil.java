@@ -80,6 +80,7 @@ import ca.nrc.cadc.tap.schema.KeyColumnDesc;
 import ca.nrc.cadc.tap.schema.KeyDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.tap.schema.TapSchema;
 
 /**
@@ -99,10 +100,11 @@ public class TestUtil
         return mockTapSchema();
     }
 
-    static ColumnDesc newColumnDesc(String tn, String cn, String desc, 
-            String utype, String ucd, String unit, String datatype, Integer arraysize)
+    
+    static ColumnDesc createColumnDesc(String tn, String cn, TapDataType tt,
+            String desc, String utype, String ucd, String unit)
     {
-        ColumnDesc ret = new ColumnDesc(tn, cn, datatype, arraysize);
+        ColumnDesc ret = new ColumnDesc(tn, cn, tt);
         ret.description = desc;
         ret.utype = utype;
         ret.ucd = ucd;
@@ -128,31 +130,31 @@ public class TestUtil
         tn = sn + ".alldatatypes";
         td = new TableDesc(sn, tn);
         sd.getTableDescs().add(td);
-        td.getColumnDescs().add( newColumnDesc(tn, "t_integer", "int column", null, null, null, "adql:INTEGER", null) );
-        td.getColumnDescs().add( newColumnDesc(tn, "t_long", "long column", null, null, null, "adql:BIGINT", null) );
-        td.getColumnDescs().add( newColumnDesc(tn, "t_float", "float column", null, null, null, "adql:REAL", null) );
-        td.getColumnDescs().add( newColumnDesc(tn, "t_double", "double column", null, null, null, "adql:DOUBLE", null) );
-        td.getColumnDescs().add( newColumnDesc(tn, "t_char", "char column", null, null, null, "adql:CHAR", 8) );
-        td.getColumnDescs().add( newColumnDesc(tn, "t_varchar", "varchar column", null, null, null, "adql:VARCHAR", 8) );
-        td.getColumnDescs().add( newColumnDesc(tn, "t_string", "test column", null, null, null, "adql:VARCHAR", 8) );
-        td.getColumnDescs().add( newColumnDesc(tn, "t_bytes", "varbinary column", null, null, null, "adql:BLOB", null) );
-        td.getColumnDescs().add( newColumnDesc(tn, "t_text", "clob column", null, null, null, "adql:CLOB", null) );
-        td.getColumnDescs().add( newColumnDesc(tn, "t_point", "point column", null, null, null, "adql:POINT", null) );
-        td.getColumnDescs().add( newColumnDesc(tn, "t_region", "region column", null, null, null, "adql:REGION", null) );
-        td.getColumnDescs().add( newColumnDesc(tn, "t_timestamp", "timestamp column", null, null, null, "adql:TIMESTAMP", null) );
-        td.getColumnDescs().add( newColumnDesc(tn, "t_int_array", "int[] column", null, null, null, "votable:int", 2) );
-        td.getColumnDescs().add( newColumnDesc(tn, "t_double_array", "double[] column", null, null, null, "votable:double", 2) );
-        td.getColumnDescs().add( newColumnDesc(tn, "t_complete", "column with full metadata", "test:come.data.model","meta.ucd", "m", "votable:double", 2) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_integer", TapDataType.INTEGER));
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_long", TapDataType.INTEGER));
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_float", TapDataType.INTEGER));
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_double", TapDataType.INTEGER));
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_char", new TapDataType("char", 8, false, null)));
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_varchar", new TapDataType("char", 8, true, null)));
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_string", new TapDataType("char", 8, true, null)));
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_bytes", TapDataType.BLOB));
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_text", TapDataType.CLOB));
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_point", TapDataType.POINT));
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_region", TapDataType.POLYGON));
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_timestamp", TapDataType.TIMESTAMP));
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_int_array", new TapDataType("int", 2, false, null)));
+        td.getColumnDescs().add( new ColumnDesc(tn, "t_double_array", new TapDataType("double", 2, false, null)));
+        td.getColumnDescs().add( createColumnDesc(tn, "t_complete", new TapDataType("double", 2, false, null), "column with full metadata", "test:come.data.model","meta.ucd", "m") );
 
 
         // standard minimal self-describing tap_schema tables
         tn = sn + ".tables";
         td = new TableDesc(sn, tn);
         sd.getTableDescs().add(td);
-        td.getColumnDescs().add( newColumnDesc(tn, "schema_name", null, null, null, null, "adql:VARCHAR", 16) );
-        td.getColumnDescs().add( newColumnDesc(tn, "table_name", null, null, null, null, "adql:VARCHAR", 16) );
-        td.getColumnDescs().add( newColumnDesc(tn, "utype", null, null, null, null, "adql:VARCHAR", 16) );
-        td.getColumnDescs().add( newColumnDesc(tn, "description", null, null, null, null, "adql:VARCHAR", 16) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "schema_name", new TapDataType("char", 16, true, null)));
+        td.getColumnDescs().add( new ColumnDesc(tn, "table_name", new TapDataType("char", 16, true, null)));
+        td.getColumnDescs().add( new ColumnDesc(tn, "utype", new TapDataType("char", 16, true, null)));
+        td.getColumnDescs().add( new ColumnDesc(tn, "description", new TapDataType("char", 16, true, null)));
         KeyDesc k = new KeyDesc("k1", "TAP_SCHEMA.tables", "TAP_SCHEMA.schemas");
         k.getKeyColumnDescs().add(new KeyColumnDesc("k1", "schema_name", "schema_name"));
         td.getKeyDescs().add(k);
@@ -161,17 +163,17 @@ public class TestUtil
         tn = sn + ".columns";
         td = new TableDesc(sn, tn);
         sd.getTableDescs().add(td);
-        td.getColumnDescs().add( newColumnDesc(tn, "table_name", null, null, null, null, "adql:VARCHAR", 16) );
-        td.getColumnDescs().add( newColumnDesc(tn, "column_name", null, null, null, null, "adql:VARCHAR", 16) );
-        td.getColumnDescs().add( newColumnDesc(tn, "utype", null, null, null, null, "adql:VARCHAR", 16) );
-        td.getColumnDescs().add( newColumnDesc(tn, "ucd", null, null, null, null, "adql:VARCHAR", 16) );
-        td.getColumnDescs().add( newColumnDesc(tn, "unit", null, null, null, null, "adql:VARCHAR", 16) );
-        td.getColumnDescs().add( newColumnDesc(tn, "description", null, null, null, null, "adql:VARCHAR", 16) );
-        td.getColumnDescs().add( newColumnDesc(tn, "datatype", null, null, null, null, "adql:VARCHAR", 16) );
-        td.getColumnDescs().add( newColumnDesc(tn, "size", null, null, null, null, "adql:INTEGER", null) );
-        td.getColumnDescs().add( newColumnDesc(tn, "principal", null, null, null, null, "adql:INTEGER", null) );
-        td.getColumnDescs().add( newColumnDesc(tn, "indexed", null, null, null, null, "adql:INTEGER", null) );
-        td.getColumnDescs().add( newColumnDesc(tn, "std", null, null, null, null, "adql:INTEGER", null) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "table_name", new TapDataType("char", 16, true, null)));
+        td.getColumnDescs().add( new ColumnDesc(tn, "column_name", new TapDataType("char", 16, true, null)));
+        td.getColumnDescs().add( new ColumnDesc(tn, "utype", new TapDataType("char", 16, true, null)));
+        td.getColumnDescs().add( new ColumnDesc(tn, "ucd", new TapDataType("char", 16, true, null)));
+        td.getColumnDescs().add( new ColumnDesc(tn, "unit", new TapDataType("char", 16, true, null)));
+        td.getColumnDescs().add( new ColumnDesc(tn, "description", new TapDataType("char", 16, true, null)));
+        td.getColumnDescs().add( new ColumnDesc(tn, "datatype", new TapDataType("char", 16, true, null)));
+        td.getColumnDescs().add( new ColumnDesc(tn, "size", TapDataType.INTEGER));
+        td.getColumnDescs().add( new ColumnDesc(tn, "principal", TapDataType.INTEGER));
+        td.getColumnDescs().add( new ColumnDesc(tn, "indexed", TapDataType.INTEGER));
+        td.getColumnDescs().add( new ColumnDesc(tn, "std", TapDataType.INTEGER));
         k = new KeyDesc("k2", "TAP_SCHEMA.columns", "TAP_SCHEMA.tables");
         k.getKeyColumnDescs().add(new KeyColumnDesc("k2", "table_name", "table_name"));
         td.getKeyDescs().add(k);
@@ -180,11 +182,11 @@ public class TestUtil
         tn = sn + ".keys";
         td = new TableDesc(sn, tn);
         sd.getTableDescs().add(td);
-        td.getColumnDescs().add( newColumnDesc(tn, "key_id", null, null, null, null, "adql:VARCHAR", 16) );
-        td.getColumnDescs().add( newColumnDesc(tn, "from_table", null, null, null, null, "adql:VARCHAR", 16) );
-        td.getColumnDescs().add( newColumnDesc(tn, "target_table", null, null, null, null, "adql:VARCHAR", 16) );
-        td.getColumnDescs().add( newColumnDesc(tn, "utype", null, null, null, null, "adql:VARCHAR", 16) );
-        td.getColumnDescs().add( newColumnDesc(tn, "description", null, null, null, null, "adql:VARCHAR", 16) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "key_id", new TapDataType("char", 16, true, null)));
+        td.getColumnDescs().add( new ColumnDesc(tn, "from_table", new TapDataType("char", 16, true, null)));
+        td.getColumnDescs().add( new ColumnDesc(tn, "target_table", new TapDataType("char", 16, true, null)));
+        td.getColumnDescs().add( new ColumnDesc(tn, "utype", new TapDataType("char", 16, true, null)));
+        td.getColumnDescs().add( new ColumnDesc(tn, "description", new TapDataType("char", 16, true, null)));
         k = new KeyDesc("k3", "TAP_SCHEMA.keys", "TAP_SCHEMA.tables");
         k.getKeyColumnDescs().add(new KeyColumnDesc("k3", "from_table", "table_name"));
         td.getKeyDescs().add(k);
@@ -196,9 +198,9 @@ public class TestUtil
         tn = sn + ".key_columns";
         td = new TableDesc(sn, tn);
         sd.getTableDescs().add(td);
-        td.getColumnDescs().add( newColumnDesc(tn, "key_id", null, null, null, null, "adql:VARCHAR", 16) );
-        td.getColumnDescs().add( newColumnDesc(tn, "from_column", null, null, null, null, "adql:VARCHAR", 16) );
-        td.getColumnDescs().add( newColumnDesc(tn, "target_column", null, null, null, null, "adql:VARCHAR", 16) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "key_id", new TapDataType("char", 16, true, null)));
+        td.getColumnDescs().add( new ColumnDesc(tn, "from_column", new TapDataType("char", 16, true, null)));
+        td.getColumnDescs().add( new ColumnDesc(tn, "target_column", new TapDataType("char", 16, true, null)));
         k = new KeyDesc("k5", "TAP_SCHEMA.key_columns", "TAP_SCHEMA.keys");
         k.getKeyColumnDescs().add(new KeyColumnDesc("k5", "key_id", "key_id"));
         td.getKeyDescs().add(k);
@@ -210,17 +212,18 @@ public class TestUtil
         tn = sn + ".siav1";
         td = new TableDesc(sn, tn);
         sd.getTableDescs().add(td);
-        td.getColumnDescs().add( newColumnDesc(tn, "position_center_ra", null, null, null, null, "adql:DOUBLE", null) );
+        td.getColumnDescs().add( new ColumnDesc(tn, "position_center_ra", TapDataType.DOUBLE));
+        td.getColumnDescs().add( new ColumnDesc(tn, "position_center_dec", TapDataType.DOUBLE));
 
-        ts.getFunctionDescs().add(new FunctionDesc("AREA", null, "adql:DOUBLE"));
-        ts.getFunctionDescs().add(new FunctionDesc("AVG", null, "ARGUMENT_DATATYPE"));
-        ts.getFunctionDescs().add(new FunctionDesc("CIRCLE", null, "adql:DOUBLE"));
-        ts.getFunctionDescs().add(new FunctionDesc("COUNT", null, "adql:INTEGER"));
-        ts.getFunctionDescs().add(new FunctionDesc("MAX", null, "ARGUMENT_DATATYPE"));
-        ts.getFunctionDescs().add(new FunctionDesc("MIN", null, "ARGUMENT_DATATYPE"));
-        ts.getFunctionDescs().add(new FunctionDesc("STDDEV", null, "adql:DOUBLE"));
-        ts.getFunctionDescs().add(new FunctionDesc("SUM", null, "ARGUMENT_DATATYPE"));
-        ts.getFunctionDescs().add(new FunctionDesc("VARIANCE", null, "adql:DOUBLE"));
+        ts.getFunctionDescs().add(new FunctionDesc("AREA", TapDataType.DOUBLE));
+        ts.getFunctionDescs().add(new FunctionDesc("AVG", TapDataType.FUNCTION_ARG));
+        ts.getFunctionDescs().add(new FunctionDesc("CIRCLE", TapDataType.DOUBLE));
+        ts.getFunctionDescs().add(new FunctionDesc("COUNT", TapDataType.LONG));
+        ts.getFunctionDescs().add(new FunctionDesc("MAX", TapDataType.FUNCTION_ARG));
+        ts.getFunctionDescs().add(new FunctionDesc("MIN", TapDataType.FUNCTION_ARG));
+        ts.getFunctionDescs().add(new FunctionDesc("STDDEV", TapDataType.DOUBLE));
+        ts.getFunctionDescs().add(new FunctionDesc("SUM", TapDataType.FUNCTION_ARG));
+        ts.getFunctionDescs().add(new FunctionDesc("VARIANCE", TapDataType.DOUBLE));
 
         return ts;
     }

@@ -106,44 +106,42 @@ public class TestUtil
                     if (c > 0)
                         arraysize = c;
                     if (tapVersion == 10)
-                        td.getColumnDescs().add(new ColumnDesc(tn, cn, "adql:INTEGER", arraysize, false));
+                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("adql:INTEGER", arraysize, false, null)));
                     else
-                        td.getColumnDescs().add(new ColumnDesc(tn, cn, "int", arraysize, false));
+                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("int", arraysize, false, null)));
                     
                     cn = "c_double" + c;
                     arraysize = null;
                     if (c > 0)
                         arraysize = c;
                     if (tapVersion == 10)
-                        td.getColumnDescs().add(new ColumnDesc(tn, cn, "adql:DOUBLE", arraysize, false));
+                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("adql:DOUBLE", arraysize, false, null)));
                     else
-                        td.getColumnDescs().add(new ColumnDesc(tn, cn, "double", arraysize, false));
+                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("double", arraysize, false, null)));
                     
                     cn = "c_char" + c;
                     arraysize = null;
                     if (c > 0)
                         arraysize = c;
                     if (tapVersion == 10)
-                        td.getColumnDescs().add(new ColumnDesc(tn, cn, "adql:CHAR", arraysize, false));
+                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("adql:CHAR", arraysize, false, null)));
                     else
-                        td.getColumnDescs().add(new ColumnDesc(tn, cn, "char", arraysize, false));
+                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("char", arraysize, false, null)));
                 }
                 String cn = "c_interval";
                 
-                ColumnDesc ci = new ColumnDesc(tn, cn, "double",2, false);
-                ci.xtype = "interval";
+                ColumnDesc ci = new ColumnDesc(tn, cn, new TapDataType("double",2, false, "interval"));
                 td.getColumnDescs().add(ci);
 
                 cn = "c_polygon";
                 if (tapVersion == 10)
                 {
-                    ColumnDesc cp = new ColumnDesc(tn, cn, "adql:REGION", null, true);
+                    ColumnDesc cp = new ColumnDesc(tn, cn, new TapDataType("adql:REGION", null, true, null));
                     td.getColumnDescs().add(cp);
                 }
                 else
                 {
-                    ColumnDesc cp = new ColumnDesc(tn, cn, "double", null, true);
-                    cp.xtype = "polygon";
+                    ColumnDesc cp = new ColumnDesc(tn, cn, new TapDataType("double", null, true, "polygon"));
                     td.getColumnDescs().add(cp);
                 }
                 sd.getTableDescs().add(td);
@@ -155,7 +153,7 @@ public class TestUtil
         for (int f=0; f<numFunctions; f++)
         {
             String s = "func" + f;
-            FunctionDesc fd = new FunctionDesc(s, null);
+            FunctionDesc fd = new FunctionDesc(s, new TapDataType("double"));
         }
         
         return ret;

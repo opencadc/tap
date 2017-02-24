@@ -75,6 +75,7 @@ import ca.nrc.cadc.tap.schema.KeyColumnDesc;
 import ca.nrc.cadc.tap.schema.KeyDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.xml.W3CConstants;
 import org.apache.log4j.Logger;
@@ -228,25 +229,26 @@ public class TableSet
         addChild(eleColumn, "ucd", cd.ucd);
         addChild(eleColumn, "utype", cd.utype);
 
-        String datatype = cd.getDatatype();
-        String[] parts = datatype.split(":");
+        TapDataType tt = cd.getDatatype();
+        
+        String[] parts = tt.getDatatype().split(":");
         // unprefixed datatype is a VOTable type by default
         if (parts.length == 1 || isVOTableType(parts))
         {
-            Element eleDt = addChild(eleColumn, "dataType", datatype);
+            Element eleDt = addChild(eleColumn, "dataType", tt.getDatatype());
             if (eleDt != null)
             {
                 Attribute attType = new Attribute("type", vod.getPrefix() + ":VOTableType", xsi);
                 eleDt.setAttribute(attType);
                 String asz = "";
-                if (cd.isVarsize())
+                if (cd.getDatatype().varSize)
                     asz = "*";
-                if (cd.getArraysize() != null)
-                    asz = cd.getArraysize() + asz;
+                if (tt.arraysize != null)
+                    asz = tt.arraysize + asz;
                 if (asz.length() > 0)
                     eleDt.setAttribute("arraysize", asz);
-                if (cd.xtype != null)
-                    eleDt.setAttribute("extendedType", cd.xtype);
+                if (tt.xtype != null)
+                    eleDt.setAttribute("extendedType", tt.xtype);
             }
         }
         else if (isTapType(parts)) // backwards compatibility for TAP-1.0
@@ -256,37 +258,10 @@ public class TableSet
             {
                 Attribute attType = new Attribute("type", vod.getPrefix() + ":TAPType", xsi);
                 eleDt.setAttribute(attType);
-                if (cd.getArraysize() != null && cd.getArraysize() > 0)
-                    eleDt.setAttribute("size", cd.getArraysize().toString());
+                if (tt.arraysize != null && tt.arraysize > 0)
+                    eleDt.setAttribute("size", tt.arraysize.toString());
             }
         }
-        /*
-        else if ("interval".equals(datatype)) // deprecated: DALI style handled by VOTableType above
-        {
-            log.warn("DEPRECATED: found old-style column metadata not DALI style: " + cd);
-            Element eleDt = addChild(eleColumn, "dataType", "double");
-            if (eleDt != null)
-            {
-                Attribute attType = new Attribute("type", vod.getPrefix() + ":VOTableType", xsi);
-                eleDt.setAttribute(attType);
-                eleDt.setAttribute("arraysize", "2");
-                eleDt.setAttribute("extendedType", "interval");
-            }
-        }
-        
-        else if ("uuid".equals(datatype)) // deprecated: DALI style handled by VOTableType above
-        {
-            log.warn("DEPRECATED: found old-style column metadata not DALI style: " + cd);
-            Element eleDt = addChild(eleColumn, "dataType", "char");
-            if (eleDt != null)
-            {
-                Attribute attType = new Attribute("type", vod.getPrefix() + ":VOTableType", xsi);
-                eleDt.setAttribute(attType);
-                eleDt.setAttribute("arraysize", "36");
-                eleDt.setAttribute("extendedType", "uuid");
-            }
-        }
-        */
         else // custom type
         {
             log.warn("cannot convert " + cd + " to a legal VODataService column element, skipping");
@@ -294,7 +269,6 @@ public class TableSet
         }
         if (cd.indexed)
             addChild(eleColumn, "flag", "indexed");
-        // TODO: flag=primary for primary keys? 
 
         return eleColumn;
     }

@@ -41,6 +41,10 @@ create table tap_schema_columns
 	datatype      varchar(64)  NOT NULL,
 -- TAP-1.1 arraysize
 	arraysize     integer      NULL,
+-- TAP-1.1 varsize
+        varsize       integer      NULL,
+-- TAP-1.1 xtype
+        xtype         varchar(64)  NULL,
 -- TAP-1.1 size is deprecated
 	size          integer      NULL,
 	principal     integer      NOT NULL,

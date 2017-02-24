@@ -72,7 +72,6 @@ package ca.nrc.cadc.tap.schema;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -82,11 +81,9 @@ import java.util.Map;
  */
 public class TapSchema
 {
-    protected final List<SchemaDesc> schemaDescs = new ArrayList<SchemaDesc>();
-    protected final List<FunctionDesc> functionDescs = new ArrayList<FunctionDesc>();
+    protected final List<SchemaDesc> schemaDescs = new ArrayList<>();
+    protected final List<FunctionDesc> functionDescs = new ArrayList<>();
     
-    protected final Map<String,GroupDesc> groupDescs = new HashMap<String,GroupDesc>();
-
     /**
      * Default no-arg constructor.
      */
@@ -136,11 +133,6 @@ public class TapSchema
         return functionDescs;
     }
 
-    public Map<String,GroupDesc> getGroupDescs()
-    {
-        return groupDescs;
-    }
-    
     /**
      * @return String representation of the TapSchema.
      */
