@@ -169,18 +169,20 @@ public class ResultSetIterator implements Iterator<List<Object>>
             
             // Get the next row.
             hasNext = rs.next();
+            SQLWarning sw = rs.getWarnings();
+            while (sw != null)
+            {
+                log.warn("result set warning: " + sw.getMessage());
+                sw = sw.getNextWarning();
+            }
+            rs.clearWarnings();
+            
             numRows++;
             numRowsBatch++;
             long dt = System.currentTimeMillis() - t1;
-            if (dt > 20l || !hasNext)
+            long newBatchEst = 3l; // ms
+            if (dt > newBatchEst || !hasNext)
             {
-                SQLWarning sw = rs.getWarnings();
-                while (sw != null)
-                {
-                    log.debug("result set warning: " + sw.getMessage());
-                    sw = sw.getNextWarning();
-                }
-                
                 log.debug("get next row: " + dt + "ms " + numRowsBatch + " " + numRows);
                 numRowsBatch = 0l;
             }
