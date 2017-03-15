@@ -7,30 +7,30 @@
 -- delete key columns for keys from tables in the TAP_SCHEMA schema
 delete from TAP_SCHEMA.key_columns where
 key_id in (select key_id from TAP_SCHEMA.keys where 
-    from_table in (select table_name from TAP_SCHEMA.tables where schema_name = 'TAP_SCHEMA')
+    from_table in (select table_name from TAP_SCHEMA.tables where upper(schema_name) = 'TAP_SCHEMA')
     or
-    target_table in (select table_name from TAP_SCHEMA.tables where schema_name = 'TAP_SCHEMA')
+    target_table in (select table_name from TAP_SCHEMA.tables where upper(schema_name) = 'TAP_SCHEMA')
 )
 ;
 
 -- delete keys from tables in the TAP_SCHEMA schema
 delete from TAP_SCHEMA.keys where 
-from_table in (select table_name from TAP_SCHEMA.tables where schema_name = 'TAP_SCHEMA')
+from_table in (select table_name from TAP_SCHEMA.tables where upper(schema_name) = 'TAP_SCHEMA')
 or
-target_table in (select table_name from TAP_SCHEMA.tables where schema_name = 'TAP_SCHEMA')
+target_table in (select table_name from TAP_SCHEMA.tables where upper(schema_name) = 'TAP_SCHEMA')
 ;
 
 -- delete columns from tables in the TAP_SCHEMA schema
 delete from TAP_SCHEMA.columns where table_name in 
-(select table_name from TAP_SCHEMA.tables where schema_name = 'TAP_SCHEMA')
+(select table_name from TAP_SCHEMA.tables where upper(schema_name) = 'TAP_SCHEMA')
 ;
 
 -- delete tables in the caom schema
-delete from TAP_SCHEMA.tables where schema_name = 'TAP_SCHEMA'
+delete from TAP_SCHEMA.tables where upper(schema_name) = 'TAP_SCHEMA'
 ;
 
 -- delete the caom schema
-delete from TAP_SCHEMA.schemas where schema_name = 'TAP_SCHEMA'
+delete from TAP_SCHEMA.schemas where upper(schema_name) = 'TAP_SCHEMA'
 ;
 
 
