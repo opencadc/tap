@@ -89,7 +89,8 @@ public class ResultSetIterator implements Iterator<List<Object>>
     private boolean hasNext;
     private List<Format<Object>> formats;
     private long numRows = 0l;
-    private long numRowsBatch = 0l;
+    private long prevRows = -1l;
+    private long prevTime = -1l;
 
     public ResultSetIterator(ResultSet rs, List<Format<Object>> formats)
     {
@@ -145,15 +146,22 @@ public class ResultSetIterator implements Iterator<List<Object>>
     @Override
     public List<Object> next()
     {
+        if (prevTime < 0l)
+            prevTime = System.currentTimeMillis();
+        if (prevRows < 0l)
+            prevRows = 0l;
+        
         try
         {
             // If no more rows in the ResultSet throw a NoSuchElementException.
             if (!hasNext)
                 throw new NoSuchElementException("No more rows in the ResultSet");
 
-            long t1 = System.currentTimeMillis();
+            // check/clear interrupted flag and throw if necessary
+            if ( Thread.interrupted() )
+                throw new RuntimeException(new InterruptedException());
             
-            List<Object> next = new ArrayList<Object>();
+            List<Object> next = new ArrayList<>();
             Object nextObj = null;
             Format<Object> nextFormat = null;
 
@@ -170,21 +178,28 @@ public class ResultSetIterator implements Iterator<List<Object>>
             // Get the next row.
             hasNext = rs.next();
             numRows++;
-            numRowsBatch++;
-            long dt = System.currentTimeMillis() - t1;
-            if (dt > 20l || !hasNext)
+            SQLWarning sw = rs.getWarnings();
+            while (sw != null)
             {
-                SQLWarning sw = rs.getWarnings();
-                while (sw != null)
-                {
-                    log.debug("result set warning: " + sw.getMessage());
-                    sw = sw.getNextWarning();
-                }
-                
-                log.debug("get next row: " + dt + "ms " + numRowsBatch + " " + numRows);
-                numRowsBatch = 0l;
+                log.warn("result set warning: " + sw.getMessage());
+                sw = sw.getNextWarning();
+            }
+            rs.clearWarnings();
+            
+            // track rate we are able to output rows
+            long t1 = System.currentTimeMillis();
+            long dt = t1 - prevTime;
+            if (dt >= 10000l || !hasNext) // every 10 sec
+            {
+                long dr = numRows - prevRows;
+                double rate = 1000.0 * ((double) dr) / ((double) dt); // rows/sec
+                log.debug("row output: " + dr + " rows in " + dt + "ms = " + rate + " rows/sec " + numRows);
+             
+                prevRows = numRows;
+                prevTime = t1;
             }
 
+            
             return next;
         }
         catch (SQLException e)
