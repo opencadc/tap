@@ -2,6 +2,9 @@ package net.sf.jsqlparser.statement.create.table;
 
 import java.util.List;
 
+import sun.net.www.content.text.PlainTextInputStream;
+
+import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 
 /**

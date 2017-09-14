@@ -32,6 +32,7 @@ public class Function implements Expression {
 	private String name;
 	private ExpressionList parameters;
 	private boolean allColumns = false;
+	private boolean distinct = false;
 	private boolean isEscaped = false;
 	
 	public void accept(ExpressionVisitor expressionVisitor) {
@@ -60,6 +61,18 @@ public class Function implements Expression {
 
 	public void setAllColumns(boolean b) {
 		allColumns = b;
+	}
+
+	/**
+	 * true if the function is "distinct"
+	 * @return true if the function is "distinct"
+	 */
+	public boolean isDistinct() {
+		return distinct;
+	}
+
+	public void setDistinct(boolean b) {
+		distinct = b;
 	}
 
 	/**
@@ -94,7 +107,10 @@ public class Function implements Expression {
     		params = "(*)";
     	}
     	else if(parameters != null) {
-    		params = ""+parameters;
+			params = parameters.toString();
+    		if (isDistinct()) {
+    			params = params.replaceFirst("\\(", "(DISTINCT ");
+    		} 
     	}
     	
     	String ans = name+""+params+"";

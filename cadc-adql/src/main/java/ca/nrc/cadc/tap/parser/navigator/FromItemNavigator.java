@@ -119,8 +119,8 @@ public class FromItemNavigator extends SubNavigator implements FromItemVisitor
         VisitingPart visiting = selectNavigator.getVisitingPart();
         if (visiting.equals(VisitingPart.FROM))
             throw new UnsupportedOperationException("sub-select not supported in FROM clause.");
-        else if (visiting.equals(VisitingPart.SELECT_ITEM))
-            throw new UnsupportedOperationException("sub-select not supported in SELECT ITEM.");
+//        else if (visiting.equals(VisitingPart.SELECT_ITEM))
+//            throw new UnsupportedOperationException("sub-select not supported in SELECT ITEM.");
         else
             subSelect.getSelectBody().accept(selectNavigator);
     }
