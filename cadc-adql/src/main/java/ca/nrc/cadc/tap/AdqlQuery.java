@@ -139,27 +139,24 @@ public class AdqlQuery extends AbstractTapQuery
      */
     protected void init()
     {
-        ExpressionNavigator endef = new ExpressionNavigator();
-        ReferenceNavigator rndef = new ReferenceNavigator();
-        FromItemNavigator fndef = new FromItemNavigator();
-
         // default validator: table and columns in tap_schema, 
         // blobs and clobs in select list only
-        ExpressionNavigator en = new ExpressionValidator(tapSchema);
-        ReferenceNavigator rn = new BlobClobColumnValidator(tapSchema);
-        FromItemNavigator fn = new TapSchemaTableValidator(tapSchema);
-        SelectNavigator sn = new SelectNavigator(en, rn, fn);
+        SelectNavigator sn = new SelectNavigator(new ExpressionValidator(tapSchema),
+                                                 new BlobClobColumnValidator(tapSchema),
+                                                 new TapSchemaTableValidator(tapSchema));
         navigatorList.add(sn);
 
         // convert * to fixed select-list
-        sn = new AllColumnConverter(endef, rndef, fndef, tapSchema);
+        sn = new AllColumnConverter(new ExpressionNavigator(),
+                                    new ReferenceNavigator(),
+                                    new FromItemNavigator(),
+                                    tapSchema);
         navigatorList.add(sn);
 
         // extract select-list
-        en = new SelectListExpressionExtractor(tapSchema);
-        rn = rndef;
-        fn = fndef;
-        sn = new SelectListExtractor(en, rn, fn);
+        sn = new SelectListExtractor(new SelectListExpressionExtractor(tapSchema),
+                                     new ReferenceNavigator(),
+                                     new FromItemNavigator());
         navigatorList.add(sn);
 
         // support for file uploads to map the upload table name to the query table name.
@@ -174,7 +171,7 @@ public class AdqlQuery extends AbstractTapQuery
                 tnc.put(tableDesc.getTableName(), newName);
                 log.debug("TableNameConverter " + tableDesc.getTableName() + " -> " + newName);
             }
-            sn = new SelectNavigator(endef, rndef, tnc);
+            sn = new SelectNavigator(new ExpressionNavigator(), new ReferenceNavigator(), tnc);
             navigatorList.add(sn);
         }
         
