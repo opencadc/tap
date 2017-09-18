@@ -85,7 +85,6 @@ import ca.nrc.cadc.tap.parser.schema.TapSchemaUtil;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.FunctionDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
-import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import org.apache.log4j.Logger;
@@ -174,6 +173,7 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
             else
                 paramDesc = new TapSelectItem(expression.toString(), datatype);
         }
+        log.warn("select item: " + paramDesc.getColumnName() + " " + paramDesc.getDatatype());
         selectList.add(paramDesc);
     }
 
@@ -200,7 +200,10 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
     private FunctionDesc getFunctionDesc(Function function, PlainSelect plainSelect)
     {
         FunctionDesc functionDesc = TapSchemaUtil.findFunctionDesc(tapSchema, function);
-        //if (functionDesc.datatype.equals(TapSchemaDAO.ARGUMENT_DATATYPE))
+        log.warn("getFunctionDesc: " + function.getName() + " -> " + functionDesc);
+        if (functionDesc == null)
+            throw new UnsupportedOperationException("invalid function: " + function.getName());
+
         if ( TapDataType.FUNCTION_ARG.equals(functionDesc.getDatatype()) )
         {
             TapDataType datatype = null;
@@ -248,13 +251,14 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
                 }
             }
         }
+        log.warn("getFunctionDesc: " + function.getName() + " -> " + functionDesc);
         return functionDesc;
     }
 
     private TapDataType getDatatypeFromExpression(Expression expression)
     {
-        // string
-        return new TapDataType("char", null, true, null);
+        // TODO: could check constant types instead iof lazy string
+        return new TapDataType("char", "*", null);
     }
     
 }

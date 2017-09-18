@@ -425,11 +425,15 @@ public class TapSchemaUtil
      */
     public static FunctionDesc findFunctionDesc(TapSchema tapSchema, Function function)
     {
-        if (function == null || function.getName() == null || function.getName().isEmpty())
+        if (function == null || function.getName() == null)
             return null;
 
         for (FunctionDesc functionDesc : tapSchema.getFunctionDescs())
-            return functionDesc;
+        {
+            log.warn("check: " + function.getName() + " vs " + functionDesc.getName());
+            if (function.getName().equalsIgnoreCase(functionDesc.getName()))
+                return functionDesc;
+        }
         return null;
     }
     

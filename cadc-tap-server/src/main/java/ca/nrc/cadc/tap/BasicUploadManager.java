@@ -517,7 +517,7 @@ public abstract class BasicUploadManager implements UploadManager
                 {
                     case Types.TIMESTAMP:
                         Date date = (Date) value;
-                        ps.setTimestamp(i, new Timestamp(date.getTime()));
+                        ps.setTimestamp(i, new Timestamp(date.getTime())); // UTC
                         break;
                     default:
                         ps.setObject(i, value, sqlType);
@@ -550,7 +550,7 @@ public abstract class BasicUploadManager implements UploadManager
     protected Object getPolygonObject(Polygon poly)
         throws SQLException
     {
-        throw new UnsupportedOperationException("cannot convert STC-S Region -> internal database type");
+        throw new UnsupportedOperationException("cannot convert DALI polygon -> internal database type");
     }
     
     /**

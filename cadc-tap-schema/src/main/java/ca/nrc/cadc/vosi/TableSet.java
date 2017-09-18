@@ -240,13 +240,8 @@ public class TableSet
             {
                 Attribute attType = new Attribute("type", vod.getPrefix() + ":VOTableType", xsi);
                 eleDt.setAttribute(attType);
-                String asz = "";
-                if (cd.getDatatype().varSize)
-                    asz = "*";
                 if (tt.arraysize != null)
-                    asz = tt.arraysize + asz;
-                if (asz.length() > 0)
-                    eleDt.setAttribute("arraysize", asz);
+                    eleDt.setAttribute("arraysize", tt.arraysize);
                 if (tt.xtype != null)
                     eleDt.setAttribute("extendedType", tt.xtype);
             }
@@ -258,8 +253,8 @@ public class TableSet
             {
                 Attribute attType = new Attribute("type", vod.getPrefix() + ":TAPType", xsi);
                 eleDt.setAttribute(attType);
-                if (tt.arraysize != null && tt.arraysize > 0)
-                    eleDt.setAttribute("size", tt.arraysize.toString());
+                if (tt.arraysize != null && !tt.isVarSize()) // assume single digit
+                    eleDt.setAttribute("size", tt.arraysize);
             }
         }
         else // custom type

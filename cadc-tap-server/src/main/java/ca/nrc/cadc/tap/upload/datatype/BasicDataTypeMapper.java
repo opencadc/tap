@@ -68,6 +68,7 @@
 package ca.nrc.cadc.tap.upload.datatype;
 
 
+import ca.nrc.cadc.dali.tables.votable.VOTableUtil;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
 import java.sql.Types;
@@ -139,19 +140,22 @@ public class BasicDataTypeMapper implements DatabaseDataType
     {
         TapDataType tt = columnDesc.getDatatype();
         TypePair dbt = findTypePair(tt);
+        if (dbt == null)
+            throw new UnsupportedOperationException("unsupported database column type: " + tt);
         
         String ret = dbt.str;
         if (ret.equals("CHAR"))
         {
-            if (tt.varSize)
+            if (tt.isVarSize())
                 ret = "VARCHAR";
-            if (tt.arraysize != null)
-            	ret += "(" + tt.arraysize + ")";
-            else if (tt.varSize)
+            int[] arrayshape = VOTableUtil.getArrayShape(tt.arraysize);
+            if (arrayshape != null && arrayshape[0] > 0)
+                    ret += "(" + arrayshape[0] + ")";
+            else if (tt.isVarSize())
+            {
                 ret += "(4096)"; // HACK: arbitrary sensible limit
+            }
         }
-        else if (tt.arraysize != null)
-            throw new UnsupportedOperationException("unsupported database column type: " + tt);
         
         log.warn("getDataType (return): " + columnDesc + " -> " + ret);
         return ret;
@@ -182,8 +186,7 @@ public class BasicDataTypeMapper implements DatabaseDataType
     protected TypePair findTypePair(TapDataType tt)
     {
         TypePair dbt = dataTypes.get(tt);
-        if (dbt == null  // tt could be array and/or variable sized
-            && (tt.varSize != null && tt.varSize || tt.arraysize != null && tt.arraysize > 1))
+        if (dbt == null && tt.arraysize != null)
         {
             TapDataType tmp = new TapDataType(tt.getDatatype()); // primitive
             dbt = dataTypes.get(tmp);

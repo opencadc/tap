@@ -189,7 +189,7 @@ public class SelectListExpressionExtractorTest
         try
         {
             List<TapSelectItem> selectList = new ArrayList<>();
-            selectList.add(new TapSelectItem("param one", new TapDataType("char", null, true, null)));
+            selectList.add(new TapSelectItem("param one", new TapDataType("char", "*", null)));
             extractor.setSelectList(selectList);
 
             List<TapSelectItem> returnedList = extractor.getSelectList();

@@ -435,7 +435,8 @@ public class DefaultTableWriter implements TableWriter
                         log.debug("resourceIdentifier=" + resourceIdentifier + ", standardID=" + standardID + ", authMethod=" + cur);
                         URL accessURL = regClient.getServiceURL(resourceIdentifier, standardID, cur);
                         String surl = accessURL.toExternalForm();
-                        VOTableParam accessParam = new VOTableParam("accessURL", "char", surl.length(), false, surl);
+                        String arraysize = Integer.toString(surl.length()); // fixed length since we know it
+                        VOTableParam accessParam = new VOTableParam("accessURL", "char", arraysize);
                         metaResource.getParams().add(accessParam);
                     }
                 }
@@ -452,8 +453,7 @@ public class DefaultTableWriter implements TableWriter
         if (resultCol != null)
         {
             TapDataType tt = resultCol.getDatatype();
-            VOTableField newField = new VOTableField(resultCol.getName(),
-                    tt.getDatatype(), tt.arraysize, tt.varSize, null);
+            VOTableField newField = new VOTableField(resultCol.getName(),tt.getDatatype(), tt.arraysize, null);
             newField.xtype = tt.xtype;
             newField.description = resultCol.description;
             newField.id = resultCol.id;

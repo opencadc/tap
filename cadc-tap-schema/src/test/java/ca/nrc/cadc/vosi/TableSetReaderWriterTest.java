@@ -270,11 +270,11 @@ public class TableSetReaderWriterTest
                     TapDataType adt = acd.getDatatype();
                     Assert.assertEquals(edt.getDatatype(), adt.getDatatype());
                     
-                    Integer expArraySize = edt.arraysize;
-                    if (edt.arraysize == null && !edt.varSize && ver >= 11)
-                        expArraySize = 1; // VODatasService XSD default value for VOtableType
+                    String expArraySize = edt.arraysize;
+                    if (edt.arraysize == null && !edt.isVarSize() && ver >= 11)
+                        expArraySize = "1"; // VODataService XSD default value for VOtableType
                     Assert.assertEquals(ecd.getColumnName(), expArraySize, adt.arraysize);
-                    Assert.assertEquals(ecd.getColumnName(), edt.varSize, adt.varSize);
+                    Assert.assertEquals(ecd.getColumnName(), edt.isVarSize(), adt.isVarSize());
                     Assert.assertEquals(ecd.getColumnName(), edt.xtype, adt.xtype);
                 }
             }

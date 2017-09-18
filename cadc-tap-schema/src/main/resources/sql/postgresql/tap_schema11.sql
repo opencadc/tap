@@ -43,13 +43,11 @@ create table tap_schema.columns11
 	description   varchar(512),
 	datatype      varchar(64)  NOT NULL,
 -- TAP-1.1 arraysize
-	arraysize     integer,
--- TAP-1.1 varsize
-        varsize       boolean,
+	arraysize     varchar(16),
 -- TAP-1.1 xtype
         xtype         varchar(64),
 -- TAP-1.1 size is deprecated
-	size          integer,
+	"size"          integer,
 	principal     integer      NOT NULL,
 	indexed       integer      NOT NULL,
 	std           integer      NOT NULL,

@@ -138,36 +138,30 @@ public class TableReader extends TableSetParser
             String dtt = dte.getAttributeValue("type", xsi);
             String dtv = dte.getTextTrim();
             String xtype = dte.getAttributeValue("extendedType");
-            
-            Integer arraysize = null;
-            boolean varsize = false;
+            log.warn(cn + ": " + dtt + " " + dtv + " " + xtype);
+            String arraysize = null;
             if (TAP_TYPE.equals(dtt))
             {
-                if (dtv.startsWith("VAR") || dtv.equalsIgnoreCase("REGION"))
-                    varsize = true;
                 dtv = "adql:" + dtv;
-                String as = dte.getAttributeValue("size");
-                if (as != null)
-                    arraysize = new Integer(as);
+                String sz = dte.getAttributeValue("size");
+                if (sz != null)
+                    arraysize = sz;
+                if (dtv.startsWith("adql:VAR"))
+                {
+                    if (arraysize == null)
+                        arraysize = "*";
+                    else
+                        arraysize += "*";
+                }
+                else if (dtv.equalsIgnoreCase("adql:REGION"))
+                    arraysize = "*";
             }
             else if (VOT_TYPE.equals(dtt))
             {
-                
-                String as = dte.getAttributeValue("arraysize");
-                String ss = as;
-                int star = as.indexOf('*');
-                log.warn(cn + ": " + dtv + " " + as +  " " + xtype + " " + star);
-                if (star > -1)
-                {
-                    varsize = true;
-                    ss = as.substring(0, star);
-                }
-                if (ss.length() > 0)
-                    arraysize = new Integer(ss);
-                log.warn(cn + ": " + dtv + " " + as +  " " + star + " -> " + ss + " -> " + arraysize + " " + varsize);
+                arraysize = dte.getAttributeValue("arraysize");
             }
             
-            TapDataType tt = new TapDataType(dtv, arraysize, varsize, xtype);
+            TapDataType tt = new TapDataType(dtv, arraysize, xtype);
             ColumnDesc cd = new ColumnDesc(tn, cn, tt);
             td.getColumnDescs().add(cd);
         }

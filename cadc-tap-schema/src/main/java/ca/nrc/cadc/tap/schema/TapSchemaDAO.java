@@ -108,7 +108,7 @@ public class TapSchemaDAO
     protected String orderTablesClause = " ORDER BY schema_name,table_index,table_name";
 
     // SQL to select all rows from TAP_SCHEMA.colums.
-    protected String SELECT_COLUMNS_COLS = "table_name, column_name, description, utype, ucd, unit, datatype, arraysize, varsize, xtype, principal, indexed, std, id";
+    protected String SELECT_COLUMNS_COLS = "table_name, column_name, description, utype, ucd, unit, datatype, arraysize, xtype, principal, indexed, std, id";
     protected String orderColumnsClause = " ORDER BY table_name,column_index,column_name";
     
     // SQL to select all rows from TAP_SCHEMA.keys.
@@ -611,16 +611,16 @@ public class TapSchemaDAO
         List<FunctionDesc> functionDescs = new ArrayList<FunctionDesc>();
 
         // ADQL functions.
-        functionDescs.add(new FunctionDesc("AREA", new TapDataType("double", 1, false, null), "deg**2"));
+        functionDescs.add(new FunctionDesc("AREA", TapDataType.DOUBLE, "deg**2"));
         //functionDescs.add(new FunctionDesc("BOX", new TapDataType("adql:REGION", null, null, null)));
         functionDescs.add(new FunctionDesc("CENTROID", TapDataType.POINT));
         functionDescs.add(new FunctionDesc("CIRCLE", TapDataType.CIRCLE));
-        functionDescs.add(new FunctionDesc("CONTAINS", new TapDataType("int", 1, false, null)));
-        functionDescs.add(new FunctionDesc("COORD1", new TapDataType("double", 1, false, null), "deg"));
-        functionDescs.add(new FunctionDesc("COORD2", new TapDataType("double", 1, false, null), "deg"));
-        functionDescs.add(new FunctionDesc("COORDSYS", new TapDataType("char", null, true, null)));
-        functionDescs.add(new FunctionDesc("DISTANCE", new TapDataType("double", 1, false, null), "deg"));
-        functionDescs.add(new FunctionDesc("INTERSECTS", new TapDataType("int", 1, false, null)));
+        functionDescs.add(new FunctionDesc("CONTAINS", TapDataType.INTEGER));
+        functionDescs.add(new FunctionDesc("COORD1", TapDataType.DOUBLE, "deg"));
+        functionDescs.add(new FunctionDesc("COORD2", TapDataType.DOUBLE, "deg"));
+        functionDescs.add(new FunctionDesc("COORDSYS", new TapDataType("char", "16*", null)));
+        functionDescs.add(new FunctionDesc("DISTANCE", TapDataType.DOUBLE, "deg"));
+        functionDescs.add(new FunctionDesc("INTERSECTS", TapDataType.INTEGER));
         functionDescs.add(new FunctionDesc("INTERVAL", TapDataType.INTERVAL));
         functionDescs.add(new FunctionDesc("POINT", TapDataType.POINT));
         functionDescs.add(new FunctionDesc("POLYGON", TapDataType.POLYGON));
@@ -628,19 +628,19 @@ public class TapSchemaDAO
 
         // ADQL reserved keywords that are functions.
         functionDescs.add(new FunctionDesc("ABS", TapDataType.FUNCTION_ARG));
-        functionDescs.add(new FunctionDesc("ACOS", new TapDataType("double", 1, false, null), "radians"));
-        functionDescs.add(new FunctionDesc("ASIN", new TapDataType("double", 1, false, null), "radians"));
-        functionDescs.add(new FunctionDesc("ATAN", new TapDataType("double", 1, false, null), "radians"));
-        functionDescs.add(new FunctionDesc("ATAN2", new TapDataType("double", 1, false, null), "radians"));
+        functionDescs.add(new FunctionDesc("ACOS", TapDataType.DOUBLE, "radians"));
+        functionDescs.add(new FunctionDesc("ASIN", TapDataType.DOUBLE, "radians"));
+        functionDescs.add(new FunctionDesc("ATAN", TapDataType.DOUBLE, "radians"));
+        functionDescs.add(new FunctionDesc("ATAN2", TapDataType.DOUBLE, "radians"));
         functionDescs.add(new FunctionDesc("CEILING", TapDataType.FUNCTION_ARG));
-        functionDescs.add(new FunctionDesc("COS", new TapDataType("double", 1, false, null), "radians"));
-        functionDescs.add(new FunctionDesc("COT", new TapDataType("double", 1, false, null), "radians"));
-        functionDescs.add(new FunctionDesc("DEGREES", new TapDataType("double", 1, false, null), "deg"));
-        functionDescs.add(new FunctionDesc("EXP", new TapDataType("double", 1, false, null)));
+        functionDescs.add(new FunctionDesc("COS", TapDataType.DOUBLE, "radians"));
+        functionDescs.add(new FunctionDesc("COT", TapDataType.DOUBLE, "radians"));
+        functionDescs.add(new FunctionDesc("DEGREES", TapDataType.DOUBLE, "deg"));
+        functionDescs.add(new FunctionDesc("EXP", TapDataType.DOUBLE));
         functionDescs.add(new FunctionDesc("FLOOR", TapDataType.FUNCTION_ARG));
-        functionDescs.add(new FunctionDesc("LN", new TapDataType("double", 1, false, null)));
-        functionDescs.add(new FunctionDesc("LOG", new TapDataType("double", 1, false, null)));
-        functionDescs.add(new FunctionDesc("LOG10", new TapDataType("double", 1, false, null)));
+        functionDescs.add(new FunctionDesc("LN", TapDataType.DOUBLE));
+        functionDescs.add(new FunctionDesc("LOG", TapDataType.DOUBLE));
+        functionDescs.add(new FunctionDesc("LOG10", TapDataType.DOUBLE));
         functionDescs.add(new FunctionDesc("MOD", TapDataType.FUNCTION_ARG));
         /*
          * Part of the ADQL BNF, but currently not parseable pending bug
@@ -649,7 +649,7 @@ public class TapSchemaDAO
          * functionDescs.add(new FunctionDesc("PI", "", "adql:DOUBLE"));
          */
         functionDescs.add(new FunctionDesc("POWER", TapDataType.FUNCTION_ARG));
-        functionDescs.add(new FunctionDesc("RADIANS", new TapDataType("double", 1, false, null), "radians"));
+        functionDescs.add(new FunctionDesc("RADIANS", TapDataType.DOUBLE, "radians"));
         /*
          * Part of the ADQL BNF, but currently not parseable pending bug
          * fix in the jsqlparser.
@@ -657,9 +657,9 @@ public class TapSchemaDAO
          * functionDescs.add(new FunctionDesc("RAND", "", "adql:DOUBLE"));
          */
         functionDescs.add(new FunctionDesc("ROUND", TapDataType.FUNCTION_ARG));
-        functionDescs.add(new FunctionDesc("SIN", new TapDataType("double", 1, false, null), "radians"));
+        functionDescs.add(new FunctionDesc("SIN", TapDataType.DOUBLE, "radians"));
         functionDescs.add(new FunctionDesc("SQRT", TapDataType.FUNCTION_ARG));
-        functionDescs.add(new FunctionDesc("TAN", new TapDataType("double", 1, false, null), "radians"));
+        functionDescs.add(new FunctionDesc("TAN", TapDataType.DOUBLE, "radians"));
         /*
          * Part of the ADQL BNF, but currently not parseable.
          *
@@ -667,13 +667,13 @@ public class TapSchemaDAO
          */
 
         // SQL Aggregate functions.
-        functionDescs.add(new FunctionDesc("AVG", new TapDataType("double", 1, false, null)));
-        functionDescs.add(new FunctionDesc("COUNT", new TapDataType("long", 1, false, null)));
+        functionDescs.add(new FunctionDesc("AVG", TapDataType.DOUBLE));
+        functionDescs.add(new FunctionDesc("COUNT", new TapDataType("long", null, null)));
         functionDescs.add(new FunctionDesc("MAX", TapDataType.FUNCTION_ARG));
         functionDescs.add(new FunctionDesc("MIN", TapDataType.FUNCTION_ARG));
-        functionDescs.add(new FunctionDesc("STDDEV", new TapDataType("double", 1, false, null)));
+        functionDescs.add(new FunctionDesc("STDDEV", TapDataType.DOUBLE));
         functionDescs.add(new FunctionDesc("SUM", TapDataType.FUNCTION_ARG));
-        functionDescs.add(new FunctionDesc("VARIANCE", new TapDataType("double", 1, false, null)));
+        functionDescs.add(new FunctionDesc("VARIANCE", TapDataType.DOUBLE));
         
         // SQL String functions.
 //        functionDescs.add(new FunctionDesc("BIT_LENGTH", "", "adql:INTEGER"));
@@ -743,21 +743,12 @@ public class TapSchemaDAO
             String tn = rs.getString("table_name");
             String cn = rs.getString("column_name");      
             String dt = rs.getString("datatype");
-            
-            // work around: some JDBC drivers convert NULL -> 0
-            Object o = rs.getObject("arraysize");
-            Integer as = null;
-            if (o != null && o instanceof Number)
-                as = new Integer( ((Number) o).intValue() );
-            
-            boolean vsz = rs.getBoolean("varsize");
-            //boolean vsz = intToBoolean(rs.getInt("varsize"));
-            
+            String as = rs.getString("arraysize");
             String xt = rs.getString("xtype");
             
             log.debug("ColumnMapper: " + tn + "," + cn + "," + dt + "," + as + "," + xt);
             
-            TapDataType datatype = new TapDataType(dt, as, vsz, xt);
+            TapDataType datatype = new TapDataType(dt, as, xt);
             ColumnDesc col = new ColumnDesc(tn, cn, datatype);
             
             col.description = rs.getString("description");

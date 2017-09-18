@@ -99,7 +99,7 @@ public class BasicUploadManagerTest
 
     static
     {
-        Log4jInit.setLevel("ca.nrc.cadc.tap", org.apache.log4j.Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.tap", org.apache.log4j.Level.INFO);
         Log4jInit.setLevel("ca.nrc.cadc.tap.upload", org.apache.log4j.Level.INFO);
     }
     
@@ -148,16 +148,6 @@ public class BasicUploadManagerTest
 
         date = DateUtil.flexToDate("2011-01-01T00:00:00.000", DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC));
     }
-
-    @AfterClass
-    public static void tearDownClass()
-        throws Exception { }
-
-    @Before
-    public void setUp() { }
-
-    @After
-    public void tearDown() { }
 
     @Test
     public void testUploadNoOp()

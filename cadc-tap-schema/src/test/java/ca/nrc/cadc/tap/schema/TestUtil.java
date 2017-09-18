@@ -102,46 +102,42 @@ public class TestUtil
                 {
                     
                     String cn = "c_int" + c;
-                    Integer arraysize = null;
+                    String asz = null;
                     if (c > 0)
-                        arraysize = c;
+                        asz = Integer.toString(c);
                     if (tapVersion == 10)
-                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("adql:INTEGER", arraysize, false, null)));
+                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("adql:INTEGER", asz, null)));
                     else
-                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("int", arraysize, false, null)));
+                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("int", asz, null)));
                     
                     cn = "c_double" + c;
-                    arraysize = null;
-                    if (c > 0)
-                        arraysize = c;
+                    asz = null;
                     if (tapVersion == 10)
-                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("adql:DOUBLE", arraysize, false, null)));
+                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("adql:DOUBLE", asz, null)));
                     else
-                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("double", arraysize, false, null)));
+                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("double", asz, null)));
                     
                     cn = "c_char" + c;
-                    arraysize = null;
-                    if (c > 0)
-                        arraysize = c;
+                    asz = null;
                     if (tapVersion == 10)
-                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("adql:CHAR", arraysize, false, null)));
+                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("adql:CHAR", asz, null)));
                     else
-                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("char", arraysize, false, null)));
+                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("char", asz, null)));
                 }
                 String cn = "c_interval";
                 
-                ColumnDesc ci = new ColumnDesc(tn, cn, new TapDataType("double",2, false, "interval"));
+                ColumnDesc ci = new ColumnDesc(tn, cn, new TapDataType("double", "2", "interval"));
                 td.getColumnDescs().add(ci);
 
                 cn = "c_polygon";
                 if (tapVersion == 10)
                 {
-                    ColumnDesc cp = new ColumnDesc(tn, cn, new TapDataType("adql:REGION", null, true, null));
+                    ColumnDesc cp = new ColumnDesc(tn, cn, new TapDataType("adql:REGION", "*", null));
                     td.getColumnDescs().add(cp);
                 }
                 else
                 {
-                    ColumnDesc cp = new ColumnDesc(tn, cn, new TapDataType("double", null, true, "polygon"));
+                    ColumnDesc cp = new ColumnDesc(tn, cn, new TapDataType("double", "*", "polygon"));
                     td.getColumnDescs().add(cp);
                 }
                 sd.getTableDescs().add(td);

@@ -164,33 +164,36 @@ public class DefaultFormatFactory implements FormatFactory
         
         if (datatype.equalsIgnoreCase("char"))
             return getStringFormat(item);
+        
+        if (datatype.equalsIgnoreCase("unicodeChar"))
+            return getStringFormat(item);
               
         if (datatype.equalsIgnoreCase("short"))
-            if (tt.arraysize != null && tt.arraysize > 1)
+            if (tt.arraysize != null)
                 return getShortArrayFormat(item);
             else
                 return getShortFormat(item);
         
         if (datatype.equalsIgnoreCase("int"))
-            if (tt.arraysize != null && tt.arraysize > 1)
+            if (tt.arraysize != null)
                 return getIntArrayFormat(item);
             else
                 return getIntegerFormat(item);
 
         if (datatype.equalsIgnoreCase("long"))
-            if (tt.arraysize != null && tt.arraysize > 1)
+            if (tt.arraysize != null)
                 return getLongArrayFormat(item);
             else
                 return getLongFormat(item);
 
         if (datatype.equalsIgnoreCase("float"))
-            if (tt.arraysize != null && tt.arraysize > 1)
+            if (tt.arraysize != null)
                 return getFloatArrayFormat(item);
             else
                 return getRealFormat(item);
 
         if (datatype.equalsIgnoreCase("double"))
-            if (tt.arraysize != null && tt.arraysize > 1)
+            if (tt.arraysize != null)
                 return getDoubleArrayFormat(item);
             else
                 return getDoubleFormat(item);

@@ -27,7 +27,7 @@ dependencies {
     compile 'org.opencadc:cadc-log:1.+'
     compile 'org.opencadc:cadc-tap-schema:[1.1,)'
     compile 'org.opencadc:cadc-vosi:1.+'
-    compile 'org.opencadc:cadc-dali:1.+'
+    compile 'org.opencadc:cadc-dali:[1.1,)'
     compile 'org.opencadc:cadc-registry:1.+'
     compile 'org.opencadc:cadc-uws:1.+'
     compile 'org.opencadc:cadc-uws-server:1.+'

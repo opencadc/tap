@@ -89,7 +89,7 @@ public class TapSchemaUtil
      */
     public static ColumnDesc convert(String tableName, VOTableField field)
     {
-        TapDataType dt = new TapDataType(field.getDatatype(), field.getArraysize(), field.isVariableSize(), field.xtype);
+        TapDataType dt = new TapDataType(field.getDatatype(), field.getArraysize(), field.xtype);
         ColumnDesc ret = new ColumnDesc(tableName, field.getName(), dt);
         ret.description = field.description;
         ret.id = field.id;

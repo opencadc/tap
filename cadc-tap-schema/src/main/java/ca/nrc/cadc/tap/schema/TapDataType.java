@@ -68,10 +68,12 @@
 package ca.nrc.cadc.tap.schema;
 
 
+import ca.nrc.cadc.dali.tables.votable.VOTableField;
 import org.apache.log4j.Logger;
 
 /**
- *
+ * TAP data type descriptor.
+ * 
  * @author pdowler
  */
 public class TapDataType 
@@ -79,22 +81,19 @@ public class TapDataType
     private static final Logger log = Logger.getLogger(TapDataType.class);
 
     private String datatype;
-    public Integer arraysize;
-    public Boolean varSize;
+    public String arraysize;
     public String xtype;
     
     public TapDataType(String datatype) 
     {
         TapSchema.assertNotNull(TapDataType.class, "datatype", datatype);
         this.datatype = datatype;
-        this.varSize = false;
     }
     
-    public TapDataType(String datatype, Integer arraysize, Boolean varSize, String xtype)
+    public TapDataType(String datatype, String arraysize, String xtype)
     {
         this(datatype);
         this.arraysize = arraysize;
-        this.varSize = varSize;
         this.xtype = xtype;
     }
 
@@ -103,13 +102,17 @@ public class TapDataType
         return datatype;
     }
     
+    public boolean isVarSize()
+    {
+        return (arraysize != null && arraysize.indexOf('*') >= 0);
+    }
+    
     @Override
     public String toString()
     {
         StringBuilder sb = new StringBuilder();
         sb.append("TapDataType[").append(datatype).append(",");
         sb.append(arraysize).append(",");
-        sb.append(varSize).append(",");
         sb.append(xtype).append("]");
         return sb.toString();
     }
@@ -132,7 +135,7 @@ public class TapDataType
     
     
     
-    public static final TapDataType FUNCTION_ARG = new TapDataType("function-arg", null, null, null);
+    public static final TapDataType FUNCTION_ARG = new TapDataType("function-arg", null, null);
     
     // VOTable primitive types
     public static final TapDataType SHORT = new TapDataType("short");
@@ -143,13 +146,13 @@ public class TapDataType
     public static final TapDataType CHAR = new TapDataType("char");
     
     // DALI types
-    public static final TapDataType TIMESTAMP = new TapDataType("char", null, true, "timestamp");
-    public static final TapDataType INTERVAL = new TapDataType("double", 2, false, "interval");
-    public static final TapDataType POINT = new TapDataType("double", 2, false, "point");
-    public static final TapDataType CIRCLE = new TapDataType("double", 3, false, "circle");
-    public static final TapDataType POLYGON = new TapDataType("double", null, true, "polygon");
+    public static final TapDataType TIMESTAMP = new TapDataType("char", "*", "timestamp");
+    public static final TapDataType INTERVAL = new TapDataType("double", "2", "interval");
+    public static final TapDataType POINT = new TapDataType("double", "2", "point");
+    public static final TapDataType CIRCLE = new TapDataType("double", "3", "circle");
+    public static final TapDataType POLYGON = new TapDataType("double", "*", "polygon");
     
     // ADQL types
-    public static final TapDataType BLOB = new TapDataType("byte", null, true, "blob");
-    public static final TapDataType CLOB = new TapDataType("char", null, true, "clob");
+    public static final TapDataType BLOB = new TapDataType("byte", "*", "blob");
+    public static final TapDataType CLOB = new TapDataType("char", "*", "clob");
 }
