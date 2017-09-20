@@ -155,36 +155,7 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
         {
             SubSelect subSelect = (SubSelect) selectExpression;
             log.debug("visit(subSelect) " + subSelect);
-
             subSelect.getSelectBody().accept(this.getSelectNavigator());
-
-//            PlainSelect ps = (PlainSelect) subSelect.getSelectBody();
-//            List<SelectExpressionItem> expressionItems = ps.getSelectItems();
-//            SelectExpressionItem sei = expressionItems.get(0);
-//            Expression subSelectExpression = sei.getExpression();
-//            if (subSelectExpression instanceof Function)
-//            {
-//                Function function = (Function) subSelectExpression;
-//                FunctionDesc functionDesc = getFunctionDesc(function, ps);
-//                log.debug("visit(function) " + function + " fiund: " + functionDesc);
-//                paramDesc = new ParamDesc(functionDesc, subSelect.getAlias());
-//                paramDesc.columnDesc = functionDesc.arg;
-//            }
-//            else if (subSelectExpression instanceof Column)
-//            {
-//                Column column = (Column) subSelectExpression;
-//                ColumnDesc columnDesc = TapSchemaUtil.findColumnDesc(tapSchema, ps, column);
-//                log.debug("visit(column) " + column + "found: " + columnDesc);
-//                paramDesc = new ParamDesc(columnDesc, subSelect.getAlias());
-//            }
-//            else
-//            {
-//                String datatype = getDatatypeFromExpression(subSelectExpression);
-//                if (alias == null || alias.isEmpty())
-//                    paramDesc = new ParamDesc(subSelectExpression.toString(), subSelectExpression.toString(), datatype);
-//                else
-//                    paramDesc = new ParamDesc(subSelectExpression.toString(), alias, datatype);
-//            }
         }
         else
         {
