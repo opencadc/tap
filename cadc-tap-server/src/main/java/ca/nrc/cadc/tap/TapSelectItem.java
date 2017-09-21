@@ -153,4 +153,12 @@ public class TapSelectItem
         this.name = name;
         this.datatype = datatype;
     }
+
+    @Override
+    public String toString()
+    {
+        return "TapSelectItem[" + name + "," + datatype + "]";
+    }
+    
+    
 }

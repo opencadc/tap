@@ -68,7 +68,6 @@
 package ca.nrc.cadc.tap.schema;
 
 
-import ca.nrc.cadc.dali.tables.votable.VOTableField;
 import org.apache.log4j.Logger;
 
 /**

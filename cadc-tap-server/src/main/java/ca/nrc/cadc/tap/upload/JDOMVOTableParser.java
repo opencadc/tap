@@ -150,7 +150,7 @@ public class JDOMVOTableParser implements VOTableParser
                 }
                 ColumnDesc columnDesc = TapSchemaUtil.convert(tableName, f);
                 
-                log.warn("ColumnDesc: " + f + " -> " + columnDesc);
+                log.debug("ColumnDesc: " + f + " -> " + columnDesc);
                 
                 tableDesc.getColumnDescs().add(columnDesc);
             }

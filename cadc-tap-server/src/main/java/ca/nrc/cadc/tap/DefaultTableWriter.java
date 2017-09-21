@@ -453,7 +453,7 @@ public class DefaultTableWriter implements TableWriter
         if (resultCol != null)
         {
             TapDataType tt = resultCol.getDatatype();
-            VOTableField newField = new VOTableField(resultCol.getName(),tt.getDatatype(), tt.arraysize, null);
+            VOTableField newField = new VOTableField(resultCol.getName(),tt.getDatatype(), tt.arraysize);
             newField.xtype = tt.xtype;
             newField.description = resultCol.description;
             newField.id = resultCol.id;

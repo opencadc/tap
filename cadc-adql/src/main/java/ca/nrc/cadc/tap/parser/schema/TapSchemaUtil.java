@@ -430,7 +430,7 @@ public class TapSchemaUtil
 
         for (FunctionDesc functionDesc : tapSchema.getFunctionDescs())
         {
-            log.warn("check: " + function.getName() + " vs " + functionDesc.getName());
+            log.debug("check: " + function.getName() + " vs " + functionDesc.getName());
             if (function.getName().equalsIgnoreCase(functionDesc.getName()))
                 return functionDesc;
         }

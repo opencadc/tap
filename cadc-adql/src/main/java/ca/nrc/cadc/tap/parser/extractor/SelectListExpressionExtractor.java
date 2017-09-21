@@ -173,7 +173,7 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
             else
                 paramDesc = new TapSelectItem(expression.toString(), datatype);
         }
-        log.warn("select item: " + paramDesc.getColumnName() + " " + paramDesc.getDatatype());
+        log.debug("select item: " + paramDesc.getColumnName() + " " + paramDesc.getDatatype());
         selectList.add(paramDesc);
     }
 
@@ -200,7 +200,7 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
     private FunctionDesc getFunctionDesc(Function function, PlainSelect plainSelect)
     {
         FunctionDesc functionDesc = TapSchemaUtil.findFunctionDesc(tapSchema, function);
-        log.warn("getFunctionDesc: " + function.getName() + " -> " + functionDesc);
+        log.debug("getFunctionDesc: " + function.getName() + " -> " + functionDesc);
         if (functionDesc == null)
             throw new UnsupportedOperationException("invalid function: " + function.getName());
 
@@ -251,7 +251,7 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
                 }
             }
         }
-        log.warn("getFunctionDesc: " + function.getName() + " -> " + functionDesc);
+        log.debug("getFunctionDesc: " + function.getName() + " -> " + functionDesc);
         return functionDesc;
     }
 

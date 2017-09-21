@@ -157,7 +157,7 @@ public class BasicDataTypeMapper implements DatabaseDataType
             }
         }
         
-        log.warn("getDataType (return): " + columnDesc + " -> " + ret);
+        log.debug("getDataType (return): " + columnDesc + " -> " + ret);
         return ret;
     }
 
@@ -194,7 +194,7 @@ public class BasicDataTypeMapper implements DatabaseDataType
         if (dbt == null)
             throw new UnsupportedOperationException("unexpected datatype: " + tt);
         
-        log.warn("findTypePair: " + tt + " -> " + dbt);
+        log.debug("findTypePair: " + tt + " -> " + dbt);
         return dbt;
     }
 }
