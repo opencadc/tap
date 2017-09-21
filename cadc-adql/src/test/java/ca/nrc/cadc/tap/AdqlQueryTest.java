@@ -114,7 +114,7 @@ public class AdqlQueryTest
 
     static
     {
-        Log4jInit.setLevel("ca.nrc.cadc.tap", org.apache.log4j.Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.tap", org.apache.log4j.Level.INFO);
         TAP_SCHEMA = TestUtil.loadDefaultTapSchema();
     }
 

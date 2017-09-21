@@ -70,9 +70,12 @@
 package ca.nrc.cadc.tap.parser.extractor;
 
 import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
+import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
+import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.schema.TapSchemaUtil;
 import ca.nrc.cadc.tap.schema.*;
 import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.ExpressionVisitor;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.schema.Column;
@@ -155,7 +158,19 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
         {
             SubSelect subSelect = (SubSelect) selectExpression;
             log.debug("visit(subSelect) " + subSelect);
-            subSelect.getSelectBody().accept(this.getSelectNavigator());
+
+            SelectListExtractor sle = new SelectListExtractor(new SelectListExpressionExtractor(tapSchema),
+                                                              new ReferenceNavigator(),
+                                                              new FromItemNavigator());
+            subSelect.getSelectBody().accept(sle);
+            SelectListExpressionExtractor slee = (SelectListExpressionExtractor) sle.getExpressionNavigator();
+            List <ParamDesc> selectList = slee.getSelectList();
+            if (selectList.size() != 1)
+            {
+                final String error = "Expected 1 ParamDesc in SelectList, found " + selectList.size();
+                throw new IllegalStateException(error);
+            }
+            paramDesc = selectList.get(0);
         }
         else
         {
@@ -165,6 +180,7 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
             else
                 paramDesc = new ParamDesc(selectExpression.toString(), alias, datatype);
         }
+
         if (paramDesc != null)
         {
             selectList.add(paramDesc);
