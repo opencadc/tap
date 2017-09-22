@@ -52,6 +52,7 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
 
     protected StringBuffer buffer;
     protected SelectVisitor selectVisitor;
+    protected boolean useBracketsInExprList = true;
 
     public ExpressionDeParser() {
     }
@@ -83,7 +84,7 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
     }
 
     public void visit(Addition addition) {
-        visitBinaryExpression(addition, "+");
+        visitBinaryExpression(addition, " + ");
     }
 
     public void visit(AndExpression andExpression) {
@@ -103,7 +104,7 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
     }
 
     public void visit(Division division) {
-        visitBinaryExpression(division, "/");
+        visitBinaryExpression(division, " / ");
 
     }
 
@@ -184,7 +185,7 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
     }
 
     public void visit(Multiplication multiplication) {
-        visitBinaryExpression(multiplication, "*");
+        visitBinaryExpression(multiplication, " * ");
 
     }
 
@@ -258,7 +259,16 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
         } else if (function.getParameters() == null) {
             buffer.append("()");
         } else {
+        	boolean oldUseBracketsInExprList = useBracketsInExprList;
+            if (function.isDistinct()) {
+            	useBracketsInExprList = false;
+        		buffer.append("(DISTINCT ");
+            }
             visit(function.getParameters());
+            useBracketsInExprList = oldUseBracketsInExprList;
+            if (function.isDistinct()) {
+        		buffer.append(")");
+            }
         }
 
         if (function.isEscaped()) {
@@ -268,16 +278,18 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
     }
 
     public void visit(ExpressionList expressionList) {
-        buffer.append("(");
+    	if (useBracketsInExprList)
+    		buffer.append("(");
         for (Iterator iter = expressionList.getExpressions().iterator(); iter.hasNext();) {
             Expression expression = (Expression) iter.next();
             expression.accept(this);
             if (iter.hasNext())
                 buffer.append(", ");
         }
-        buffer.append(")");
-
+    	if (useBracketsInExprList)
+    		buffer.append(")");
     }
+
 
     public SelectVisitor getSelectVisitor() {
         return selectVisitor;

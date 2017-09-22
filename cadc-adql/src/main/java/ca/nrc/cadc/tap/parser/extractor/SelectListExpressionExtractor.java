@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2017.                            (c) 2017.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,25 +69,21 @@
 
 package ca.nrc.cadc.tap.parser.extractor;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.schema.Column;
-import net.sf.jsqlparser.statement.select.AllColumns;
-import net.sf.jsqlparser.statement.select.AllTableColumns;
-import net.sf.jsqlparser.statement.select.PlainSelect;
-import net.sf.jsqlparser.statement.select.SelectExpressionItem;
 import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
-import ca.nrc.cadc.tap.schema.TapSchema;
+import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
+import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.schema.TapSchemaUtil;
-import ca.nrc.cadc.tap.schema.ColumnDesc;
-import ca.nrc.cadc.tap.schema.FunctionDesc;
-import ca.nrc.cadc.tap.schema.ParamDesc;
-import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import ca.nrc.cadc.tap.schema.*;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.ExpressionVisitor;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.statement.select.*;
 import org.apache.log4j.Logger;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Extract a list of TapSelectItem from query.
@@ -142,31 +138,53 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
         PlainSelect plainSelect = selectNavigator.getPlainSelect();
         String alias = selectExpressionItem.getAlias();
 
-        Expression expression = selectExpressionItem.getExpression();
-        if (expression instanceof Column)
+        Expression selectExpression = selectExpressionItem.getExpression();
+        if (selectExpression instanceof Column)
         {
-            Column column = (Column) expression;
+            Column column = (Column) selectExpression;
             ColumnDesc columnDesc = TapSchemaUtil.findColumnDesc(tapSchema, plainSelect, column);
             log.debug("visit(column) " + column + "found: " + columnDesc);
             paramDesc = new ParamDesc(columnDesc, alias);
         }
-        else if (expression instanceof Function)
+        else if (selectExpression instanceof Function)
         {
-            Function function = (Function) expression;
+            Function function = (Function) selectExpression;
             FunctionDesc functionDesc = getFunctionDesc(function, plainSelect);
             log.debug("visit(function) " + function + " fiund: " + functionDesc);
             paramDesc = new ParamDesc(functionDesc, alias);
             paramDesc.columnDesc = functionDesc.arg;
         }
+        else if (selectExpression instanceof SubSelect)
+        {
+            SubSelect subSelect = (SubSelect) selectExpression;
+            log.debug("visit(subSelect) " + subSelect);
+
+            SelectListExtractor sle = new SelectListExtractor(new SelectListExpressionExtractor(tapSchema),
+                                                              new ReferenceNavigator(),
+                                                              new FromItemNavigator());
+            subSelect.getSelectBody().accept(sle);
+            SelectListExpressionExtractor slee = (SelectListExpressionExtractor) sle.getExpressionNavigator();
+            List <ParamDesc> selectList = slee.getSelectList();
+            if (selectList.size() != 1)
+            {
+                final String error = "Expected 1 ParamDesc in SelectList, found " + selectList.size();
+                throw new IllegalStateException(error);
+            }
+            paramDesc = selectList.get(0);
+        }
         else
         {
-            String datatype = getDatatypeFromExpression(expression);
+            String datatype = getDatatypeFromExpression(selectExpression);
             if (alias == null || alias.isEmpty())
-                paramDesc = new ParamDesc(expression.toString(), expression.toString(), datatype);
+                paramDesc = new ParamDesc(selectExpression.toString(), selectExpression.toString(), datatype);
             else
-                paramDesc = new ParamDesc(expression.toString(), alias, datatype);
+                paramDesc = new ParamDesc(selectExpression.toString(), alias, datatype);
         }
-        selectList.add(paramDesc);
+
+        if (paramDesc != null)
+        {
+            selectList.add(paramDesc);
+        }
     }
 
     public List<ParamDesc> getSelectList()

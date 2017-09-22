@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2018.                            (c) 2017.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -73,6 +73,7 @@
 package ca.nrc.cadc.tap;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 
@@ -123,7 +124,7 @@ public class AdqlQueryTest
         public String getID() { return "abcdefg"; }
     };
     
-    private void doit()
+    private List<ParamDesc> doit()
     {
         try
         {
@@ -138,6 +139,7 @@ public class AdqlQueryTest
             log.debug("QUERY: \r\n" + _query);
             log.debug("SQL: \r\n" + sql);
             assertEquals(_expected.toLowerCase().trim(), sql.toLowerCase().trim());
+            return selectList;
         }
         finally
         {
@@ -167,6 +169,45 @@ public class AdqlQueryTest
         _expected = "SELECT t_complete AS xx, t_bytes AS yy FROM tap_schema.alldatatypes";
         _query = "select  t_complete as xx, t_bytes as yy from tap_schema.alldatatypes";
         doit();
+    }
+
+    @Test
+    public void testSubSelectInSelect()
+    {
+        _query = "select schema_name as xx, (select t_integer from tap_schema.alldatatypes) from tap_schema.tables";
+        _expected = "select schema_name as xx, (select t_integer from tap_schema.alldatatypes) from tap_schema.tables";
+        List<ParamDesc> selectList = doit();
+        assertTrue(selectList.size() == 2);
+        ParamDesc paramDesc = selectList.get(1);
+        assertEquals("t_integer", paramDesc.name);
+        assertEquals("adql:INTEGER", paramDesc.datatype);
+        assertEquals("int column", paramDesc.description);
+
+        _query = "select schema_name as xx, (select t_varchar from tap_schema.alldatatypes) from tap_schema.tables";
+        _expected = "select schema_name as xx, (select t_varchar from tap_schema.alldatatypes) from tap_schema.tables";
+        selectList = doit();
+        assertTrue(selectList.size() == 2);
+        paramDesc = selectList.get(1);
+        assertEquals("t_varchar", paramDesc.name);
+        assertEquals("adql:VARCHAR", paramDesc.datatype);
+        assertEquals("varchar column", paramDesc.description);
+        assertEquals(8L, paramDesc.arraysize, 0.0);
+
+        _query = "select schema_name, (select count(distinct t_bytes) from tap_schema.alldatatypes) from tap_schema.tables";
+        _expected = "select schema_name, (select count(distinct t_bytes) from tap_schema.alldatatypes) from tap_schema.tables";
+        selectList = doit();
+        assertTrue(selectList.size() == 2);
+        paramDesc = selectList.get(1);
+        assertEquals("COUNT", paramDesc.name);
+        assertEquals("adql:INTEGER", paramDesc.datatype);
+
+        _query = "select schema_name, (select count(*) from tap_schema.alldatatypes) from tap_schema.tables";
+        _expected = "select schema_name, (select count(*) from tap_schema.alldatatypes) from tap_schema.tables";
+        selectList = doit();
+        assertTrue(selectList.size() == 2);
+        paramDesc = selectList.get(1);
+        assertEquals("COUNT", paramDesc.name);
+        assertEquals("adql:INTEGER", paramDesc.datatype);
     }
 
     //@Test

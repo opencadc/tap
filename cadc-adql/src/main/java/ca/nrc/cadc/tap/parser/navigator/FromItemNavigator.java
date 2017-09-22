@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2017.                            (c) 2017.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -119,8 +119,8 @@ public class FromItemNavigator extends SubNavigator implements FromItemVisitor
         VisitingPart visiting = selectNavigator.getVisitingPart();
         if (visiting.equals(VisitingPart.FROM))
             throw new UnsupportedOperationException("sub-select not supported in FROM clause.");
-        else if (visiting.equals(VisitingPart.SELECT_ITEM))
-            throw new UnsupportedOperationException("sub-select not supported in SELECT ITEM.");
+//        else if (visiting.equals(VisitingPart.SELECT_ITEM))
+//            throw new UnsupportedOperationException("sub-select not supported in SELECT ITEM.");
         else
             subSelect.getSelectBody().accept(selectNavigator);
     }
