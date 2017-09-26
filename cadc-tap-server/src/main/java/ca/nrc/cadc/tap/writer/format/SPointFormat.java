@@ -75,7 +75,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /**
- * Formats a PGSphere spoint as a String.
+ * Formats a PGSphere spoint as a DALI-1.1 point.
  *
  */
 public class SPointFormat implements ResultSetFormat
@@ -127,8 +127,8 @@ public class SPointFormat implements ResultSetFormat
         Double y = Double.valueOf(points[1]);
 
         // convert radians
-        x = x * (180/Math.PI);
-        y = y * (180/Math.PI);
+        x = Math.toDegrees(x);
+        y = Math.toDegrees(y);
 
         return new Point(x, y);
     }

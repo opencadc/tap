@@ -31,10 +31,11 @@ dependencies {
     compile 'org.opencadc:cadc-registry:1.+'
     compile 'org.opencadc:cadc-uws:1.+'
     compile 'org.opencadc:cadc-uws-server:1.+'
+    
+    compile 'org.opencadc:cadc-dali-pg:[0.1,)'
 
     testCompile 'junit:junit:4.+'
     testCompile 'org.opencadc:cadc-util:1.+'
     testCompile 'xerces:xercesImpl:2.+'
     testCompile 'org.jdom:jaxen-jdom:1.+'
-    testCompile 'org.postgresql:postgresql:9.4.1208.jre7'
 }

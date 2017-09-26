@@ -76,7 +76,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /**
- * Formatter for PostgreSQL+pgSphere column type scircle.
+ * Formats a PGSphere scircle as a DALI-1.1 circle.
  *
  * @author pdowler
  */

@@ -68,6 +68,7 @@
 package ca.nrc.cadc.tap.schema;
 
 
+import ca.nrc.cadc.dali.tables.votable.VOTableUtil;
 import org.apache.log4j.Logger;
 
 /**
@@ -121,7 +122,38 @@ public class TapDataType
     {
         if (obj != null && obj instanceof TapDataType)
         {
-            return (this.toString().equals(obj.toString()));
+            TapDataType rhs = (TapDataType) obj;
+            if (!datatype.equals(rhs.datatype))
+                return false;
+            
+            if (xtype == null && rhs.xtype != null)
+                return false;
+            if (xtype != null && rhs.xtype == null)
+                return false;
+            if (xtype != null && !xtype.equals(rhs.xtype))
+                return false;
+            // both xtypes null
+            
+            if (arraysize == null && rhs.arraysize == null)
+                return true; // scalar
+            if (arraysize == null && rhs.arraysize != null)
+                return false;
+            if (arraysize != null && rhs.arraysize == null)
+                return false;
+            // both arraysize not null
+            
+            int[] shape = VOTableUtil.getArrayShape(arraysize);
+            int[] rshape = VOTableUtil.getArrayShape(rhs.arraysize);
+            if (shape.length != rshape.length)
+                return false;
+            for (int i=0; i<shape.length; i++)
+            {
+                if (shape[i] == -1 || rshape[i] == -1) // variable
+                    return true;
+                if (shape[i] != rshape[i])
+                    return false;
+            }
+            return true;
         }
         return false;
     }

@@ -68,6 +68,8 @@
 */
 package ca.nrc.cadc.tap;
 
+import ca.nrc.cadc.dali.Circle;
+import ca.nrc.cadc.dali.DoubleInterval;
 import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.dali.Polygon;
 import ca.nrc.cadc.date.DateUtil;
@@ -489,21 +491,21 @@ public abstract class BasicUploadManager implements UploadManager
 
             Integer sqlType = databaseDataType.getType(columnDesc);
             
-            if (sqlType == null) // db-specific xtypes
+            if (sqlType == null) // db-specific
             {
                 Object dbv = null;
                 if (value instanceof Point)
                     dbv = getPointObject((Point) value);
-                //else if (value instanceof Circle)
-                //    dbv = getCircleObject((Circle) value);
+                else if (value instanceof Circle)
+                    dbv = getCircleObject((Circle) value);
                 else if (value instanceof Polygon)
                     dbv = getPolygonObject((Polygon) value);
-                //else if (value instanceof DoubleInterval)
-                //    dbv = getIntervalObject((DoubleInterval) value);
+                else if (value instanceof DoubleInterval)
+                    dbv = getIntervalObject((DoubleInterval) value);
                 //else if (value instanceof LongInterval)
                 //    dbv = getIntervalObject((LongInterval) value);
                 else if (value instanceof Position)
-                    dbv = getRegionObject((Position) value);
+                    dbv = getPointObject((Position) value);
                 else if (value instanceof Region)
                     dbv = getRegionObject((Region) value);
                 
@@ -529,7 +531,7 @@ public abstract class BasicUploadManager implements UploadManager
     }
 
     /**
-     * Convert the string representation of the specified ADQL POINT into an object.
+     * Convert DALI point value to an object for insert.
      *
      * @param p
      * @throws SQLException
@@ -542,6 +544,20 @@ public abstract class BasicUploadManager implements UploadManager
     }
     
     /**
+     * Convert DALI circle value to an object for insert.
+     *
+     * @param p
+     * @throws SQLException
+     * @return an object suitable for use with PreparedStatement.setObject(int,Object)
+     */
+    protected Object getCircleObject(Circle c)
+        throws SQLException
+    {
+        throw new UnsupportedOperationException("cannot convert DALI circle -> internal database type");
+    }
+    
+    /**
+     * Convert DALI polygon value to an object for insert.
      * 
      * @param poly
      * @return an object suitable for use with PreparedStatement.setObject(int,Object)
@@ -554,11 +570,34 @@ public abstract class BasicUploadManager implements UploadManager
     }
     
     /**
+     * Convert DALI interval value to an object for insert.
+     * 
+     * @param inter
+     * @return  an object suitable for use with PreparedStatement.setObject(int,Object)
+     */
+    protected Object getIntervalObject(DoubleInterval inter)
+    {
+        throw new UnsupportedOperationException("cannot convert DALI interval -> internal database type");
+    }
+    
+    /**
+     * Convert array of DALI interval values to an object for insert.
+     * 
+     * @param inter
+     * @return  an object suitable for use with PreparedStatement.setObject(int,Object)
+     */
+    protected Object getIntervalArrayObject(DoubleInterval[] inter)
+    {
+        throw new UnsupportedOperationException("cannot convert DALI interval array -> internal database type");
+    }
+    
+    /**
+     * Convert STC-S (TAP-1.0) adql:POINT value into an object for insert.
      * 
      * @param pos
      * @return an object suitable for use with PreparedStatement.setObject(int,Object)
      * @throws SQLException 
-     * @deprecated STC-S support 
+     * 
      */
     protected Object getPointObject(Position pos)
         throws SQLException
@@ -567,12 +606,11 @@ public abstract class BasicUploadManager implements UploadManager
     }
 
     /**
-     * Convert the string representation of the specified ADQL POINT into an object.
+     * Convert STC-S (TAP-1.0) adql:REGION value into an object for insert.
      *
      * @param reg
      * @throws SQLException
      * @return an object suitable for use with PreparedStatement.setObject(int,Object)
-     * @deprecated STC-S support 
      */
     protected Object getRegionObject(Region reg)
         throws SQLException

@@ -120,7 +120,7 @@ public class DefaultFormatFactory implements FormatFactory
 
     /**
      * Create a formatter for the specified parameter description. The default implementation simply
-     * checks the datatype in the argument ParamDesc and then calls the appropriate (public) get.type.Formatter
+     * checks the datatype in the argument and then calls the appropriate (public) get.type.Formatter
      * method. Subclasses should override this method if they need to support additional datatypes
      * (as specified in the TapSchema: tap_schema.columns.datatype).
      *
@@ -132,42 +132,57 @@ public class DefaultFormatFactory implements FormatFactory
     {
         TapDataType tt = item.getDatatype();
         String datatype = tt.getDatatype();
-        String xtype = tt.xtype;
         
         // DALI-1.1
-        if ( datatype.equals("char") && "timestamp".equals(xtype)) // DALI-1.1
+        if ( datatype.equals("char") && "timestamp".equals(tt.xtype)) // DALI-1.1
             return new UTCTimestampFormat();
 
-        if ("point".equals(xtype)) // DALI-1.1
+        if ("point".equals(tt.xtype)) // DALI-1.1
             return getPointFormat(item);
         
-        if ("circle".equals(xtype)) // DALI-1.1
+        if ("circle".equals(tt.xtype)) // DALI-1.1
             return getCircleFormat(item);
         
-        if ("polygon".equals(xtype)) // DALI-1.1
+        if ("polygon".equals(tt.xtype)) // DALI-1.1
             return getPolygonFormat(item);
         
-        if ("interval".equals(xtype)) // DALI-1.1
+        if ("interval".equals(tt.xtype)) // DALI-1.1
             return getIntervalFormat(item);
         
-        if ("uuid".equals(xtype)) // custom
+        if ("uuid".equals(tt.xtype)) // custom
             return getUUIDFormat(item);
 
-        if ("uri".equals(xtype)) // custom
+        if ("uri".equals(tt.xtype)) // custom
             return getStringFormat(item);
         
-        if ("clob".equals(xtype)) // custom or ADQL-2.1?
+        if ("clob".equals(tt.xtype)) // custom or ADQL-2.1?
             return getClobFormat(item);
         
-        // TAP-1.1 uses VOTable datatypes
-        // unsupported: boolean, bit, unsignedByte, short, unicodeChar, floatComplex, doubleComplex
+        // unsupported: boolean, bit, unsignedByte, floatComplex, doubleComplex
         
-        if (datatype.equalsIgnoreCase("char"))
+        // TAP-1.0 ADQL types for backwards compatibility
+        if ("adql:POINT".equalsIgnoreCase(tt.xtype))
+            return getPositionFormat(item);
+        
+        if ("adql:REGION".equalsIgnoreCase(tt.xtype))
+            return getRegionFormat(item);
+        
+        if ("adql:TIMESTAMP".equalsIgnoreCase(tt.xtype))
+            return new UTCTimestampFormat();
+        
+        if ("adql:CLOB".equalsIgnoreCase(tt.xtype))
+            return getClobFormat(item);
+        
+        if ("adql:BLOB".equalsIgnoreCase(tt.xtype))
+            return getBlobFormat(item);
+        
+        // primitive types
+        if (datatype.equalsIgnoreCase("char") || datatype.equalsIgnoreCase("char"))
             return getStringFormat(item);
         
-        if (datatype.equalsIgnoreCase("unicodeChar"))
-            return getStringFormat(item);
-              
+        if (datatype.equalsIgnoreCase("unsignedByte") && tt.arraysize != null)
+                return getByteArrayFormat(item);
+        
         if (datatype.equalsIgnoreCase("short"))
             if (tt.arraysize != null)
                 return getShortArrayFormat(item);
@@ -197,39 +212,6 @@ public class DefaultFormatFactory implements FormatFactory
                 return getDoubleArrayFormat(item);
             else
                 return getDoubleFormat(item);
-        
-        // TAP-1.0 ADQL types for backwards compatibility
-        /* TODO:
-        if (datatype.equalsIgnoreCase("adql:POINT"))
-            return getPointFormat(item);
-        
-        if (datatype.equalsIgnoreCase("adql:REGION"))
-            return getRegionFormat(item);
-        
-        if (datatype.equalsIgnoreCase("adql:TIMESTAMP"))
-            return new UTCTimestampFormat();
-        
-        if (datatype.equalsIgnoreCase("adql:INTEGER"))
-            return getIntegerFormat(item);
-
-        if (datatype.equalsIgnoreCase("adql:BIGINT"))
-            return getLongFormat(item);
-
-        if (datatype.equalsIgnoreCase("adql:DOUBLE"))
-            return getDoubleFormat(item);
-
-        if (datatype.equalsIgnoreCase("adql:CHAR") || datatype.equalsIgnoreCase("adql:VARCHAR"))
-            return getStringFormat(item);
-
-        if (datatype.equalsIgnoreCase("adql:BINARY") || datatype.equalsIgnoreCase("adql:VARBINARY"))
-            return getByteArrayFormat(item);
-
-        if (datatype.equalsIgnoreCase("adql:CLOB"))
-            return getClobFormat(item);
-        
-        if (datatype.equalsIgnoreCase("adql:BLOB"))
-            return getBlobFormat(item);
-        */
         
         return getDefaultFormat();
     }
@@ -376,6 +358,15 @@ public class DefaultFormatFactory implements FormatFactory
      * @throws UnsupportedOperationException
      */
     protected Format<Object> getPolygonFormat(TapSelectItem columnDesc)
+    {
+        throw new UnsupportedOperationException("no formatter for column " + columnDesc.getName());
+    }
+    
+    /**
+     * @param columnDesc
+     * @throws UnsupportedOperationException
+     */
+    protected Format<Object> getPositionFormat(TapSelectItem columnDesc)
     {
         throw new UnsupportedOperationException("no formatter for column " + columnDesc.getName());
     }

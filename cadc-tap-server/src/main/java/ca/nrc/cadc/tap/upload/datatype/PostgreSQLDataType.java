@@ -70,6 +70,7 @@
 package ca.nrc.cadc.tap.upload.datatype;
 
 import ca.nrc.cadc.tap.schema.TapDataType;
+import java.sql.Types;
 import org.apache.log4j.Logger;
 
 /**
@@ -86,9 +87,9 @@ public class PostgreSQLDataType extends BasicDataTypeMapper
         dataTypes.put(TapDataType.POINT, new TypePair("spoint", null));
         dataTypes.put(TapDataType.CIRCLE, new TypePair("scircle", null));
         dataTypes.put(TapDataType.POLYGON, new TypePair("spoly", null));
+        dataTypes.put(TapDataType.INTERVAL, new TypePair("polygon", null));
         
-        //dataTypes.put("float/point", new TypePair("spoint", null));
-        //dataTypes.put("float/circle", new TypePair("scircle", null));
-        //dataTypes.put("float/polygon", new TypePair("spoly", null));
+        dataTypes.put(new TapDataType("char", "*", "adql:POINT"), new TypePair("spoint", null));
+        dataTypes.put(new TapDataType("char", "*", "adql:REGION"), new TypePair("spoly", null));
     }
 }

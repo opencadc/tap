@@ -69,15 +69,15 @@
 
 package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.dali.Polygon;
+import ca.nrc.cadc.dali.postgresql.PgSpoly;
 import ca.nrc.cadc.dali.util.PolygonFormat;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
 
 /**
- * Formats a PGSphere spolygon as a String.
+ * Formats a PGSphere spoly as a DALI-1.1 polygon.
  *
  */
 public class SPolyFormat implements ResultSetFormat
@@ -101,59 +101,18 @@ public class SPolyFormat implements ResultSetFormat
     @Override
     public String format(Object object)
     {
+        if (object == null)
+            return "";
         return fmt.format((Polygon)object);
     }
 
-    public Polygon getPolygon(Object object)
+    Polygon getPolygon(String s)
     {
-        if (object == null)
+        if (s == null)
             return null;
-        if (!(object instanceof String))
-            throw new IllegalArgumentException("Expected String, was " + object.getClass().getName());
-        String s = (String) object;
-
-        // Get the string inside the enclosing brackets.
-        int open = s.indexOf("{");
-        int close = s.indexOf("}");
-        if (open == -1 || close == -1)
-            throw new IllegalArgumentException("Missing opening or closing brackets " + s);
-
-        // Get the string inside the enclosing parentheses.
-        s = s.substring(open + 1, close);
-        open = s.indexOf("(");
-        close = s.lastIndexOf(")");
-        if (open == -1 || close == -1)
-            throw new IllegalArgumentException("Missing opening or closing parentheses " + s);
-
-        // Each set of vertices is '),(' separated.
-        s = s.substring(open + 1, close);
-        String[] vertices = s.split("\\){1}?\\s*,\\s*{1}\\({1}?");
-
-        // Check minimum vertices to make a polygon.
-        if (vertices.length < 3)
-            throw new IllegalArgumentException("Minimum 3 vertices required to form a Polygon " + s);
-
-        Polygon ret = new Polygon();
-
-        // Loop through each set of vertices.
-        for (int i = 0; i < vertices.length; i++)
-        {
-            // Each vertex is 2 values separated by a comma.
-            String vertex = vertices[i];
-            String[] values = vertex.split(",");
-            if (values.length != 2)
-                throw new IllegalArgumentException("Each set of vertices must have only 2 values " + vertex);
-
-            // Coordinates.
-            Double x = Double.valueOf(values[0]);
-            Double y = Double.valueOf(values[1]);
-
-            // convert radians and add to Polygon.
-            x = x * (180/Math.PI);
-            y = y * (180/Math.PI);
-            ret.getVertices().add(new Point(x, y));
-        }
-        return ret;
+        
+        PgSpoly spoly = new PgSpoly();
+        return spoly.getPolygon(s);
     }
 
 }

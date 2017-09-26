@@ -159,7 +159,7 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
         {
             Function function = (Function) expression;
             FunctionDesc functionDesc = getFunctionDesc(function, plainSelect);
-            log.debug("visit(function) " + function + " fiund: " + functionDesc);
+            log.debug("visit(function) " + function + " found: " + functionDesc);
             if (alias != null)
                 paramDesc = new TapSelectItem(alias, functionDesc.getDatatype());
             else

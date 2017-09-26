@@ -69,85 +69,79 @@
 
 package ca.nrc.cadc.tap.writer.format;
 
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.Polygon;
+import ca.nrc.cadc.dali.postgresql.PgSpoly;
+import ca.nrc.cadc.stc.CoordPair;
+import ca.nrc.cadc.stc.Flavor;
+import ca.nrc.cadc.stc.Frame;
+import ca.nrc.cadc.stc.ReferencePosition;
+import ca.nrc.cadc.stc.STC;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
 
 /**
- * Formats a double[] into a String.
+ * Formats a PGSphere spoly as an STC-S string (TAP-1.0 compatibility).
  *
  */
-public class DoubleArrayFormat implements ResultSetFormat
+public class SPolyFormat10 implements ResultSetFormat
 {
-
     @Override
     public Object parse(String s)
     {
         throw new UnsupportedOperationException("TAP Formats cannot parse strings.");
     }
 
+    /**
+     * Takes a ResultSet and column index of the spoly
+     * and returns a STC-S Polygon String.
+     *
+     * @param resultSet containing the spoint column.
+     * @param columnIndex index of the column in the ResultSet.
+     * @return STC Polygon
+     * @throws SQLException if there is an error accessing the ResultSet.
+     */
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
-            throws SQLException
+        throws SQLException
     {
-        return resultSet.getObject(columnIndex);
+        String s = resultSet.getString(columnIndex);
+        return getPolygon(s);
     }
 
     /**
-     * Takes an double[] contained in a java.sql.Array and returns
-     * the default String representation.
+     * Takes a String representation of the spoly
+     * and returns a STC-S Polygon String.
      *
      * @param object to format.
-     * @return String representation of the double[].
-     * @throws IllegalArgumentException if the object cannot be converted to a double[]
+     * @return STC-S Polygon String of the spoly.
+     * @throws IllegalArgumentException if the object is not a String, or if
+     *         the String cannot be parsed.
      */
     @Override
     public String format(Object object)
     {
         if (object == null)
             return "";
-        if (object instanceof java.sql.Array)
-        {
-            try
-            {
-                java.sql.Array array = (java.sql.Array) object;
-                object = array.getArray();
-            }
-            catch (SQLException e)
-            {
-                throw new IllegalArgumentException("Error accessing array data for " + object.getClass().getCanonicalName(), e);
-            }
-        }
-        if (object instanceof double[])
-            return toString((double[]) object);
-
-        if (object instanceof Double[])
-            return toString((Double[]) object);
-
-        throw new IllegalArgumentException(object.getClass().getCanonicalName() + " not supported.");
-
-
+        return STC.format((ca.nrc.cadc.stc.Polygon) object);
     }
 
-    private String toString(double[] arr)
+    ca.nrc.cadc.stc.Polygon getPolygon(String s)
     {
-        StringBuilder sb = new StringBuilder();
-        for (double d : arr)
+        if (s == null)
+            return null;
+        
+        PgSpoly spoly = new PgSpoly();
+        Polygon poly = spoly.getPolygon(s);
+        
+        List<CoordPair> coordPairs = new ArrayList<CoordPair>();
+        for (Point p : poly.getVertices())
         {
-            sb.append(Double.toString(d));
-            sb.append(" ");
+            coordPairs.add(new CoordPair(p.getLongitude(), p.getLatitude()));
         }
-        return sb.substring(0, sb.length() - 1); // trim trailing space
+        return new ca.nrc.cadc.stc.Polygon(Frame.ICRS, ReferencePosition.UNKNOWNREFPOS, Flavor.SPHERICAL2, coordPairs);
     }
-
-    private String toString(Double[] arr)
-    {
-        StringBuilder sb = new StringBuilder();
-        for (Double d : arr)
-        {
-            sb.append(d.toString());
-            sb.append(" ");
-        }
-        return sb.substring(0, sb.length() - 1); // trim trailing space
-    }
-
 }
