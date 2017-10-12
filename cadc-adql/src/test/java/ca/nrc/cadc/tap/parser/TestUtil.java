@@ -130,12 +130,12 @@ public class TestUtil
         tn = sn + ".alldatatypes";
         td = new TableDesc(sn, tn);
         sd.getTableDescs().add(td);
-        td.getColumnDescs().add( new ColumnDesc(tn, "t_integer", TapDataType.INTEGER));
+        td.getColumnDescs().add( createColumnDesc(tn, "t_integer", TapDataType.INTEGER, "int column", null, null, null));
         td.getColumnDescs().add( new ColumnDesc(tn, "t_long", TapDataType.INTEGER));
         td.getColumnDescs().add( new ColumnDesc(tn, "t_float", TapDataType.INTEGER));
         td.getColumnDescs().add( new ColumnDesc(tn, "t_double", TapDataType.INTEGER));
         td.getColumnDescs().add( new ColumnDesc(tn, "t_char", new TapDataType("char", "8", null)));
-        td.getColumnDescs().add( new ColumnDesc(tn, "t_varchar", new TapDataType("char", "8*", null)));
+        td.getColumnDescs().add( createColumnDesc(tn, "t_varchar", new TapDataType("char", "8*", null), "varchar column", null, null, null));
         td.getColumnDescs().add( new ColumnDesc(tn, "t_string", new TapDataType("char", "8*", null)));
         td.getColumnDescs().add( new ColumnDesc(tn, "t_bytes", TapDataType.BLOB));
         td.getColumnDescs().add( new ColumnDesc(tn, "t_text", TapDataType.CLOB));

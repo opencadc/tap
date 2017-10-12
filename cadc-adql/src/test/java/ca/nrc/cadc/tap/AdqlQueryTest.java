@@ -89,6 +89,8 @@ import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
 import org.apache.log4j.Logger;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 
 /**
@@ -123,7 +125,7 @@ public class AdqlQueryTest
         public String getID() { return "abcdefg"; }
     };
     
-    private List<ParamDesc> doit()
+    private List<TapSelectItem> doit()
     {
         try
         {
@@ -175,38 +177,38 @@ public class AdqlQueryTest
     {
         _query = "select schema_name as xx, (select t_integer from tap_schema.alldatatypes) from tap_schema.tables";
         _expected = "select schema_name as xx, (select t_integer from tap_schema.alldatatypes) from tap_schema.tables";
-        List<ParamDesc> selectList = doit();
+        List<TapSelectItem> selectList = doit();
         assertTrue(selectList.size() == 2);
-        ParamDesc paramDesc = selectList.get(1);
-        assertEquals("t_integer", paramDesc.name);
-        assertEquals("adql:INTEGER", paramDesc.datatype);
-        assertEquals("int column", paramDesc.description);
+        TapSelectItem tsi = selectList.get(1);
+        assertEquals("t_integer", tsi.getName());
+        assertEquals("int", tsi.getDatatype().getDatatype());
+        assertEquals("int column", tsi.description);
 
         _query = "select schema_name as xx, (select t_varchar from tap_schema.alldatatypes) from tap_schema.tables";
         _expected = "select schema_name as xx, (select t_varchar from tap_schema.alldatatypes) from tap_schema.tables";
         selectList = doit();
         assertTrue(selectList.size() == 2);
-        paramDesc = selectList.get(1);
-        assertEquals("t_varchar", paramDesc.name);
-        assertEquals("adql:VARCHAR", paramDesc.datatype);
-        assertEquals("varchar column", paramDesc.description);
-        assertEquals(8L, paramDesc.arraysize, 0.0);
+        tsi = selectList.get(1);
+        assertEquals("t_varchar", tsi.getName());
+        assertEquals("char", tsi.getDatatype().getDatatype());
+        assertEquals("8*", tsi.getDatatype().arraysize);
+        assertEquals("varchar column", tsi.description);
 
         _query = "select schema_name, (select count(distinct t_bytes) from tap_schema.alldatatypes) from tap_schema.tables";
         _expected = "select schema_name, (select count(distinct t_bytes) from tap_schema.alldatatypes) from tap_schema.tables";
         selectList = doit();
         assertTrue(selectList.size() == 2);
-        paramDesc = selectList.get(1);
-        assertEquals("COUNT", paramDesc.name);
-        assertEquals("adql:INTEGER", paramDesc.datatype);
+        tsi = selectList.get(1);
+        assertEquals("count", tsi.getName().toLowerCase());
+        assertEquals("long", tsi.getDatatype().getDatatype());
 
         _query = "select schema_name, (select count(*) from tap_schema.alldatatypes) from tap_schema.tables";
         _expected = "select schema_name, (select count(*) from tap_schema.alldatatypes) from tap_schema.tables";
         selectList = doit();
         assertTrue(selectList.size() == 2);
-        paramDesc = selectList.get(1);
-        assertEquals("COUNT", paramDesc.name);
-        assertEquals("adql:INTEGER", paramDesc.datatype);
+        tsi = selectList.get(1);
+        assertEquals("count", tsi.getName().toLowerCase());
+        assertEquals("long", tsi.getDatatype().getDatatype());
     }
 
     //@Test
