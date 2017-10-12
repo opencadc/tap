@@ -175,9 +175,9 @@ public class AdqlQueryImplTest
         TableDesc foo = new TableDesc("test", "test.foo");
         TableDesc bar = new TableDesc("test", "test.bar");
         foo.getColumnDescs().add(new ColumnDesc("test.foo", "f1", TapDataType.INTEGER));
-        foo.getColumnDescs().add(new ColumnDesc("test.foo", "f2", new TapDataType("char", 8, false, null)));
+        foo.getColumnDescs().add(new ColumnDesc("test.foo", "f2", new TapDataType("char", "8", null)));
         bar.getColumnDescs().add(new ColumnDesc("test.bar", "b1", TapDataType.INTEGER));
-        bar.getColumnDescs().add(new ColumnDesc("test.bar", "b2", new TapDataType("char", 8, false, null)));
+        bar.getColumnDescs().add(new ColumnDesc("test.bar", "b2", new TapDataType("char", "8", null)));
         sd.getTableDescs().add(foo);
         sd.getTableDescs().add(bar);
         ret.getSchemaDescs().add(sd);
