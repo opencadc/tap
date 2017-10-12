@@ -22,6 +22,7 @@
  
 package net.sf.jsqlparser.statement.select;
 
+import java.util.Iterator;
 import java.util.List;
 
 import net.sf.jsqlparser.expression.Expression;
@@ -166,7 +167,19 @@ public class PlainSelect implements SelectBody {
 		sql += ((top != null)?""+top+" ":"");
 		sql += getStringList(selectItems);
 		sql += " FROM " + fromItem;
-		sql += getFormatedList(joins, "", false, false);
+		if (joins != null) {
+			Iterator it = joins.iterator();
+			while(it.hasNext()) {
+				Join join = (Join)it.next();
+				if (join.isSimple()) {
+					sql += ", " + join;
+				}
+				else {
+					sql += " " + join;
+				}
+			}
+		}
+		//sql += getFormatedList(joins, "", false, false);
 		sql += ((where != null) ? " WHERE " + where : "");
 		sql += getFormatedList(groupByColumnReferences, "GROUP BY");
 		sql += ((having != null) ? " HAVING " + having : "");

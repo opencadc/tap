@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2017.                            (c) 2017.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -70,23 +70,25 @@
 package ca.nrc.cadc.tap.parser.extractor;
 
 import ca.nrc.cadc.tap.TapSelectItem;
+import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
+import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
+import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
+import ca.nrc.cadc.tap.parser.schema.TapSchemaUtil;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.FunctionDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
+import ca.nrc.cadc.tap.schema.TapSchema;
 import java.util.ArrayList;
 import java.util.List;
-
 import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.statement.select.AllColumns;
 import net.sf.jsqlparser.statement.select.AllTableColumns;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.SelectExpressionItem;
-import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
-import ca.nrc.cadc.tap.schema.TapSchema;
-import ca.nrc.cadc.tap.parser.schema.TapSchemaUtil;
-import ca.nrc.cadc.tap.schema.ColumnDesc;
-import ca.nrc.cadc.tap.schema.FunctionDesc;
-import ca.nrc.cadc.tap.schema.TapDataType;
-import net.sf.jsqlparser.expression.Function;
-import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import net.sf.jsqlparser.statement.select.SubSelect;
 import org.apache.log4j.Logger;
 
 /**
@@ -164,6 +166,24 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
                 paramDesc = new TapSelectItem(alias, functionDesc.getDatatype());
             else
                 paramDesc = new TapSelectItem(function.getName(), functionDesc.getDatatype());
+        }
+        else if (expression instanceof SubSelect)
+        {
+            SubSelect subSelect = (SubSelect) expression;
+            log.debug("visit(subSelect) " + subSelect);
+
+            SelectListExtractor sle = new SelectListExtractor(new SelectListExpressionExtractor(tapSchema),
+                                                              new ReferenceNavigator(),
+                                                              new FromItemNavigator());
+            subSelect.getSelectBody().accept(sle);
+            SelectListExpressionExtractor slee = (SelectListExpressionExtractor) sle.getExpressionNavigator();
+            List <TapSelectItem> tmpList = slee.getSelectList();
+            if (tmpList.size() != 1)
+            {
+                final String error = "Expected 1 ParamDesc in SelectList, found " + tmpList.size();
+                throw new IllegalStateException(error);
+            }
+            paramDesc = tmpList.get(0);
         }
         else
         {

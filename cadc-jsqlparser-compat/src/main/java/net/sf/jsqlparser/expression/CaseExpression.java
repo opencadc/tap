@@ -30,19 +30,25 @@ import net.sf.jsqlparser.statement.select.PlainSelect;
  * CASE/WHEN expression.
  * 
  * Syntax:
+ * <code>
  * CASE 
  * WHEN condition THEN expression
  * [WHEN condition THEN expression]...
  * [ELSE expression]
  * END
+ * </code>
  * 
- * or
+ * <br>
+ * or <br>
+ * <br>
  * 
+ * <code>
  * CASE expression 
  * WHEN condition THEN expression
  * [WHEN condition THEN expression]...
  * [ELSE expression]
  * END
+ * </code>
  *  
  *  See also:
  *  https://aurora.vcu.edu/db2help/db2s0/frame3.htm#casexp

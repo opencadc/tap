@@ -159,7 +159,7 @@ public class Join {
 
 	public String toString() {
 		if (isSimple())
-			return ", " + rightItem;
+			return "" + rightItem;
 		else
 		{
 			String type = "";
