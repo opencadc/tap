@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2017.                            (c) 2017.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -125,24 +125,22 @@ public class SqlQuery extends AbstractTapQuery
      */
     protected void init()
     {
-        ExpressionNavigator endef = new ExpressionNavigator();
-        ReferenceNavigator rndef = new ReferenceNavigator();
-        FromItemNavigator fndef = new FromItemNavigator();
-        
-        ReferenceNavigator rn = new TapSchemaColumnValidator(tapSchema);
-        FromItemNavigator fn = new TapSchemaTableValidator(tapSchema);
-        SelectNavigator sn = new SelectNavigator(endef, rn, fn);
+        SelectNavigator sn = new SelectNavigator(new ExpressionNavigator(),
+                                                 new TapSchemaColumnValidator(tapSchema),
+                                                 new TapSchemaTableValidator(tapSchema));
         navigatorList.add(sn);
 
         // convert * to fixed select-list
-        sn = new AllColumnConverter(endef, rndef, fndef, tapSchema);
+        sn = new AllColumnConverter(new ExpressionNavigator(),
+                                    new ReferenceNavigator(),
+                                    new FromItemNavigator(),
+                                    tapSchema);
         navigatorList.add(sn);
 
         // extract select-list
-        ExpressionNavigator en = new SelectListExpressionExtractor(tapSchema);
-        rn = rndef;
-        fn = fndef;
-        sn = new SelectListExtractor(en, rn, fn);
+        sn = new SelectListExtractor(new SelectListExpressionExtractor(tapSchema),
+                                     new ReferenceNavigator(),
+                                     new FromItemNavigator());
         navigatorList.add(sn);
         
         // support for file uploads to map the upload table name to the query table name.
@@ -157,7 +155,7 @@ public class SqlQuery extends AbstractTapQuery
                 tnc.put(tableDesc.getTableName(), newName);
                 log.debug("TableNameConverter " + tableDesc.getTableName() + " -> " + newName);
             }
-            sn = new SelectNavigator(endef, rndef, tnc);
+            sn = new SelectNavigator(new ExpressionNavigator(), new ReferenceNavigator(), tnc);
             navigatorList.add(sn);
         }
     }
@@ -246,6 +244,5 @@ public class SqlQuery extends AbstractTapQuery
         doNavigate();
         return queryString;
     }
-
 
 }
