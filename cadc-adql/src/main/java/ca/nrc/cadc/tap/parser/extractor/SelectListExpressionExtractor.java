@@ -153,7 +153,7 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
             if (alias != null)
                 paramDesc = new TapSelectItem(alias, columnDesc);
             else
-                paramDesc = new TapSelectItem(column.getWholeColumnName(), columnDesc);
+                paramDesc = new TapSelectItem(column.getColumnName(), columnDesc);
         }
         else if (expression instanceof Function)
         {
