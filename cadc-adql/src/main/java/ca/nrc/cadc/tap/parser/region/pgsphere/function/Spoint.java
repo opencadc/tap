@@ -69,19 +69,14 @@
 
 package ca.nrc.cadc.tap.parser.region.pgsphere.function;
 
+import ca.nrc.cadc.dali.Point;
 import java.util.ArrayList;
 import java.util.List;
 
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
-import net.sf.jsqlparser.expression.StringValue;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
-import ca.nrc.cadc.stc.CoordPair;
-import ca.nrc.cadc.stc.Position;
 import net.sf.jsqlparser.expression.DoubleValue;
-import net.sf.jsqlparser.expression.LongValue;
-import net.sf.jsqlparser.expression.NullValue;
-import net.sf.jsqlparser.expression.Parenthesis;
 import org.apache.log4j.Logger;
 
 /**
@@ -108,12 +103,20 @@ public class Spoint extends Function
         convertParameters();
     }
 
-    public Spoint(Position position)
+    public Spoint(ca.nrc.cadc.stc.Position position)
     {
         super();
-        CoordPair coordPair = position.getCoordPair();
+        ca.nrc.cadc.stc.CoordPair coordPair = position.getCoordPair();
         ra = new DoubleValue(Double.toString(coordPair.getX()));
         dec = new DoubleValue(Double.toString(coordPair.getY()));
+        convertParameters();
+    }
+    
+    public Spoint(Point p)
+    {
+        super();
+        ra = new DoubleValue(Double.toString(p.getLongitude()));
+        dec = new DoubleValue(Double.toString(p.getLatitude()));
         convertParameters();
     }
 

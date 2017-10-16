@@ -66,131 +66,87 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.tap.schema;
 
-public class ParamDesc
+package ca.nrc.cadc.tap.writer.format;
+
+import ca.nrc.cadc.dali.util.PointFormat;
+import ca.nrc.cadc.stc.Frame;
+import ca.nrc.cadc.stc.Position;
+import ca.nrc.cadc.stc.STC;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+/**
+ * Formats a PGSphere spoint as an STC-S string (TAP-1.0 compatibility).
+ *
+ */
+public class SPointFormat10 implements ResultSetFormat
 {
-    public ColumnDesc columnDesc;
-
-     /**
-     * The name (not null).
-     */
-    public String name;
+    private final PointFormat fmt = new PointFormat();
     
-    public String value;
-
-    /**
-     * The alias of the param (can be null).
-     */
-    public String alias;
-
-    /**
-     * Describes the param (can be null).
-     */
-    public String description;
-
-    /**
-     * The utype of the param (can be null).
-     */
-    public String utype;
-
-    /**
-     * The UCD of param (can be null).
-     */
-    public String ucd;
-
-    /**
-     * The unit used for param values (can be null).
-     */
-    public String unit;
-
-    /**
-     * The ADQL datatype of param (not null).
-     */
-    public String datatype;
-
-    /**
-     * The param datatype size (Column width) (not null).
-     */
-    public Integer arraysize;
-    
-    /**
-     * An id attribute value to tag the column with (for VOTable FIELD element). This
-     * can normally be left null as it is onyl needed for the prototype  getResultMeta/ListGroup
-     * hack.
-     */
-    public String id;
-    
-    public ParamDesc(String name, String value, String description, 
-            String utype, String ucd, String unit, String datatype, Integer size)
+    @Override
+    public Object parse(String s)
     {
-        this.name = name;
-        this.value = value;
-        this.description = description;
-        this.utype = utype;
-        this.ucd = ucd;
-        this.unit = unit;
-        this.datatype = datatype;
-        this.arraysize = size;
-    }
-    
-    public ParamDesc(ColumnDesc columnDesc, String alias)
-    {
-        this.columnDesc = columnDesc;
-        this.name = columnDesc.getColumnName();
-        this.description = columnDesc.description;
-        this.utype = columnDesc.utype;
-        this.ucd = columnDesc.ucd;
-        this.unit = columnDesc.unit;
-        this.datatype = columnDesc.getDatatype();
-        this.arraysize = columnDesc.getArraysize();
-        this.alias = alias;
-        this.id = columnDesc.id;
-    }
-
-    public ParamDesc(FunctionDesc functionDesc, String alias)
-    {
-        this.columnDesc = null;
-        this.name = functionDesc.name;
-        this.description = null;
-        this.utype = null;
-        this.ucd = null;
-        this.unit = functionDesc.unit;
-        this.datatype = functionDesc.datatype;
-        this.arraysize = null;
-        this.alias = alias;
-    }
-
-    public ParamDesc(String name, String alias, String datatype)
-    {
-        this.columnDesc = null;
-        this.name = name;
-        this.alias = alias;
-        this.datatype = null;
-        this.arraysize = null;
-        this.description = null;
-        this.utype = null;
-        this.ucd = null;
-        this.unit = null;
-        
+        throw new UnsupportedOperationException("TAP Formats cannot parse strings.");
     }
 
     @Override
-    public String toString()
+    public Object extract(ResultSet resultSet, int columnIndex)
+        throws SQLException
     {
-        StringBuilder sb = new StringBuilder();
-        sb.append("ParamDesc[");
-        sb.append(name).append(",");
-        sb.append(id).append(",");
-        sb.append(alias == null ? "" : alias).append(",");
-        sb.append(description == null ? "" : description).append(",");
-        sb.append(utype == null ? "" : utype).append(",");
-        sb.append(ucd == null ? "" : ucd).append(",");
-        sb.append(unit == null ? "" : unit).append(",");
-        sb.append(datatype).append(",");
-        sb.append(arraysize == null ? "" : arraysize);
-        sb.append("]");
-        return sb.toString();
+        String s = resultSet.getString(columnIndex);
+        return getPosition(s);
     }
-    
+
+    /**
+     * Takes a String representation of the spoint
+     * and returns a STC-S Position String.
+     *
+     * @param Position object to format.
+     * @return STC-S string
+     * @throws IllegalArgumentException if the object is not a String, or if
+     *         the String cannot be parsed.
+     */
+    @Override
+    public String format(Object object)
+    {
+        if (object == null)
+            return "";
+        return STC.format((Position) object);
+    }
+
+    private Position getPosition(Object object)
+    {
+         if (object == null)
+            return null;
+        if (!(object instanceof String))
+            throw new IllegalArgumentException("Expected String, was " + object.getClass().getName());
+        String s = (String) object;
+
+        // Get the string inside the enclosing parentheses.
+        int open = s.indexOf("(");
+        int close = s.indexOf(")");
+        if (open == -1 || close == -1)
+            throw new IllegalArgumentException("Missing opening or closing parentheses " + s);
+
+        // Should be 2 values separated by a comma.
+        s = s.substring(open + 1, close);
+        String[] points = s.split(",");
+        if (points.length != 2)
+            throw new IllegalArgumentException("SPoint must have only 2 values " + s);
+
+        // Coordinates.
+        Double x = Double.valueOf(points[0]);
+        Double y = Double.valueOf(points[1]);
+
+        // convert to radians
+        x = x * (180/Math.PI);
+        y = y * (180/Math.PI);
+
+        // Create STC Position.
+        Position position = new Position(Frame.ICRS, null, null, x, y);
+
+        return position;
+}
+
 }

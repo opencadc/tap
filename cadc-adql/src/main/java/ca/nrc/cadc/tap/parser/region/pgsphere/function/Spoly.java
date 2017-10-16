@@ -69,10 +69,10 @@
 
 package ca.nrc.cadc.tap.parser.region.pgsphere.function;
 
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.Polygon;
 import java.util.List;
 
-import ca.nrc.cadc.stc.CoordPair;
-import ca.nrc.cadc.stc.Polygon;
 import ca.nrc.cadc.tap.parser.RegionFinder;
 import java.util.ArrayList;
 import net.sf.jsqlparser.expression.DoubleValue;
@@ -100,16 +100,30 @@ public class Spoly extends Function
         convertParameters();
     }
 
+    public Spoly(ca.nrc.cadc.stc.Polygon polygon)
+    {
+        super();
+        expressions = new ArrayList<Expression>();
+        expressions.add(new StringValue(RegionFinder.ICRS));
+        
+        for (ca.nrc.cadc.stc.CoordPair coordPair : polygon.getCoordPairs())
+        {
+            expressions.add(new DoubleValue(Double.toString(coordPair.getX())));
+            expressions.add(new DoubleValue(Double.toString(coordPair.getY())));
+        }
+        convertParameters();
+    }
+    
     public Spoly(Polygon polygon)
     {
         super();
         expressions = new ArrayList<Expression>();
         expressions.add(new StringValue(RegionFinder.ICRS));
         
-        for (CoordPair coordPair : polygon.getCoordPairs())
+        for (Point p : polygon.getVertices())
         {
-            expressions.add(new DoubleValue(Double.toString(coordPair.getX())));
-            expressions.add(new DoubleValue(Double.toString(coordPair.getY())));
+            expressions.add(new DoubleValue(Double.toString(p.getLongitude())));
+            expressions.add(new DoubleValue(Double.toString(p.getLatitude())));
         }
         convertParameters();
     }

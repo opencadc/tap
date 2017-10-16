@@ -70,7 +70,9 @@
 package ca.nrc.cadc.tap.upload;
 
 import ca.nrc.cadc.tap.schema.TableDesc;
+import java.io.IOException;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * Interface to parse a VOTable and extract the meta data describing the
@@ -80,22 +82,24 @@ import java.util.Iterator;
  */
 public interface VOTableParser
 {
-    static final String VOTABLE_11_SCHEMA = "VOTable-v1.1.xsd";
-    static final String VOTABLE_12_SCHEMA = "VOTable-v1.2.xsd";
-
+    public static final String TAP_SCHEMA = "tap_schema";
+    
+    void setUpload(UploadTable upload);
+    
     /**
      * Get a TableDesc of the VOTable.
      *
      * @throws VOTableParserException if unable to parse the VOTable.
      * @return TableDesc of the VOTable.
      */
-    TableDesc getTableDesc() throws VOTableParserException;
+    TableDesc getTableDesc() 
+        throws IOException, VOTableParserException;
 
     /**
      * Returns an Iterator to the VOTable data.
      *
      * @return Iterator to the VOTable data.
      */
-    Iterator iterator();
+    Iterator<List<Object>> iterator();
 
 }

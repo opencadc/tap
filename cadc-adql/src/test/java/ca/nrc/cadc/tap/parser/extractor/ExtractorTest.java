@@ -69,6 +69,7 @@
 
 package ca.nrc.cadc.tap.parser.extractor;
 
+import ca.nrc.cadc.tap.TapSelectItem;
 import ca.nrc.cadc.tap.parser.ParserUtil;
 import ca.nrc.cadc.tap.parser.TestUtil;
 import static org.junit.Assert.fail;
@@ -87,7 +88,7 @@ import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.FunctionDesc;
-import ca.nrc.cadc.tap.schema.ParamDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.util.Log4jInit;
 import org.apache.log4j.Level;
@@ -136,13 +137,13 @@ public class ExtractorTest
         _sn = new SelectListExtractor(_en, _rn, _fn);
     }
 
-    private void doit(String query, List<ParamDesc> expectedList)
+    private void doit(String query, List<TapSelectItem> expectedList)
     {
         boolean isValidQuery = true;
         doit(query, expectedList, isValidQuery);
     }
 
-    private void doit(String query, List<ParamDesc> expectedList, boolean isValidQuery)
+    private void doit(String query, List<TapSelectItem> expectedList, boolean isValidQuery)
     {
         log.debug("query: "  + query);
         Statement s = null;
@@ -154,20 +155,19 @@ public class ExtractorTest
             {
                 ParserUtil.parseStatement(s, _sn);
                 log.debug("statement: " + s);
-                List<ParamDesc> selectList = _en.getSelectList();
+                List<TapSelectItem> selectList = _en.getSelectList();
                 for (int i = 0; i < expectedList.size(); i++)
                 {
-                    ParamDesc expected = expectedList.get(0);
-                    ParamDesc actual = selectList.get(0);
+                    TapSelectItem expected = expectedList.get(0);
+                    TapSelectItem actual = selectList.get(0);
                     log.debug("expected: " + expected);
                     log.debug("actual: " + actual);
 
-                    Assert.assertEquals(expected.name, actual.name);
-                    Assert.assertEquals(expected.alias, actual.alias);
+                    Assert.assertEquals(expected.getName(), actual.getName());
+                    //Assert.assertEquals(expected.alias, actual.alias);
                     Assert.assertEquals(expected.description, actual.description);
-                    Assert.assertEquals(expected.datatype, actual.datatype);
+                    Assert.assertEquals(expected.getDatatype(), actual.getDatatype());
                     Assert.assertEquals(expected.utype, actual.utype);
-                    Assert.assertEquals(expected.arraysize, actual.arraysize);
                     Assert.assertEquals(expected.unit, actual.unit);
                     Assert.assertEquals(expected.ucd, actual.ucd);
                 }
@@ -194,12 +194,12 @@ public class ExtractorTest
     {
         String query = "select t.table_name as tn, keys.from_table from tap_schema.tables t, tap_schema.keys where t.utype=keys.utype";
 
-        List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
-        ColumnDesc columnDesc = new ColumnDesc("tables", "table_name", ADQL_VARCHAR, 16);
-        ParamDesc paramDesc = new ParamDesc(columnDesc, "tn");
+        List<TapSelectItem> expectedList = new ArrayList<>();
+        ColumnDesc columnDesc = new ColumnDesc("tables", "table_name", new TapDataType("char", "16*", null));
+        TapSelectItem paramDesc = new TapSelectItem("tn", columnDesc);
         expectedList.add(paramDesc);
-        columnDesc = new ColumnDesc("keys", "from_table",  ADQL_VARCHAR, 16);
-        paramDesc = new ParamDesc(columnDesc, null);
+        columnDesc = new ColumnDesc("keys", "from_table", new TapDataType("char", "16*", null));
+        paramDesc = new TapSelectItem(columnDesc.getColumnName(), columnDesc);
         expectedList.add(paramDesc);
         
         doit(query, expectedList);
@@ -210,9 +210,9 @@ public class ExtractorTest
     {
         String query = "select \"table_name\" from tap_schema.tables";
 
-        List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
-        ColumnDesc columnDesc = new ColumnDesc("tables", "table_name", ADQL_VARCHAR, 16);
-        ParamDesc paramDesc = new ParamDesc(columnDesc, null);
+        List<TapSelectItem> expectedList = new ArrayList<>();
+        ColumnDesc columnDesc = new ColumnDesc("tables", "table_name", new TapDataType("char", "16*", null));
+        TapSelectItem paramDesc = new TapSelectItem("\"table_name\"", columnDesc);
         expectedList.add(paramDesc);
 
         doit(query, expectedList);
@@ -223,9 +223,9 @@ public class ExtractorTest
     {
         String query = "select position_center_ra from caom.siav1";
 
-        List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
-        ColumnDesc columnDesc = new ColumnDesc("siav1", "position_center_ra", ADQL_DOUBLE, null);
-        ParamDesc paramDesc = new ParamDesc(columnDesc, null);
+        List<TapSelectItem> expectedList = new ArrayList<>();
+        ColumnDesc columnDesc = new ColumnDesc("siav1", "position_center_ra", TapDataType.DOUBLE);
+        TapSelectItem paramDesc = new TapSelectItem(columnDesc.getColumnName(), columnDesc);
         expectedList.add(paramDesc);
 
         doit(query, expectedList);
@@ -236,11 +236,10 @@ public class ExtractorTest
     {
         String query = "select area(position_center_ra) from caom.siav1";
 
-        List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
-        FunctionDesc functionDesc = new FunctionDesc("AREA", null, ADQL_DOUBLE);
-        ParamDesc paramDesc = new ParamDesc(functionDesc, null);
+        List<TapSelectItem> expectedList = new ArrayList<>();
+        TapSelectItem paramDesc = new TapSelectItem("area", TapDataType.DOUBLE);
         expectedList.add(paramDesc);
-
+        
         doit(query, expectedList);
     }
 
@@ -265,9 +264,8 @@ public class ExtractorTest
     {
         String query = "select max(position_center_ra) from caom.siav1";
 
-        List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
-        FunctionDesc functionDesc = new FunctionDesc("MAX", null, ADQL_DOUBLE);
-        ParamDesc paramDesc = new ParamDesc(functionDesc, null);
+        List<TapSelectItem> expectedList = new ArrayList<>();
+        TapSelectItem paramDesc = new TapSelectItem("max", TapDataType.DOUBLE);
         expectedList.add(paramDesc);
 
         doit(query, expectedList);
@@ -278,9 +276,8 @@ public class ExtractorTest
     {
         String query = "select max(area(position_center_ra)) from caom.siav1";
 
-        List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
-        FunctionDesc functionDesc = new FunctionDesc("MAX", null, ADQL_DOUBLE);
-        ParamDesc paramDesc = new ParamDesc(functionDesc, null);
+        List<TapSelectItem> expectedList = new ArrayList<>();
+        TapSelectItem paramDesc = new TapSelectItem("max", TapDataType.DOUBLE);
         expectedList.add(paramDesc);
 
         doit(query, expectedList);
@@ -291,9 +288,8 @@ public class ExtractorTest
     {
         String query = "select area(max(position_center_ra)) from caom.siav1";
 
-        List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
-        FunctionDesc functionDesc = new FunctionDesc("AREA", null, ADQL_DOUBLE);
-        ParamDesc paramDesc = new ParamDesc(functionDesc, null);
+        List<TapSelectItem> expectedList = new ArrayList<TapSelectItem>();
+        TapSelectItem paramDesc = new TapSelectItem("area", TapDataType.DOUBLE);
         expectedList.add(paramDesc);
 
         doit(query, expectedList);
@@ -304,9 +300,8 @@ public class ExtractorTest
     {
         String query = "select max(min(avg(position_center_ra))) from caom.siav1";
 
-        List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
-        FunctionDesc functionDesc = new FunctionDesc("MAX", null, ADQL_DOUBLE);
-        ParamDesc paramDesc = new ParamDesc(functionDesc, null);
+        List<TapSelectItem> expectedList = new ArrayList<>();
+        TapSelectItem paramDesc = new TapSelectItem("max", TapDataType.DOUBLE);
         expectedList.add(paramDesc);
 
         doit(query, expectedList);
@@ -317,8 +312,8 @@ public class ExtractorTest
     {
         String query = "select 1 from caom.siav1";
 
-        List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
-        ParamDesc paramDesc = new ParamDesc("1", "1", ADQL_VARCHAR);
+        List<TapSelectItem> expectedList = new ArrayList<>();
+        TapSelectItem paramDesc = new TapSelectItem("1", new TapDataType("char", "*", null));
         expectedList.add(paramDesc);
 
         doit(query, expectedList);
@@ -329,8 +324,8 @@ public class ExtractorTest
     {
         String query = "select 1 as one from caom.siav1";
 
-        List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
-        ParamDesc paramDesc = new ParamDesc("1", "one", ADQL_VARCHAR);
+        List<TapSelectItem> expectedList = new ArrayList<TapSelectItem>();
+        TapSelectItem paramDesc = new TapSelectItem("one", new TapDataType("char", "*", null));
         expectedList.add(paramDesc);
 
         doit(query, expectedList);
@@ -341,9 +336,8 @@ public class ExtractorTest
     {
         String query = "select max(1) from caom.siav1";
 
-        List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
-        FunctionDesc functionDesc = new FunctionDesc("MAX", null, ADQL_VARCHAR);
-        ParamDesc paramDesc = new ParamDesc(functionDesc, null);
+        List<TapSelectItem> expectedList = new ArrayList<TapSelectItem>();
+        TapSelectItem paramDesc = new TapSelectItem("max", new TapDataType("char", "*", null));
         expectedList.add(paramDesc);
 
         doit(query, expectedList);
@@ -354,9 +348,8 @@ public class ExtractorTest
     {
         String query = "select max(1) as foo from caom.siav1";
 
-        List<ParamDesc> expectedList = new ArrayList<ParamDesc>();
-        FunctionDesc functionDesc = new FunctionDesc("MAX", null, ADQL_VARCHAR);
-        ParamDesc paramDesc = new ParamDesc(functionDesc, "foo");
+        List<TapSelectItem> expectedList = new ArrayList<TapSelectItem>();
+        TapSelectItem paramDesc = new TapSelectItem("foo", new TapDataType("char", "*", null));
         expectedList.add(paramDesc);
 
         doit(query, expectedList);

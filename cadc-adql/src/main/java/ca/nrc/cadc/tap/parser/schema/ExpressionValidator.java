@@ -101,7 +101,7 @@ public class ExpressionValidator extends ExpressionNavigator
         
         for (FunctionDesc functionDesc : tapSchema.getFunctionDescs())
         {
-            if (functionDesc.name.equalsIgnoreCase(function.getName()))
+            if (functionDesc.getName().equalsIgnoreCase(function.getName()))
             {
                 found = true;
                 break;

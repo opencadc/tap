@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2011.                            (c) 2011.
+*  (c) 2016.                            (c) 2016.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,28 +62,93 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
-*
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.schema;
+package ca.nrc.cadc.tap.writer.format;
+
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import org.apache.log4j.Logger;
 
 /**
  *
  * @author pdowler
  */
-public class FieldRef 
+public class ShortArrayFormat  implements ResultSetFormat
 {
-    private String ref;
+    private static final Logger log = Logger.getLogger(ShortArrayFormat.class);
+
+    public ShortArrayFormat() { }
     
-    public FieldRef(String ref)
+    @Override
+    public Object parse(String s)
     {
-        this.ref = ref;
+        throw new UnsupportedOperationException("TAP Formats cannot parse strings.");
     }
 
-    public String getRef()
+    @Override
+    public Object extract(ResultSet resultSet, int columnIndex)
+            throws SQLException
     {
-        return ref;
+        return resultSet.getObject(columnIndex);
+    }
+
+    /**
+     * Takes an short[] contained in a java.sql.Array and returns
+     * the default String representation.
+     *
+     * @param object to format.
+     * @return String represenetation of the short[].
+     * @throws IllegalArgumentException if the object is not an short[];
+     */
+    @Override
+    public String format(Object object)
+    {
+        if (object == null)
+            return "";
+
+        if (object instanceof java.sql.Array)
+        {
+            try
+            {
+                java.sql.Array array = (java.sql.Array) object;
+                object = array.getArray();
+            }
+            catch (SQLException e)
+            {
+                throw new IllegalArgumentException("Error accessing array data for " + object.getClass().getCanonicalName(), e);
+            }
+        }
+        if (object instanceof short[])
+            return toString((short[]) object);
+
+        if (object instanceof Short[])
+            return toString((Short[]) object);
+
+        throw new IllegalArgumentException(object.getClass().getCanonicalName() + " not supported.");
+    }
+
+    private String toString(short[] iarray)
+    {
+        StringBuilder sb = new StringBuilder();
+        for (short i : iarray)
+        {
+            sb.append(Short.toString(i));
+            sb.append(" ");
+        }
+        return sb.substring(0, sb.length() - 1); // trim trailing space
+    }
+
+    private String toString(Short[] iarray)
+    {
+        StringBuilder sb = new StringBuilder();
+        for (Short i : iarray)
+        {
+            sb.append(i.toString());
+            sb.append(" ");
+        }
+        return sb.substring(0, sb.length() - 1); // trim trailing space
     }
 }

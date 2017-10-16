@@ -80,12 +80,19 @@ import ca.nrc.cadc.tap.schema.ColumnDesc;
 public interface DatabaseDataType
 {
     /**
-     * Given a ADQL data type, return the database
-     * specific data type.
+     * Get the database type for the specified column. This is used in create
+     * table statements.
      *
      * @param columnDesc ADQL description of the column
      * @return database specific data type
      */
     String getDataType(ColumnDesc columnDesc);
 
+    /**
+     * Get the column type as a java.sql.Types constant.
+     * 
+     * @param columnDesc
+     * @return one of the java.sql.Types values
+     */
+    Integer getType(ColumnDesc columnDesc);
 }

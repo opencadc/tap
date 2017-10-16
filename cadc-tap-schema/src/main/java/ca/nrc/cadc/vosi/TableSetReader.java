@@ -69,10 +69,6 @@
 
 package ca.nrc.cadc.vosi;
 
-
-import ca.nrc.cadc.tap.schema.ColumnDesc;
-import ca.nrc.cadc.tap.schema.KeyColumnDesc;
-import ca.nrc.cadc.tap.schema.KeyDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;

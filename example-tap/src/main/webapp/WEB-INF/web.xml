@@ -74,7 +74,7 @@
     "http://java.sun.com/j2ee/dtds/web-app_2_2.dtd">
 
 <web-app>
-    <display-name>cadcSampleTAP</display-name>
+    <display-name>example-tap</display-name>
     
     <welcome-file-list>index.jsp</welcome-file-list>
 
@@ -83,7 +83,7 @@
         <servlet-class>ca.nrc.cadc.log.LogControlServlet</servlet-class>
         <init-param>
             <param-name>logLevel</param-name>
-            <param-value>info</param-value>
+            <param-value>debug</param-value>
         </init-param>
         <init-param>
             <param-name>logLevelPackages</param-name>
@@ -147,6 +147,17 @@
         </init-param>
     </servlet>
     
+    <!-- VOSI-capabilities provides runtime servcie invocation metadata -->
+    <servlet>
+        <servlet-name>CapabilitiesServlet</servlet-name>
+        <servlet-class>ca.nrc.cadc.vosi.CapabilitiesServlet</servlet-class>
+        <init-param>
+            <param-name>input</param-name>
+            <param-value>/capabilities.xml</param-value>
+        </init-param>
+        <load-on-startup>3</load-on-startup>
+    </servlet>
+  
     <!-- VOSI-tables provides an XML document describing the schema/tables/columns; 
          This implementation uses the TAP_SCHEMA to find the required metadata -->
     <servlet>
@@ -167,6 +178,11 @@
     <servlet-mapping>
         <servlet-name>AvailabilityServlet</servlet-name>
         <url-pattern>/availability</url-pattern>
+    </servlet-mapping>
+    
+    <servlet-mapping>
+        <servlet-name>CapabilitiesServlet</servlet-name>
+        <url-pattern>/capabilities</url-pattern>
     </servlet-mapping>
     
     <servlet-mapping>

@@ -14,7 +14,7 @@ sourceCompatibility = 1.7
 
 group = 'org.opencadc'
 
-version = '1.0.4'
+version = '1.1'
 
 dependencies {
     compile 'log4j:log4j:1.2.+'
@@ -26,7 +26,9 @@ dependencies {
     compile 'org.opencadc:cadc-log:1.+'
     compile 'org.opencadc:cadc-vosi:1.+'
     compile 'org.opencadc:cadc-uws:1.+'
+    compile 'org.opencadc:cadc-dali:1.+'
 
     testCompile 'junit:junit:4.+'
     testCompile 'xerces:xercesImpl:2.+'
+    testRuntime 'org.postgresql:postgresql:9.4.1209.jre7'
 }

@@ -23,7 +23,8 @@
       <FIELD name="varchar_datatype"   datatype="char" arraysize="32*" />
       <FIELD name="varchar_xtype"   datatype="char" arraysize="32*"  xtype="adql:VARCHAR"   />
       
-      <FIELD name="timestamp_xtype" datatype="char" arraysize="*"   xtype="adql:TIMESTAMP" />
+      <FIELD name="adql_timestamp_xtype" datatype="char" arraysize="*"   xtype="adql:TIMESTAMP" />
+      <FIELD name="dali_timestamp_xtype" datatype="char" arraysize="*"   xtype="timestamp" />
     </TABLE>
   </RESOURCE>
 </VOTABLE>
