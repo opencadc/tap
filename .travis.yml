@@ -9,4 +9,4 @@ jdk:
 
 before_script: openssl s_client -CApath /etc/ssl/certs/ -connect plugins.gradle.org:443 </dev/null | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > /tmp/gradle.crt; sudo keytool -importcert -noprompt -file /tmp/gradle.crt -trustcacerts -keystore $JAVA_HOME/jre/lib/security/cacerts -alias root -storepass changeit;
 
-script: for mod in cadc-tap-schema cadc-jsqlparser-compat cadc-tap-server cadc-adql cadc-test-tap example-tap; do cd $mod; gradle --stacktrace build javadoc install || break -1; cd ..; done
+script: for mod in cadc-tap-schema cadc-jsqlparser-compat cadc-tap-server cadc-adql cadc-test-tap example-tap; do cd $mod; gradle --stacktrace assemble javadoc install || break -1; cd ..; done
