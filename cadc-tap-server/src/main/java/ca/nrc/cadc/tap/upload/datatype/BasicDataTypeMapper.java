@@ -177,8 +177,9 @@ public class BasicDataTypeMapper implements DatabaseDataType
     /**
      * Find or create a TypePair for the specified data type. The current implementation
      * looks for exact matches in the dataTypes map and, if not found, it rechecks with
-     * just the base datatype when the specified TapDataType has length > 1; the latter takes
-     * care of arrays of strings (char(n) or char(*)) and should work for other arrays.
+     * just the base datatype when the specified TapDataType has length is greater than 
+     * 1; the latter takes care of arrays of strings (char(n) or char(*)) and should work 
+     * for other arrays.
      * 
      * @param tt
      * @return 

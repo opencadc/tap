@@ -77,7 +77,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /**
- * Formats a PGSphere spoint as an STC-S string (TAP-1.0 compatibility).
+ * Extract and format a PGSphere spoint as an STC-S string (TAP-1.0 compatibility).
  *
  */
 public class SPointFormat10 implements ResultSetFormat
@@ -98,15 +98,6 @@ public class SPointFormat10 implements ResultSetFormat
         return getPosition(s);
     }
 
-    /**
-     * Takes a String representation of the spoint
-     * and returns a STC-S Position String.
-     *
-     * @param Position object to format.
-     * @return STC-S string
-     * @throws IllegalArgumentException if the object is not a String, or if
-     *         the String cannot be parsed.
-     */
     @Override
     public String format(Object object)
     {

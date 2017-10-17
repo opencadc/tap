@@ -143,8 +143,6 @@ public class TapSelectItem
      * 
      * @param name
      * @param datatype
-     * @param arraysize
-     * @param varSize
      */
     public TapSelectItem(String name, TapDataType datatype)
     {

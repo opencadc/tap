@@ -84,7 +84,7 @@ import java.util.List;
 
 
 /**
- * Formats a PGSphere spoly as an STC-S string (TAP-1.0 compatibility).
+ * Extract and format a PGSphere spoly as an STC-S string (TAP-1.0 compatibility).
  *
  */
 public class SPolyFormat10 implements ResultSetFormat

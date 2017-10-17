@@ -546,7 +546,7 @@ public abstract class BasicUploadManager implements UploadManager
     /**
      * Convert DALI circle value to an object for insert.
      *
-     * @param p
+     * @param c
      * @throws SQLException
      * @return an object suitable for use with PreparedStatement.setObject(int,Object)
      */
