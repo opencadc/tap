@@ -70,11 +70,10 @@
 package ca.nrc.cadc.tap.parser.region.pgsphere.function;
 
 
+import ca.nrc.cadc.dali.Circle;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.StringValue;
-import ca.nrc.cadc.stc.Circle;
-import ca.nrc.cadc.stc.CoordPair;
 import ca.nrc.cadc.tap.parser.RegionFinder;
 import java.util.ArrayList;
 import java.util.List;
@@ -108,13 +107,23 @@ public class Scircle extends Function
         convertParameters();
     }
 
+    public Scircle(ca.nrc.cadc.stc.Circle circle)
+    {
+        super();
+        coordsys = new StringValue(RegionFinder.ICRS);
+        ca.nrc.cadc.stc.CoordPair coordPair = circle.getCoordPair();
+        ra = new DoubleValue(Double.toString(coordPair.getX()));
+        dec = new DoubleValue(Double.toString(coordPair.getY()));
+        radius = new DoubleValue(Double.toString(circle.getRadius()));
+        convertParameters();
+    }
+    
     public Scircle(Circle circle)
     {
         super();
         coordsys = new StringValue(RegionFinder.ICRS);
-        CoordPair coordPair = circle.getCoordPair();
-        ra = new DoubleValue(Double.toString(coordPair.getX()));
-        dec = new DoubleValue(Double.toString(coordPair.getY()));
+        ra = new DoubleValue(Double.toString(circle.getCenter().getLongitude()));
+        dec = new DoubleValue(Double.toString(circle.getCenter().getLatitude()));
         radius = new DoubleValue(Double.toString(circle.getRadius()));
         convertParameters();
     }

@@ -68,8 +68,10 @@
 */
 package ca.nrc.cadc.tap;
 
-import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
-import ca.nrc.cadc.dali.tables.votable.VOTableReader;
+import ca.nrc.cadc.dali.Circle;
+import ca.nrc.cadc.dali.DoubleInterval;
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.Polygon;
 import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.stc.Position;
 import ca.nrc.cadc.stc.Region;
@@ -81,8 +83,8 @@ import ca.nrc.cadc.tap.upload.UploadParameters;
 import ca.nrc.cadc.tap.upload.UploadTable;
 import ca.nrc.cadc.tap.upload.VOTableParser;
 import ca.nrc.cadc.tap.upload.VOTableParserException;
-import ca.nrc.cadc.tap.upload.datatype.ADQLDataType;
 import ca.nrc.cadc.tap.upload.datatype.DatabaseDataType;
+import ca.nrc.cadc.tap.upload.datatype.TapConstants;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
 import java.io.IOException;
@@ -91,7 +93,9 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.text.DateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -226,6 +230,7 @@ public abstract class BasicUploadManager implements UploadManager
 
                 // Get the Table description.
                 TableDesc tableDesc = parser.getTableDesc();
+                sanitizeTable(tableDesc);
 
                 // Fully qualified name of the table in the database.
                 String databaseTableName = getDatabaseTableName(uploadTable);
@@ -266,7 +271,7 @@ public abstract class BasicUploadManager implements UploadManager
                     List<Object> row = it.next();
 
                     // Update the PreparedStatement with the row data.
-                    updatePreparedStatement(ps, tableDesc.getColumnDescs(), row);
+                    updatePreparedStatement(ps, databaseDataType, tableDesc.getColumnDescs(), row);
 
                     // Execute the update.
                     ps.executeUpdate();
@@ -346,15 +351,35 @@ public abstract class BasicUploadManager implements UploadManager
     protected VOTableParser getVOTableParser(UploadTable uploadTable)
             throws IOException
     {
-        VOTableReader r = new VOTableReader();
-        // TODO: wrap a ByteCountInputStream here to limit input data volume
-        VOTableDocument vdoc = r.read(uploadTable.uri.toURL().openStream());
-        String tname = uploadTable.tableName;
-        if (!tname.toUpperCase().startsWith(SCHEMA))
-            tname = SCHEMA + "." + tname;
-        return new JDOMVOTableParser(vdoc, tname);
+        VOTableParser ret = new JDOMVOTableParser();
+        ret.setUpload(uploadTable);
+        return ret;
     }
 
+    /**
+     * Remove redundant metadata like TAP-1.0 xtypes for primitive columns.
+     * 
+     * @param td 
+     */
+    protected void sanitizeTable(TableDesc td)
+    {
+        for (ColumnDesc cd : td.getColumnDescs())
+        {
+            String xtype = cd.getDatatype().xtype;
+            if (TapConstants.TAP10_TIMESTAMP.equals(xtype))
+                cd.getDatatype().xtype = "timestamp"; // DALI-1.1
+            
+            if (oldXtypes.contains(xtype))
+                cd.getDatatype().xtype = null;
+        }
+    }
+    // TAP-1.0 xtypes that can just be dropped from ColumnDesc
+    private final List<String> oldXtypes = Arrays.asList(
+            TapConstants.TAP10_CHAR,  TapConstants.TAP10_VARCHAR,
+            TapConstants.TAP10_DOUBLE, TapConstants.TAP10_REAL,
+            TapConstants.TAP10_BIGINT, TapConstants.TAP10_INTEGER, TapConstants.TAP10_SMALLINT
+    );
+    
     /**
      * Create the SQL to grant select privileges for the UPLOAD table.
      * 
@@ -449,11 +474,13 @@ public abstract class BasicUploadManager implements UploadManager
      * determine each column data type.
      *
      * @param ps the prepared statement.
+     * @param databaseDataType
      * @param columnDescs List of ColumnDesc for this table.
      * @param row Array containing the data to be inserted into the database.
      * @throws SQLException if the statement is closed or if the parameter index type doesn't match.
      */
-    protected void updatePreparedStatement(PreparedStatement ps, List<ColumnDesc> columnDescs, List<Object> row)
+    protected void updatePreparedStatement(PreparedStatement ps, DatabaseDataType databaseDataType,
+            List<ColumnDesc> columnDescs, List<Object> row)
         throws SQLException, StcsParsingException
     {
         int i = 1;
@@ -462,104 +489,124 @@ public abstract class BasicUploadManager implements UploadManager
             ColumnDesc columnDesc = columnDescs.get(i-1);
             log.debug("update ps: " + columnDesc.getColumnName() + "[" + columnDesc.getDatatype() + "] = " + value);
 
-            if (value == null)
-                ps.setNull(i, ADQLDataType.getSQLType(columnDesc.getDatatype()));
-            else if (columnDesc.getDatatype().equals(ADQLDataType.ADQL_TIMESTAMP))
-            {
-                Date date = (Date) value;
-                ps.setTimestamp(i, new Timestamp(date.getTime()));
-            }
-            else if (columnDesc.getDatatype().equals(ADQLDataType.ADQL_POINT))
-            {
-                Region r = (Region) value;
-                if (r instanceof Position)
-                {
-                    Position pos = (Position) r;
-                    Object o = getPointObject(pos);
-                    ps.setObject(i, o);
-                }
-                else
-                    throw new IllegalArgumentException("failed to parse " + value + " as an " + ADQLDataType.ADQL_POINT);
-            }
-            else if (columnDesc.getDatatype().equals(ADQLDataType.ADQL_REGION))
-            {
-                Region reg = (Region) value;
-                Object o = getRegionObject(reg);
-                ps.setObject(i, o);
-            }
-            else
-                ps.setObject(i, value, ADQLDataType.getSQLType(columnDesc.getDatatype()));
+            Integer sqlType = databaseDataType.getType(columnDesc);
             
+            if (sqlType == null) // db-specific
+            {
+                Object dbv = null;
+                if (value instanceof Point)
+                    dbv = getPointObject((Point) value);
+                else if (value instanceof Circle)
+                    dbv = getCircleObject((Circle) value);
+                else if (value instanceof Polygon)
+                    dbv = getPolygonObject((Polygon) value);
+                else if (value instanceof DoubleInterval)
+                    dbv = getIntervalObject((DoubleInterval) value);
+                //else if (value instanceof LongInterval)
+                //    dbv = getIntervalObject((LongInterval) value);
+                else if (value instanceof Position)
+                    dbv = getPointObject((Position) value);
+                else if (value instanceof Region)
+                    dbv = getRegionObject((Region) value);
+                
+                ps.setObject(i, dbv); // could be null
+            }
+            else if (value == null) // null
+                ps.setNull(i, sqlType);
+            else
+            {
+                switch(sqlType)
+                {
+                    case Types.TIMESTAMP:
+                        Date date = (Date) value;
+                        ps.setTimestamp(i, new Timestamp(date.getTime())); // UTC
+                        break;
+                    default:
+                        ps.setObject(i, value, sqlType);
+                }
+                
+            }
             i++;
-            
-            /*
-            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_SMALLINT))
-                ps.setShort(i + 1, Short.parseShort(value));
-            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_INTEGER))
-                ps.setInt(i + 1, Integer.parseInt(value));
-            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_BIGINT))
-                ps.setLong(i + 1, Long.parseLong(value));
-            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_REAL))
-                ps.setFloat(i + 1, Float.parseFloat(value));
-            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_DOUBLE))
-                ps.setDouble(i + 1, Double.parseDouble(value));
-            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_CHAR))
-                ps.setString(i + 1, value);
-            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_VARCHAR))
-                ps.setString(i + 1, value);
-            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_CLOB))
-                ps.setString(i + 1, value);
-            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_TIMESTAMP))
-            {
-                try
-                {
-                    Date date = dateFormat.parse(value);
-                    ps.setTimestamp(i + 1, new Timestamp(date.getTime()));
-                }
-                catch (ParseException e)
-                {
-                    throw new SQLException("failed to parse timestamp " + value, e);
-                }
-            }
-            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_POINT))
-            {
-                Region r = STC.parse(value);
-                if (r instanceof Position)
-                {
-                    Position pos = (Position) r;
-                    Object o = getPointObject(pos);
-                    ps.setObject(i+1, o);
-                }
-                else
-                    throw new IllegalArgumentException("failed to parse " + value + " as an " + ADQLDataType.ADQL_POINT);
-            }
-            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_REGION))
-            {
-                Region reg = STC.parse(value);
-                Object o = getRegionObject(reg);
-                ps.setObject(i+1, o);
-            }
-            else
-                throw new SQLException("Unsupported ADQL data type " + columnDesc.datatype);
-            */
         }
     }
 
     /**
-     * Convert the string representation of the specified ADQL POINT into an object.
+     * Convert DALI point value to an object for insert.
      *
-     * @param pos
+     * @param p
      * @throws SQLException
      * @return an object suitable for use with PreparedStatement.setObject(int,Object)
+     */
+    protected Object getPointObject(Point p)
+        throws SQLException
+    {
+        throw new UnsupportedOperationException("cannot convert DALI point -> internal database type");
+    }
+    
+    /**
+     * Convert DALI circle value to an object for insert.
+     *
+     * @param p
+     * @throws SQLException
+     * @return an object suitable for use with PreparedStatement.setObject(int,Object)
+     */
+    protected Object getCircleObject(Circle c)
+        throws SQLException
+    {
+        throw new UnsupportedOperationException("cannot convert DALI circle -> internal database type");
+    }
+    
+    /**
+     * Convert DALI polygon value to an object for insert.
+     * 
+     * @param poly
+     * @return an object suitable for use with PreparedStatement.setObject(int,Object)
+     * @throws SQLException 
+     */
+    protected Object getPolygonObject(Polygon poly)
+        throws SQLException
+    {
+        throw new UnsupportedOperationException("cannot convert DALI polygon -> internal database type");
+    }
+    
+    /**
+     * Convert DALI interval value to an object for insert.
+     * 
+     * @param inter
+     * @return  an object suitable for use with PreparedStatement.setObject(int,Object)
+     */
+    protected Object getIntervalObject(DoubleInterval inter)
+    {
+        throw new UnsupportedOperationException("cannot convert DALI interval -> internal database type");
+    }
+    
+    /**
+     * Convert array of DALI interval values to an object for insert.
+     * 
+     * @param inter
+     * @return  an object suitable for use with PreparedStatement.setObject(int,Object)
+     */
+    protected Object getIntervalArrayObject(DoubleInterval[] inter)
+    {
+        throw new UnsupportedOperationException("cannot convert DALI interval array -> internal database type");
+    }
+    
+    /**
+     * Convert STC-S (TAP-1.0) adql:POINT value into an object for insert.
+     * 
+     * @param pos
+     * @return an object suitable for use with PreparedStatement.setObject(int,Object)
+     * @throws SQLException 
+     * 
      */
     protected Object getPointObject(Position pos)
         throws SQLException
     {
-        throw new UnsupportedOperationException("cannot convert ADQL POINT (STC-S Position) -> internal database type");
+        throw new UnsupportedOperationException("cannot convert STC-S Position -> internal database type");
     }
 
     /**
-     * Convert the string representation of the specified ADQL POINT into an object.
+     * Convert STC-S (TAP-1.0) adql:REGION value into an object for insert.
      *
      * @param reg
      * @throws SQLException
@@ -568,7 +615,7 @@ public abstract class BasicUploadManager implements UploadManager
     protected Object getRegionObject(Region reg)
         throws SQLException
     {
-        throw new UnsupportedOperationException("cannot convert ADQL REGION (STC-S Region) -> internal database type");
+        throw new UnsupportedOperationException("cannot convert STC-S Region -> internal database type");
     }
 
 }

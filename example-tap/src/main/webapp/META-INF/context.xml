@@ -11,7 +11,7 @@
          must be "jdbc/tapuser".
     -->
     <ResourceLink name="jdbc/tapuser"
-        global="jdbc/postgresql-tapuser"
+        global="jdbc/example-tapuser"
         type="javax.sql.DataSource" />
 
     <!-- Configure TAP upload DataSource

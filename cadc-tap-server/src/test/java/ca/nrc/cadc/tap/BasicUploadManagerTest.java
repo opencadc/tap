@@ -39,16 +39,12 @@
 
 package ca.nrc.cadc.tap;
 
-import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
-import ca.nrc.cadc.dali.tables.votable.VOTableReader;
 import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.db.ConnectionConfig;
 import ca.nrc.cadc.db.DBConfig;
 import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.upload.ADQLIdentifierException;
-import ca.nrc.cadc.tap.upload.DatabaseDataTypeFactory;
-import ca.nrc.cadc.tap.upload.JDOMVOTableParser;
 import ca.nrc.cadc.tap.upload.UploadTable;
 import ca.nrc.cadc.tap.upload.VOTableParser;
 import ca.nrc.cadc.tap.upload.datatype.DatabaseDataType;
@@ -56,11 +52,10 @@ import ca.nrc.cadc.tap.upload.datatype.PostgreSQLDataType;
 import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.uws.Parameter;
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URI;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -79,7 +74,6 @@ import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -147,29 +141,20 @@ public class BasicUploadManagerTest
         types.put("char32_datatype", "bpchar");
         types.put("varchar32_datatype", "varchar");
         types.put("varchar_xtype", "varchar");
-        types.put("timestamp_xtype", "timestamp");
+        types.put("adql_timestamp_xtype", "timestamp");
+        types.put("dali_timestamp_xtype", "timestamp");
         types.put("point_xtype", "spoint");
         types.put("region_xtype", "spoly");
 
         date = DateUtil.flexToDate("2011-01-01T00:00:00.000", DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC));
     }
 
-    @AfterClass
-    public static void tearDownClass()
-        throws Exception { }
-
-    @Before
-    public void setUp() { }
-
-    @After
-    public void tearDown() { }
-
     @Test
-    public void testUploadEmptyTable()
+    public void testUploadNoOp()
     {
         try
         {
-            log.debug("testUploadEmptyTable");
+            log.debug("testUploadNoOp");
 
             // New instance of UploadManager.
             FileUploadManagerImpl uploadManager = new FileUploadManagerImpl();
@@ -183,7 +168,7 @@ public class BasicUploadManagerTest
 
             // Create a JobID
             String jobID = Long.toString(System.currentTimeMillis());
-            log.debug("testUploadEmptyTable jobID: " + jobID);
+            log.debug("testUploadNoOp jobID: " + jobID);
 
             // Upload the VOTable.
             Map<String, TableDesc> tableDescs = uploadManager.upload(paramList, jobID);
@@ -199,7 +184,7 @@ public class BasicUploadManagerTest
 
             Assert.assertEquals(0, tableDesc.getColumnDescs().size());
 
-            log.debug("testUploadEmptyTable passed.");
+            log.debug("testUploadNoOp passed.");
         }
         catch (Exception unexpected)
         {
@@ -209,11 +194,11 @@ public class BasicUploadManagerTest
     }
 
     @Test
-    public void testUploadAllTypesNoRows()
+    public void testCreateEmptyTable()
     {
         try
         {
-            log.debug("testUploadAllTypesNoRows");
+            log.debug("testCreateEmptyTable");
 
             // New instance of UploadManager.
             FileUploadManagerImpl uploadManager = new FileUploadManagerImpl();
@@ -227,7 +212,7 @@ public class BasicUploadManagerTest
 
             // Create a JobID
             String jobID = Long.toString(System.currentTimeMillis());
-            log.debug("testURIUploadAllTypesNoRows jobID: " + jobID);
+            log.debug("testCreateEmptyTable jobID: " + jobID);
 
             // Upload the VOTable.
             Map<String, TableDesc> tableDescs = uploadManager.upload(paramList, jobID);
@@ -270,7 +255,7 @@ public class BasicUploadManagerTest
                 }
             }
 
-            log.debug("testUploadAllTypesNoRows passed.");
+            log.debug("testCreateEmptyTable passed.");
         }
         catch (Exception unexpected)
         {
@@ -280,11 +265,11 @@ public class BasicUploadManagerTest
     }
 
     @Test
-    public void testUploadAllTypes()
+    public void testCreateAndInsert()
     {
         try
         {
-            log.debug("testUploadAllTypes");
+            log.debug("testCreateAndInsert");
 
             // New instance of UploadManager.
             FileUploadManagerImpl uploadManager = new FileUploadManagerImpl();
@@ -298,7 +283,7 @@ public class BasicUploadManagerTest
 
             // Create a JobID
             String jobID = Long.toString(System.currentTimeMillis());
-            log.debug("testURIUploadAllTypes jobID: " + jobID);
+            log.debug("testCreateAndInsert jobID: " + jobID);
 
             // Upload the VOTable.
             Map<String, TableDesc> tableDescs = uploadManager.upload(paramList, jobID);
@@ -357,9 +342,10 @@ public class BasicUploadManagerTest
             Assert.assertEquals("char(32) of exact--len", rs.getString("char32_datatype").trim());
             Assert.assertEquals("varchar(32) value", rs.getString("varchar32_datatype").trim());
             Assert.assertEquals("varchar_xtype", rs.getString("varchar_xtype").trim());
-            Assert.assertEquals(new Timestamp(date.getTime()), rs.getTimestamp("timestamp_xtype"));
+            Assert.assertEquals(new Timestamp(date.getTime()), rs.getTimestamp("adql_timestamp_xtype"));
+            Assert.assertEquals(new Timestamp(date.getTime()), rs.getTimestamp("dali_timestamp_xtype"));
 
-            log.debug("testUploadAllTypes passed.");
+            log.debug("testCreateAndInsert passed.");
         }
         catch (Exception unexpected)
         {
@@ -845,10 +831,8 @@ public class BasicUploadManagerTest
             throws IOException
         {
             File file = FileUtil.getFileFromResource(filename, BasicUploadManagerTest.class);
-            VOTableReader r  = new VOTableReader();
-            VOTableDocument doc = r.read(new BufferedInputStream(new FileInputStream(file)));
-            VOTableParser parser = new JDOMVOTableParser(doc, uploadTable.tableName);
-            return parser;
+            uploadTable.uri = URI.create("file://" + file.getAbsolutePath());
+            return super.getVOTableParser(uploadTable);
         }
         
         protected void setFilename(String filename)

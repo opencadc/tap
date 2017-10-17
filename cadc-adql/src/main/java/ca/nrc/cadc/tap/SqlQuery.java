@@ -82,7 +82,6 @@ import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
 import ca.nrc.cadc.tap.parser.schema.TapSchemaColumnValidator;
 import ca.nrc.cadc.tap.parser.schema.TapSchemaTableValidator;
-import ca.nrc.cadc.tap.schema.ParamDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.uws.ParameterUtil;
 import java.util.ArrayList;
@@ -111,7 +110,7 @@ public class SqlQuery extends AbstractTapQuery
 
     protected String queryString;
     protected Statement statement;
-    protected List<ParamDesc> selectList;
+    protected List<TapSelectItem> selectList;
     protected List<SelectNavigator> navigatorList = new ArrayList<SelectNavigator>();
 
     protected transient boolean navigated = false;
@@ -232,7 +231,8 @@ public class SqlQuery extends AbstractTapQuery
         return deParser.getBuffer().toString();
     }
 
-    public List<ParamDesc> getSelectList()
+    @Override
+    public List<TapSelectItem> getSelectList()
     {
         doNavigate();
         return selectList;

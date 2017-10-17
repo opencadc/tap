@@ -69,77 +69,27 @@
 
 package ca.nrc.cadc.tap.upload.datatype;
 
-import ca.nrc.cadc.tap.schema.ColumnDesc;
-import java.util.HashMap;
-import java.util.Map;
+import ca.nrc.cadc.tap.schema.TapDataType;
+import java.sql.Types;
 import org.apache.log4j.Logger;
 
 /**
  *
  * @author jburke
  */
-public class PostgreSQLDataType implements DatabaseDataType
+public class PostgreSQLDataType extends BasicDataTypeMapper
 {
     private static Logger log = Logger.getLogger(PostgreSQLDataType.class);
     
-    /**
-     * Mapping of ADQL data types to PostgreSQL data types. Subclasses can (must)
-     * add a mapping for ADQL_POINT and ADQL_REGION if they support this use.
-     */
-    protected static Map<String, String> dataTypes;
-    static
-    {
-        dataTypes = new HashMap<String, String>();
-        dataTypes.put(ADQLDataType.ADQL_SMALLINT, "SMALLINT");
-        dataTypes.put(ADQLDataType.ADQL_INTEGER, "INTEGER");
-        dataTypes.put(ADQLDataType.ADQL_BIGINT, "BIGINT");
-        dataTypes.put(ADQLDataType.ADQL_REAL, "REAL");
-        dataTypes.put(ADQLDataType.ADQL_DOUBLE, "DOUBLE PRECISION");
-        dataTypes.put(ADQLDataType.ADQL_CHAR, "CHAR");
-        dataTypes.put(ADQLDataType.ADQL_VARCHAR, "VARCHAR");
-        dataTypes.put(ADQLDataType.ADQL_TIMESTAMP, "TIMESTAMP");
-        dataTypes.put(ADQLDataType.ADQL_CLOB, "VARCHAR");
-        
-        // HACK: this is temporary until codebase is refactored to allow for
-        // easier customisation of these oplugins; for now we just list
-        // the pg_sphere types explicitly... 
-        
-        // DOWNSIDE: if someone has postgresql and does not have pg_sphere an
-        // uploaded table with a point or region will cause the create table
-        // to fail, which looks like an internal error rather than an
-        // unsupported operation
-        dataTypes.put(ADQLDataType.ADQL_POINT, "spoint");
-        dataTypes.put(ADQLDataType.ADQL_REGION, "spoly");
-    }
-    
-    /**
-     *
-     */
     public PostgreSQLDataType() 
     {
-
+        // HACK: include pg_sphere types so we don't have to subclass
+        dataTypes.put(TapDataType.POINT, new TypePair("spoint", null));
+        dataTypes.put(TapDataType.CIRCLE, new TypePair("scircle", null));
+        dataTypes.put(TapDataType.POLYGON, new TypePair("spoly", null));
+        dataTypes.put(TapDataType.INTERVAL, new TypePair("polygon", null));
+        
+        dataTypes.put(new TapDataType("char", "*", "adql:POINT"), new TypePair("spoint", null));
+        dataTypes.put(new TapDataType("char", "*", "adql:REGION"), new TypePair("spoly", null));
     }
-
-    /**
-     * Given a ADQL data type, return the database
-     * specific data type.
-     *
-     * @param columnDesc ADQL description of the column
-     * @return database specific data type
-     */
-    public String getDataType(ColumnDesc columnDesc)
-    {
-        log.debug("getDataType: " + columnDesc);
-        String dataType = dataTypes.get(columnDesc.getDatatype());
-        if (dataType.equals("CHAR") || dataType.equals("VARCHAR"))
-        {
-            if (columnDesc.getArraysize() != null)
-            	dataType += "(" + columnDesc.getArraysize() + ")";
-            else if (columnDesc.getDatatype().equals(ADQLDataType.ADQL_CLOB) 
-                        || columnDesc.getDatatype().equals(ADQLDataType.ADQL_VARCHAR))
-                dataType += "(4096)"; // HACK: arbitrary sensible limit
-        }
-        return dataType;
-    }
-
 }

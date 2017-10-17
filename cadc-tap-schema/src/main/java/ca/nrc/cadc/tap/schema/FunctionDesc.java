@@ -75,39 +75,40 @@ package ca.nrc.cadc.tap.schema;
  */
 public class FunctionDesc
 {
-    /**
-     * The name of the function.
-     */
-    public String name;
-
-    /**
-     * The measure of unit of the function (can be null).
-     */
+    private String name;
+    private TapDataType datatype;
+    
     public String unit;
 
-    /**
-     * The returned data type of the function.
-     */
-    public String datatype;
-
-    /**
-     * The argument columnDesc if the argument was a column and the function does not
-     * change datatype.
-     */
-    public ColumnDesc arg;
-
-    public FunctionDesc(String name, String unit)
+    //public FunctionDesc(String name, String unit)
+    //{
+    //    this(name, unit, null);
+    //}
+    
+    public FunctionDesc(String name, TapDataType datatype)
     {
-        this(name, unit, TapSchemaDAO.ARGUMENT_DATATYPE);
-    }
-
-    public FunctionDesc(String name, String unit, String datatype)
-    {
+        TapSchema.assertNotNull(FunctionDesc.class, "name", name);
+        TapSchema.assertNotNull(FunctionDesc.class, "datatype", datatype);
         this.name = name;
-        this.unit = unit;
         this.datatype = datatype;
     }
+    
+    public FunctionDesc(String name, TapDataType datatype, String unit)
+    {
+        this(name, datatype);
+        this.unit = unit;
+    }
+            
+    public String getName()
+    {
+        return name;
+    }
 
+    public TapDataType getDatatype()
+    {
+        return datatype;
+    }
+    
     @Override
     public String toString()
     {

@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2011.                            (c) 2011.
+*  (c) 2016.                            (c) 2016.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,38 +62,102 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
-*
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.schema;
+package ca.nrc.cadc.tap;
 
-import java.util.ArrayList;
-import java.util.List;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
+import ca.nrc.cadc.tap.schema.TapSchema;
 
 /**
- * A grouping construct to define a group of params and references.
+ * Local replacement for ParamDesc in cadc-tap-schema library.
+ * 
  * @author pdowler
  */
-public class GroupDesc 
+public class TapSelectItem
 {
-    //public List<GroupDesc> groups = new ArrayList<GroupDesc>(); // recursive?
+    private String name;
+    private TapDataType datatype;
+
+    private String columnName;
+    public String tableName;
+
+    public String description;
+    public String utype;
+    public String ucd;
+    public String unit;
+    public boolean principal;
+    public boolean indexed;
+    public boolean std;
+    public String id;    
     
-    public List<ParamDesc> params = new ArrayList<ParamDesc>();
-    
-    public List<FieldRef> refs = new ArrayList<FieldRef>();
-    
-    private String utype;
-    
-    public GroupDesc(String utype)
-    {
-        this.utype = utype;
+    /**
+     * A normal column with an alternate name (alias). 
+     * All metadata is copied from the specified column descriptor.
+     * 
+     * @param name
+     * @param column 
+     */
+    public TapSelectItem(String name, ColumnDesc column) 
+    { 
+        this(name, column.getDatatype());
+        this.columnName = column.getColumnName();
+        this.tableName = column.getTableName();
+        this.description = column.description;
+        this.id = column.id;
+        this.indexed = column.indexed;
+        this.principal = column.principal;
+        this.std = column.std;
+        this.ucd = column.ucd;
+        this.unit = column.unit;
+        this.utype = column.utype;
     }
 
-    public String getUtype()
+    public String getName()
     {
-        return utype;
+        return name;
+    }
+
+    public TapDataType getDatatype()
+    {
+        return datatype;
+    }
+
+    /**
+     * Original column name if the selected item was a column.
+     * @return 
+     */
+    public String getColumnName()
+    {
+        return columnName;
+    }
+    
+    
+    
+    /**
+     * A new column created by some sort of expression. This could be a function call, algebraic 
+     * expression, case statement, etc. The calling code must set any additional column
+     * metadata.
+     * 
+     * @param name
+     * @param datatype
+     * @param arraysize
+     * @param varSize
+     */
+    public TapSelectItem(String name, TapDataType datatype)
+    {
+        TapSchema.assertNotNull(TapSelectItem.class, "name", name);
+        TapSchema.assertNotNull(TapSelectItem.class, "datatype", datatype);
+        this.name = name;
+        this.datatype = datatype;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "TapSelectItem[" + name + "," + datatype + "]";
     }
     
     

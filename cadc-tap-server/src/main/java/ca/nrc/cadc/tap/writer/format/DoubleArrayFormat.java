@@ -97,8 +97,8 @@ public class DoubleArrayFormat implements ResultSetFormat
      * the default String representation.
      *
      * @param object to format.
-     * @return String represenetation of the double[].
-     * @throws IllegalArgumentException if the object is not an int[];
+     * @return String representation of the double[].
+     * @throws IllegalArgumentException if the object cannot be converted to a double[]
      */
     @Override
     public String format(Object object)

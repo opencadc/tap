@@ -69,7 +69,6 @@
 
 package ca.nrc.cadc.tap;
 
-import ca.nrc.cadc.tap.schema.ParamDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.uws.Job;
@@ -111,7 +110,7 @@ public abstract class AbstractTapQuery implements TapQuery
 
     public abstract String getSQL();
 
-    public abstract List<ParamDesc> getSelectList();
+    public abstract List<TapSelectItem> getSelectList();
 
     /**
      * The default implementation returns null.

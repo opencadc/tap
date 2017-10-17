@@ -69,21 +69,27 @@
 
 package ca.nrc.cadc.tap.parser.extractor;
 
+import ca.nrc.cadc.tap.TapSelectItem;
 import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
 import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.schema.TapSchemaUtil;
-import ca.nrc.cadc.tap.schema.*;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.FunctionDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
+import ca.nrc.cadc.tap.schema.TapSchema;
+import java.util.ArrayList;
+import java.util.List;
 import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.ExpressionVisitor;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.schema.Column;
-import net.sf.jsqlparser.statement.select.*;
+import net.sf.jsqlparser.statement.select.AllColumns;
+import net.sf.jsqlparser.statement.select.AllTableColumns;
+import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.SelectExpressionItem;
+import net.sf.jsqlparser.statement.select.SubSelect;
 import org.apache.log4j.Logger;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Extract a list of TapSelectItem from query.
@@ -96,7 +102,7 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
     private static final Logger log = Logger.getLogger(SelectListExpressionExtractor.class);
     
     protected TapSchema tapSchema;
-    protected List<ParamDesc> selectList;
+    protected List<TapSelectItem> selectList;
 
     /**
      * @param tapSchema
@@ -105,7 +111,7 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
     {
         super();
         this.tapSchema = tapSchema;
-        this.selectList = new ArrayList<ParamDesc>();
+        this.selectList = new ArrayList<TapSelectItem>();
     }
 
     /* (non-Javadoc)
@@ -134,29 +140,36 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
     {
         log.debug("visit(selectExpressionItem)" + selectExpressionItem);
         
-        ParamDesc paramDesc = null;
+        TapSelectItem paramDesc = null;
         PlainSelect plainSelect = selectNavigator.getPlainSelect();
         String alias = selectExpressionItem.getAlias();
-
-        Expression selectExpression = selectExpressionItem.getExpression();
-        if (selectExpression instanceof Column)
+        if (alias != null && alias.isEmpty())
+            alias = null;
+        
+        Expression expression = selectExpressionItem.getExpression();
+        if (expression instanceof Column)
         {
-            Column column = (Column) selectExpression;
+            Column column = (Column) expression;
             ColumnDesc columnDesc = TapSchemaUtil.findColumnDesc(tapSchema, plainSelect, column);
             log.debug("visit(column) " + column + "found: " + columnDesc);
-            paramDesc = new ParamDesc(columnDesc, alias);
+            if (alias != null)
+                paramDesc = new TapSelectItem(alias, columnDesc);
+            else
+                paramDesc = new TapSelectItem(column.getColumnName(), columnDesc);
         }
-        else if (selectExpression instanceof Function)
+        else if (expression instanceof Function)
         {
-            Function function = (Function) selectExpression;
+            Function function = (Function) expression;
             FunctionDesc functionDesc = getFunctionDesc(function, plainSelect);
-            log.debug("visit(function) " + function + " fiund: " + functionDesc);
-            paramDesc = new ParamDesc(functionDesc, alias);
-            paramDesc.columnDesc = functionDesc.arg;
+            log.debug("visit(function) " + function + " found: " + functionDesc);
+            if (alias != null)
+                paramDesc = new TapSelectItem(alias, functionDesc.getDatatype());
+            else
+                paramDesc = new TapSelectItem(function.getName(), functionDesc.getDatatype());
         }
-        else if (selectExpression instanceof SubSelect)
+        else if (expression instanceof SubSelect)
         {
-            SubSelect subSelect = (SubSelect) selectExpression;
+            SubSelect subSelect = (SubSelect) expression;
             log.debug("visit(subSelect) " + subSelect);
 
             SelectListExtractor sle = new SelectListExtractor(new SelectListExpressionExtractor(tapSchema),
@@ -164,35 +177,32 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
                                                               new FromItemNavigator());
             subSelect.getSelectBody().accept(sle);
             SelectListExpressionExtractor slee = (SelectListExpressionExtractor) sle.getExpressionNavigator();
-            List <ParamDesc> selectList = slee.getSelectList();
-            if (selectList.size() != 1)
+            List <TapSelectItem> tmpList = slee.getSelectList();
+            if (tmpList.size() != 1)
             {
-                final String error = "Expected 1 ParamDesc in SelectList, found " + selectList.size();
+                final String error = "Expected 1 ParamDesc in SelectList, found " + tmpList.size();
                 throw new IllegalStateException(error);
             }
-            paramDesc = selectList.get(0);
+            paramDesc = tmpList.get(0);
         }
         else
         {
-            String datatype = getDatatypeFromExpression(selectExpression);
-            if (alias == null || alias.isEmpty())
-                paramDesc = new ParamDesc(selectExpression.toString(), selectExpression.toString(), datatype);
+            TapDataType datatype = getDatatypeFromExpression(expression);
+            if (alias != null)
+                paramDesc = new TapSelectItem(alias, datatype);
             else
-                paramDesc = new ParamDesc(selectExpression.toString(), alias, datatype);
+                paramDesc = new TapSelectItem(expression.toString(), datatype);
         }
-
-        if (paramDesc != null)
-        {
-            selectList.add(paramDesc);
-        }
+        log.debug("select item: " + paramDesc.getColumnName() + " " + paramDesc.getDatatype());
+        selectList.add(paramDesc);
     }
 
-    public List<ParamDesc> getSelectList()
+    public List<TapSelectItem> getSelectList()
     {
         return selectList;
     }
 
-    public void setSelectList(List<ParamDesc> selectList)
+    public void setSelectList(List<TapSelectItem> selectList)
     {
         this.selectList = selectList;
     }
@@ -210,9 +220,13 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
     private FunctionDesc getFunctionDesc(Function function, PlainSelect plainSelect)
     {
         FunctionDesc functionDesc = TapSchemaUtil.findFunctionDesc(tapSchema, function);
-        if (functionDesc.datatype.equals(TapSchemaDAO.ARGUMENT_DATATYPE))
+        log.debug("getFunctionDesc: " + function.getName() + " -> " + functionDesc);
+        if (functionDesc == null)
+            throw new UnsupportedOperationException("invalid function: " + function.getName());
+
+        if ( TapDataType.FUNCTION_ARG.equals(functionDesc.getDatatype()) )
         {
-            String datatype = null;
+            TapDataType datatype = null;
             ColumnDesc arg = null;
             ExpressionList parameters = function.getParameters();
             for (Object parameter : parameters.getExpressions())
@@ -223,7 +237,7 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
                     if (columnDesc != null)
                     {
                         datatype = columnDesc.getDatatype();
-                        arg = columnDesc;
+                        //arg = columnDesc;
                     }
                 }
                 else if (parameter instanceof Function)
@@ -231,19 +245,19 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
                     Function nestedFunction = (Function) parameter;
                     log.debug("vist(nested Function " + nestedFunction);
                     FunctionDesc nestedFunctionDesc = TapSchemaUtil.findFunctionDesc(tapSchema, (Function) parameter);
-                    if (nestedFunctionDesc.datatype.equals(TapSchemaDAO.ARGUMENT_DATATYPE))
+                    if ( TapDataType.FUNCTION_ARG.equals(nestedFunctionDesc.getDatatype()) )
                     {
                         FunctionDesc recursiveFunctionDesc = getFunctionDesc(nestedFunction, plainSelect);
                         if (recursiveFunctionDesc != null)
                         {
-                            datatype = recursiveFunctionDesc.datatype;
-                            arg = recursiveFunctionDesc.arg;
+                            datatype = recursiveFunctionDesc.getDatatype();
+                            //arg = recursiveFunctionDesc.arg;
                         }
                     }
                     else
                     {
-                        datatype = nestedFunctionDesc.datatype;
-                        arg = nestedFunctionDesc.arg;
+                        datatype = nestedFunctionDesc.getDatatype();
+                        //arg = nestedFunctionDesc.arg;
                     }
                 }
                 else
@@ -253,18 +267,18 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
 
                 if (datatype != null)
                 {
-                    functionDesc.datatype = datatype;
-                    functionDesc.arg = arg;
-                    break;
+                    return new FunctionDesc(functionDesc.getName(), datatype);
                 }
             }
         }
+        log.debug("getFunctionDesc: " + function.getName() + " -> " + functionDesc);
         return functionDesc;
     }
 
-    private String getDatatypeFromExpression(Expression expression)
+    private TapDataType getDatatypeFromExpression(Expression expression)
     {
-        return "adql:VARCHAR";
+        // TODO: could check constant types instead iof lazy string
+        return new TapDataType("char", "*", null);
     }
     
 }
