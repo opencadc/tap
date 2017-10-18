@@ -76,18 +76,15 @@ import org.apache.log4j.Logger;
  *
  * @author pdowler
  */
-public class ShortArrayFormat  implements ResultSetFormat
+public class ShortArrayFormat  extends AbstractResultSetFormat
 {
     private static final Logger log = Logger.getLogger(ShortArrayFormat.class);
 
+    private static final ca.nrc.cadc.dali.util.ShortArrayFormat fmt 
+            = new ca.nrc.cadc.dali.util.ShortArrayFormat();
+    
     public ShortArrayFormat() { }
     
-    @Override
-    public Object parse(String s)
-    {
-        throw new UnsupportedOperationException("TAP Formats cannot parse strings.");
-    }
-
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
             throws SQLException
@@ -100,7 +97,7 @@ public class ShortArrayFormat  implements ResultSetFormat
      * the default String representation.
      *
      * @param object to format.
-     * @return String represenetation of the short[].
+     * @return String representation of the short[].
      * @throws IllegalArgumentException if the object is not an short[];
      */
     @Override
@@ -121,34 +118,20 @@ public class ShortArrayFormat  implements ResultSetFormat
                 throw new IllegalArgumentException("Error accessing array data for " + object.getClass().getCanonicalName(), e);
             }
         }
-        if (object instanceof short[])
-            return toString((short[]) object);
-
+        
         if (object instanceof Short[])
-            return toString((Short[]) object);
+        {
+            Short[] arr = (Short[]) object;
+            short[] tmp = new short[arr.length];
+            for (int i = 0; i < arr.length; i++) {
+                tmp[i] = arr[i]; // unbox
+            }
+            object = tmp;
+        }
+        
+        if (object instanceof short[])
+            return fmt.format((short[]) object);
 
         throw new IllegalArgumentException(object.getClass().getCanonicalName() + " not supported.");
-    }
-
-    private String toString(short[] iarray)
-    {
-        StringBuilder sb = new StringBuilder();
-        for (short i : iarray)
-        {
-            sb.append(Short.toString(i));
-            sb.append(" ");
-        }
-        return sb.substring(0, sb.length() - 1); // trim trailing space
-    }
-
-    private String toString(Short[] iarray)
-    {
-        StringBuilder sb = new StringBuilder();
-        for (Short i : iarray)
-        {
-            sb.append(i.toString());
-            sb.append(" ");
-        }
-        return sb.substring(0, sb.length() - 1); // trim trailing space
     }
 }

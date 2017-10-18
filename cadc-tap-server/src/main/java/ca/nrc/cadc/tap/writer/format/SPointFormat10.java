@@ -80,16 +80,10 @@ import java.sql.SQLException;
  * Extract and format a PGSphere spoint as an STC-S string (TAP-1.0 compatibility).
  *
  */
-public class SPointFormat10 implements ResultSetFormat
+public class SPointFormat10 extends AbstractResultSetFormat
 {
     private final PointFormat fmt = new PointFormat();
     
-    @Override
-    public Object parse(String s)
-    {
-        throw new UnsupportedOperationException("TAP Formats cannot parse strings.");
-    }
-
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
         throws SQLException

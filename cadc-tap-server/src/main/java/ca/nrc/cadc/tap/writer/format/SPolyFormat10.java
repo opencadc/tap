@@ -87,14 +87,8 @@ import java.util.List;
  * Extract and format a PGSphere spoly as an STC-S string (TAP-1.0 compatibility).
  *
  */
-public class SPolyFormat10 implements ResultSetFormat
+public class SPolyFormat10 extends AbstractResultSetFormat
 {
-    @Override
-    public Object parse(String s)
-    {
-        throw new UnsupportedOperationException("TAP Formats cannot parse strings.");
-    }
-
     /**
      * Takes a ResultSet and column index of the spoly
      * and returns a STC-S Polygon String.

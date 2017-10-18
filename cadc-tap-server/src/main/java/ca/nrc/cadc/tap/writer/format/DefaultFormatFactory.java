@@ -69,15 +69,13 @@
 
 package ca.nrc.cadc.tap.writer.format;
 
-import java.util.ArrayList;
-import java.util.List;
-
-
 import ca.nrc.cadc.dali.util.DefaultFormat;
 import ca.nrc.cadc.dali.util.Format;
 import ca.nrc.cadc.tap.TapSelectItem;
 import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.uws.Job;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Returns a Formatter for a given data type.

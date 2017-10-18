@@ -81,15 +81,9 @@ import ca.nrc.cadc.date.DateUtil;
  * Formats a Date or Timestamp into a String.
  *
  */
-public class LocalTimestampFormat implements ResultSetFormat
+public class LocalTimestampFormat extends AbstractResultSetFormat
 {
     private DateFormat dateFormat = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.LOCAL);
-
-    @Override
-    public Object parse(String s)
-    {
-        throw new UnsupportedOperationException("TAP Formats cannot parse strings.");
-    }
 
     /**
      *

@@ -78,16 +78,10 @@ import java.sql.SQLException;
  * Formats a PGSphere spoint as a DALI-1.1 point.
  *
  */
-public class SPointFormat implements ResultSetFormat
+public class SPointFormat extends AbstractResultSetFormat
 {
     private final PointFormat fmt = new PointFormat();
     
-    @Override
-    public Object parse(String s)
-    {
-        throw new UnsupportedOperationException("TAP Formats cannot parse strings.");
-    }
-
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
         throws SQLException

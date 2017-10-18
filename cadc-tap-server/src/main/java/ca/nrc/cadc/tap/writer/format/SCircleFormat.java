@@ -69,9 +69,9 @@
 
 package ca.nrc.cadc.tap.writer.format;
 
+import ca.nrc.cadc.dali.Circle;
 import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.dali.util.CircleFormat;
-import ca.nrc.cadc.dali.Circle;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -80,15 +80,9 @@ import java.sql.SQLException;
  *
  * @author pdowler
  */
-public class SCircleFormat implements ResultSetFormat
+public class SCircleFormat extends AbstractResultSetFormat
 {
     private final CircleFormat fmt = new CircleFormat();
-
-    @Override
-    public Object parse(String s)
-    {
-        throw new UnsupportedOperationException("TAP Formats cannot parse strings.");
-    }
 
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)

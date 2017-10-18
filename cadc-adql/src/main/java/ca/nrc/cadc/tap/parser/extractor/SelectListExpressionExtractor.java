@@ -227,7 +227,6 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
         if ( TapDataType.FUNCTION_ARG.equals(functionDesc.getDatatype()) )
         {
             TapDataType datatype = null;
-            ColumnDesc arg = null;
             ExpressionList parameters = function.getParameters();
             for (Object parameter : parameters.getExpressions())
             {

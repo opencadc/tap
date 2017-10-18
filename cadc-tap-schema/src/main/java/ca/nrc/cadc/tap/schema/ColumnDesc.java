@@ -76,25 +76,18 @@ package ca.nrc.cadc.tap.schema;
  */
 public class ColumnDesc
 {
-    private String tableName;
-    private String columnName;
-    //private String datatype;
-    //private Integer arraysize;
-    //private boolean varsize;
-    //public String xtype;
-    private TapDataType datatype;
+    private final String tableName;
+    private final String columnName;
+    private final TapDataType datatype;
     
     public String description;
     public String utype;
     public String ucd;
     public String unit;
     
-    
     public boolean principal;
     public boolean indexed;
     public boolean std;
-    
-    
     
     /**
      * An id attribute value to tag the column so the VOTableField element gets an XML ID. 

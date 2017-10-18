@@ -80,16 +80,10 @@ import java.sql.SQLException;
  * Formats a PGSphere spoly as a DALI-1.1 polygon.
  *
  */
-public class SPolyFormat implements ResultSetFormat
+public class SPolyFormat extends AbstractResultSetFormat
 {
     private final PolygonFormat fmt = new PolygonFormat();
     
-    @Override
-    public Object parse(String s)
-    {
-        throw new UnsupportedOperationException("TAP Formats cannot parse strings.");
-    }
-
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
         throws SQLException

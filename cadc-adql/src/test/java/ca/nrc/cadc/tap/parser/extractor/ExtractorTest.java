@@ -164,7 +164,6 @@ public class ExtractorTest
                     log.debug("actual: " + actual);
 
                     Assert.assertEquals(expected.getName(), actual.getName());
-                    //Assert.assertEquals(expected.alias, actual.alias);
                     Assert.assertEquals(expected.description, actual.description);
                     Assert.assertEquals(expected.getDatatype(), actual.getDatatype());
                     Assert.assertEquals(expected.utype, actual.utype);
