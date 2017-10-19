@@ -69,17 +69,17 @@
 
 package ca.nrc.cadc.tap.writer.format;
 
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.Polygon;
 import static org.junit.Assert.assertEquals;
 
-import java.util.List;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
-import ca.nrc.cadc.stc.CoordPair;
-import ca.nrc.cadc.stc.Polygon;
 import ca.nrc.cadc.util.Log4jInit;
+import java.util.List;
 
 /**
  *
@@ -93,8 +93,8 @@ public class SPolyFormatTest
         Log4jInit.setLevel("ca", Level.INFO);
     }
     private static final String SPOLYGON = " {(0.0349065850398866, 0.0349065850398866),(0.0349065850398866, 0.0698131700797732),(0.0523598775598299, 0.0523598775598299)}";
-    private static final String STCS_POLYGON = "POLYGON ICRS UNKNOWNREFPOS SPHERICAL2 2.0000000000000004 2.0000000000000004 2.0000000000000004 4.000000000000001 3.0000000000000004 3.0000000000000004";
-
+    private static final String DALI_POLYGON = "2.0 2.0 2.0 4.0 3.0 3.0";
+    
     public SPolyFormatTest() { }
 
     /**
@@ -104,10 +104,13 @@ public class SPolyFormatTest
     public void testFormat()
     {
         log.debug("testFormat");
-
-        SPolyFormat formatter = new SPolyFormat();
-        String expResult = STCS_POLYGON;
-        String result = formatter.format(SPOLYGON);
+        Polygon poly = new Polygon();
+        poly.getVertices().add(new Point(2.0, 2.0));
+        poly.getVertices().add(new Point(2.0, 4.0));
+        poly.getVertices().add(new Point(3.0, 3.0));
+        SPolyFormat fmt = new SPolyFormat();
+        String expResult = DALI_POLYGON;
+        String result = fmt.format(poly);
         assertEquals(expResult.toUpperCase(), result.toUpperCase());
         log.info("testFormat passed");
     }
@@ -120,19 +123,15 @@ public class SPolyFormatTest
     {
         log.debug("testGetPolygon");
 
-        SPolyFormat instance = new SPolyFormat();
-        Polygon polygon = instance.getPolygon(SPOLYGON);
-        assertEquals("POLYGON", Polygon.NAME.toUpperCase());
-        assertEquals("ICRS", polygon.getFrame().name().toUpperCase());
-        List<CoordPair> coordPairs = polygon.getCoordPairs();
-
-        assertEquals("", 2.0, coordPairs.get(0).getX(), 0.1);
-        assertEquals("", 2.0, coordPairs.get(0).getY(), 0.1);
-        assertEquals("", 2.0, coordPairs.get(1).getX(), 0.1);
-        assertEquals("", 4.0, coordPairs.get(1).getY(), 0.1);
-        assertEquals("", 3.0, coordPairs.get(2).getX(), 0.1);
-        assertEquals("", 3.0, coordPairs.get(2).getY(), 0.1);
-        log.info("testGetPolygon passed");
+        SPolyFormat fmt = new SPolyFormat();
+        Polygon polygon = fmt.getPolygon(SPOLYGON);
+        List<Point> coordPairs = polygon.getVertices();
+        assertEquals("", 2.0, coordPairs.get(0).getLongitude(), 0.01);
+        assertEquals("", 2.0, coordPairs.get(0).getLatitude(), 0.01);
+        assertEquals("", 2.0, coordPairs.get(1).getLongitude(), 0.01);
+        assertEquals("", 4.0, coordPairs.get(1).getLatitude(), 0.01);
+        assertEquals("", 3.0, coordPairs.get(2).getLongitude(), 0.01);
+        assertEquals("", 3.0, coordPairs.get(2).getLatitude(), 0.01);
     }
 
 }

@@ -80,6 +80,7 @@ import net.sf.jsqlparser.statement.select.SelectItem;
 import ca.nrc.cadc.tap.parser.ParserUtil;
 import ca.nrc.cadc.tap.parser.navigator.SelectNavigator.VisitingPart;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.tap.schema.TapSchema;
 
 /**
@@ -152,11 +153,11 @@ public class BlobClobColumnValidator extends TapSchemaColumnValidator
 
             if (columnDesc != null)
             {
-                String dataType = columnDesc.getDatatype();
-                if (BLOB.equalsIgnoreCase(dataType))
+                TapDataType tt = columnDesc.getDatatype();
+                if (BLOB.equalsIgnoreCase(tt.xtype))
                     throw new IllegalArgumentException("The column [" + column
                             + "] of BLOB type cannot be used in place other than select item.");
-                else if (CLOB.equalsIgnoreCase(dataType))
+                else if (CLOB.equalsIgnoreCase(tt.xtype))
                     throw new IllegalArgumentException("The column [" + column
                             + "] of CLOB type cannot be used in place other than select item.");
             }

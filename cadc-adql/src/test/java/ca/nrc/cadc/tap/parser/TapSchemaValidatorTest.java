@@ -83,6 +83,7 @@ import ca.nrc.cadc.tap.parser.schema.TapSchemaTableValidator;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.uws.Job;
@@ -224,7 +225,7 @@ public class TapSchemaValidatorTest
 
         TableDesc td = new TableDesc(schemaName, tableName);
         
-        ColumnDesc cd = new ColumnDesc(tableName, "baz", "adql:INTEGER", null);
+        ColumnDesc cd = new ColumnDesc(tableName, "baz", TapDataType.INTEGER);
 
         td.getColumnDescs().add(cd);
         sd.getTableDescs().add(td);

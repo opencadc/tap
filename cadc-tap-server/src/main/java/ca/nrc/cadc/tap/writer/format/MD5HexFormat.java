@@ -79,7 +79,7 @@ import org.apache.log4j.Logger;
  *
  * @author pdowler
  */
-public class MD5HexFormat implements ResultSetFormat
+public class MD5HexFormat extends AbstractResultSetFormat
 {
     private static final Logger log = Logger.getLogger(MD5HexFormat.class);
 
@@ -104,13 +104,4 @@ public class MD5HexFormat implements ResultSetFormat
         }
         throw new IllegalArgumentException(object.getClass().getCanonicalName() + " not supported.");
     }
-
-    @Override
-    public Object parse(String s)
-    {
-        throw new UnsupportedOperationException("TAP Formats cannot parse strings.");
-    }
-
-
-    
 }

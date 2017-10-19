@@ -76,10 +76,9 @@ package ca.nrc.cadc.tap.schema;
  */
 public class ColumnDesc
 {
-    private String tableName;
-    private String columnName;
-    private String datatype;
-    private Integer arraysize;
+    private final String tableName;
+    private final String columnName;
+    private final TapDataType datatype;
     
     public String description;
     public String utype;
@@ -97,17 +96,14 @@ public class ColumnDesc
      */
     public String id;
 
-    public ColumnDesc(String tableName, String columnName, String datatype, Integer arraysize)
+    public ColumnDesc(String tableName, String columnName, TapDataType datatype)
     {
         TapSchema.assertNotNull(TableDesc.class, "tableName", tableName);
         TapSchema.assertNotNull(TableDesc.class, "columnName", columnName);
         TapSchema.assertNotNull(TableDesc.class, "datatype", datatype);
-        if (arraysize != null && arraysize <= 0)
-            throw new IllegalArgumentException("invalid arraysize: " + arraysize);
         this.tableName = tableName;
         this.columnName = columnName;
         this.datatype = datatype;
-        this.arraysize = arraysize;
     }
 
     public String getTableName()
@@ -120,14 +116,9 @@ public class ColumnDesc
         return columnName;
     }
 
-    public String getDatatype()
+    public TapDataType getDatatype()
     {
         return datatype;
-    }
-
-    public Integer getArraysize()
-    {
-        return arraysize;
     }
 
     public String toString()
@@ -136,9 +127,7 @@ public class ColumnDesc
         sb.append("Column[");
         sb.append(tableName).append(",");
         sb.append(columnName).append(",");
-        sb.append(datatype).append(",");
-        sb.append(arraysize);
-        sb.append("]");
+        sb.append(datatype).append("]");
         return sb.toString();
     }
 }

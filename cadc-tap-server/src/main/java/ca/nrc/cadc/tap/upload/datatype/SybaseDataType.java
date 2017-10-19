@@ -70,49 +70,22 @@
 package ca.nrc.cadc.tap.upload.datatype;
 
 import ca.nrc.cadc.tap.schema.ColumnDesc;
-import java.util.HashMap;
-import java.util.Map;
+import ca.nrc.cadc.tap.schema.TapDataType;
+import java.sql.Types;
+import org.apache.log4j.Logger;
 
 /**
  *
  * @author jburke
  */
-public class SybaseDataType implements DatabaseDataType
+public class SybaseDataType extends BasicDataTypeMapper
 {
-    public static Map<String, String> dataTypes;
-    static
-    {
-        dataTypes = new HashMap<String, String>();        
-        dataTypes.put(ADQLDataType.ADQL_SMALLINT, "SMALLINT");
-        dataTypes.put(ADQLDataType.ADQL_INTEGER, "INT");
-        dataTypes.put(ADQLDataType.ADQL_BIGINT, "BIGINT");
-        dataTypes.put(ADQLDataType.ADQL_REAL, "REAL");
-        dataTypes.put(ADQLDataType.ADQL_DOUBLE, "DOUBLE");
-        dataTypes.put(ADQLDataType.ADQL_CHAR, "CHAR");
-        dataTypes.put(ADQLDataType.ADQL_VARCHAR, "VARCHAR");
-        dataTypes.put(ADQLDataType.ADQL_TIMESTAMP, "DATETIME");
+    private static final Logger log = Logger.getLogger(SybaseDataType.class);
+
+    public SybaseDataType() 
+    { 
+        // override some values from super-class
+        dataTypes.put(TapDataType.DOUBLE, new TypePair("DOUBLE", Types.DOUBLE));
+        dataTypes.put(TapDataType.TIMESTAMP, new TypePair("DATETIME", Types.TIMESTAMP));
     }
-
-    /**
-     *
-     */
-    public SybaseDataType() { }
-
-    /**
-     * Given a ADQL data type, return the database
-     * specific data type.
-     *
-     * @param columnDesc ADQL description of the column
-     * @return database specific data type
-     */
-    public String getDataType(ColumnDesc columnDesc)
-    {
-        String dataType = dataTypes.get(columnDesc.getDatatype());
-        if (dataType.equals("CHAR") || dataType.equals("VARCHAR"))
-        {
-            dataType += "(" + columnDesc.getArraysize() + ")";
-        }
-        return dataType;
-    }
-
 }

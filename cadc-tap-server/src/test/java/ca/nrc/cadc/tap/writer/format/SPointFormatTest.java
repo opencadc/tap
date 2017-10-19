@@ -69,13 +69,13 @@
 
 package ca.nrc.cadc.tap.writer.format;
 
+import ca.nrc.cadc.dali.Point;
 import static org.junit.Assert.assertEquals;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
-import ca.nrc.cadc.stc.Position;
 import ca.nrc.cadc.util.Log4jInit;
 
 /**
@@ -90,7 +90,8 @@ public class SPointFormatTest
         Log4jInit.setLevel("ca", Level.INFO);
     }
     private static final String SPOINT = "(0.174532925199433 , 0.174532925199433)";
-    private static final String STCS_POSITION = "POSITION ICRS 10.000000000000004 10.000000000000004";
+    private static final String DALI_POSITION = "10.0 10.0";
+    private static final Point point = new Point(10.0, 10.0);
 
     public SPointFormatTest() { }
 
@@ -100,13 +101,10 @@ public class SPointFormatTest
     @Test
     public void testFormat()
     {
-        log.debug("testFormat");
-
         SPointFormat format = new SPointFormat();
-        String expResult = STCS_POSITION;
-        String result = format.format(SPOINT);
+        String expResult = DALI_POSITION;
+        String result = format.format(point);
         assertEquals(expResult.toUpperCase(), result.toUpperCase());
-        log.info("testFormat passed");
     }
 
     /**
@@ -115,15 +113,10 @@ public class SPointFormatTest
     @Test
     public void testGetPosition()
     {
-        log.debug("testGetPosition");
-
         SPointFormat format = new SPointFormat();
-        Position position = format.getPosition(SPOINT);
-        assertEquals("POSITION", Position.NAME.toUpperCase());
-        assertEquals("ICRS", position.getFrame().name().toUpperCase());
-        assertEquals("", 10.0, position.getCoordPair().getX(), 0.1);
-        assertEquals("", 10.0, position.getCoordPair().getY(), 0.1);
-        log.info("testGetPosition passed");
+        Point position = format.getPoint(SPOINT);
+        assertEquals(10.0, position.getLongitude(), 0.0001);
+        assertEquals(10.0, position.getLatitude(), 0.0001);
     }
 
 }

@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2011.                            (c) 2011.
+*  (c) 2017.                            (c) 2017.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,28 +62,45 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
-*
 ************************************************************************
 */
 
 package ca.nrc.cadc.tap.schema;
 
+
+import ca.nrc.cadc.dali.tables.votable.VOTableField;
+import org.apache.log4j.Logger;
+
 /**
  *
  * @author pdowler
  */
-public class FieldRef 
+public class TapSchemaUtil 
 {
-    private String ref;
-    
-    public FieldRef(String ref)
-    {
-        this.ref = ref;
-    }
+    private static final Logger log = Logger.getLogger(TapSchemaUtil.class);
 
-    public String getRef()
+    private TapSchemaUtil() { }
+    
+    /**
+     * TAP-1.1 conversion of VOTable field metadata to tap_schema column metadata.
+     * @param tableName
+     * @param field
+     * @return 
+     */
+    public static ColumnDesc convert(String tableName, VOTableField field)
     {
-        return ref;
+        TapDataType dt = new TapDataType(field.getDatatype(), field.getArraysize(), field.xtype);
+        ColumnDesc ret = new ColumnDesc(tableName, field.getName(), dt);
+        ret.description = field.description;
+        ret.id = field.id;
+        ret.ucd = field.ucd;
+        ret.unit = field.unit;
+        ret.utype = field.utype;
+        
+        ret.indexed = false;
+        ret.principal = false;
+        ret.std = false;
+        
+        return ret;
     }
 }

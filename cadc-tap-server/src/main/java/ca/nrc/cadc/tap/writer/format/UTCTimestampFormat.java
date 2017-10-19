@@ -81,15 +81,9 @@ import ca.nrc.cadc.date.DateUtil;
  * Formats a Date or Timestamp in UTC into a String.
  *
  */
-public class UTCTimestampFormat implements ResultSetFormat
+public class UTCTimestampFormat extends AbstractResultSetFormat
 {
     private DateFormat dateFormat = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
-
-    @Override
-    public Object parse(String s)
-    {
-        throw new UnsupportedOperationException("TAP Formats cannot parse strings.");
-    }
 
     /**
      * Takes a ResultSet and column index of the Date or Timestamp

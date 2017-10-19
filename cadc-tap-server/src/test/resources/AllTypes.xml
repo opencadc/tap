@@ -17,8 +17,9 @@
       <FIELD name="char_xtype"      datatype="char"   xtype="adql:CHAR"      />
       <FIELD name="char32_datatype" datatype="char"   arraysize="32" />
       <FIELD name="varchar32_datatype" datatype="char"   arraysize="32*" />
-      <FIELD name="varchar_xtype"   datatype="char"   xtype="adql:VARCHAR"   />
-      <FIELD name="timestamp_xtype" datatype="char" arraysize="*" xtype="adql:TIMESTAMP" />
+      <FIELD name="varchar_xtype"   datatype="char" arraysize="32*"  xtype="adql:VARCHAR"   />
+      <FIELD name="adql_timestamp_xtype" datatype="char" arraysize="*" xtype="adql:TIMESTAMP" />
+      <FIELD name="dali_timestamp_xtype" datatype="char" arraysize="*" xtype="timestamp" />
       <!--
       <FIELD name="point_xtype"     datatype="char"   xtype="adql:POINT"     />
       <FIELD name="region_xtype"    datatype="char"   xtype="adql:REGION"    />
@@ -41,6 +42,7 @@
             <TD>char(32) of exact--len</TD>
             <TD>varchar(32) value</TD>
             <TD>varchar_xtype</TD>
+            <TD>2011-01-01T00:00:00.000</TD>
             <TD>2011-01-01T00:00:00.000</TD>
 	    <!--
             <TD>POSITION ICRS GEOCENTER 12.3 34.5</TD>

@@ -195,9 +195,11 @@ public class AllColumnConverterTest
     @Test
     public void testJoin()
     {
-        _query = "select * from tap_schema.keys as aa, tap_schema.tables as bb " +
-        		" where aa.key_id = bb.utype";
-        _expected = "select aa.key_id, aa.from_table, aa.target_table, aa.utype, aa.description, bb.schema_name, bb.table_name, bb.utype, bb.description from tap_schema.keys as aa, tap_schema.tables as bb where aa.key_id = bb.utype";
+        _query = "select * from tap_schema.keys as aa, tap_schema.tables as bb"
+        	+ " where aa.key_id = bb.utype";
+        _expected = "select aa.key_id, aa.from_table, aa.target_table, aa.utype, aa.description, bb.schema_name, bb.table_name, bb.utype, bb.description"
+                + " from tap_schema.keys as aa, tap_schema.tables as bb"
+                + " where aa.key_id = bb.utype";
         doit();
     }
 }

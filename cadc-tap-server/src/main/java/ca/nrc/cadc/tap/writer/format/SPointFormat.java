@@ -69,61 +69,34 @@
 
 package ca.nrc.cadc.tap.writer.format;
 
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.util.PointFormat;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import ca.nrc.cadc.stc.Frame;
-import ca.nrc.cadc.stc.Position;
-import ca.nrc.cadc.stc.STC;
-
 /**
- * Formats a PGSphere spoint as a String.
+ * Formats a PGSphere spoint as a DALI-1.1 point.
  *
  */
-public class SPointFormat implements ResultSetFormat
+public class SPointFormat extends AbstractResultSetFormat
 {
-
-    @Override
-    public Object parse(String s)
-    {
-        throw new UnsupportedOperationException("TAP Formats cannot parse strings.");
-    }
-
-    /**
-     * Takes a ResultSet and column index of the spoint
-     * and returns a STC-S Position String.
-     *
-     * @param resultSet containing the spoint column.
-     * @param columnIndex index of the column in the ResultSet.
-     * @return STC-S Position String of the spoint.
-     * @throws SQLException if there is an error accessing the ResultSet.
-     */
+    private final PointFormat fmt = new PointFormat();
+    
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
         throws SQLException
     {
-        return resultSet.getString(columnIndex);
+        String s = resultSet.getString(columnIndex);
+        return getPoint(s);
     }
 
-    /**
-     * Takes a String representation of the spoint
-     * and returns a STC-S Position String.
-     *
-     * @param object to format.
-     * @return STC-S Position String of the spoint.
-     * @throws IllegalArgumentException if the object is not a String, or if
-     *         the String cannot be parsed.
-     */
     @Override
     public String format(Object object)
     {
-        Position pos = getPosition(object);
-        if (pos == null)
-            return "";
-        return STC.format(pos);
+        return fmt.format((Point) object);
     }
 
-    public Position getPosition(Object object)
+    public Point getPoint(Object object)
     {
          if (object == null)
             return null;
@@ -147,14 +120,11 @@ public class SPointFormat implements ResultSetFormat
         Double x = Double.valueOf(points[0]);
         Double y = Double.valueOf(points[1]);
 
-        // convert to radians
-        x = x * (180/Math.PI);
-        y = y * (180/Math.PI);
+        // convert radians
+        x = Math.toDegrees(x);
+        y = Math.toDegrees(y);
 
-        // Create STC Position.
-        Position position = new Position(Frame.ICRS, null, null, x, y);
-
-        return position;
+        return new Point(x, y);
     }
 
 }

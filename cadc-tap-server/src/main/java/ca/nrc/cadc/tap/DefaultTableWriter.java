@@ -71,7 +71,6 @@ package ca.nrc.cadc.tap;
 
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.dali.tables.TableData;
 import ca.nrc.cadc.dali.tables.ascii.AsciiTableWriter;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableField;
@@ -82,9 +81,8 @@ import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
 import ca.nrc.cadc.dali.util.Format;
-import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.RegistryClient;
-import ca.nrc.cadc.tap.schema.ParamDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.tap.writer.ResultSetTableData;
 import ca.nrc.cadc.tap.writer.RssTableWriter;
 import ca.nrc.cadc.tap.writer.format.FormatFactory;
@@ -167,7 +165,7 @@ public class DefaultTableWriter implements TableWriter
 
     // once the RssTableWriter is converted to use the DALI format
     // of writing, this reference will not be needed
-    List<ParamDesc> selectList;
+    List<TapSelectItem> selectList;
 
     public DefaultTableWriter() { }
 
@@ -179,7 +177,7 @@ public class DefaultTableWriter implements TableWriter
     }
 
     @Override
-    public void setSelectList(List<ParamDesc> selectList)
+    public void setSelectList(List<TapSelectItem> selectList)
     {
         this.selectList = selectList;
         if (rssTableWriter != null)
@@ -336,9 +334,9 @@ public class DefaultTableWriter implements TableWriter
         int listIndex = 0;
 
         // Add the metadata elements.
-        for (ParamDesc paramDesc : selectList)
+        for (TapSelectItem resultCol : selectList)
         {
-            VOTableField newField = createVOTableField(paramDesc);
+            VOTableField newField = createVOTableField(resultCol);
 
             Format<Object> format = formats.get(listIndex);
             log.debug("format: " + listIndex + " " + format.getClass().getName());
@@ -437,7 +435,8 @@ public class DefaultTableWriter implements TableWriter
                         log.debug("resourceIdentifier=" + resourceIdentifier + ", standardID=" + standardID + ", authMethod=" + cur);
                         URL accessURL = regClient.getServiceURL(resourceIdentifier, standardID, cur);
                         String surl = accessURL.toExternalForm();
-                        VOTableParam accessParam = new VOTableParam("accessURL", "char", surl.length(), false, surl);
+                        String arraysize = Integer.toString(surl.length()); // fixed length since we know it
+                        VOTableParam accessParam = new VOTableParam("accessURL", "char", arraysize);
                         metaResource.getParams().add(accessParam);
                     }
                 }
@@ -449,338 +448,22 @@ public class DefaultTableWriter implements TableWriter
         }
     }
 
-    protected VOTableField createVOTableField(ParamDesc paramDesc)
+    protected VOTableField createVOTableField(TapSelectItem resultCol)
     {
-        if (paramDesc != null)
+        if (resultCol != null)
         {
-            String name = getParamName(paramDesc);
-            String datatype = getDatatype(paramDesc);
-
-            VOTableField newField = new VOTableField(name, datatype);
-
-            setSize(paramDesc, newField);
-
-            if (paramDesc.id != null)
-                newField.id = paramDesc.id; // an XML id
-
-            if (paramDesc.columnDesc != null)
-                newField.utype = paramDesc.columnDesc.utype;
-            else
-                newField.utype = paramDesc.utype;
-
-            newField.ucd = paramDesc.ucd;
-            newField.unit = paramDesc.unit;
-
-            if (paramDesc.datatype != null && !paramDesc.datatype.startsWith("votable:"))
-                newField.xtype = paramDesc.datatype;
-
-            newField.description = paramDesc.description;
+            TapDataType tt = resultCol.getDatatype();
+            VOTableField newField = new VOTableField(resultCol.getName(),tt.getDatatype(), tt.arraysize);
+            newField.xtype = tt.xtype;
+            newField.description = resultCol.description;
+            newField.id = resultCol.id;
+            newField.utype = resultCol.utype;
+            newField.ucd = resultCol.ucd;
+            newField.unit = resultCol.unit;
 
             return newField;
         }
 
         return null;
     }
-
-    // Set the name using the alias first, then the column name.
-    /**
-     *
-     * @param alias
-     * @param name
-     */
-    private String getParamName(ParamDesc paramDesc)
-    {
-        String name = paramDesc.name;
-        String alias = paramDesc.alias;
-        if (alias != null)
-        {
-            // strip off double-quotes used for an alias with spaces or dots in it
-            if (alias.charAt(0) == '"' && alias.charAt(alias.length()-1) == '"')
-                alias = alias.substring(1, alias.length() - 1);
-            return alias;
-        }
-        else if (name != null)
-            return name;
-
-        return null;
-    }
-
-    /**
-     *
-     * @param datatype
-     * @param size
-     */
-    private String getDatatype(ParamDesc paramDesc)
-    {
-        String datatype = paramDesc.datatype;
-
-        if (datatype == null)
-            return null;
-
-        if (datatype.equals("adql:SMALLINT"))
-        {
-            return "short";
-        }
-        else if (datatype.equals("adql:INTEGER"))
-        {
-            return "int";
-        }
-        else if (datatype.equals("adql:BIGINT"))
-        {
-            return "long";
-        }
-        else if (datatype.equals("adql:REAL") || datatype.equals("adql:FLOAT"))
-        {
-            return "float";
-        }
-        else if (datatype.equals("adql:DOUBLE") )
-        {
-            return "double";
-        }
-        else if (datatype.equals("adql:VARBINARY"))
-        {
-            return "unsignedByte";
-        }
-        else if (datatype.equals("adql:CHAR"))
-        {
-            return "char";
-        }
-        else if (datatype.equals("adql:VARCHAR"))
-        {
-            return "char";
-        }
-        else if (datatype.equals("adql:BINARY"))
-        {
-            return "unsignedByte";
-        }
-        else if (datatype.equals("adql:BLOB"))
-        {
-            return "unsignedByte";
-        }
-        else if (datatype.equals("adql:CLOB"))
-        {
-            return "char";
-        }
-        else if (datatype.equals("adql:TIMESTAMP"))
-        {
-            return "char";
-        }
-        else if (datatype.equals("adql:POINT"))
-        {
-            return "char";
-        }
-        else if (datatype.equals("adql:CIRCLE"))
-        {
-            return "char";
-        }
-        else if (datatype.equals("adql:POLYGON"))
-        {
-            return "char";
-        }
-        else if (datatype.equals("adql:REGION"))
-        {
-            return "char";
-        }
-        else if (datatype.equals("adql:proto:INTERVAL"))
-        {
-            return "double";
-        }
-        // here we support votable datatypes used directly in the tap_schema,
-        // which are normally only needed if the DB has arrays of primitive types
-        // as adql types cover all the other scenarios
-        else if (datatype.equals("votable:double"))
-        {
-            return "double";
-        }
-        else if (datatype.equals("votable:int"))
-        {
-            return "int";
-        }
-        else if (datatype.equals("votable:float"))
-        {
-            return "float";
-        }
-        else if (datatype.equals("votable:long"))
-        {
-            return "long";
-        }
-        else if (datatype.equals("votable:boolean"))
-        {
-            return "boolean";
-        }
-        else if (datatype.equals("votable:short"))
-        {
-            return "short";
-        }
-        else if (datatype.equals("votable:char"))
-        {
-            return "char";
-        }
-        else if (datatype.equals("votable:char*"))
-        {
-            return "char";
-        }
-        
-        if (datatype.equals("point"))
-        {
-            return "double";
-        }
-        else if (datatype.equals("circle"))
-        {
-            return "double";
-        }
-        else if (datatype.equals("polygon"))
-        {
-            return "double";
-        }
-        else if (datatype.equals("interval"))
-        {
-            return "double";
-        }
-        else if (datatype.equals("uuid"))
-        {
-            return "char";
-        }
-
-        return null;
-    }
-
-    /**
-     *
-     * @param datatype
-     * @param size
-     */
-    private void setSize(ParamDesc paramDesc, VOTableField field)
-    {
-        String datatype = paramDesc.datatype;
-        Integer size = paramDesc.arraysize;
-
-        if (datatype == null)
-            return;
-
-        if (datatype.equals("adql:BINARY"))
-        {
-            if (size != null)
-                field.setArraysize(size);
-        }
-        else if (datatype.equals("adql:VARBINARY"))
-        {
-            field.setVariableSize(true);
-            if (size != null)
-                field.setArraysize(size);
-        }
-        else if (datatype.equals("adql:CHAR"))
-        {
-            //field.setVariableSize(true);
-            if (size != null)
-                field.setArraysize(size);
-        }
-        else if (datatype.equals("adql:VARCHAR"))
-        {
-            field.setVariableSize(true);
-            if (size != null)
-                field.setArraysize(size);
-        }
-        else if (datatype.equals("adql:BLOB"))
-        {
-            field.setVariableSize(true);
-            if (size != null)
-                field.setArraysize(size);
-        }
-        else if (datatype.equals("adql:CLOB"))
-        {
-            field.setVariableSize(true);
-            if (size != null)
-                field.setArraysize(size);
-        }
-        else if (datatype.equals("adql:TIMESTAMP"))
-        {
-            field.setVariableSize(true);
-            if (size != null)
-                field.setArraysize(size);
-        }
-        else if (datatype.equals("adql:POINT"))
-        {
-            field.setVariableSize(true);
-        }
-        else if (datatype.equals("adql:CIRCLE"))
-        {
-            field.setVariableSize(true);
-        }
-        else if (datatype.equals("adql:POLYGON"))
-        {
-            field.setVariableSize(true);
-        }
-        else if (datatype.equals("adql:REGION"))
-        {
-            field.setVariableSize(true);
-        }
-        else if (datatype.equals("adql:proto:INTERVAL"))
-        {
-            field.setVariableSize(true);
-        }
-        // VOTable types
-        else if (datatype.equals("votable:double"))
-        {
-            if (size != null)
-                field.setArraysize(size);
-        }
-        else if (datatype.equals("votable:int"))
-        {
-            if (size != null)
-                field.setArraysize(size);
-        }
-        else if (datatype.equals("votable:float"))
-        {
-            if (size != null)
-                field.setArraysize(size);
-        }
-        else if (datatype.equals("votable:long"))
-        {
-            if (size != null)
-                field.setArraysize(size);
-        }
-        else if (datatype.equals("votable:boolean"))
-        {
-            if (size != null)
-                field.setArraysize(size);
-        }
-        else if (datatype.equals("votable:short"))
-        {
-            if (size != null)
-                field.setArraysize(size);
-        }
-        else if (datatype.equals("votable:char"))
-        {
-            if (size != null)
-                field.setArraysize(size);
-        }
-        else if (datatype.equals("votable:char*"))
-        {
-            field.setVariableSize(true);
-        }
-        // DALI-1.1 xtypes
-        else if (datatype.equals("point"))
-        {
-            field.setArraysize(2);
-        }
-        else if (datatype.equals("circle"))
-        {
-            field.setArraysize(3);
-        }
-        else if (datatype.equals("polygon"))
-        {
-            field.setVariableSize(true);
-        }
-        else if (datatype.equals("interval"))
-        {
-            field.setArraysize(2);
-        }
-        else if (datatype.equals("uuid"))
-        {
-            field.setArraysize(36);
-        }
-    }
-
-
 }

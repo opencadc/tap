@@ -66,131 +66,76 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.tap.schema;
 
-public class ParamDesc
+package ca.nrc.cadc.tap.writer.format;
+
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.Polygon;
+import ca.nrc.cadc.dali.postgresql.PgSpoly;
+import ca.nrc.cadc.stc.CoordPair;
+import ca.nrc.cadc.stc.Flavor;
+import ca.nrc.cadc.stc.Frame;
+import ca.nrc.cadc.stc.ReferencePosition;
+import ca.nrc.cadc.stc.STC;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+
+/**
+ * Extract and format a PGSphere spoly as an STC-S string (TAP-1.0 compatibility).
+ *
+ */
+public class SPolyFormat10 extends AbstractResultSetFormat
 {
-    public ColumnDesc columnDesc;
-
-     /**
-     * The name (not null).
-     */
-    public String name;
-    
-    public String value;
-
     /**
-     * The alias of the param (can be null).
+     * Takes a ResultSet and column index of the spoly
+     * and returns a STC-S Polygon String.
+     *
+     * @param resultSet containing the spoint column.
+     * @param columnIndex index of the column in the ResultSet.
+     * @return STC Polygon
+     * @throws SQLException if there is an error accessing the ResultSet.
      */
-    public String alias;
-
-    /**
-     * Describes the param (can be null).
-     */
-    public String description;
-
-    /**
-     * The utype of the param (can be null).
-     */
-    public String utype;
-
-    /**
-     * The UCD of param (can be null).
-     */
-    public String ucd;
-
-    /**
-     * The unit used for param values (can be null).
-     */
-    public String unit;
-
-    /**
-     * The ADQL datatype of param (not null).
-     */
-    public String datatype;
-
-    /**
-     * The param datatype size (Column width) (not null).
-     */
-    public Integer arraysize;
-    
-    /**
-     * An id attribute value to tag the column with (for VOTable FIELD element). This
-     * can normally be left null as it is onyl needed for the prototype  getResultMeta/ListGroup
-     * hack.
-     */
-    public String id;
-    
-    public ParamDesc(String name, String value, String description, 
-            String utype, String ucd, String unit, String datatype, Integer size)
-    {
-        this.name = name;
-        this.value = value;
-        this.description = description;
-        this.utype = utype;
-        this.ucd = ucd;
-        this.unit = unit;
-        this.datatype = datatype;
-        this.arraysize = size;
-    }
-    
-    public ParamDesc(ColumnDesc columnDesc, String alias)
-    {
-        this.columnDesc = columnDesc;
-        this.name = columnDesc.getColumnName();
-        this.description = columnDesc.description;
-        this.utype = columnDesc.utype;
-        this.ucd = columnDesc.ucd;
-        this.unit = columnDesc.unit;
-        this.datatype = columnDesc.getDatatype();
-        this.arraysize = columnDesc.getArraysize();
-        this.alias = alias;
-        this.id = columnDesc.id;
-    }
-
-    public ParamDesc(FunctionDesc functionDesc, String alias)
-    {
-        this.columnDesc = null;
-        this.name = functionDesc.name;
-        this.description = null;
-        this.utype = null;
-        this.ucd = null;
-        this.unit = functionDesc.unit;
-        this.datatype = functionDesc.datatype;
-        this.arraysize = null;
-        this.alias = alias;
-    }
-
-    public ParamDesc(String name, String alias, String datatype)
-    {
-        this.columnDesc = null;
-        this.name = name;
-        this.alias = alias;
-        this.datatype = null;
-        this.arraysize = null;
-        this.description = null;
-        this.utype = null;
-        this.ucd = null;
-        this.unit = null;
-        
-    }
-
     @Override
-    public String toString()
+    public Object extract(ResultSet resultSet, int columnIndex)
+        throws SQLException
     {
-        StringBuilder sb = new StringBuilder();
-        sb.append("ParamDesc[");
-        sb.append(name).append(",");
-        sb.append(id).append(",");
-        sb.append(alias == null ? "" : alias).append(",");
-        sb.append(description == null ? "" : description).append(",");
-        sb.append(utype == null ? "" : utype).append(",");
-        sb.append(ucd == null ? "" : ucd).append(",");
-        sb.append(unit == null ? "" : unit).append(",");
-        sb.append(datatype).append(",");
-        sb.append(arraysize == null ? "" : arraysize);
-        sb.append("]");
-        return sb.toString();
+        String s = resultSet.getString(columnIndex);
+        return getPolygon(s);
     }
-    
+
+    /**
+     * Takes a String representation of the spoly
+     * and returns a STC-S Polygon String.
+     *
+     * @param object to format.
+     * @return STC-S Polygon String of the spoly.
+     * @throws IllegalArgumentException if the object is not a String, or if
+     *         the String cannot be parsed.
+     */
+    @Override
+    public String format(Object object)
+    {
+        if (object == null)
+            return "";
+        return STC.format((ca.nrc.cadc.stc.Polygon) object);
+    }
+
+    ca.nrc.cadc.stc.Polygon getPolygon(String s)
+    {
+        if (s == null)
+            return null;
+        
+        PgSpoly spoly = new PgSpoly();
+        Polygon poly = spoly.getPolygon(s);
+        
+        List<CoordPair> coordPairs = new ArrayList<CoordPair>();
+        for (Point p : poly.getVertices())
+        {
+            coordPairs.add(new CoordPair(p.getLongitude(), p.getLatitude()));
+        }
+        return new ca.nrc.cadc.stc.Polygon(Frame.ICRS, ReferencePosition.UNKNOWNREFPOS, Flavor.SPHERICAL2, coordPairs);
+    }
 }

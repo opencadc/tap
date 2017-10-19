@@ -70,7 +70,6 @@
 package ca.nrc.cadc.tap;
 
 import ca.nrc.cadc.log.WebServiceLogInfo;
-import ca.nrc.cadc.tap.schema.ParamDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
@@ -100,7 +99,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NameNotFoundException;
@@ -327,7 +325,7 @@ public class QueryRunner implements JobRunner
 
             log.debug("invoking TapQuery implementation: " + query.getClass().getCanonicalName());
             String sql = query.getSQL();
-            List<ParamDesc> selectList = query.getSelectList();
+            List<TapSelectItem> selectList = query.getSelectList();
             String queryInfo = query.getInfo();
 
             log.debug("creating TapTableWriter...");
