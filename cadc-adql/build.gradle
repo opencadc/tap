@@ -20,7 +20,7 @@ dependencies {
     compile 'log4j:log4j:1.2.+'
 
     compile 'org.opencadc:cadc-util:1.+'
-    compile 'org.opencadc:cadc-tap-server:[1.1.1,)'
+    compile 'org.opencadc:cadc-tap-server:[1.1,)'
     compile 'org.opencadc:cadc-tap-schema:[1.1.1,)'
     compile 'org.opencadc:cadc-jsqlparser-compat:0.6.4'
 
