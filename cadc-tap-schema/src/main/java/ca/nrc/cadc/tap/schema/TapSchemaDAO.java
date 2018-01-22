@@ -678,13 +678,13 @@ public class TapSchemaDAO
         // SQL String functions.
 //        functionDescs.add(new FunctionDesc("BIT_LENGTH", "", "adql:INTEGER"));
 //        functionDescs.add(new FunctionDesc("CHARACTER_LENGTH", "", "adql:INTEGER"));
-//        functionDescs.add(new FunctionDesc("LOWER", "", "adql:VARCHAR"));
+        functionDescs.add(new FunctionDesc("LOWER", new TapDataType("char", "*", null)));
 //        functionDescs.add(new FunctionDesc("OCTET_LENGTH", "", "adql:INTEGER"));
 //        functionDescs.add(new FunctionDesc("OVERLAY", "", "adql:VARCHAR")); //SQL92???
 //        functionDescs.add(new FunctionDesc("POSITION", "", "adql:INTEGER"));
-//        functionDescs.add(new FunctionDesc("SUBSTRING", "", "adql:VARCHAR"));
-//        functionDescs.add(new FunctionDesc("TRIM", "", "adql:VARCHAR"));
-//        functionDescs.add(new FunctionDesc("UPPER", "", "adql:VARCHAR"));
+        functionDescs.add(new FunctionDesc("SUBSTRING", new TapDataType("char", "*", null)));
+//        functionDescs.add(new FunctionDesc("TRIM", new TapDataType("char", "*", null)));
+        functionDescs.add(new FunctionDesc("UPPER", new TapDataType("char", "*", null)));
 
         // SQL Date functions.
 //        functionDescs.add(new FunctionDesc("CURRENT_DATE", "", "adql:TIMESTAMP"));
