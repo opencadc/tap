@@ -88,7 +88,7 @@ public class TapSyncQueryTest extends SyncUWSTest
 
     public TapSyncQueryTest(URI resourceID)
     { 
-        super(resourceID, Standards.TAP_SYNC_11);
+        super(resourceID, Standards.TAP_10, Standards.INTERFACE_UWS_SYNC);
     }
 
     @Override
