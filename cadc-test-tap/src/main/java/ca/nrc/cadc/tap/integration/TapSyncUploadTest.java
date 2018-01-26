@@ -39,7 +39,7 @@ public class TapSyncUploadTest extends AbstractUWSTest2
     
     public TapSyncUploadTest(URI resourceID)
     {
-        super(resourceID, Standards.TAP_SYNC_11);
+        super(resourceID, Standards.TAP_10, Standards.INTERFACE_UWS_SYNC);
     }
 
     public void setTestFile(File testFile)

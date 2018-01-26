@@ -33,7 +33,7 @@ public class TapAsyncUploadTest extends AbstractUWSTest2
     
     public TapAsyncUploadTest(URI resourceID)
     {
-        super(resourceID, Standards.TAP_ASYNC_11);
+        super(resourceID, Standards.TAP_10, Standards.INTERFACE_UWS_ASYNC);
     }
 
     public void setTestFile(File testFile)

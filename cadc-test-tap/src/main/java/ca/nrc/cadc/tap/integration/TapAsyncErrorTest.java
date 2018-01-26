@@ -93,7 +93,7 @@ public class TapAsyncErrorTest extends AsyncUWSTest
     
     public TapAsyncErrorTest(URI resourceID) 
     { 
-        super(resourceID, Standards.TAP_ASYNC_11, TIMEOUT);
+        super(resourceID, Standards.TAP_10, Standards.INTERFACE_UWS_ASYNC, TIMEOUT);
     }
     
     @Override
