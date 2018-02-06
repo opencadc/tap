@@ -91,7 +91,13 @@ public class TapSchemaDAO
 {
     private static final Logger log = Logger.getLogger(TapSchemaDAO.class);
 
-    private final int TAP_VERSION = 11;
+    /**
+     * Integer representation of the TAP version (TAP 1.1 value is 11). This
+     * value is expected to be appended to the tap_schema table names so that
+     * two versions of the tap_schema tables can co-exist.
+     */
+    protected final int TAP_VERSION = 11;
+    
     // standard tap_schema table names
     protected String schemasTableName = "tap_schema.schemas" + TAP_VERSION;
     protected String tablesTableName = "tap_schema.tables" + TAP_VERSION;
