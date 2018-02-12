@@ -13,7 +13,7 @@ create table tap_schema.schemas11
 	schema_name   varchar(64)  NOT NULL,
 	utype         varchar(512),
 	description   varchar(512),
-	
+        schema_index  integer,	
 	primary key (schema_name)
 )
 ;

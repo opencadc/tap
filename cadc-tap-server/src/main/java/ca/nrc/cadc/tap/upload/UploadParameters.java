@@ -116,7 +116,7 @@ public class UploadParameters
     protected void process(List<Parameter> parameters, String jobID)
     {
         if (parameters == null || parameters.isEmpty())
-            throw new UnsupportedOperationException("UPLOAD parameter is missing");
+            return;
 
         // Check each parameter in the list.
         log.debug("process: " + parameters.size() + " params");
