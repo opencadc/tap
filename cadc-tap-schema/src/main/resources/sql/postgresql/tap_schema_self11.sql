@@ -1,6 +1,6 @@
 
 -- content of the tap_schema tables that describes the tap_schema itself
--- the 11 suffix on all physical table names means thsi is the TAP-1.1 version
+-- the 11 suffix on all physical table names means this is the TAP-1.1 version
 
 -- delete key columns for keys from tables in the tap_schema schema
 delete from tap_schema.key_columns11 where
@@ -23,11 +23,11 @@ delete from tap_schema.columns11 where table_name in
 (select table_name from tap_schema.tables11 where lower(table_name) like 'tap_schema.%')
 ;
 
--- delete tables in the caom schema
+-- delete tables
 delete from tap_schema.tables11 where lower(table_name) like 'tap_schema.%'
 ;
 
--- delete the caom schema
+-- delete schema
 delete from tap_schema.schemas11 where lower(schema_name) = 'tap_schema'
 ;
 
