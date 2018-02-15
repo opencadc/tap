@@ -81,6 +81,7 @@ import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
 import ca.nrc.cadc.dali.util.Format;
+import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.tap.writer.ResultSetTableData;
@@ -98,7 +99,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.sql.ResultSet;
+import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -362,10 +365,13 @@ public class DefaultTableWriter implements TableWriter
         // list columnIDs that we recognize
         addMetaResources(votableDocument, serviceIDs);
 
-        ResultSetTableData tableData = new ResultSetTableData(rs, formats);
-
         VOTableInfo info = new VOTableInfo("QUERY_STATUS", "OK");
         resultsResource.getInfos().add(info);
+        
+        DateFormat df = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
+        Date now = new Date();
+        VOTableInfo info2 = new VOTableInfo("QUERY_TIMESTAMP", df.format(now));
+        resultsResource.getInfos().add(info2);
 
         // for documentation, add the query to the table as an info element
         if (queryInfo != null)
@@ -374,6 +380,7 @@ public class DefaultTableWriter implements TableWriter
             resultsResource.getInfos().add(info);
         }
 
+        ResultSetTableData tableData = new ResultSetTableData(rs, formats);
         resultsTable.setTableData(tableData);
         
         if (maxrec != null)
