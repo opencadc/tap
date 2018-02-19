@@ -441,10 +441,16 @@ public class DefaultTableWriter implements TableWriter
                         }
                         log.debug("resourceIdentifier=" + resourceIdentifier + ", standardID=" + standardID + ", authMethod=" + cur);
                         URL accessURL = regClient.getServiceURL(resourceIdentifier, standardID, cur);
-                        String surl = accessURL.toExternalForm();
-                        String arraysize = Integer.toString(surl.length()); // fixed length since we know it
-                        VOTableParam accessParam = new VOTableParam("accessURL", "char", arraysize);
-                        metaResource.getParams().add(accessParam);
+                        if (accessURL != null) {
+                            String surl = accessURL.toExternalForm();
+                            String arraysize = Integer.toString(surl.length()); // fixed length since we know it
+                            VOTableParam accessParam = new VOTableParam("accessURL", "char", arraysize, surl);
+                            metaResource.getParams().add(accessParam);
+                        } else {
+                            // log the error but continue anyway
+                            log.error("failed to find accessURL: resourceIdentifier=" + resourceIdentifier 
+                                + ", standardID=" + standardID + ", authMethod=" + cur);
+                        }
                     }
                 }
                 catch (URISyntaxException e)
