@@ -133,7 +133,7 @@ public class QueryRunner implements JobRunner
     private static final String queryDataSourceName = "jdbc/tapuser";
     private static final String uploadDataSourceName = "jdbc/tapuploadadm";
 
-    private Job job;
+    protected Job job;
     private JobUpdater jobUpdater;
     private SyncOutput syncOutput;
     private WebServiceLogInfo logInfo;
