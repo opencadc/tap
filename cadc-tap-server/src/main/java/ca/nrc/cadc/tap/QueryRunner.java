@@ -358,7 +358,13 @@ public class QueryRunner implements JobRunner
                 if (maxRows == null || maxRows.intValue() > 0)
                 {
                     log.debug("getting database connection...");
-                    connection = queryDataSource.getConnection();
+                    if (query.isTapSchemaQuery()) {
+                        log.warn("tap_schema query");
+                        connection = tapSchemaDataSource.getConnection();
+                    } else {
+                        log.warn("regular query");
+                        connection = queryDataSource.getConnection();
+                    }
 
                     t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
                     diagnostics.add(new Result("diag", URI.create("jndi:connect:"+dt)));
