@@ -184,6 +184,17 @@ public class TableServlet extends HttpServlet
         return (DataSource) envContext.lookup(queryDataSourceName);
     }
     
+    /**
+     * Get the DataSource to be used to query the <code>tap_schema</code>. 
+     * 
+     * Backwards compatibility: by default, this calls getQueryDataSource().
+     * 
+     * @return
+     * @throws Exception 
+     */
+    protected DataSource getTapSchemaDataSource() throws Exception {
+        return getQueryDataSource();
+    }
     
     private class GetTablesAction implements PrivilegedExceptionAction<Object>
     {
@@ -201,7 +212,7 @@ public class TableServlet extends HttpServlet
             boolean started = false;
             try
             {
-                DataSource ds = getQueryDataSource();
+                DataSource ds = getTapSchemaDataSource();
                 
                 TapSchemaDAO dao = getTapSchemaDAO();
                 dao.setDataSource(ds);

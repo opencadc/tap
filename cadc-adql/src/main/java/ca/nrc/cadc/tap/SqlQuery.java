@@ -112,7 +112,8 @@ public class SqlQuery extends AbstractTapQuery
     protected Statement statement;
     protected List<TapSelectItem> selectList;
     protected List<SelectNavigator> navigatorList = new ArrayList<SelectNavigator>();
-
+    protected TapSchemaTableValidator tstValidator;
+    
     protected transient boolean navigated = false;
 
     public SqlQuery() { }
@@ -124,9 +125,10 @@ public class SqlQuery extends AbstractTapQuery
      */
     protected void init()
     {
+        this.tstValidator = new TapSchemaTableValidator(tapSchema);
         SelectNavigator sn = new SelectNavigator(new ExpressionNavigator(),
                                                  new TapSchemaColumnValidator(tapSchema),
-                                                 new TapSchemaTableValidator(tapSchema));
+                                                 tstValidator);
         navigatorList.add(sn);
 
         // convert * to fixed select-list
@@ -236,6 +238,27 @@ public class SqlQuery extends AbstractTapQuery
     {
         doNavigate();
         return selectList;
+    }
+    
+    @Override
+    public boolean isTapSchemaQuery() {
+        doNavigate();
+        int ts = 0;
+        int nts = 0;
+        for (TableDesc td : tstValidator.getTables()) {
+            if ("tap_schema".equalsIgnoreCase(td.getSchemaName())) {
+                ts++;
+            } else {
+                nts++;
+            }
+        }
+        if (ts > 0 && nts == 0) {
+            return true;
+        }
+        if (ts == 0 && nts > 0) {
+            return false;
+        }
+        throw new UnsupportedOperationException("access tap_schema and non-tap_schema tables in single query");
     }
 
     @Override

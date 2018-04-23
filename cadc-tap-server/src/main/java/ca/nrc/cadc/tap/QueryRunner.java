@@ -192,7 +192,7 @@ public class QueryRunner implements JobRunner
     }
     
     /**
-     * Get the DataSOurce to be used to execute the query. By default, this uses JNDI to
+     * Get the DataSource to be used to execute the query. By default, this uses JNDI to
      * find an app-server supplied DataSource named <code>jdbc/tapuser</code>.
      * 
      * @return
@@ -205,6 +205,18 @@ public class QueryRunner implements JobRunner
         Context initContext = new InitialContext();
         Context envContext = (Context) initContext.lookup("java:comp/env");
         return (DataSource) envContext.lookup(queryDataSourceName);
+    }
+    
+    /**
+     * Get the DataSource to be used to query the <code>tap_schema</code>. 
+     * 
+     * Backwards compatibility: by default, this calls getQueryDataSource().
+     * 
+     * @return
+     * @throws Exception 
+     */
+    protected DataSource getTapSchemaDataSource() throws Exception {
+        return getQueryDataSource();
     }
     
     /**
@@ -271,7 +283,8 @@ public class QueryRunner implements JobRunner
                 responseCodeOnUserFail = HttpURLConnection.HTTP_OK; // TAP-1.0
             tapValidator.validate(paramList);
 
-            DataSource queryDataSource = (DataSource) getQueryDataSource();
+            DataSource queryDataSource = getQueryDataSource();
+            DataSource tapSchemaDataSource = getTapSchemaDataSource();
             // this one is optional, so take care
             DataSource uploadDataSource = null;
             try
@@ -291,7 +304,7 @@ public class QueryRunner implements JobRunner
 
             log.debug("reading TapSchema...");
             TapSchemaDAO dao = pfac.getTapSchemaDAO();
-            dao.setDataSource(queryDataSource);
+            dao.setDataSource(tapSchemaDataSource);
             TapSchema tapSchema = dao.get();
 
             t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;

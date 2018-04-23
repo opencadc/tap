@@ -93,23 +93,31 @@ public abstract class AbstractTapQuery implements TapQuery
         this.job = job;
     }
     
+    @Override
     public void setTapSchema(TapSchema tapSchema)
     {
         this.tapSchema = tapSchema;
     }
 
+    @Override
     public void setExtraTables(Map<String, TableDesc> extraTables)
     {
         this.extraTables = extraTables;
     }
 
+    @Override
     public void setMaxRowCount(Integer maxRowCount)
     {
         this.maxRowCount = maxRowCount;
     }
 
+    @Override
     public abstract String getSQL();
 
+    @Override
+    public abstract boolean isTapSchemaQuery();
+
+    @Override
     public abstract List<TapSelectItem> getSelectList();
 
     /**
@@ -117,6 +125,7 @@ public abstract class AbstractTapQuery implements TapQuery
      * 
      * @return null
      */
+    @Override
     public String getInfo()
     {
         return null;
