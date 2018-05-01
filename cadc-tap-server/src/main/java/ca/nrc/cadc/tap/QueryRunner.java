@@ -359,10 +359,10 @@ public class QueryRunner implements JobRunner
                 {
                     log.debug("getting database connection...");
                     if (query.isTapSchemaQuery()) {
-                        log.warn("tap_schema query");
+                        log.debug("tap_schema query");
                         connection = tapSchemaDataSource.getConnection();
                     } else {
-                        log.warn("regular query");
+                        log.debug("regular query");
                         connection = queryDataSource.getConnection();
                     }
 
