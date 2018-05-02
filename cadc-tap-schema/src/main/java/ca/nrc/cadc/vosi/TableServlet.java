@@ -309,7 +309,7 @@ public class TableServlet extends HttpServlet
             }
             catch(NamingException ex)
             {
-                log.error("CONFIGURATION ERROR: failed to find JNDI DataSource "+queryDataSourceName);
+                log.error("CONFIGURATION ERROR: failed to find JNDI DataSource", ex);
                 if (!started) response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE,
                         "service unavailable (configuration error)");
             }
