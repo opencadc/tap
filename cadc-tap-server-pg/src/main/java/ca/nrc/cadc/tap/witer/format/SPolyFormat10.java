@@ -67,77 +67,73 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.upload;
+package ca.nrc.cadc.tap.witer.format;
 
-import ca.nrc.cadc.tap.upload.datatype.DatabaseDataType;
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.Polygon;
+import ca.nrc.cadc.dali.postgresql.PgSpoly;
+import ca.nrc.cadc.stc.CoordPair;
+import ca.nrc.cadc.stc.Flavor;
+import ca.nrc.cadc.stc.Frame;
+import ca.nrc.cadc.stc.ReferencePosition;
+import ca.nrc.cadc.stc.STC;
+import ca.nrc.cadc.tap.writer.format.AbstractResultSetFormat;
 
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Iterator;
-import java.util.ServiceLoader;
+import java.util.ArrayList;
+import java.util.List;
 
-import org.apache.log4j.Logger;
 
 /**
- * Get a database specific DatabaseDataType given a java.sql.Connection.
- *
- * @author jburke
+ * Extract and format a PGSphere spoly as an STC-S string (TAP-1.0 compatibility).
  */
-public class DatabaseDataTypeFactory {
-    private static final Logger log = Logger.getLogger(DatabaseDataTypeFactory.class);
-
+public class SPolyFormat10 extends AbstractResultSetFormat {
     /**
-     * TODO - Do we still need to pass in the connection?
+     * Takes a ResultSet and column index of the spoly
+     * and returns a STC-S Polygon String.
      *
-     * Given a java.sql.Connection, returns a DatabaseDataType for the
-     * Connection's database. Uses the java.sql.DatabaseMetaData
-     * to get the database product name, and matches the name against
-     * known database names, returning a class implementing the DatabaseDataType
-     * interface.
-     *
-     * @param con connection to the database.
-     * @return DatabaseDataType for the database.
-     * @throws SQLException     If the metadata cannot be obtained.
+     * @param resultSet   containing the spoint column.
+     * @param columnIndex index of the column in the ResultSet.
+     * @return STC Polygon
+     * @throws SQLException if there is an error accessing the ResultSet.
      */
-    public static DatabaseDataType getDatabaseDataType(final Connection con) throws SQLException {
-        final DatabaseMetaData databaseMetaData = con.getMetaData();
-        final String database = databaseMetaData.getDatabaseProductName();
-        final DatabaseDataType databaseDataType = DatabaseDataTypeFactory.loadDatabaseDataType();
-
-        assert databaseDataType.getClass().getSimpleName().toLowerCase().startsWith(database);
-
-        log.debug("detected database connection for " + database);
-
-        return databaseDataType;
+    @Override
+    public Object extract(ResultSet resultSet, int columnIndex)
+        throws SQLException {
+        String s = resultSet.getString(columnIndex);
+        return getPolygon(s);
     }
 
     /**
-     * Pull the FormatFactory that is loaded, or the Default one if none found.
+     * Takes a String representation of the spoly
+     * and returns a STC-S Polygon String.
      *
-     * @return FormatFactory instance.
+     * @param object to format.
+     * @return STC-S Polygon String of the spoly.
+     * @throws IllegalArgumentException if the object is not a String, or if
+     *                                  the String cannot be parsed.
      */
-    static DatabaseDataType loadDatabaseDataType() {
-        final ServiceLoader<DatabaseDataType> serviceLoader = ServiceLoader.load(DatabaseDataType.class);
-        return selectDatabaseDataType(serviceLoader);
-    }
-
-    /**
-     * Select the first alternate FormatFactory loaded, or default to a supplied one.
-     *
-     * @param databaseDataTypes An Iterable of DatabaseDataType instances.
-     * @return DatabaseDataType instance.
-     */
-    static DatabaseDataType selectDatabaseDataType(final Iterable<DatabaseDataType> databaseDataTypes) {
-        final Iterator<DatabaseDataType> iterator = databaseDataTypes.iterator();
-
-        if (iterator.hasNext()) {
-            return iterator.next();
-        } else {
-            // If the meta data database product name doesn't match known databases.
-            throw new UnsupportedOperationException("Unsupported or missing database dependency.  Ensure you have a " +
-                                                        "META-INF/services/ca.nrc.cadc.tap.upload.datatype" +
-                                                        ".DatabaseDataType in the classpath.");
+    @Override
+    public String format(Object object) {
+        if (object == null) {
+            return "";
         }
+        return STC.format((ca.nrc.cadc.stc.Polygon) object);
+    }
+
+    ca.nrc.cadc.stc.Polygon getPolygon(String s) {
+        if (s == null) {
+            return null;
+        }
+
+        PgSpoly spoly = new PgSpoly();
+        Polygon poly = spoly.getPolygon(s);
+
+        List<CoordPair> coordPairs = new ArrayList<>();
+        for (Point p : poly.getVertices()) {
+            coordPairs.add(new CoordPair(p.getLongitude(), p.getLatitude()));
+        }
+        return new ca.nrc.cadc.stc.Polygon(Frame.ICRS, ReferencePosition.UNKNOWNREFPOS, Flavor.SPHERICAL2, coordPairs);
     }
 }

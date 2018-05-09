@@ -69,27 +69,19 @@
 
 package ca.nrc.cadc.tap.upload.datatype;
 
-import ca.nrc.cadc.tap.schema.TapDataType;
-import java.sql.Types;
 import org.apache.log4j.Logger;
+
 
 /**
  *
  * @author jburke
  */
-public class PostgreSQLDataType extends BasicDataTypeMapper
+public class MySQLDataType extends BasicDataTypeMapper
 {
-    private static Logger log = Logger.getLogger(PostgreSQLDataType.class);
+    private static final Logger LOGGER = Logger.getLogger(MySQLDataType.class);
     
-    public PostgreSQLDataType() 
+    public MySQLDataType() 
     {
-        // HACK: include pg_sphere types so we don't have to subclass
-        dataTypes.put(TapDataType.POINT, new TypePair("spoint", null));
-        dataTypes.put(TapDataType.CIRCLE, new TypePair("scircle", null));
-        dataTypes.put(TapDataType.POLYGON, new TypePair("spoly", null));
-        dataTypes.put(TapDataType.INTERVAL, new TypePair("polygon", null));
-        
-        dataTypes.put(new TapDataType("char", "*", "adql:POINT"), new TypePair("spoint", null));
-        dataTypes.put(new TapDataType("char", "*", "adql:REGION"), new TypePair("spoly", null));
+        LOGGER.info("Created " + this.getClass().getCanonicalName());
     }
 }

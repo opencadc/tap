@@ -67,77 +67,45 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.upload;
+package ca.nrc.cadc.tap.witer.format;
 
-import ca.nrc.cadc.tap.upload.datatype.DatabaseDataType;
+import ca.nrc.cadc.dali.Polygon;
+import ca.nrc.cadc.dali.postgresql.PgSpoly;
+import ca.nrc.cadc.dali.util.PolygonFormat;
+import ca.nrc.cadc.tap.writer.format.AbstractResultSetFormat;
 
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Iterator;
-import java.util.ServiceLoader;
 
-import org.apache.log4j.Logger;
 
 /**
- * Get a database specific DatabaseDataType given a java.sql.Connection.
- *
- * @author jburke
+ * Formats a PGSphere spoly as a DALI-1.1 polygon.
  */
-public class DatabaseDataTypeFactory {
-    private static final Logger log = Logger.getLogger(DatabaseDataTypeFactory.class);
+public class SPolyFormat extends AbstractResultSetFormat {
+    private final PolygonFormat fmt = new PolygonFormat();
 
-    /**
-     * TODO - Do we still need to pass in the connection?
-     *
-     * Given a java.sql.Connection, returns a DatabaseDataType for the
-     * Connection's database. Uses the java.sql.DatabaseMetaData
-     * to get the database product name, and matches the name against
-     * known database names, returning a class implementing the DatabaseDataType
-     * interface.
-     *
-     * @param con connection to the database.
-     * @return DatabaseDataType for the database.
-     * @throws SQLException     If the metadata cannot be obtained.
-     */
-    public static DatabaseDataType getDatabaseDataType(final Connection con) throws SQLException {
-        final DatabaseMetaData databaseMetaData = con.getMetaData();
-        final String database = databaseMetaData.getDatabaseProductName();
-        final DatabaseDataType databaseDataType = DatabaseDataTypeFactory.loadDatabaseDataType();
-
-        assert databaseDataType.getClass().getSimpleName().toLowerCase().startsWith(database);
-
-        log.debug("detected database connection for " + database);
-
-        return databaseDataType;
+    @Override
+    public Object extract(ResultSet resultSet, int columnIndex)
+        throws SQLException {
+        String s = resultSet.getString(columnIndex);
+        return getPolygon(s);
     }
 
-    /**
-     * Pull the FormatFactory that is loaded, or the Default one if none found.
-     *
-     * @return FormatFactory instance.
-     */
-    static DatabaseDataType loadDatabaseDataType() {
-        final ServiceLoader<DatabaseDataType> serviceLoader = ServiceLoader.load(DatabaseDataType.class);
-        return selectDatabaseDataType(serviceLoader);
-    }
-
-    /**
-     * Select the first alternate FormatFactory loaded, or default to a supplied one.
-     *
-     * @param databaseDataTypes An Iterable of DatabaseDataType instances.
-     * @return DatabaseDataType instance.
-     */
-    static DatabaseDataType selectDatabaseDataType(final Iterable<DatabaseDataType> databaseDataTypes) {
-        final Iterator<DatabaseDataType> iterator = databaseDataTypes.iterator();
-
-        if (iterator.hasNext()) {
-            return iterator.next();
-        } else {
-            // If the meta data database product name doesn't match known databases.
-            throw new UnsupportedOperationException("Unsupported or missing database dependency.  Ensure you have a " +
-                                                        "META-INF/services/ca.nrc.cadc.tap.upload.datatype" +
-                                                        ".DatabaseDataType in the classpath.");
+    @Override
+    public String format(Object object) {
+        if (object == null) {
+            return "";
         }
+        return fmt.format((Polygon) object);
     }
+
+    Polygon getPolygon(String s) {
+        if (s == null) {
+            return null;
+        }
+
+        PgSpoly spoly = new PgSpoly();
+        return spoly.getPolygon(s);
+    }
+
 }

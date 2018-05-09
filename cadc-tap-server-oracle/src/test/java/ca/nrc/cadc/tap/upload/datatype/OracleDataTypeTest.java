@@ -1,9 +1,10 @@
+
 /*
  ************************************************************************
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2009.                            (c) 2009.
+ *  (c) 2018.                            (c) 2018.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,82 +63,43 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
  *
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.upload;
+package ca.nrc.cadc.tap.upload.datatype;
 
-import ca.nrc.cadc.tap.upload.datatype.DatabaseDataType;
 
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.SQLException;
-import java.util.Iterator;
-import java.util.ServiceLoader;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
 
-import org.apache.log4j.Logger;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
-/**
- * Get a database specific DatabaseDataType given a java.sql.Connection.
- *
- * @author jburke
- */
-public class DatabaseDataTypeFactory {
-    private static final Logger log = Logger.getLogger(DatabaseDataTypeFactory.class);
 
-    /**
-     * TODO - Do we still need to pass in the connection?
-     *
-     * Given a java.sql.Connection, returns a DatabaseDataType for the
-     * Connection's database. Uses the java.sql.DatabaseMetaData
-     * to get the database product name, and matches the name against
-     * known database names, returning a class implementing the DatabaseDataType
-     * interface.
-     *
-     * @param con connection to the database.
-     * @return DatabaseDataType for the database.
-     * @throws SQLException     If the metadata cannot be obtained.
-     */
-    public static DatabaseDataType getDatabaseDataType(final Connection con) throws SQLException {
-        final DatabaseMetaData databaseMetaData = con.getMetaData();
-        final String database = databaseMetaData.getDatabaseProductName();
-        final DatabaseDataType databaseDataType = DatabaseDataTypeFactory.loadDatabaseDataType();
+public class OracleDataTypeTest {
+    @Test
+    public void getDataType() {
+        final OracleDataType testSubject = new OracleDataType();
 
-        assert databaseDataType.getClass().getSimpleName().toLowerCase().startsWith(database);
+        final TapDataType tapDataType = TapDataType.CLOB;
+        final ColumnDesc columnDesc = new ColumnDesc("mytable", "mycolumn", tapDataType);
+        final String dataType = testSubject.getDataType(columnDesc);
 
-        log.debug("detected database connection for " + database);
-
-        return databaseDataType;
+        assertEquals("Wrong datatype.", "VARCHAR2(3072)", dataType);
     }
 
-    /**
-     * Pull the FormatFactory that is loaded, or the Default one if none found.
-     *
-     * @return FormatFactory instance.
-     */
-    static DatabaseDataType loadDatabaseDataType() {
-        final ServiceLoader<DatabaseDataType> serviceLoader = ServiceLoader.load(DatabaseDataType.class);
-        return selectDatabaseDataType(serviceLoader);
-    }
+    @Test
+    public void getSizeDataType() {
+        final OracleDataType testSubject = new OracleDataType();
+        final TapDataType tapDataType = new TapDataType("char", "256", "clob");
 
-    /**
-     * Select the first alternate FormatFactory loaded, or default to a supplied one.
-     *
-     * @param databaseDataTypes An Iterable of DatabaseDataType instances.
-     * @return DatabaseDataType instance.
-     */
-    static DatabaseDataType selectDatabaseDataType(final Iterable<DatabaseDataType> databaseDataTypes) {
-        final Iterator<DatabaseDataType> iterator = databaseDataTypes.iterator();
+        // Reuse the CLOB version.
+        testSubject.dataTypes.put(tapDataType, testSubject.dataTypes.get(TapDataType.CLOB));
 
-        if (iterator.hasNext()) {
-            return iterator.next();
-        } else {
-            // If the meta data database product name doesn't match known databases.
-            throw new UnsupportedOperationException("Unsupported or missing database dependency.  Ensure you have a " +
-                                                        "META-INF/services/ca.nrc.cadc.tap.upload.datatype" +
-                                                        ".DatabaseDataType in the classpath.");
-        }
+        final ColumnDesc columnDesc = new ColumnDesc("mytable", "mycolumn", tapDataType);
+        final String dataType = testSubject.getDataType(columnDesc);
+
+        assertEquals("Wrong datatype.", "VARCHAR2(256)", dataType);
     }
 }

@@ -66,109 +66,129 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.tap.upload;
 
 import ca.nrc.cadc.util.Log4jInit;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
 import ca.nrc.cadc.db.ConnectionConfig;
 import ca.nrc.cadc.db.DBConfig;
 import ca.nrc.cadc.db.DBUtil;
-import java.io.FileNotFoundException;
+
 import javax.sql.DataSource;
+
 import ca.nrc.cadc.tap.upload.datatype.DatabaseDataType;
+
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
+
 import static org.junit.Assert.*;
-import static org.junit.Assume.*;
+import static org.easymock.EasyMock.*;
+
 
 /**
- *
  * @author jburke
  */
-public class DatabaseDataTypeFactoryTest
-{
+public class DatabaseDataTypeFactoryTest {
     private static final Logger log = Logger.getLogger(DatabaseDataTypeFactoryTest.class);
-    
-    private static DataSource ds;
 
-    static
-    {
+    static {
         Log4jInit.setLevel("ca.nrc.cadc.tap", org.apache.log4j.Level.INFO);
     }
-    
-    public DatabaseDataTypeFactoryTest()
-    {
+
+    public DatabaseDataTypeFactoryTest() {
     }
 
-    @BeforeClass
-    public static void setUpClass()
-        throws Exception
-    {
-        try
-        {
-            DBConfig dbrc = new DBConfig();
-            ConnectionConfig conf = dbrc.getConnectionConfig("TAP_UPLOAD_TEST", "cadctest");
-            ds = DBUtil.getDataSource(conf, true, true);
-        }
-        catch(FileNotFoundException e)
-        {
-            // .dbrc file not found. Skip the tests
-            log.warn("No .dbrc file found. Skipping all the DatabaseDataTypeFactoryTest tests", e);
-            assumeTrue(false);
-        }
-    }
-
+    /**
+     * TODO - We expect Open Source users to have a .dbrc file in their home directory?  This really isn't a unit
+     * TODO - test.  The logic has been captured below, anyway.
+     *
+     * @throws Exception If anything goes wrong, report it.
+     */
+//    @BeforeClass
+//    public static void setUpClass() throws Exception {
+//        try {
+//            DBConfig dbrc = new DBConfig();
+//            ConnectionConfig conf = dbrc.getConnectionConfig("TAP_UPLOAD_TEST", "cadctest");
+//            ds = DBUtil.getDataSource(conf, true, true);
+//        } catch (FileNotFoundException e) {
+//            // .dbrc file not found. Skip the tests
+//            log.warn("No .dbrc file found. Skipping all the DatabaseDataTypeFactoryTest tests", e);
+//            assumeTrue(false);
+//        }
+//    }
     @AfterClass
-    public static void tearDownClass()
-        throws Exception
-    {
+    public static void tearDownClass() {
     }
-    
+
     @Before
-    public void setUp()
-    {
+    public void setUp() {
     }
-    
+
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
+    }
+
+    DataSource loadDataSource() {
+        try {
+            final DBConfig dbrc = new DBConfig();
+            final ConnectionConfig conf = dbrc.getConnectionConfig("TAP_UPLOAD_TEST", "cadctest");
+            return DBUtil.getDataSource(conf, true, true);
+        } catch (Exception e) {
+            log.warn(String.format("No .dbrc file found, or unable to create connection: '%s'.", e.getMessage()));
+            return null;
+        }
     }
 
     /**
      * Test of getDatabaseDataType method, of class DatabaseDataTypeFactory.
      */
     @Test
-    public void testGetDatabaseDataType()
-        throws Exception
-    {
-        Connection con = null;
-        try
-        {
-            log.debug("testGetDatabaseDataType");
-            
-            con = ds.getConnection();
-            DatabaseDataType result = DatabaseDataTypeFactory.getDatabaseDataType(con);
-            assertNotNull(result);
-            
-            log.info("testGetDatabaseDataType passed.");
-        }
-        catch (Exception unexpected)
-        {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
-        }
-        finally
-        {
-            if (con != null)
-            {
-                con.close();
-            }
+    public void testGetDatabaseDataType() throws Exception {
+        log.debug("testGetDatabaseDataType");
+        final DataSource ds = loadDataSource();
+        if (ds == null) {
+            testGetDatabaseDataTypeMock();
+        } else {
+            testGetDatabaseDataTypeDBRC(ds);
         }
     }
-    
+
+    void testGetDatabaseDataTypeMock() throws Exception {
+        log.info("Running with Mock (testGetDatabaseDataTypeMock).");
+        final Connection mockConnection = createMock(Connection.class);
+        final DatabaseMetaData mockDatabaseMetaData = createMock(DatabaseMetaData.class);
+
+        expect(mockConnection.getMetaData()).andReturn(mockDatabaseMetaData).once();
+        expect(mockDatabaseMetaData.getDatabaseProductName()).andReturn("oracle").once();
+
+        replay(mockConnection, mockDatabaseMetaData);
+        try {
+            final DatabaseDataType result = DatabaseDataTypeFactory.getDatabaseDataType(mockConnection);
+            assertNotNull(result);
+            log.info("testGetDatabaseDataTypeMock passed.");
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            throw unexpected;
+        } finally {
+            verify(mockConnection, mockDatabaseMetaData);
+        }
+    }
+
+    void testGetDatabaseDataTypeDBRC(final DataSource ds) throws Exception {
+        log.info("Running with DBRC (testGetDatabaseDataTypeDBRC).");
+        try {
+            DatabaseDataType result = DatabaseDataTypeFactory.getDatabaseDataType(ds.getConnection());
+            assertNotNull(result);
+            log.info("testGetDatabaseDataTypeDBRC passed.");
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            throw unexpected;
+        }
+    }
 }

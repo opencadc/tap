@@ -1,9 +1,10 @@
+
 /*
  ************************************************************************
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2009.                            (c) 2009.
+ *  (c) 2018.                            (c) 2018.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,76 +63,47 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
  *
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.writer.format;
+package ca.nrc.cadc.tap.witer.format;
 
-import ca.nrc.cadc.dali.util.PointFormat;
-import ca.nrc.cadc.stc.Frame;
-import ca.nrc.cadc.stc.Position;
-import ca.nrc.cadc.stc.STC;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import ca.nrc.cadc.dali.util.Format;
+import ca.nrc.cadc.tap.TapSelectItem;
+import ca.nrc.cadc.tap.writer.format.DefaultFormatFactory;
+
 
 /**
- * Extract and format a PGSphere spoint as an STC-S string (TAP-1.0 compatibility).
- *
+ * PostgreSQL format factory implementation.  This is loaded by adding this library to the client application's
+ * classpath.
  */
-public class SPointFormat10 extends AbstractResultSetFormat
-{
-    private final PointFormat fmt = new PointFormat();
-    
+public class PostgreSQLFormatFactory extends DefaultFormatFactory {
+
+    /**
+     * @param columnDesc    The Column description.
+     * @throws UnsupportedOperationException    If this column type is not supported.
+     */
     @Override
-    public Object extract(ResultSet resultSet, int columnIndex)
-        throws SQLException
-    {
-        String s = resultSet.getString(columnIndex);
-        return getPosition(s);
+    protected Format<Object> getCircleFormat(TapSelectItem columnDesc) {
+        return new SCircleFormat();
     }
 
+    /**
+     * @param columnDesc    The Column description.
+     * @throws UnsupportedOperationException    If this column type is not supported.
+     */
     @Override
-    public String format(Object object)
-    {
-        if (object == null)
-            return "";
-        return STC.format((Position) object);
+    protected Format<Object> getPointFormat(TapSelectItem columnDesc) {
+        return new SPointFormat();
     }
 
-    private Position getPosition(Object object)
-    {
-         if (object == null)
-            return null;
-        if (!(object instanceof String))
-            throw new IllegalArgumentException("Expected String, was " + object.getClass().getName());
-        String s = (String) object;
-
-        // Get the string inside the enclosing parentheses.
-        int open = s.indexOf("(");
-        int close = s.indexOf(")");
-        if (open == -1 || close == -1)
-            throw new IllegalArgumentException("Missing opening or closing parentheses " + s);
-
-        // Should be 2 values separated by a comma.
-        s = s.substring(open + 1, close);
-        String[] points = s.split(",");
-        if (points.length != 2)
-            throw new IllegalArgumentException("SPoint must have only 2 values " + s);
-
-        // Coordinates.
-        Double x = Double.valueOf(points[0]);
-        Double y = Double.valueOf(points[1]);
-
-        // convert to radians
-        x = x * (180/Math.PI);
-        y = y * (180/Math.PI);
-
-        // Create STC Position.
-        Position position = new Position(Frame.ICRS, null, null, x, y);
-
-        return position;
-}
-
+    /**
+     * @param columnDesc    The Column description.
+     * @throws UnsupportedOperationException    If this column type is not supported.
+     */
+    @Override
+    protected Format<Object> getPolygonFormat(TapSelectItem columnDesc) {
+        return new SPolyFormat();
+    }
 }

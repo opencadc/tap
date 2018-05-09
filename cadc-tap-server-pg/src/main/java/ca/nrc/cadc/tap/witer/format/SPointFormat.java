@@ -67,46 +67,66 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.writer.format;
+package ca.nrc.cadc.tap.witer.format;
 
-import ca.nrc.cadc.dali.Polygon;
-import ca.nrc.cadc.dali.postgresql.PgSpoly;
-import ca.nrc.cadc.dali.util.PolygonFormat;
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.util.PointFormat;
+import ca.nrc.cadc.tap.writer.format.AbstractResultSetFormat;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-
 /**
- * Formats a PGSphere spoly as a DALI-1.1 polygon.
+ * Formats a PGSphere spoint as a DALI-1.1 point.
  *
  */
-public class SPolyFormat extends AbstractResultSetFormat
+public class SPointFormat extends AbstractResultSetFormat
 {
-    private final PolygonFormat fmt = new PolygonFormat();
+    private final PointFormat fmt = new PointFormat();
     
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
         throws SQLException
     {
         String s = resultSet.getString(columnIndex);
-        return getPolygon(s);
+        return getPoint(s);
     }
 
     @Override
     public String format(Object object)
     {
-        if (object == null)
-            return "";
-        return fmt.format((Polygon)object);
+        return fmt.format((Point) object);
     }
 
-    Polygon getPolygon(String s)
+    public Point getPoint(Object object)
     {
-        if (s == null)
+         if (object == null)
             return null;
-        
-        PgSpoly spoly = new PgSpoly();
-        return spoly.getPolygon(s);
+        if (!(object instanceof String))
+            throw new IllegalArgumentException("Expected String, was " + object.getClass().getName());
+        String s = (String) object;
+
+        // Get the string inside the enclosing parentheses.
+        int open = s.indexOf("(");
+        int close = s.indexOf(")");
+        if (open == -1 || close == -1)
+            throw new IllegalArgumentException("Missing opening or closing parentheses " + s);
+
+        // Should be 2 values separated by a comma.
+        s = s.substring(open + 1, close);
+        String[] points = s.split(",");
+        if (points.length != 2)
+            throw new IllegalArgumentException("SPoint must have only 2 values " + s);
+
+        // Coordinates.
+        Double x = Double.valueOf(points[0]);
+        Double y = Double.valueOf(points[1]);
+
+        // convert radians
+        x = Math.toDegrees(x);
+        y = Math.toDegrees(y);
+
+        return new Point(x, y);
     }
 
 }

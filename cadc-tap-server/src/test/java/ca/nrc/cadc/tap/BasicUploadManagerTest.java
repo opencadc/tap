@@ -43,12 +43,12 @@ import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.db.ConnectionConfig;
 import ca.nrc.cadc.db.DBConfig;
 import ca.nrc.cadc.db.DBUtil;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.upload.ADQLIdentifierException;
 import ca.nrc.cadc.tap.upload.UploadTable;
 import ca.nrc.cadc.tap.upload.VOTableParser;
 import ca.nrc.cadc.tap.upload.datatype.DatabaseDataType;
-import ca.nrc.cadc.tap.upload.datatype.PostgreSQLDataType;
 import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.uws.Parameter;
@@ -71,10 +71,7 @@ import java.util.MissingResourceException;
 import java.util.Set;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -823,7 +820,17 @@ public class BasicUploadManagerTest
         {
             // the tests actually only work with postgresql
             //return DatabaseDataTypeFactory.getDatabaseDataType(con);
-            return new PostgreSQLDataType();
+            return new DatabaseDataType() {
+                @Override
+                public String getDataType(ColumnDesc columnDesc) {
+                    return null;
+                }
+
+                @Override
+                public Integer getType(ColumnDesc columnDesc) {
+                    return null;
+                }
+            };
         }
 
         @Override

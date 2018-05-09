@@ -1,0 +1,26 @@
+plugins {
+    id "java"
+    id "maven"
+    id 'maven-publish'
+    id 'com.jfrog.bintray' version '1.8.0'
+}
+
+repositories {
+    jcenter()
+    mavenLocal()
+}
+
+sourceCompatibility = 1.7
+group = 'org.opencadc'
+version = '1.0.0'
+
+dependencies {
+    compile 'org.postgresql:postgresql:42.2.2'
+    compile 'org.opencadc:cadc-dali-pg:[0.1,)'
+    compile 'org.opencadc:cadc-tap-server:[1.1.3, )'
+
+    testCompile 'junit:junit:4.+'
+    testCompile 'org.opencadc:cadc-util:1.+'
+    testCompile 'xerces:xercesImpl:2.+'
+    testCompile 'org.jdom:jaxen-jdom:1.+'
+}

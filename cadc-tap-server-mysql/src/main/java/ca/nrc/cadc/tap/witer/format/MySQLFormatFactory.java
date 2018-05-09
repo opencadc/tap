@@ -1,9 +1,10 @@
+
 /*
  ************************************************************************
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2009.                            (c) 2009.
+ *  (c) 2018.                            (c) 2018.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,80 +63,17 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
  *
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.writer.format;
+package ca.nrc.cadc.tap.witer.format;
 
-import ca.nrc.cadc.dali.Point;
-import ca.nrc.cadc.dali.Polygon;
-import ca.nrc.cadc.dali.postgresql.PgSpoly;
-import ca.nrc.cadc.stc.CoordPair;
-import ca.nrc.cadc.stc.Flavor;
-import ca.nrc.cadc.stc.Frame;
-import ca.nrc.cadc.stc.ReferencePosition;
-import ca.nrc.cadc.stc.STC;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-
+import ca.nrc.cadc.tap.writer.format.DefaultFormatFactory;
 
 /**
- * Extract and format a PGSphere spoly as an STC-S string (TAP-1.0 compatibility).
- *
+ * MySQL format factory implementation.  This is loaded by adding this library to the client application's
+ * classpath.
  */
-public class SPolyFormat10 extends AbstractResultSetFormat
-{
-    /**
-     * Takes a ResultSet and column index of the spoly
-     * and returns a STC-S Polygon String.
-     *
-     * @param resultSet containing the spoint column.
-     * @param columnIndex index of the column in the ResultSet.
-     * @return STC Polygon
-     * @throws SQLException if there is an error accessing the ResultSet.
-     */
-    @Override
-    public Object extract(ResultSet resultSet, int columnIndex)
-        throws SQLException
-    {
-        String s = resultSet.getString(columnIndex);
-        return getPolygon(s);
-    }
-
-    /**
-     * Takes a String representation of the spoly
-     * and returns a STC-S Polygon String.
-     *
-     * @param object to format.
-     * @return STC-S Polygon String of the spoly.
-     * @throws IllegalArgumentException if the object is not a String, or if
-     *         the String cannot be parsed.
-     */
-    @Override
-    public String format(Object object)
-    {
-        if (object == null)
-            return "";
-        return STC.format((ca.nrc.cadc.stc.Polygon) object);
-    }
-
-    ca.nrc.cadc.stc.Polygon getPolygon(String s)
-    {
-        if (s == null)
-            return null;
-        
-        PgSpoly spoly = new PgSpoly();
-        Polygon poly = spoly.getPolygon(s);
-        
-        List<CoordPair> coordPairs = new ArrayList<CoordPair>();
-        for (Point p : poly.getVertices())
-        {
-            coordPairs.add(new CoordPair(p.getLongitude(), p.getLatitude()));
-        }
-        return new ca.nrc.cadc.stc.Polygon(Frame.ICRS, ReferencePosition.UNKNOWNREFPOS, Flavor.SPHERICAL2, coordPairs);
-    }
+public class MySQLFormatFactory extends DefaultFormatFactory {
 }

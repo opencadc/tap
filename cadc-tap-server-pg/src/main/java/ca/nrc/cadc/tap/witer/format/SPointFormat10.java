@@ -67,77 +67,73 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.upload;
+package ca.nrc.cadc.tap.witer.format;
 
-import ca.nrc.cadc.tap.upload.datatype.DatabaseDataType;
+import ca.nrc.cadc.dali.util.PointFormat;
+import ca.nrc.cadc.stc.Frame;
+import ca.nrc.cadc.stc.Position;
+import ca.nrc.cadc.stc.STC;
+import ca.nrc.cadc.tap.writer.format.AbstractResultSetFormat;
 
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Iterator;
-import java.util.ServiceLoader;
-
-import org.apache.log4j.Logger;
 
 /**
- * Get a database specific DatabaseDataType given a java.sql.Connection.
+ * Extract and format a PGSphere spoint as an STC-S string (TAP-1.0 compatibility).
  *
- * @author jburke
  */
-public class DatabaseDataTypeFactory {
-    private static final Logger log = Logger.getLogger(DatabaseDataTypeFactory.class);
-
-    /**
-     * TODO - Do we still need to pass in the connection?
-     *
-     * Given a java.sql.Connection, returns a DatabaseDataType for the
-     * Connection's database. Uses the java.sql.DatabaseMetaData
-     * to get the database product name, and matches the name against
-     * known database names, returning a class implementing the DatabaseDataType
-     * interface.
-     *
-     * @param con connection to the database.
-     * @return DatabaseDataType for the database.
-     * @throws SQLException     If the metadata cannot be obtained.
-     */
-    public static DatabaseDataType getDatabaseDataType(final Connection con) throws SQLException {
-        final DatabaseMetaData databaseMetaData = con.getMetaData();
-        final String database = databaseMetaData.getDatabaseProductName();
-        final DatabaseDataType databaseDataType = DatabaseDataTypeFactory.loadDatabaseDataType();
-
-        assert databaseDataType.getClass().getSimpleName().toLowerCase().startsWith(database);
-
-        log.debug("detected database connection for " + database);
-
-        return databaseDataType;
+public class SPointFormat10 extends AbstractResultSetFormat
+{
+    private final PointFormat fmt = new PointFormat();
+    
+    @Override
+    public Object extract(ResultSet resultSet, int columnIndex)
+        throws SQLException
+    {
+        String s = resultSet.getString(columnIndex);
+        return getPosition(s);
     }
 
-    /**
-     * Pull the FormatFactory that is loaded, or the Default one if none found.
-     *
-     * @return FormatFactory instance.
-     */
-    static DatabaseDataType loadDatabaseDataType() {
-        final ServiceLoader<DatabaseDataType> serviceLoader = ServiceLoader.load(DatabaseDataType.class);
-        return selectDatabaseDataType(serviceLoader);
+    @Override
+    public String format(Object object)
+    {
+        if (object == null)
+            return "";
+        return STC.format((Position) object);
     }
 
-    /**
-     * Select the first alternate FormatFactory loaded, or default to a supplied one.
-     *
-     * @param databaseDataTypes An Iterable of DatabaseDataType instances.
-     * @return DatabaseDataType instance.
-     */
-    static DatabaseDataType selectDatabaseDataType(final Iterable<DatabaseDataType> databaseDataTypes) {
-        final Iterator<DatabaseDataType> iterator = databaseDataTypes.iterator();
+    private Position getPosition(Object object)
+    {
+         if (object == null)
+            return null;
+        if (!(object instanceof String))
+            throw new IllegalArgumentException("Expected String, was " + object.getClass().getName());
+        String s = (String) object;
 
-        if (iterator.hasNext()) {
-            return iterator.next();
-        } else {
-            // If the meta data database product name doesn't match known databases.
-            throw new UnsupportedOperationException("Unsupported or missing database dependency.  Ensure you have a " +
-                                                        "META-INF/services/ca.nrc.cadc.tap.upload.datatype" +
-                                                        ".DatabaseDataType in the classpath.");
-        }
-    }
+        // Get the string inside the enclosing parentheses.
+        int open = s.indexOf("(");
+        int close = s.indexOf(")");
+        if (open == -1 || close == -1)
+            throw new IllegalArgumentException("Missing opening or closing parentheses " + s);
+
+        // Should be 2 values separated by a comma.
+        s = s.substring(open + 1, close);
+        String[] points = s.split(",");
+        if (points.length != 2)
+            throw new IllegalArgumentException("SPoint must have only 2 values " + s);
+
+        // Coordinates.
+        Double x = Double.valueOf(points[0]);
+        Double y = Double.valueOf(points[1]);
+
+        // convert to radians
+        x = x * (180/Math.PI);
+        y = y * (180/Math.PI);
+
+        // Create STC Position.
+        Position position = new Position(Frame.ICRS, null, null, x, y);
+
+        return position;
+}
+
 }
