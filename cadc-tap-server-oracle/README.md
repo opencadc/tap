@@ -11,13 +11,11 @@ You will first need to [Create an account with Oracle](http://www.oracle.com/web
 permitted access to the JDBC client libraries.  Once registered, your `username` is the E-mail address supplied to 
 Oracle.
 
-The [Gradle build file](build.gradle) expects credentials on building:
+The [Gradle build file](build.gradle) expects credentials on building (in the `repositories` section):
 
 ```groovy
-...
             username = mavenOracleUsername
             password = mavenOraclePassword
-...
 ```
 
 The `mavenOracleUsername` and `mavenOraclePassword` are necessary variables to download the Oracle JDBC Client 
@@ -30,4 +28,26 @@ mavenOracleUsername=myemail@myprovider.com
 mavenOraclePassword=mypassword
 ``` 
 
-Which Gradle will automatically consume.  Those 
+Which Gradle will automatically consume.
+
+
+### Implementations
+
+Any implementations (i.e. Full TAP services that _use_ this library) will need to also declare the Maven repository at 
+the beginning of their `build.gradle` because the WAR file will incorporate the JAR files:
+
+```groovy
+repositories {
+    mavenLocal()
+    jcenter()
+
+    maven {
+        name 'maven.oracle.com'
+        url 'https://maven.oracle.com'
+        credentials {
+            username = mavenOracleUsername
+            password = mavenOraclePassword
+        }
+    }
+}
+```
