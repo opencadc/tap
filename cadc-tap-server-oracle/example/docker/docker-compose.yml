@@ -13,7 +13,7 @@ services:
     environment: 
       CATALINA_OPTS: "-Dtapuser.jdbc.username=TAP_SCHEMA -Dtapuser.jdbc.password=TAP_SCHEMA -Dtapuser.jdbc.driverClassName=oracle.jdbc.OracleDriver -Dtapuser.jdbc.url=jdbc:oracle:thin:@tapdb:1521/XE"
   tapdb:
-    image: opencadc/oracle-11-xe-tap
+    image: opencadc/tap-oracle:11-xe
     shm_size: '1g'
     networks:
       - 'tap_obscore'
