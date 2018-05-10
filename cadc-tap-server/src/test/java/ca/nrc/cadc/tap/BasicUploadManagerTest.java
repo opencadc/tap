@@ -46,6 +46,7 @@ import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.upload.ADQLIdentifierException;
+import ca.nrc.cadc.tap.upload.DatabaseDataTypeFactory;
 import ca.nrc.cadc.tap.upload.UploadTable;
 import ca.nrc.cadc.tap.upload.VOTableParser;
 import ca.nrc.cadc.tap.upload.datatype.DatabaseDataType;
@@ -191,7 +192,7 @@ public class BasicUploadManagerTest
     }
 
     @Test
-    public void testCreateEmptyTable()
+    public void testCreateEmptyTable() throws Exception
     {
         try
         {
@@ -257,12 +258,12 @@ public class BasicUploadManagerTest
         catch (Exception unexpected)
         {
             log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
+            throw unexpected;
         }
     }
 
     @Test
-    public void testCreateAndInsert()
+    public void testCreateAndInsert() throws Exception
     {
         try
         {
@@ -347,7 +348,7 @@ public class BasicUploadManagerTest
         catch (Exception unexpected)
         {
             log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
+            throw unexpected;
         }
     }
     
@@ -819,18 +820,18 @@ public class BasicUploadManagerTest
         protected DatabaseDataType getDatabaseDataType(Connection con) throws SQLException
         {
             // the tests actually only work with postgresql
-            //return DatabaseDataTypeFactory.getDatabaseDataType(con);
-            return new DatabaseDataType() {
-                @Override
-                public String getDataType(ColumnDesc columnDesc) {
-                    return null;
-                }
-
-                @Override
-                public Integer getType(ColumnDesc columnDesc) {
-                    return null;
-                }
-            };
+            return DatabaseDataTypeFactory.getDatabaseDataType(con);
+//            return new DatabaseDataType() {
+//                @Override
+//                public String getDataType(ColumnDesc columnDesc) {
+//                    return null;
+//                }
+//
+//                @Override
+//                public Integer getType(ColumnDesc columnDesc) {
+//                    return null;
+//                }
+//            };
         }
 
         @Override

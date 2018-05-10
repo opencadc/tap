@@ -1,0 +1,472 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "version": "1.0",
+        "title": "CAT (CATALOGUE) web service",
+        "description": "This page contains technical API information. For content, please refer to:\n\n\n<a href=\"http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/megapipe/cfhtls/uc.html\" target=\"_blank\">MegaPipe image stacking pipeline</a>\n\n\n<a href=\"http://www.canfar.phys.uvic.ca/data/pub/vospace/rcslens/README_catalogs_release.txt\" target=\"_blank\">RCSLenS CATALOGUE DATA DESCRIPTION</a>\n\n\n<a href=\"http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/community/CFHTLens/README_catalogs_release.txt\" target=\"_blank\">CFTHTLenS CATALOGUE DATA DESCRIPTION</a>\n\n\nThis service implements the IVOA TAP-1.0 recommendation.\n\n\n<a href=\"http://www.ivoa.net/documents/TAP/\" target=\"_blank\">IVOA TAP Specification</a>\n\n\nThe synchronous and asynchronous service endpoints conform the the IVOA UWS (Universal Worker Service) Framework.\n\n\n<a href=\"http://www.ivoa.net/documents/UWS/\" target=\"_blank\">IVOA UWS Specification</a>\n\n\n### Authentication\nSome catalogues have proprietary metadata. Users may authenticate using https and client-side X.509 certficate, in which case they will see both public metadata and proprietary metadata they are authorized to view. Authentication is supported for sync, async, and tables. Clients can get the appropriate url(s) from the /capabilities output. For anonymous queries, the service will automatically restrict access to public tables only.\n\n\n### Unsupported ADQL Constructs\nThe following ADQL Functions are not currently supported: ALL and DISTINCT within an aggregate function (AVG, COUNT, MIN, MAX, COUNT) PI RAND TRUNCATE\n"
+    },
+    "host": "www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca",
+    "schemes": [
+        "http",
+        "https"
+    ],
+    "basePath": "/cat",
+    "paths": {
+        "/async": {
+            "post": {
+                "summary": "IVOA TAP v1.1",
+                "tags": [
+                    "TAP"
+                ],
+                "description": "TAP asynchonous query endpoint (create UWS Job)\n",
+                "parameters": [
+                    {
+                        "name": "LANG",
+                        "in": "query",
+                        "description": "specify the query language used in the QUERY parameter",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "QUERY",
+                        "in": "query",
+                        "description": "specify the query",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "FORMAT",
+                        "in": "query",
+                        "description": "supported for backwards compatibility to 1.0 (see: RESPONSEFORMAT)",
+                        "required": false,
+                        "type": "string"
+                    },
+                    {
+                        "name": "RESPONSEFORMAT",
+                        "in": "query",
+                        "description": "select output table format",
+                        "required": false,
+                        "type": "string"
+                    },
+                    {
+                        "name": "MAXREC",
+                        "in": "query",
+                        "description": "request a specific limit on number of rows to return",
+                        "required": false,
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "name": "DEST",
+                        "in": "query",
+                        "description": "specify destination where output should be written (VOSpace URI)",
+                        "required": false,
+                        "type": "string",
+                        "format": "uri"
+                    },
+                    {
+                        "name": "UPLOAD",
+                        "in": "query",
+                        "collectionFormat": "multi",
+                        "description": "specify name,location pair for a table to be uploaded and used in the query",
+                        "required": false,
+                        "type": "string"
+                    }
+                ],
+                "produces": [
+                    "text/xml"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response"
+                    },
+                    "401": {
+                        "description": "Unauthorized - User not authenticated"
+                    },
+                    "404": {
+                        "description": "Not Found - User not found"
+                    },
+                    "500": {
+                        "description": "Internal error"
+                    },
+                    "503": {
+                        "description": "Service busy"
+                    },
+                    "default": {
+                        "description": "Unexpeced error",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/sync": {
+            "get": {
+                "summary": "IVOA TAP v1.1",
+                "tags": [
+                    "TAP"
+                ],
+                "description": "TAP synchonous query endpoint\n",
+                "parameters": [
+                    {
+                        "name": "LANG",
+                        "in": "query",
+                        "description": "specify the query language used in the QUERY parameter",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "QUERY",
+                        "in": "query",
+                        "description": "specify the query",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "FORMAT",
+                        "in": "query",
+                        "description": "supported for backwards compatibility to 1.0 (see: RESPONSEFORMAT)",
+                        "required": false,
+                        "type": "string"
+                    },
+                    {
+                        "name": "RESPONSEFORMAT",
+                        "in": "query",
+                        "description": "select output table format",
+                        "required": false,
+                        "type": "string"
+                    },
+                    {
+                        "name": "MAXREC",
+                        "in": "query",
+                        "description": "request a specific limit on number of rows to return",
+                        "required": false,
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "name": "UPLOAD",
+                        "in": "query",
+                        "collectionFormat": "multi",
+                        "description": "specify name,location pair for a table to be uploaded and used in the query",
+                        "required": false,
+                        "type": "string"
+                    }
+                ],
+                "produces": [
+                    "application/x-votable+/xml"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response"
+                    },
+                    "401": {
+                        "description": "Unauthorized - User not authenticated"
+                    },
+                    "404": {
+                        "description": "Not Found - User not found"
+                    },
+                    "500": {
+                        "description": "Internal error"
+                    },
+                    "503": {
+                        "description": "Service busy"
+                    },
+                    "default": {
+                        "description": "Unexpeced error",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "IVOA TAP v1.1",
+                "tags": [
+                    "TAP"
+                ],
+                "description": "TAP synchonous query endpoint\n",
+                "parameters": [
+                    {
+                        "name": "LANG",
+                        "in": "query",
+                        "description": "specify the query language used in the QUERY parameter",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "QUERY",
+                        "in": "query",
+                        "description": "specify the query",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "FORMAT",
+                        "in": "query",
+                        "description": "supported for backwards compatibility to 1.0 (see: RESPONSEFORMAT)",
+                        "required": false,
+                        "type": "string"
+                    },
+                    {
+                        "name": "RESPONSEFORMAT",
+                        "in": "query",
+                        "description": "select output table format",
+                        "required": false,
+                        "type": "string"
+                    },
+                    {
+                        "name": "MAXREC",
+                        "in": "query",
+                        "description": "request a specific limit on number of rows to return",
+                        "required": false,
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "name": "UPLOAD",
+                        "in": "query",
+                        "collectionFormat": "multi",
+                        "description": "specify name,location pair for a table to be uploaded and used in the query",
+                        "required": false,
+                        "type": "string"
+                    }
+                ],
+                "produces": [
+                    "application/x-votable+/xml"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response"
+                    },
+                    "401": {
+                        "description": "Unauthorized - User not authenticated"
+                    },
+                    "404": {
+                        "description": "Not Found - User not found"
+                    },
+                    "500": {
+                        "description": "Internal error"
+                    },
+                    "503": {
+                        "description": "Service busy"
+                    },
+                    "default": {
+                        "description": "Unexpeced error",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/availability": {
+            "get": {
+                "tags": [
+                    "Support Interfaces"
+                ],
+                "summary": "VOSI Availability",
+                "description": "Indicates whether the service is operable and the reliability of the service for extended and scheduled requests.\n",
+                "produces": [
+                    "text/xml"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "A VOSI availability document in XML.",
+                        "schema": {
+                            "$ref": "#/definitions/availability"
+                        }
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/capabilities": {
+            "get": {
+                "summary": "VOSI Capabilities",
+                "tags": [
+                    "Support Interfaces"
+                ],
+                "description": "Provides the service metadata in the form of a list of Capability descriptions.  Each of these descriptions is an \nXML element that:\n<ul>\n<li>states that the service provides a particular, IVOA-standard function;</li>\n<li>lists the interfaces for invoking that function;</li>\n<li>records any details of the implementation of the function that are not defined as default or constant in the standard for that function.</li>\n</ul>\n",
+                "produces": [
+                    "text/xml"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "A VOSI Capabilities document in XML.",
+                        "schema": {
+                            "$ref": "#/definitions/capabilities"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    },
+                    "503": {
+                        "description": "Service too busy"
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/tables": {
+            "get": {
+                "summary": "VOSI Tables",
+                "tags": [
+                    "Support Interfaces"
+                ],
+                "description": "Provides the table metadata in the form of a TableSet descriptions.\n",
+                "produces": [
+                    "text/xml"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "A VOSI Tables document in XML.",
+                        "schema": {
+                            "$ref": "#/definitions/tables"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    },
+                    "503": {
+                        "description": "Service too busy"
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "Job": {
+            "type": "string"
+        },
+        "availability": {
+            "type": "object",
+            "xml": {
+                "namespace": "http://www.ivoa.net/xml/VOSIAvailability/v1.0",
+                "prefix": "vosi"
+            },
+            "properties": {
+                "available": {
+                    "type": "boolean",
+                    "xml": {
+                        "attribute": true,
+                        "prefix": "vosi"
+                    }
+                },
+                "note": {
+                    "type": "string",
+                    "xml": {
+                        "attribute": true,
+                        "prefix": "vosi"
+                    }
+                }
+            }
+        },
+        "tables": {
+            "type": "object",
+            "xml": {
+                "namespace": "http://www.ivoa.net/xml/VOSITables/v1.0",
+                "prefix": "vosi"
+            },
+            "properties": {
+                "available": {
+                    "type": "boolean",
+                    "xml": {
+                        "attribute": true,
+                        "prefix": "vosi"
+                    }
+                },
+                "note": {
+                    "type": "string",
+                    "xml": {
+                        "attribute": true,
+                        "prefix": "vosi"
+                    }
+                }
+            }
+        },
+        "capabilities": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/capability"
+            },
+            "xml": {
+                "namespace": "http://www.ivoa.net/xml/VOSICapabilities/v1.0",
+                "prefix": "vosi",
+                "wrapped": true
+            }
+        },
+        "capability": {
+            "type": "object",
+            "properties": {
+                "standardID": {
+                    "type": "string",
+                    "format": "uri",
+                    "xml": {
+                        "attribute": true
+                    }
+                },
+                "interface": {
+                    "type": "object",
+                    "properties": {
+                        "accessURL": {
+                            "type": "string",
+                            "properties": {
+                                "use": {
+                                    "type": "string",
+                                    "xml": {
+                                        "attribute": true
+                                    }
+                                }
+                            }
+                        },
+                        "securityMethod": {
+                            "type": "string",
+                            "properties": {
+                                "standardID": {
+                                    "type": "string",
+                                    "format": "uri",
+                                    "xml": {
+                                        "attribute": true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "Error": {
+            "required": [
+                "code",
+                "message"
+            ],
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "format": "int32"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

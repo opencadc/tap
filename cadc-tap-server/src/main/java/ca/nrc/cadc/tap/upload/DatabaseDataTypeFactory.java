@@ -105,7 +105,7 @@ public class DatabaseDataTypeFactory {
         final String database = databaseMetaData.getDatabaseProductName();
         final DatabaseDataType databaseDataType = DatabaseDataTypeFactory.loadDatabaseDataType();
 
-        assert databaseDataType.getClass().getSimpleName().toLowerCase().startsWith(database);
+        assert databaseDataType.getClass().getSimpleName().toLowerCase().startsWith(database.toLowerCase());
 
         log.debug("detected database connection for " + database);
 

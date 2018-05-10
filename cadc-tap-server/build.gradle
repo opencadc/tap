@@ -37,4 +37,8 @@ dependencies {
     testCompile 'org.easymock:easymock:[3.6, )'
     testCompile 'xerces:xercesImpl:2.+'
     testCompile 'org.jdom:jaxen-jdom:1.+'
+
+    // Test with PostgreSQL.
+    testRuntime 'org.postgresql:postgresql:42.2.2'
+    testRuntime 'org.opencadc:cadc-tap-server-pg:[1.0.0, )'
 }

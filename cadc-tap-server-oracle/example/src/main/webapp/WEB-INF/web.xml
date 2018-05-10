@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://java.sun.com/xml/ns/javaee"
+         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"
+         id="tap-obscore" version="3.0">
+
+    <display-name>TAP ObsCore</display-name>
+
+    <servlet>
+        <servlet-name>logControl</servlet-name>
+        <servlet-class>ca.nrc.cadc.log.LogControlServlet</servlet-class>
+        <init-param>
+            <param-name>logLevel</param-name>
+            <param-value>info</param-value>
+        </init-param>
+        <init-param>
+            <param-name>logLevelPackages</param-name>
+            <param-value>
+                ca.nrc.cadc.tap
+                org.opencadc.tap
+                ca.nrc.cadc.log
+            </param-value>
+        </init-param>
+        <init-param>
+            <param-name>logAccessGroup</param-name>
+            <param-value>CADC</param-value>
+        </init-param>
+        <!--<init-param>-->
+        <!--<param-name>groupAuthorizer</param-name>-->
+        <!--<param-value>ca.nrc.cadc.auth.CADCGroupAuthorizer</param-value>-->
+        <!--</init-param>-->
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+
+    <!-- asynchronous access to JobManager service -->
+    <servlet>
+        <load-on-startup>2</load-on-startup>
+        <servlet-name>AsyncServlet</servlet-name>
+        <servlet-class>org.restlet.ext.servlet.ServerServlet</servlet-class>
+        <init-param>
+            <param-name>org.restlet.application</param-name>
+            <param-value>ca.nrc.cadc.uws.web.restlet.UWSAsyncApplication</param-value>
+        </init-param>
+        <init-param>
+            <param-name>ca.nrc.cadc.uws.server.JobManager</param-name>
+            <param-value>org.opencadc.tap.ws.QueryJobManager</param-value>
+        </init-param>
+    </servlet>
+
+    <!-- synchronous access to JobManager service -->
+    <servlet>
+        <load-on-startup>2</load-on-startup>
+        <servlet-name>SyncServlet</servlet-name>
+        <servlet-class>ca.nrc.cadc.uws.server.SyncServlet</servlet-class>
+        <init-param>
+            <param-name>ca.nrc.cadc.uws.server.JobManager</param-name>
+            <param-value>org.opencadc.tap.ws.QueryJobManager</param-value>
+        </init-param>
+        <init-param>
+            <param-name>ca.nrc.cadc.uws.server.SyncServlet.execOnGET</param-name>
+            <param-value>true</param-value>
+        </init-param>
+        <init-param>
+            <param-name>ca.nrc.cadc.uws.server.SyncServlet.execOnPOST</param-name>
+            <param-value>false</param-value>
+        </init-param>
+    </servlet>
+
+    <servlet>
+        <servlet-name>CapabilitiesServlet</servlet-name>
+        <servlet-class>ca.nrc.cadc.vosi.CapabilitiesServlet</servlet-class>
+        <init-param>
+            <param-name>input</param-name>
+            <param-value>/capabilities.xml</param-value>
+        </init-param>
+        <load-on-startup>3</load-on-startup>
+    </servlet>
+
+    <servlet>
+        <servlet-name>AvailabilityServlet</servlet-name>
+        <servlet-class>ca.nrc.cadc.vosi.AvailabilityServlet</servlet-class>
+        <init-param>
+            <description>VOSI Availability</description>
+            <param-name>ca.nrc.cadc.vosi.WebService</param-name>
+            <param-value>org.opencadc.tap.ws.TAPWebService</param-value>
+        </init-param>
+        <load-on-startup>3</load-on-startup>
+    </servlet>
+
+    <!-- VOSI-tables provides an XML document describing the schema/tables/columns;
+         This implementation uses the TAP_SCHEMA to find the required metadata -->
+    <servlet>
+        <load-on-startup>3</load-on-startup>
+        <servlet-name>TableServlet</servlet-name>
+        <servlet-class>ca.nrc.cadc.vosi.TableServlet</servlet-class>
+    </servlet>
+
+    <!-- the TAP Endpoints -->
+    <servlet-mapping>
+        <servlet-name>AsyncServlet</servlet-name>
+        <url-pattern>/async/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>AsyncServlet</servlet-name>
+        <url-pattern>/auth-async/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>SyncServlet</servlet-name>
+        <url-pattern>/sync/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>SyncServlet</servlet-name>
+        <url-pattern>/auth-sync/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>logControl</servlet-name>
+        <url-pattern>/logControl/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>CapabilitiesServlet</servlet-name>
+        <url-pattern>/capabilities</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>AvailabilityServlet</servlet-name>
+        <url-pattern>/availability</url-pattern>
+    </servlet-mapping>
+
+    <welcome-file-list>
+        <welcome-file>/index.jsp</welcome-file>
+    </welcome-file-list>
+
+</web-app>
