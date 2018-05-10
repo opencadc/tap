@@ -15,7 +15,6 @@ group = 'org.opencadc'
 version = '1.0.0'
 
 dependencies {
-    compile 'org.postgresql:postgresql:42.2.2'
     compile 'org.opencadc:cadc-dali-pg:[0.1,)'
     compile 'org.opencadc:cadc-tap-server:[1.1.3, )'
 
