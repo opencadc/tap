@@ -8,6 +8,12 @@ for the [Sybase ASE](https://www.sap.com/canada/products/sybase-ase.html) databa
 
 ## Using this Example Application
 
+The Sybase ASE database does not lend itself well to being containerized.  Therefore, this
+example application relies on an existing database.  The Sybase support is really intended
+for use by the [Canadian Astronomy Data Centre](http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/),
+but any who wishes to use it is welcome.
+
+
 ### Build the Web Application
 
 1.  `gradle clean build`  
