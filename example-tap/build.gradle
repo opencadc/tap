@@ -28,6 +28,12 @@ dependencies {
     compile 'org.opencadc:cadc-vosi:1.+'
     compile 'org.opencadc:cadc-adql:[1.1,)'
 
+    // Switch out this to use Oracle, MySQL, or Sybase instead of PostgreSQL.
+    // ## START CUSTOM DATABASE ##
+    compile 'org.postgresql:postgresql:42.2.2.jre7'
+    compile 'org.opencadc:cadc-tap-server-pg:[1.0,)'
+    // ## END CUSTOM DATABASE ##
+
     testCompile 'junit:junit:4.+'
     testCompile 'xmlunit:xmlunit:1.+'
 }

@@ -1,5 +1,0 @@
-
-OpenCADC Table Access protocol (TAP) library
-
-This library works with the cadcUWS library to provide async and sync ADQL query execution on a
-RDBMS. See the cadcSampleTAP project for an example of using this library.

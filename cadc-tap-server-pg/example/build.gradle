@@ -29,8 +29,8 @@ configurations {
 }
 
 dependencies {
-    compile 'com.oracle:ojdbc6:11.2.0.3'
-    compile 'org.opencadc:cadc-tap-server-oracle:[1.0,)'
+    compile 'org.postgresql:postgresql:42.2.2.jre7'
+    compile 'org.opencadc:cadc-tap-server-pg:[1.0,)'
     compile 'org.opencadc:cadc-tap-server:[1.1.3,)'
     compile 'org.opencadc:cadc-adql:[1.1,)'
 
