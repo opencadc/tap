@@ -1,7 +1,7 @@
 version: '3.2'
 services:
   tap:
-    image: opencadc/tap-obscore:oracle-alpine
+    image: opencadc/tap-obscore:${TAP_VERSION:-oracle-alpine}
     build: ./
     ports:
       - '8080:8080'
@@ -13,8 +13,8 @@ services:
     environment: 
       CATALINA_OPTS: "-Dtapuser.jdbc.username=TAP_SCHEMA -Dtapuser.jdbc.password=TAP_SCHEMA -Dtapuser.jdbc.driverClassName=oracle.jdbc.OracleDriver -Dtapuser.jdbc.url=jdbc:oracle:thin:@tapdb:1521/XE"
   tapdb:
-    image: opencadc/tap-oracle:11-xe
-    shm_size: '1g'
+    image: opencadc/tap-oracle:${DB_VERSION:-11-xe}
+    shm_size: 1gb
     networks:
       - 'tap_obscore'
 

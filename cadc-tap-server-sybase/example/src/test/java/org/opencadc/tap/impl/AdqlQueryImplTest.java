@@ -80,8 +80,7 @@ import ca.nrc.cadc.uws.Parameter;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -89,7 +88,6 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author pdowler
  */
-@DisplayName("ADQL Query generation test.")
 public class AdqlQueryImplTest {
     private static final Logger log = Logger.getLogger(AdqlQueryImplTest.class);
 

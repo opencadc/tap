@@ -80,16 +80,14 @@ import ca.nrc.cadc.uws.Parameter;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.Assert.*;
 
 
 /**
  * @author pdowler
  */
-@DisplayName("ADQL Query generation test.")
 public class AdqlQueryImplTest {
     private static final Logger log = Logger.getLogger(AdqlQueryImplTest.class);
 
@@ -108,7 +106,7 @@ public class AdqlQueryImplTest {
     public AdqlQueryImplTest() {
     }
 
-    // this test makes ure that the AllColumnsConverter in the base AdqlQuery 
+    // this test makes ure that the AllColumnsConverter in the base AdqlQuery
     // class still operates (eg we called super.init() correctly)
     @Test
     public void testOrigConverters() {
@@ -121,15 +119,15 @@ public class AdqlQueryImplTest {
 
             String sql = q.getSQL();
             log.debug("SQL: " + sql);
-            assertNotNull(sql, "sql");
+            assertNotNull("sql", sql);
             sql = sql.toLowerCase();
             int i = sql.indexOf("select") + 6;
             int j = sql.indexOf("from") - 1;
             String selectList = sql.substring(i, j);
             log.debug("select-list: " + selectList);
-            assertTrue(selectList.contains("t.f1"), "f1");
-            assertTrue(selectList.contains("t.f2"), "f1");
-            assertFalse(selectList.contains("*"), "f1");
+            assertTrue("f1", selectList.contains("t.f1"));
+            assertTrue("f1", selectList.contains("t.f2"));
+            assertFalse("f1", selectList.contains("*"));
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             throw unexpected;
@@ -150,8 +148,8 @@ public class AdqlQueryImplTest {
 
             String sql = q.getSQL();
             log.debug("SQL: " + sql);
-            assertNotNull(sql, "sql");
-            assertTrue(sql.toLowerCase().endsWith("limit 5"), "limit");
+            assertNotNull("sql", sql);
+            assertTrue("limit", sql.toLowerCase().endsWith("limit 5"));
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             throw unexpected;

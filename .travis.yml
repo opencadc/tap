@@ -1,5 +1,4 @@
 env:
-  TAP_VERSION: SNAPSHOT
   DB_VERSION: SNAPSHOT
   DOCKER_COMPOSE_VERSION: 1.21.2
 
@@ -29,5 +28,5 @@ before_script:
   - gradle -v  
 
 script: 
-  - for db in mysql pg oracle; do cd cadc-tap-$db && docker build -t opencadc/tap-$db:SNAPSHOT .; cd ../cadc-tap-server-$db; gradle --info clean install && cd example/ && gradle --info clean build && cp build/libs/*.war docker/ && docker build -t opencadc/tap-obscore:SNAPSHOT docker/; docker-compose up -d; docker ps; curl -sSL http://localhost:8080/tap-example/availability; docker-compose stop && docker-compose rm -f; done
+  - for db in mysql pg oracle; do cd cadc-tap-$db && docker build --shm-size 1g -t opencadc/tap-$db:SNAPSHOT .; cd ../cadc-tap-server-$db; gradle --info clean install && cd example/ && gradle --info clean build && cp build/libs/*.war docker/ && cd docker && docker-compose up --build -d; docker ps; curl -sSL http://localhost:8080/tap-example/availability; docker-compose stop && docker-compose rm -f; cd ../../../; done
   - for mod in cadc-tap-schema cadc-jsqlparser-compat cadc-tap-server cadc-adql cadc-test-tap example-tap; do cd $mod; gradle --stacktrace assemble javadoc install || break -1; cd ..; done
