@@ -1,7 +1,7 @@
 version: '3.2'
 services:
   tap:
-    image: opencadc/tap-obscore:mysql-alpine
+    image: opencadc/tap-obscore:${TAP_VERSION:-mysql-alpine}
     build: ./
     ports:
       - '8080:8080'
@@ -13,7 +13,7 @@ services:
     environment: 
       CATALINA_OPTS: "-Dtapuser.jdbc.username=TAP_SCHEMA -Dtapuser.jdbc.password=TAP_SCHEMA -Dtapuser.jdbc.driverClassName=com.mysql.jdbc.Driver -Dtapuser.jdbc.url=jdbc:mysql://tapdb:3306/TAP"
   tapdb:
-    image: opencadc/tap-mysql:8
+    image: opencadc/tap-mysql:${DB_VERSION:-8}
     hostname: tapdb
     networks:
       - 'tap_obscore'

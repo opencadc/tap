@@ -1,12 +1,32 @@
-language: java
+env:
+  TAP_VERSION: SNAPSHOT
+  DB_VERSION: SNAPSHOT
 
-dist: trusty
+language: java
 sudo: required
+group: edge
+dist: trusty
 
 jdk:
   - openjdk7
   - oraclejdk8
 
-before_script: openssl s_client -CApath /etc/ssl/certs/ -connect plugins.gradle.org:443 </dev/null | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > /tmp/gradle.crt; sudo keytool -importcert -noprompt -file /tmp/gradle.crt -trustcacerts -keystore $JAVA_HOME/jre/lib/security/cacerts -alias root -storepass changeit;
+services:
+  - docker
 
-script: for mod in cadc-tap-schema cadc-jsqlparser-compat cadc-tap-server cadc-adql cadc-test-tap example-tap; do cd $mod; gradle --stacktrace assemble javadoc install || break -1; cd ..; done
+before_script: 
+  - openssl s_client -CApath /etc/ssl/certs/ -connect plugins.gradle.org:443 </dev/null | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > /tmp/gradle.crt; sudo keytool -importcert -noprompt -file /tmp/gradle.crt -trustcacerts -keystore $JAVA_HOME/jre/lib/security/cacerts -alias root -storepass changeit;
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+  - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+  - sudo apt-get update
+  - sudo apt-get -y install docker-ce
+  - sudo rm /usr/local/bin/docker-compose
+  - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname
+    -s`-`uname -m` > docker-compose
+  - chmod +x docker-compose && sudo mv docker-compose /usr/local/bin
+  - docker-compose -v
+  - gradle -v  
+
+script: 
+  - for mod in cadc-tap-schema cadc-jsqlparser-compat cadc-tap-server cadc-adql cadc-test-tap example-tap; do cd $mod; gradle --stacktrace assemble javadoc install || break -1; cd ..; done
+  - for db in mysql pg oracle; do cd cadc-tap-$db && docker build -t opencadc/tap-$db:SNAPSHOT . || break -1; cd ../cadc-tap-server-$db; gradle --info clean install && cd example/ && cp build/libs/*.war docker/ && docker build -t opencadc/tap-obscore:SNAPSHOT docker/ || break -1; docker-compose up -d; docker ps; curl -sSL http://localhost:8080/tap-example/availability; docker-compose stop && docker-compose rm -f; done
