@@ -5,15 +5,6 @@ plugins {
 repositories {
     mavenLocal()
     jcenter()
-
-    maven {
-        name 'maven.oracle.com'
-        url 'https://maven.oracle.com'
-        credentials {
-            username = mavenOracleUsername
-            password = mavenOraclePassword
-        }
-    }
 }
 
 group = 'org.opencadc'
