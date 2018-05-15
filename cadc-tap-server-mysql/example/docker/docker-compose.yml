@@ -17,8 +17,6 @@ services:
     hostname: tapdb
     networks:
       - 'tap_obscore'
-    ports:
-      - '3306:3306'
     environment:
       MYSQL_USER: 'TAP_SCHEMA'
       MYSQL_PASSWORD: 'TAP_SCHEMA'
