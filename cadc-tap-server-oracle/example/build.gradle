@@ -6,12 +6,19 @@ repositories {
     mavenLocal()
     jcenter()
 
+    // To obtain access to the Oracle Maven repository, put your credentials into environment variables:
+    // - MAVEN_ORACLE_USERNAME
+    // - MAVEN_ORACLE_PASSWORD
+    //
+    // or, create a gradle.properties in your ~/.gradle directory with the following variables set:
+    // - mavenOracleUsername
+    // - mavenOraclePassword
     maven {
         name 'maven.oracle.com'
         url 'https://maven.oracle.com'
         credentials {
-            username = System.getenv("MAVEN_ORACLE_USERNAME") || mavenOracleUsername
-            password = System.getenv("MAVEN_ORACLE_PASSWORD") || mavenOraclePassword
+            username = System.getenv("MAVEN_ORACLE_USERNAME") ?: mavenOracleUsername
+            password = System.getenv("MAVEN_ORACLE_PASSWORD") ?: mavenOraclePassword
         }
     }
 }
