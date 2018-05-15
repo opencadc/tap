@@ -1,6 +1,7 @@
 env:
   TAP_VERSION: SNAPSHOT
   DB_VERSION: SNAPSHOT
+  DOCKER_COMPOSE_VERSION: 1.21.2
 
 language: java
 sudo: required
