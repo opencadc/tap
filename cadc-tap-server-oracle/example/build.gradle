@@ -10,8 +10,8 @@ repositories {
         name 'maven.oracle.com'
         url 'https://maven.oracle.com'
         credentials {
-            username = mavenOracleUsername
-            password = mavenOraclePassword
+            username = System.getenv("MAVEN_ORACLE_USERNAME") || mavenOracleUsername
+            password = System.getenv("MAVEN_ORACLE_PASSWORD") || mavenOraclePassword
         }
     }
 }
