@@ -28,10 +28,6 @@ dependencies {
     testCompile 'junit:junit:4.+'
 }
 
-test {
-    useJUnitPlatform()
-}
-
 sourceSets {
     intTest {
         java {
