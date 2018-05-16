@@ -69,31 +69,80 @@
 
 package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.dali.util.Format;
-import ca.nrc.cadc.tap.TapSelectItem;
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.Polygon;
+import ca.nrc.cadc.dali.util.PolygonFormat;
+import ca.nrc.cadc.util.StringUtil;
 
-public class OracleFormatFactory extends DefaultFormatFactory {
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+
+public class OraclePolygonFormat extends AbstractResultSetFormat {
+    static final String POLYGON_FUNCTION = "SDO_ORDINATE_ARRAY";
+    private final PolygonFormat polygonFormat = new PolygonFormat();
+
     @Override
-    protected Format<Object> getCircleFormat(TapSelectItem columnDesc) {
-        return new OracleCircleFormat();
+    public Object extract(final ResultSet resultSet, final int columnIndex) throws SQLException {
+        final String s = resultSet.getString(columnIndex);
+        return getPolygon(s);
     }
 
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
     @Override
-    protected Format<Object> getPointFormat(TapSelectItem columnDesc) {
-        return new OraclePointFormat();
+    public String format(final Object o) {
+        return polygonFormat.format((Polygon) o);
     }
 
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
-    @Override
-    protected Format<Object> getPolygonFormat(TapSelectItem columnDesc) {
-        return new OraclePolygonFormat();
+    Polygon getPolygon(final String clause) {
+        final Polygon polygon = new Polygon();
+        final Pattern p = Pattern.compile(OraclePolygonFormat.POLYGON_FUNCTION, Pattern.CASE_INSENSITIVE);
+        final Matcher m = p.matcher(clause);
+
+        if (m.find()) {
+            final int openFunctionIndex = m.start();
+            final int openFunctionParenIndex = clause.indexOf("(", openFunctionIndex);
+            final int closeFunctionParenIndex = clause.indexOf(")", openFunctionParenIndex);
+            final String functionArgumentString = clause.substring(openFunctionParenIndex + 1, closeFunctionParenIndex);
+
+            polygon.getVertices().addAll(parsePoints(functionArgumentString));
+        } else {
+            throw new IllegalArgumentException(
+                String.format("Missing %s function type for Polygon clause '%s'",
+                              OraclePolygonFormat.POLYGON_FUNCTION,
+                              clause));
+        }
+
+        return polygon;
+    }
+
+    List<Point> parsePoints(final String s) {
+        final String[] items = StringUtil.hasText(s) ? s.split(",") : new String[0];
+        final int pointCount = items.length / 2;
+
+        if (pointCount % 2 != 0 || pointCount < 3) {
+            throw new IllegalArgumentException(
+                String.format("Array does not contain enough values (6 required) for an array of points (Found %d).",
+                              items.length));
+        } else {
+            final List<Point> points = new ArrayList<>(pointCount);
+            double[] longitudes = new double[pointCount];
+            double[] latitudes = new double[pointCount];
+            for (int i = 0, il = items.length; i < il; i++) {
+                if (i % 2 == 0) {
+                    longitudes[i / 2] = Double.parseDouble(items[i]);
+                } else {
+                    latitudes[(i - 1) / 2] = Double.parseDouble(items[i]);
+                }
+            }
+
+            for (int i = 0, ll = longitudes.length; i < ll; i++) {
+                points.add(new Point(longitudes[i], latitudes[i]));
+            }
+            return points;
+        }
     }
 }

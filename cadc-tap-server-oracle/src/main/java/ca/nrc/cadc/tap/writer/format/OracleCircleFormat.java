@@ -69,31 +69,78 @@
 
 package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.dali.util.Format;
-import ca.nrc.cadc.tap.TapSelectItem;
+import ca.nrc.cadc.dali.Circle;
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.util.CircleFormat;
 
-public class OracleFormatFactory extends DefaultFormatFactory {
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+
+public class OracleCircleFormat extends AbstractResultSetFormat {
+
+    // Oracle's POINT type accepts a radius as an argument.
+    static final String CIRCLE_FUNCTION_TYPE = "SDO_POINT_TYPE";
+
+    private final CircleFormat circleFormat = new CircleFormat();
+
+
     @Override
-    protected Format<Object> getCircleFormat(TapSelectItem columnDesc) {
-        return new OracleCircleFormat();
+    public Object extract(final ResultSet resultSet, final int columnIndex) throws SQLException {
+        final String s = resultSet.getString(columnIndex);
+        return getCircle(s);
+    }
+
+    @Override
+    public String format(final Object object) {
+        return circleFormat.format((Circle) object);
+    }
+
+    Circle getCircle(final String clause) {
+        final double[] coordinates = parseRadianValues(clause);
+        return new Circle(new Point(coordinates[0], coordinates[1]), coordinates[2]);
     }
 
     /**
-     * @param columnDesc        The TAP Select item from the query.
+     * Parse the function arguments out and return them as radians.
+     *
+     * @param clause The String SQL clause.
+     * @return double array of three items (x, y, and radius).
      */
-    @Override
-    protected Format<Object> getPointFormat(TapSelectItem columnDesc) {
-        return new OraclePointFormat();
-    }
+    private double[] parseRadianValues(final String clause) {
+        final Pattern p = Pattern.compile(OracleCircleFormat.CIRCLE_FUNCTION_TYPE, Pattern.CASE_INSENSITIVE);
+        final Matcher m = p.matcher(clause);
+        if (m.find()) {
+            final int openFunctionIndex = m.start();
+            final int openFunctionParenIndex = clause.indexOf("(", openFunctionIndex);
+            final int closeFunctionParenIndex = clause.indexOf(")", openFunctionParenIndex);
+            final String functionArgumentString =
+                clause.substring(openFunctionParenIndex + 1, closeFunctionParenIndex);
+            final String[] functionArguments = functionArgumentString.split(",");
 
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
-    @Override
-    protected Format<Object> getPolygonFormat(TapSelectItem columnDesc) {
-        return new OraclePolygonFormat();
+            if (functionArguments.length != 3) {
+                throw new IllegalArgumentException(
+                    String.format("Circles/Points should have three arguments in Oracle: '%s'", clause));
+            } else {
+                final double[] coords = new double[3];
+                coords[0] = Math.toDegrees(Double.valueOf(functionArguments[0]));
+                coords[1] = Math.toDegrees(Double.valueOf(functionArguments[1]));
+
+                try {
+                    coords[2] = Math.toDegrees(Double.parseDouble(functionArguments[2]));
+                } catch (NumberFormatException e) {
+                    // No parsable radius, so it's a point.
+                }
+
+                return coords;
+            }
+        } else {
+            throw new IllegalArgumentException(
+                String.format("Missing %s function type for Circle clause '%s'",
+                              OracleCircleFormat.CIRCLE_FUNCTION_TYPE,
+                              clause));
+        }
     }
 }

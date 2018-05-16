@@ -69,31 +69,24 @@
 
 package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.dali.util.Format;
-import ca.nrc.cadc.tap.TapSelectItem;
+import ca.nrc.cadc.dali.Circle;
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.util.PointFormat;
 
-public class OracleFormatFactory extends DefaultFormatFactory {
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+public class OraclePointFormat extends AbstractResultSetFormat {
+    private final OracleCircleFormat oracleCircleFormat = new OracleCircleFormat();
+    private final PointFormat pointFormat = new PointFormat();
+
     @Override
-    protected Format<Object> getCircleFormat(TapSelectItem columnDesc) {
-        return new OracleCircleFormat();
+    public Object extract(ResultSet resultSet, int columnIndex) throws SQLException {
+        return ((Circle) oracleCircleFormat.extract(resultSet, columnIndex)).getCenter();
     }
 
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
     @Override
-    protected Format<Object> getPointFormat(TapSelectItem columnDesc) {
-        return new OraclePointFormat();
-    }
-
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
-    @Override
-    protected Format<Object> getPolygonFormat(TapSelectItem columnDesc) {
-        return new OraclePolygonFormat();
+    public String format(Object o) {
+        return pointFormat.format((Point) o);
     }
 }

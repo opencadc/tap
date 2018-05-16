@@ -69,31 +69,44 @@
 
 package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.dali.util.Format;
-import ca.nrc.cadc.tap.TapSelectItem;
+import ca.nrc.cadc.dali.Circle;
 
-public class OracleFormatFactory extends DefaultFormatFactory {
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
-    @Override
-    protected Format<Object> getCircleFormat(TapSelectItem columnDesc) {
-        return new OracleCircleFormat();
-    }
+import org.junit.Test;
 
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
-    @Override
-    protected Format<Object> getPointFormat(TapSelectItem columnDesc) {
-        return new OraclePointFormat();
-    }
+import static org.junit.Assert.*;
 
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
-    @Override
-    protected Format<Object> getPolygonFormat(TapSelectItem columnDesc) {
-        return new OraclePolygonFormat();
+
+public class OracleCircleFormatTest {
+
+    @Test
+    public void getCircle() {
+        final OracleCircleFormat testSubject = new OracleCircleFormat();
+
+        try {
+            testSubject.getCircle("");
+            fail("Should fail with IllegalArgument");
+        } catch (IllegalArgumentException e) {
+            // Good!
+        }
+
+        try {
+            testSubject.getCircle(String.format("%s(0.44, 200)", OracleCircleFormat.CIRCLE_FUNCTION_TYPE));
+            fail("Should fail with IllegalArgument");
+        } catch (IllegalArgumentException e) {
+            // Good!
+        }
+
+        final Circle circle =
+            testSubject.getCircle(String.format("%s(0.17, 0.98, 0.5)", OracleCircleFormat.CIRCLE_FUNCTION_TYPE));
+        assertEquals("Wrong center point longitude.", 9.74028D, circle.getCenter().getLongitude(), 0.01D);
+        assertEquals("Wrong center point latitude.", 56.14986D, circle.getCenter().getLatitude(), 0.01D);
+        assertEquals("Wrong radius.", 28.64788D, circle.getRadius(), 0.1D);
+
+        final Circle circle2 =
+            testSubject.getCircle(String.format("%s(0.17, 0.98, 0.5)", OracleCircleFormat.CIRCLE_FUNCTION_TYPE
+                .toLowerCase()));
+        assertEquals("Wrong center point longitude.", 9.74028D, circle2.getCenter().getLongitude(), 0.01D);
+        assertEquals("Wrong center point latitude.", 56.14986D, circle2.getCenter().getLatitude(), 0.01D);
+        assertEquals("Wrong radius.", 28.64788D, circle2.getRadius(), 0.1D);
     }
 }

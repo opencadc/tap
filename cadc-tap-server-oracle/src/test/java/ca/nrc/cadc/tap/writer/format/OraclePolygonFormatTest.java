@@ -69,31 +69,44 @@
 
 package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.dali.util.Format;
-import ca.nrc.cadc.tap.TapSelectItem;
 
-public class OracleFormatFactory extends DefaultFormatFactory {
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
-    @Override
-    protected Format<Object> getCircleFormat(TapSelectItem columnDesc) {
-        return new OracleCircleFormat();
-    }
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.Polygon;
 
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
-    @Override
-    protected Format<Object> getPointFormat(TapSelectItem columnDesc) {
-        return new OraclePointFormat();
-    }
+import org.junit.Test;
 
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
-    @Override
-    protected Format<Object> getPolygonFormat(TapSelectItem columnDesc) {
-        return new OraclePolygonFormat();
+import java.util.List;
+
+import static org.junit.Assert.*;
+
+
+public class OraclePolygonFormatTest {
+
+    @Test
+    public void getPolygon() {
+        final OraclePolygonFormat testSubject = new OraclePolygonFormat();
+
+        try {
+            testSubject.getPolygon("");
+            fail("Should throw IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertEquals("Wrong message.",
+                         "Missing SDO_ORDINATE_ARRAY function type for Polygon clause ''",
+                         e.getMessage());
+        }
+
+        try {
+            testSubject.getPolygon(OraclePolygonFormat.POLYGON_FUNCTION + "(0.9, 4.6)");
+            fail("Should throw IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertEquals("Wrong message.",
+                         "Array does not contain enough values (6 required) for an array of points (Found 2).",
+                         e.getMessage());
+        }
+
+        final Polygon polygon = testSubject.getPolygon(OraclePolygonFormat.POLYGON_FUNCTION
+                                                           + "(0.9, 4.6, 9.0, 10.2, 3.3, 8.7, 12.9, 45.6)");
+        final List<Point> vertices = polygon.getVertices();
+        assertEquals("Wrong vertice count.", 4, vertices.size());
     }
 }
