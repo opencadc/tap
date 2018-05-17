@@ -1,6 +1,7 @@
 env:
   DB_VERSION: SNAPSHOT
   DOCKER_COMPOSE_VERSION: 1.21.2
+  GRADLE_VERSION: 4.7
 
 language: java
 sudo: required
@@ -25,6 +26,10 @@ before_script:
     -s`-`uname -m` > docker-compose
   - chmod +x docker-compose && sudo mv docker-compose /usr/local/bin
   - docker-compose -v
+  - mkdir /opt/gradle
+  - curl -sSLO "https://gradle.org/next-steps/?version=${GRADLE_VERSION}&format=bin"
+  - unzip -d /opt/gradle gradle-${GRADLE_VERSION}-bin.zip
+  - ln -s /opt/gradle/gradle-${GRADLE_VERSION}/bin/gradle /usr/local/bin/gradle
   - gradle -v  
 
 script: 
