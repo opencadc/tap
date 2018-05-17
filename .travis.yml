@@ -27,7 +27,7 @@ before_script:
   - chmod +x docker-compose && sudo mv docker-compose /usr/local/bin
   - docker-compose -v
   - mkdir /opt/gradle
-  - curl -sSLO "https://gradle.org/next-steps/?version=${GRADLE_VERSION}&format=bin"
+  - curl -sSLO "https://downloads.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
   - unzip -d /opt/gradle gradle-${GRADLE_VERSION}-bin.zip
   - ln -s /opt/gradle/gradle-${GRADLE_VERSION}/bin/gradle /usr/local/bin/gradle
   - gradle -v  
