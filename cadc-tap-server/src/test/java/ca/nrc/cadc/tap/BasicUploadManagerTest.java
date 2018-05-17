@@ -39,19 +39,25 @@
 
 package ca.nrc.cadc.tap;
 
+import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.db.ConnectionConfig;
 import ca.nrc.cadc.db.DBConfig;
 import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.upload.ADQLIdentifierException;
+import ca.nrc.cadc.tap.upload.DatabaseDataTypeFactory;
 import ca.nrc.cadc.tap.upload.UploadTable;
 import ca.nrc.cadc.tap.upload.VOTableParser;
 import ca.nrc.cadc.tap.upload.datatype.DatabaseDataType;
-import ca.nrc.cadc.tap.upload.datatype.PostgreSQLDataType;
 import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.uws.Parameter;
+
+import javax.sql.DataSource;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -69,14 +75,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.Set;
-import javax.sql.DataSource;
-import org.apache.log4j.Logger;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
 
 /**
  *
@@ -194,7 +192,7 @@ public class BasicUploadManagerTest
     }
 
     @Test
-    public void testCreateEmptyTable()
+    public void testCreateEmptyTable() throws Exception
     {
         try
         {
@@ -260,12 +258,12 @@ public class BasicUploadManagerTest
         catch (Exception unexpected)
         {
             log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
+            throw unexpected;
         }
     }
 
     @Test
-    public void testCreateAndInsert()
+    public void testCreateAndInsert() throws Exception
     {
         try
         {
@@ -350,7 +348,7 @@ public class BasicUploadManagerTest
         catch (Exception unexpected)
         {
             log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
+            throw unexpected;
         }
     }
     
@@ -822,8 +820,18 @@ public class BasicUploadManagerTest
         protected DatabaseDataType getDatabaseDataType(Connection con) throws SQLException
         {
             // the tests actually only work with postgresql
-            //return DatabaseDataTypeFactory.getDatabaseDataType(con);
-            return new PostgreSQLDataType();
+            return DatabaseDataTypeFactory.getDatabaseDataType(con);
+//            return new DatabaseDataType() {
+//                @Override
+//                public String getDataType(ColumnDesc columnDesc) {
+//                    return null;
+//                }
+//
+//                @Override
+//                public Integer getType(ColumnDesc columnDesc) {
+//                    return null;
+//                }
+//            };
         }
 
         @Override

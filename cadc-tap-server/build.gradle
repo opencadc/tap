@@ -2,7 +2,7 @@ plugins {
     id "java"
     id "maven"
     id 'maven-publish'
-    id 'com.jfrog.bintray' version '1.7.1'
+    id 'com.jfrog.bintray' version '1.8.0'
 }
 
 repositories {
@@ -14,7 +14,7 @@ sourceCompatibility = 1.7
 
 group = 'org.opencadc'
 
-version = '1.1.3'
+version = '1.2.0'
 
 dependencies {
     compile 'log4j:log4j:1.2.+'
@@ -31,11 +31,13 @@ dependencies {
     compile 'org.opencadc:cadc-registry:1.+'
     compile 'org.opencadc:cadc-uws:1.+'
     compile 'org.opencadc:cadc-uws-server:1.+'
-    
-    compile 'org.opencadc:cadc-dali-pg:[0.1,)'
 
     testCompile 'junit:junit:4.+'
     testCompile 'org.opencadc:cadc-util:1.+'
+    testCompile 'org.easymock:easymock:[3.6, )'
     testCompile 'xerces:xercesImpl:2.+'
     testCompile 'org.jdom:jaxen-jdom:1.+'
+
+    // Test with PostgreSQL.
+    testRuntime 'org.postgresql:postgresql:42.2.2'
 }
