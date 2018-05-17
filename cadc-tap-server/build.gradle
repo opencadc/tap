@@ -40,5 +40,4 @@ dependencies {
 
     // Test with PostgreSQL.
     testRuntime 'org.postgresql:postgresql:42.2.2'
-    testRuntime 'org.opencadc:cadc-tap-server-pg:[1.0.0, )'
 }
