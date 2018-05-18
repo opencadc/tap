@@ -122,6 +122,7 @@ public class AdqlQuery extends AbstractTapQuery
     protected Statement statement;
     protected List<TapSelectItem> selectList = null;
     protected List<SelectNavigator> navigatorList = new ArrayList<SelectNavigator>();
+    protected TapSchemaTableValidator tstValidator;
 
     protected transient boolean navigated = false;
 
@@ -139,9 +140,10 @@ public class AdqlQuery extends AbstractTapQuery
     {
         // default validator: table and columns in tap_schema, 
         // blobs and clobs in select list only
+        this.tstValidator = new TapSchemaTableValidator(tapSchema);
         SelectNavigator sn = new SelectNavigator(new ExpressionValidator(tapSchema),
                                                  new BlobClobColumnValidator(tapSchema),
-                                                 new TapSchemaTableValidator(tapSchema));
+                                                 tstValidator);
         navigatorList.add(sn);
 
         // convert * to fixed select-list
@@ -299,6 +301,27 @@ public class AdqlQuery extends AbstractTapQuery
         return selectList;
     }
 
+    @Override
+    public boolean isTapSchemaQuery() {
+        doNavigate();
+        int ts = 0;
+        int nts = 0;
+        for (TableDesc td : tstValidator.getTables()) {
+            if ("tap_schema".equalsIgnoreCase(td.getSchemaName())) {
+                ts++;
+            } else {
+                nts++;
+            }
+        }
+        if (ts > 0 && nts == 0) {
+            return true;
+        }
+        if (ts == 0 && nts > 0) {
+            return false;
+        }
+        throw new UnsupportedOperationException("access tap_schema and non-tap_schema tables in single query");
+    }
+    
     @Override
     public String getInfo()
     {

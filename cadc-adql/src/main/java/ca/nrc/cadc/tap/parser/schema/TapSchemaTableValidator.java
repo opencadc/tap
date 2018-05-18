@@ -76,6 +76,8 @@ import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.schema.TableDesc;
 
 import ca.nrc.cadc.tap.schema.TapSchema;
+import java.util.ArrayList;
+import java.util.List;
 import net.sf.jsqlparser.schema.Table;
 
 /**
@@ -90,6 +92,8 @@ public class TapSchemaTableValidator extends FromItemNavigator
 
     protected TapSchema tapSchema;
     
+    private List<TableDesc> tables = new ArrayList<>();
+    
     public TapSchemaTableValidator()
     {
     }
@@ -103,7 +107,16 @@ public class TapSchemaTableValidator extends FromItemNavigator
     {
         this.tapSchema = tapSchema;
     }
-    
+
+    /**
+     * Get list of tables referenced in the query.
+     * 
+     * @return tables referenced in query 
+     */
+    public List<TableDesc> getTables() {
+        return tables;
+    }
+        
     /* (non-Javadoc)
      * @see net.sf.jsqlparser.statement.select.FromItemVisitor#visit(net.sf.jsqlparser.schema.Table)
      */
@@ -118,5 +131,8 @@ public class TapSchemaTableValidator extends FromItemNavigator
         TableDesc td = TapSchemaUtil.findTableDesc(tapSchema, qTable);
         if (td == null)
             throw new IllegalArgumentException("Table [ " + table + " ] is not found in TapSchema");
+        if (!tables.contains(td)) {
+            tables.add(td);
+        }
     }
 }
