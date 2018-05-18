@@ -1,5 +1,7 @@
+
 package ca.nrc.cadc.tap.integration;
 
+import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.conformance.uws2.AbstractUWSTest2;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.reg.Standards;
@@ -23,46 +25,40 @@ import org.junit.Test;
  *
  * @author pdowler
  */
-public class TapAsyncUploadTest extends AbstractUWSTest2
-{
+public class TapAsyncUploadTest extends AbstractUWSTest2 {
+
     private static final Logger log = Logger.getLogger(TapAsyncUploadTest.class);
 
     private File testFile;
     private URL testURL;
     private final StringIDGenerator idgen = new RandomStringGenerator(8);
-    
-    public TapAsyncUploadTest(URI resourceID)
-    {
+
+    public TapAsyncUploadTest(URI resourceID) {
         super(resourceID, Standards.TAP_10, Standards.INTERFACE_UWS_ASYNC);
     }
 
-    public void setTestFile(File testFile)
-    {
+    public void setTestFile(File testFile) {
         this.testFile = testFile;
     }
 
-    public void setTestURL(URL testURL)
-    {
+    public void setTestURL(URL testURL) {
         this.testURL = testURL;
     }
 
-    
     @Test
-    public void testUploadFile()
-    {
-        try
-        {
+    public void testUploadFile() {
+        try {
             String tableName = "mytab";
-            Map<String, Object> params = new HashMap<String,Object>();
+            Map<String, Object> params = new HashMap<String, Object>();
             params.put("upload1", testFile);
-            params.put("UPLOAD", tableName+",param:upload1");
+            params.put("UPLOAD", tableName + ",param:upload1");
             params.put("LANG", "ADQL");
-            params.put("QUERY", "select * from tap_upload."+tableName);
-            
+            params.put("QUERY", "select * from tap_upload." + tableName);
+
             URL jobURL = createAsyncParamJob("testUploadFile", params);
-            
+
             Assert.assertNotNull(jobURL);
-            
+
             JobReader jr = new JobReader();
             Job job = jr.read(jobURL.openStream());
             List<Parameter> jparams = job.getParameterList();
@@ -74,40 +70,35 @@ public class TapAsyncUploadTest extends AbstractUWSTest2
             URI uri = new URI(parts[1]);
             Assert.assertNotNull(uri);
             Assert.assertEquals("http", uri.getScheme());
-            
+
             URL tmpURL = uri.toURL();  // tmp storage of inline upload
-            
+
             // for async we can verify that the file was uploaded intact
             VOTableDocument vot = VOTableHandler.getVOTable(tmpURL);
             log.info("testUploadFile: found valid VOTable: " + tmpURL);
-            
+
             // TODO: compare testFile1 vs vot (inline upload)?
-            
             // TODO: run the job, get the output votable, and compare it to testFile1 (roundtrip)?
-        }
-        catch(Exception unexpected)
-        {
+        } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
         }
     }
 
     @Test
-    public void testUploadURL()
-    {
-        try
-        {
+    public void testUploadURL() {
+        try {
             String tableName = "tab_" + idgen.getID(); // put to WEBTMP
-            
-                        Map<String, Object> params = new HashMap<String,Object>();
+
+            Map<String, Object> params = new HashMap<String, Object>();
             params.put("UPLOAD", tableName + "," + testURL.toExternalForm());
             params.put("LANG", "ADQL");
             params.put("QUERY", "select * from tap_upload." + tableName);
-            
+
             URL jobURL = createAsyncParamJob("testUploadFile", params);
-            
+
             Assert.assertNotNull(jobURL);
-            
+
             JobReader jr = new JobReader();
             Job job = jr.read(jobURL.openStream());
             List<Parameter> jparams = job.getParameterList();
@@ -119,14 +110,10 @@ public class TapAsyncUploadTest extends AbstractUWSTest2
             URL tmpURL = new URL(parts[1]);
             Assert.assertEquals(testURL, tmpURL);
             log.info("testUploadURL: VOTable: " + tmpURL);
-            
+
             // TODO: run the job, get the output votable, and compare it to testFile1 (inline upload)?
-            
             // TODO: run the job, get the output votable, and compare it to testFile1 (roundtrip)?
-            
-        }
-        catch(Exception unexpected)
-        {
+        } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
         }

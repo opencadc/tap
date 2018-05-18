@@ -65,10 +65,9 @@
 *  $Revision: 5 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.tap.integration;
-
 
 import ca.nrc.cadc.conformance.uws2.AsyncUWSTest;
 import ca.nrc.cadc.conformance.uws2.JobResultWrapper;
@@ -85,54 +84,46 @@ import org.junit.Assert;
  *
  * @author pdowler
  */
-public class TapAsyncQueryTest extends AsyncUWSTest
-{
+public class TapAsyncQueryTest extends AsyncUWSTest {
+
     private static final Logger log = Logger.getLogger(TapAsyncQueryTest.class);
 
-    private static final long TIMEOUT = 60*1000L;
-    
-    public TapAsyncQueryTest(URI resourceID) 
-    { 
+    private static final long TIMEOUT = 60 * 1000L;
+
+    public TapAsyncQueryTest(URI resourceID) {
         super(resourceID, Standards.TAP_10, Standards.INTERFACE_UWS_ASYNC, TIMEOUT);
     }
 
     @Override
-    protected void validateResponse(JobResultWrapper result)
-    {
+    protected void validateResponse(JobResultWrapper result) {
         Assert.assertEquals(ExecutionPhase.COMPLETED, result.job.getExecutionPhase());
-        
+
         //Result r = result.job.getResultsList().get(0);
         Result r = null;
-        for (Result jr : result.job.getResultsList())
-        {
-            if ("result".equals(jr.getName()))
-            {
+        for (Result jr : result.job.getResultsList()) {
+            if ("result".equals(jr.getName())) {
                 r = jr;
                 break;
             }
         }
         Assert.assertNotNull("found result", r);
         Assert.assertEquals("http", r.getURI().getScheme());
-        
-        try
-        {
+
+        try {
             URL resultURL = r.getURI().toURL();
 
             log.info(result.name + ": result " + resultURL);
             VOTableDocument vot = VOTableHandler.getVOTable(resultURL);
-            
+
             String queryStatus = VOTableHandler.getQueryStatus(vot);
             Assert.assertNotNull("QUERY_STATUS", queryStatus);
             Assert.assertEquals("OK", queryStatus);
-            
+
             // TODO: validate content?
-        }
-        catch(Exception unexpected)
-        {
+        } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
         }
     }
-    
-    
+
 }

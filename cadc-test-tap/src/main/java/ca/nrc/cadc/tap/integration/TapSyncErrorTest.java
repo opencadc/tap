@@ -65,11 +65,11 @@
 *  $Revision: 5 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.tap.integration;
 
-
+import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.conformance.uws2.JobResultWrapper;
 import ca.nrc.cadc.conformance.uws2.SyncUWSTest;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
@@ -82,36 +82,29 @@ import org.junit.Assert;
  *
  * @author pdowler
  */
-public class TapSyncErrorTest extends SyncUWSTest
-{
+public class TapSyncErrorTest extends SyncUWSTest {
+
     private static final Logger log = Logger.getLogger(TapSyncErrorTest.class);
 
-    public TapSyncErrorTest(URI resourceID)
-    {
+    public TapSyncErrorTest(URI resourceID) {
         super(resourceID, Standards.TAP_10, Standards.INTERFACE_UWS_SYNC);
     }
 
     @Override
-    protected void validateResponse(JobResultWrapper result)
-    {
+    protected void validateResponse(JobResultWrapper result) {
         Assert.assertEquals(400, result.responseCode);
         Assert.assertEquals("application/x-votable+xml", result.contentType);
-        
-        try
-        {
+
+        try {
             Assert.assertNotNull(result.syncOutput);
             VOTableDocument vot = VOTableHandler.getVOTable(result.syncOutput);
-            
+
             String queryStatus = VOTableHandler.getQueryStatus(vot);
             Assert.assertNotNull("QUERY_STATUS", queryStatus);
             Assert.assertEquals("ERROR", queryStatus);
-        }
-        catch(Exception ex)
-        {
+        } catch (Exception ex) {
             log.error("unexpected exception", ex);
             Assert.fail("unexpected exception: " + ex);
         }
     }
-
-    
 }
