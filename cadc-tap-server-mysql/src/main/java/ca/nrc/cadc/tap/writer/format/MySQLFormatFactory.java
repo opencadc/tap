@@ -67,9 +67,8 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.witer.format;
+package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.tap.writer.format.DefaultFormatFactory;
 
 /**
  * MySQL format factory implementation.  This is loaded by adding this library to the client application's
