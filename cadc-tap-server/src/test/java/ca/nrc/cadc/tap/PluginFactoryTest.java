@@ -122,9 +122,6 @@ public class PluginFactoryTest
     @Test
     public void testSetup()
     {
-        TapSchema tapSchema=  new TapSchema();
-        Map<String, TableDesc> extraTables = new HashMap<String, TableDesc>();
-        
         try
         {
             job.getParameterList().clear();

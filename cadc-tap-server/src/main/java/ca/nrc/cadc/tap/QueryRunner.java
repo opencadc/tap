@@ -313,6 +313,7 @@ public class QueryRunner implements JobRunner
             log.debug("checking uploaded tables...");
             UploadManager uploadManager = pfac.getUploadManager();
             uploadManager.setDataSource(uploadDataSource);
+            uploadManager.setDatabaseDataType(pfac.getDatabaseDataType());
             Map<String, TableDesc> tableDescs = uploadManager.upload(paramList, job.getID());
             if (tableDescs != null)
             {
