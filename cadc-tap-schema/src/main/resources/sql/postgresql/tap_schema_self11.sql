@@ -63,14 +63,14 @@ insert into tap_schema.columns11 (table_name,column_name,description,utype,ucd,u
 ( 'tap_schema.columns', 'unit', 'lists the unit used for column values in the tableset',  NULL, NULL, NULL, 'char', '64*', NULL, 1,0,0,5 ),
 ( 'tap_schema.columns', 'description', 'describes the columns in the tableset',           NULL, NULL, NULL, 'char', '512*', NULL, 1,0,0,6 ),
 ( 'tap_schema.columns', 'datatype', 'lists the ADQL datatype of columns in the tableset', NULL, NULL, NULL, 'char', '64*', NULL, 1,0,0,7 ),
-( 'tap_schema.columns', 'arraysize', 'lists the size of variable-length columns in the tableset', NULL, NULL, NULL, 'int', NULL, NULL, 1,0,0,8 ),
-( 'tap_schema.columns', 'xtype', 'a DALI or custom extended type annotation',             NULL, NULL, NULL, 'char', '64*', NULL, 1,0,0,7 ),
+( 'tap_schema.columns', 'arraysize', 'lists the size of fixed- and variable-length columns in the tableset', NULL, NULL, NULL, 'char', '*', NULL, 1,0,0,8 ),
+( 'tap_schema.columns', 'xtype', 'a DALI or custom extended type annotation',             NULL, NULL, NULL, 'char', '64*', NULL, 1,0,0,9 ),
+( 'tap_schema.columns', '"size"', 'deprecated: use arraysize', NULL, NULL, NULL, 'int', NULL, NULL, 1,0,0,10 ),
 
-( 'tap_schema.columns', '"size"', 'deprecated: use arraysize', NULL, NULL, NULL, 'int', NULL, NULL, 1,0,0,9 ),
-( 'tap_schema.columns', 'principal', 'a principal column; 1 means 1, 0 means 0',      NULL, NULL, NULL, 'int', NULL, NULL, 1,0,0,10 ),
-( 'tap_schema.columns', 'indexed', 'an indexed column; 1 means 1, 0 means 0',         NULL, NULL, NULL, 'int', NULL, NULL, 1,0,0,11 ),
-( 'tap_schema.columns', 'std', 'a standard column; 1 means 1, 0 means 0',             NULL, NULL, NULL, 'int', NULL, NULL, 1,0,0,12 ),
-( 'tap_schema.columns', 'column_index', 'recommended sort order when listing columns of a table',  NULL, NULL, NULL, 'int', NULL, NULL, 1,0,0,13 ),
+( 'tap_schema.columns', 'principal', 'a principal column; 1 means true, 0 means false',      NULL, NULL, NULL, 'int', NULL, NULL, 1,0,0,11 ),
+( 'tap_schema.columns', 'indexed', 'an indexed column; 1 means true, 0 means false',         NULL, NULL, NULL, 'int', NULL, NULL, 1,0,0,12 ),
+( 'tap_schema.columns', 'std', 'a standard column; 1 means true, 0 means false',             NULL, NULL, NULL, 'int', NULL, NULL, 1,0,0,13 ),
+( 'tap_schema.columns', 'column_index', 'recommended sort order when listing columns of a table',  NULL, NULL, NULL, 'int', NULL, NULL, 1,0,0,14 ),
 
 ( 'tap_schema.keys', 'key_id', 'unique key to join to tap_schema.key_columns',            NULL, NULL, NULL, 'char', '64*', NULL, 1,0,0,1 ),
 ( 'tap_schema.keys', 'from_table', 'the table with the foreign key',                      NULL, NULL, NULL, 'char', '64*', NULL, 1,0,0,2 ),
@@ -104,5 +104,6 @@ insert into tap_schema.key_columns11 (key_id,from_column,target_column) values
 update tap_schema.columns11 SET "size" = replace(arraysize::varchar,'*','')::int 
 WHERE table_name LIKE 'tap_schema.%'
   AND arraysize IS NOT NULL
+  AND arraysize != '*'
   AND arraysize NOT LIKE '%x%';
 
