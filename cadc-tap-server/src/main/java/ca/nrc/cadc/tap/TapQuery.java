@@ -111,6 +111,13 @@ public interface TapQuery extends TapPlugin
     public List<TapSelectItem> getSelectList();
 
     /**
+     * Check if the query is on the <code>tap_schema</code>.
+     * 
+     * @return true if query uses tap_schema; otherwise false
+     */
+    public boolean isTapSchemaQuery();
+    
+    /**
      * Provide a text description of the relevant part of the query. This should
      * be the main parameters that define the query. For example, for an ADQL query
      * this would be just the ADQL text (the value of the QUERY parameters), while
