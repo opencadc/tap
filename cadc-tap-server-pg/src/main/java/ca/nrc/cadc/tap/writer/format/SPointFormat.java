@@ -67,11 +67,10 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.witer.format;
+package ca.nrc.cadc.tap.writer.format;
 
 import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.dali.util.PointFormat;
-import ca.nrc.cadc.tap.writer.format.AbstractResultSetFormat;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

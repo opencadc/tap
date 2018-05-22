@@ -62,93 +62,49 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 1 $
+ *  $Revision: 4 $
  *
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.witer.format;
+package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.dali.Circle;
-import ca.nrc.cadc.dali.Point;
-import ca.nrc.cadc.dali.util.CircleFormat;
-import ca.nrc.cadc.tap.writer.format.AbstractResultSetFormat;
+import ca.nrc.cadc.dali.Polygon;
+import ca.nrc.cadc.dali.postgresql.PgSpoly;
+import ca.nrc.cadc.dali.util.PolygonFormat;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+
 /**
- * Formats a PGSphere scircle as a DALI-1.1 circle.
- *
- * @author pdowler
+ * Formats a PGSphere spoly as a DALI-1.1 polygon.
  */
-public class SCircleFormat extends AbstractResultSetFormat
-{
-    private final CircleFormat fmt = new CircleFormat();
+public class SPolyFormat extends AbstractResultSetFormat {
+    private final PolygonFormat fmt = new PolygonFormat();
 
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
-        throws SQLException
-    {
+        throws SQLException {
         String s = resultSet.getString(columnIndex);
-        return getCircle(s);
+        return getPolygon(s);
     }
 
     @Override
-    public String format(Object object)
-    {
-        return fmt.format((Circle) object);
+    public String format(Object object) {
+        if (object == null) {
+            return "";
+        }
+        return fmt.format((Polygon) object);
     }
 
-
-    public Circle getCircle(Object object)
-    {
-         if (object == null)
+    Polygon getPolygon(String s) {
+        if (s == null) {
             return null;
-        if (!(object instanceof String))
-            throw new IllegalArgumentException("Expected String, was " + object.getClass().getName());
-        String s = (String) object;
+        }
 
-        // scircle format: <(coordinates), radius>
-        // <(0.0174532925199433 , 0.0349065850398866) , 0.0523598775598299>
-        // Get the string inside the enclosing angle brackets.
-        int open = s.indexOf("<");
-        int close = s.indexOf(">");
-        if (open == -1 || close == -1)
-            throw new IllegalArgumentException("Missing opening or closing angle brackets " + s);
-
-        s = s.substring(open + 1, close);
-
-        // Get the string inside the enclosing parentheses.
-        open = s.indexOf("(");
-        close = s.indexOf(")");
-        if (open == -1 || close == -1)
-            throw new IllegalArgumentException("Missing opening or closing parentheses " + s);
-
-        // Should be 2 values separated by a comma.
-        String coordinates = s.substring(open + 1, close);
-        String[] points = coordinates.split(",");
-        if (points.length != 2)
-            throw new IllegalArgumentException("SCirlce coordinates must have only 2 values " + coordinates);
-
-        // Radius
-        s = s.substring (close + 1);
-        open = s.indexOf(",");
-        if (open == -1)
-            throw new IllegalArgumentException("Missing radius after coordinates " + s);
-        s = s.substring(open + 1);
-
-        // Coordinates.
-        Double x = Double.valueOf(points[0]);
-        Double y = Double.valueOf(points[1]);
-        Double r = Double.valueOf(s);
-
-        // convert to radians
-        x = x * (180/Math.PI);
-        y = y * (180/Math.PI);
-        r = r * (180/Math.PI);
-
-        return new Circle(new Point(x, y), r);
+        PgSpoly spoly = new PgSpoly();
+        return spoly.getPolygon(s);
     }
 
 }

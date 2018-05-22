@@ -62,47 +62,45 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
+ *  $Revision: 1 $
  *
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.witer.format;
+package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.dali.util.PointFormat;
-import ca.nrc.cadc.stc.Frame;
-import ca.nrc.cadc.stc.Position;
-import ca.nrc.cadc.stc.STC;
-import ca.nrc.cadc.tap.writer.format.AbstractResultSetFormat;
+import ca.nrc.cadc.dali.Circle;
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.util.CircleFormat;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /**
- * Extract and format a PGSphere spoint as an STC-S string (TAP-1.0 compatibility).
+ * Formats a PGSphere scircle as a DALI-1.1 circle.
  *
+ * @author pdowler
  */
-public class SPointFormat10 extends AbstractResultSetFormat
+public class SCircleFormat extends AbstractResultSetFormat
 {
-    private final PointFormat fmt = new PointFormat();
-    
+    private final CircleFormat fmt = new CircleFormat();
+
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
         throws SQLException
     {
         String s = resultSet.getString(columnIndex);
-        return getPosition(s);
+        return getCircle(s);
     }
 
     @Override
     public String format(Object object)
     {
-        if (object == null)
-            return "";
-        return STC.format((Position) object);
+        return fmt.format((Circle) object);
     }
 
-    private Position getPosition(Object object)
+
+    public Circle getCircle(Object object)
     {
          if (object == null)
             return null;
@@ -110,30 +108,46 @@ public class SPointFormat10 extends AbstractResultSetFormat
             throw new IllegalArgumentException("Expected String, was " + object.getClass().getName());
         String s = (String) object;
 
+        // scircle format: <(coordinates), radius>
+        // <(0.0174532925199433 , 0.0349065850398866) , 0.0523598775598299>
+        // Get the string inside the enclosing angle brackets.
+        int open = s.indexOf("<");
+        int close = s.indexOf(">");
+        if (open == -1 || close == -1)
+            throw new IllegalArgumentException("Missing opening or closing angle brackets " + s);
+
+        s = s.substring(open + 1, close);
+
         // Get the string inside the enclosing parentheses.
-        int open = s.indexOf("(");
-        int close = s.indexOf(")");
+        open = s.indexOf("(");
+        close = s.indexOf(")");
         if (open == -1 || close == -1)
             throw new IllegalArgumentException("Missing opening or closing parentheses " + s);
 
         // Should be 2 values separated by a comma.
-        s = s.substring(open + 1, close);
-        String[] points = s.split(",");
+        String coordinates = s.substring(open + 1, close);
+        String[] points = coordinates.split(",");
         if (points.length != 2)
-            throw new IllegalArgumentException("SPoint must have only 2 values " + s);
+            throw new IllegalArgumentException("SCirlce coordinates must have only 2 values " + coordinates);
+
+        // Radius
+        s = s.substring (close + 1);
+        open = s.indexOf(",");
+        if (open == -1)
+            throw new IllegalArgumentException("Missing radius after coordinates " + s);
+        s = s.substring(open + 1);
 
         // Coordinates.
         Double x = Double.valueOf(points[0]);
         Double y = Double.valueOf(points[1]);
+        Double r = Double.valueOf(s);
 
         // convert to radians
         x = x * (180/Math.PI);
         y = y * (180/Math.PI);
+        r = r * (180/Math.PI);
 
-        // Create STC Position.
-        Position position = new Position(Frame.ICRS, null, null, x, y);
-
-        return position;
-}
+        return new Circle(new Point(x, y), r);
+    }
 
 }

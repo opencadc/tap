@@ -31,7 +31,7 @@ dependencies {
     // Switch out this to use Oracle, MySQL, or Sybase instead of PostgreSQL.
     // ## START CUSTOM DATABASE ##
     compile 'org.postgresql:postgresql:42.2.2.jre7'
-    compile 'org.opencadc:cadc-tap-server-pg:[1.0,)'
+    compile 'org.opencadc:cadc-tap-server-pg:[1.0.0,)'
     // ## END CUSTOM DATABASE ##
 
     testCompile 'junit:junit:4.+'

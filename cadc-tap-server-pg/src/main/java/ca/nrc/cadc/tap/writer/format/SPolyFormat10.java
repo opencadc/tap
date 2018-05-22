@@ -67,23 +67,36 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.witer.format;
+package ca.nrc.cadc.tap.writer.format;
 
+import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.dali.Polygon;
 import ca.nrc.cadc.dali.postgresql.PgSpoly;
-import ca.nrc.cadc.dali.util.PolygonFormat;
-import ca.nrc.cadc.tap.writer.format.AbstractResultSetFormat;
+import ca.nrc.cadc.stc.CoordPair;
+import ca.nrc.cadc.stc.Flavor;
+import ca.nrc.cadc.stc.Frame;
+import ca.nrc.cadc.stc.ReferencePosition;
+import ca.nrc.cadc.stc.STC;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
- * Formats a PGSphere spoly as a DALI-1.1 polygon.
+ * Extract and format a PGSphere spoly as an STC-S string (TAP-1.0 compatibility).
  */
-public class SPolyFormat extends AbstractResultSetFormat {
-    private final PolygonFormat fmt = new PolygonFormat();
-
+public class SPolyFormat10 extends AbstractResultSetFormat {
+    /**
+     * Takes a ResultSet and column index of the spoly
+     * and returns a STC-S Polygon String.
+     *
+     * @param resultSet   containing the spoint column.
+     * @param columnIndex index of the column in the ResultSet.
+     * @return STC Polygon
+     * @throws SQLException if there is an error accessing the ResultSet.
+     */
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
         throws SQLException {
@@ -91,21 +104,35 @@ public class SPolyFormat extends AbstractResultSetFormat {
         return getPolygon(s);
     }
 
+    /**
+     * Takes a String representation of the spoly
+     * and returns a STC-S Polygon String.
+     *
+     * @param object to format.
+     * @return STC-S Polygon String of the spoly.
+     * @throws IllegalArgumentException if the object is not a String, or if
+     *                                  the String cannot be parsed.
+     */
     @Override
     public String format(Object object) {
         if (object == null) {
             return "";
         }
-        return fmt.format((Polygon) object);
+        return STC.format((ca.nrc.cadc.stc.Polygon) object);
     }
 
-    Polygon getPolygon(String s) {
+    ca.nrc.cadc.stc.Polygon getPolygon(String s) {
         if (s == null) {
             return null;
         }
 
         PgSpoly spoly = new PgSpoly();
-        return spoly.getPolygon(s);
-    }
+        Polygon poly = spoly.getPolygon(s);
 
+        List<CoordPair> coordPairs = new ArrayList<>();
+        for (Point p : poly.getVertices()) {
+            coordPairs.add(new CoordPair(p.getLongitude(), p.getLatitude()));
+        }
+        return new ca.nrc.cadc.stc.Polygon(Frame.ICRS, ReferencePosition.UNKNOWNREFPOS, Flavor.SPHERICAL2, coordPairs);
+    }
 }
