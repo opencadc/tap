@@ -108,7 +108,7 @@ import org.apache.log4j.Logger;
  *
  * @author jburke
  */
-public abstract class BasicUploadManager implements UploadManager
+public class BasicUploadManager implements UploadManager
 {
     private static final Logger log = Logger.getLogger(BasicUploadManager.class);
     
@@ -119,12 +119,17 @@ public abstract class BasicUploadManager implements UploadManager
      * DataSource for the DB.
      */
     protected DataSource dataSource;
-    
+
+    /**
+     * Database Specific data type.
+     */
+    protected DatabaseDataType databaseDataType;
+
     /**
      * IVOA DateFormat
      */
     protected DateFormat dateFormat;
-    
+
     /**
      * Maximum number of rows allowed in the UPLOAD VOTable.
      */
@@ -159,15 +164,22 @@ public abstract class BasicUploadManager implements UploadManager
         this.dataSource = ds;
     }
 
+    /**
+     * Give database specific data type information.
+     *
+     * @param databaseDataType The DatabaseDataType implementation.
+     */
+    @Override
+    public void setDatabaseDataType(DatabaseDataType databaseDataType) {
+        this.databaseDataType = databaseDataType;
+    }
+
     @Override
     public void setJob(Job job)
     {
         this.job = job;
     }
-    
-    protected abstract DatabaseDataType getDatabaseDataType(Connection con)
-        throws SQLException;
-    
+
     /**
      * Find and process all UPLOAD requests.
      *
@@ -209,10 +221,6 @@ public abstract class BasicUploadManager implements UploadManager
 
             // acquire connection
             con = dataSource.getConnection();
-            
-            // DataType containing mapping of java.sql.Types
-            // to database data type names.
-            DatabaseDataType databaseDataType = getDatabaseDataType(con);
 
             con.setAutoCommit(false);
             txn = true;

@@ -70,6 +70,8 @@
 package ca.nrc.cadc.tap;
 
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import ca.nrc.cadc.tap.upload.datatype.BasicDataTypeMapper;
+import ca.nrc.cadc.tap.upload.datatype.DatabaseDataType;
 import ca.nrc.cadc.tap.writer.format.DefaultFormatFactory;
 import ca.nrc.cadc.tap.writer.format.FormatFactory;
 import ca.nrc.cadc.uws.Job;
@@ -77,10 +79,8 @@ import ca.nrc.cadc.uws.ParameterUtil;
 
 import java.net.URL;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
-import java.util.ServiceLoader;
 
 import org.apache.log4j.Logger;
 
@@ -226,41 +226,45 @@ public class PluginFactory {
     }
 
     public FormatFactory getFormatFactory() {
-        final FormatFactory formatFactory = loadFormatFactory();
-
-        formatFactory.setJob(job);
-
-        return formatFactory;
-    }
-
-    /**
-     * Pull the FormatFactory that is loaded, or the Default one if none found.
-     *
-     * @return FormatFactory instance.
-     */
-    FormatFactory loadFormatFactory() {
-        final ServiceLoader<FormatFactory> serviceLoader = ServiceLoader.load(FormatFactory.class);
-        return selectFormatFactory(serviceLoader);
-    }
-
-    /**
-     * Select the first alternate FormatFactory loaded, or default to a supplied one.
-     *
-     * @param formatFactories An Iterable of FormatFactory instances.
-     * @return FormatFactory instance.
-     */
-    final FormatFactory selectFormatFactory(final Iterable<FormatFactory> formatFactories) {
-        final Iterator<FormatFactory> iterator = formatFactories.iterator();
-        final FormatFactory formatFactory;
-
-        if (iterator.hasNext()) {
-            formatFactory = iterator.next();
+        FormatFactory ret;
+        String name = FormatFactory.class.getName();
+        String cname = config.getProperty(name);
+        if (cname == null) {
+            ret = new DefaultFormatFactory();
         } else {
-            formatFactory = new DefaultFormatFactory();
+            try {
+                Class c = Class.forName(cname);
+                ret = (FormatFactory) c.newInstance();
+            } catch (Throwable ex) {
+                throw new RuntimeException("config error: failed to create FormatFactory " + cname, ex);
+
+            }
         }
 
-        return formatFactory;
+        ret.setJob(job);
+
+        return ret;
     }
+
+    public DatabaseDataType getDatabaseDataType() {
+        final DatabaseDataType ret;
+        final String name = DatabaseDataType.class.getName();
+        final String cname = config.getProperty(name);
+        if (cname == null) {
+            ret = new BasicDataTypeMapper();
+        } else {
+            try {
+                Class c = Class.forName(cname);
+                ret = (DatabaseDataType) c.newInstance();
+            } catch (Throwable ex) {
+                throw new RuntimeException("config error: failed to create DatabaseDataType " + cname, ex);
+
+            }
+        }
+
+        return ret;
+    }
+
 
     public TapSchemaDAO getTapSchemaDAO() {
         final TapSchemaDAO ret;
