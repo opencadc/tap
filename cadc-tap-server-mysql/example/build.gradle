@@ -23,7 +23,7 @@ configurations {
 dependencies {
     compile 'mysql:mysql-connector-java:[8.0.11, )'
     compile 'org.opencadc:cadc-tap-server-mysql:[1.0.0, )'
-    compile 'org.opencadc:cadc-tap-server:[1.1.3,)'
+    compile 'org.opencadc:cadc-tap-server:[1.1.5,)'
     compile 'org.opencadc:cadc-adql:[1.1,)'
 
     testCompile 'junit:junit:4.+'
