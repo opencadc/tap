@@ -65,10 +65,9 @@
 *  $Revision: 5 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.tap.integration;
-
 
 import ca.nrc.cadc.conformance.uws2.AsyncUWSTest;
 import ca.nrc.cadc.conformance.uws2.JobResultWrapper;
@@ -85,47 +84,43 @@ import org.junit.Assert;
  *
  * @author pdowler
  */
-public class TapAsyncErrorTest extends AsyncUWSTest
-{
+public class TapAsyncErrorTest extends AsyncUWSTest {
+
     private static final Logger log = Logger.getLogger(TapAsyncErrorTest.class);
 
-    private static final long TIMEOUT = 60*1000L;
-    
-    public TapAsyncErrorTest(URI resourceID) 
-    { 
+    private static final long TIMEOUT = 60 * 1000L;
+
+    public TapAsyncErrorTest(URI resourceID) {
         super(resourceID, Standards.TAP_10, Standards.INTERFACE_UWS_ASYNC, TIMEOUT);
     }
-    
+
     @Override
-    protected void validateResponse(JobResultWrapper result)
-    {
+    protected void validateResponse(JobResultWrapper result) {
         Assert.assertEquals(ExecutionPhase.ERROR, result.job.getExecutionPhase());
-        
+
         ErrorSummary es = result.job.getErrorSummary();
         Assert.assertNotNull(es);
-        
-        
+
         URL errorURL = es.getDocumentURL();
-        
+
         // current BUG in the JobWriter/JobReader fails to transmit errorURL so we have to stop here
-        if (true) return;
-        
+        if (true) {
+            return;
+        }
+
         Assert.assertNotNull(errorURL);
         Assert.assertEquals("http", errorURL.getProtocol());
-        
-        try
-        {
+
+        try {
             log.info(result.name + ": error " + errorURL);
             VOTableDocument vot = VOTableHandler.getVOTable(errorURL);
-            
+
             String queryStatus = VOTableHandler.getQueryStatus(vot);
             Assert.assertNotNull("QUERY_STATUS", queryStatus);
             Assert.assertEquals("ERROR", queryStatus);
-            
+
             // TODO: validate content?
-        }
-        catch(Exception unexpected)
-        {
+        } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
         }
