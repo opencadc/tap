@@ -67,38 +67,17 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.writer.format;
+package ca.nrc.cadc.tap.expression;
 
-import ca.nrc.cadc.dali.util.Format;
-import ca.nrc.cadc.tap.TapSelectItem;
+import net.sf.jsqlparser.statement.select.SelectVisitor;
+import ca.nrc.cadc.tap.parser.BaseExpressionDeParser;
 
-public class OracleFormatFactory extends DefaultFormatFactory {
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
-    @Override
-    protected Format<Object> getCircleFormat(TapSelectItem columnDesc) {
-        return new OracleCircleFormat();
+public class OracleExpressionDeParser extends BaseExpressionDeParser {
+    public OracleExpressionDeParser(SelectVisitor selectVisitor, StringBuffer buffer) {
+        super(selectVisitor, buffer);
     }
 
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
-    @Override
-    protected Format<Object> getPointFormat(TapSelectItem columnDesc) {
-        return new OraclePointFormat();
-    }
-
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
-    @Override
-    protected Format<Object> getPolygonFormat(TapSelectItem columnDesc) {
-        return new OraclePolygonFormat();
-    }
-
-    @Override
-    protected Format<Object> getRegionFormat(TapSelectItem columnDesc) {
-        return new OracleRegionFormat();
+    public void visit(final KeywordExpression expression) {
+        buffer.append(expression.toString());
     }
 }

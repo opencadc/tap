@@ -67,38 +67,52 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.writer.format;
+package ca.nrc.cadc.tap.expression;
 
-import ca.nrc.cadc.dali.util.Format;
-import ca.nrc.cadc.tap.TapSelectItem;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.ExpressionVisitor;
 
-public class OracleFormatFactory extends DefaultFormatFactory {
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
+
+public class KeywordExpression implements Expression {
+
+    private final String keyword;
+
+
+    public KeywordExpression(final String keyword) {
+        this.keyword = keyword;
+    }
+
+
     @Override
-    protected Format<Object> getCircleFormat(TapSelectItem columnDesc) {
-        return new OracleCircleFormat();
+    public void accept(ExpressionVisitor expressionVisitor) {
+        if (expressionVisitor instanceof OracleExpressionDeParser) {
+            ((OracleExpressionDeParser) expressionVisitor).visit(this);
+        }
     }
 
     /**
-     * @param columnDesc        The TAP Select item from the query.
+     * Returns a string representation of the object. In general, the
+     * {@code toString} method returns a string that
+     * "textually represents" this object. The result should
+     * be a concise but informative representation that is easy for a
+     * person to read.
+     * It is recommended that all subclasses override this method.
+     * <p>
+     * The {@code toString} method for class {@code Object}
+     * returns a string consisting of the name of the class of which the
+     * object is an instance, the at-sign character `{@code @}', and
+     * the unsigned hexadecimal representation of the hash code of the
+     * object. In other words, this method returns a string equal to the
+     * value of:
+     * <blockquote>
+     * <pre>
+     * getClass().getName() + '@' + Integer.toHexString(hashCode())
+     * </pre></blockquote>
+     *
+     * @return a string representation of the object.
      */
     @Override
-    protected Format<Object> getPointFormat(TapSelectItem columnDesc) {
-        return new OraclePointFormat();
-    }
-
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
-    @Override
-    protected Format<Object> getPolygonFormat(TapSelectItem columnDesc) {
-        return new OraclePolygonFormat();
-    }
-
-    @Override
-    protected Format<Object> getRegionFormat(TapSelectItem columnDesc) {
-        return new OracleRegionFormat();
+    public String toString() {
+        return keyword;
     }
 }

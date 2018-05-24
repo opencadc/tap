@@ -67,38 +67,51 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.writer.format;
+package ca.nrc.cadc.tap.parser.converter;
 
-import ca.nrc.cadc.dali.util.Format;
-import ca.nrc.cadc.tap.TapSelectItem;
 
-public class OracleFormatFactory extends DefaultFormatFactory {
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
-    @Override
-    protected Format<Object> getCircleFormat(TapSelectItem columnDesc) {
-        return new OracleCircleFormat();
-    }
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
+import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
+import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.Top;
+import org.apache.log4j.Logger;
+import ca.nrc.cadc.tap.expression.KeywordExpression;
+import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
+import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
+import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
+import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
 
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
-    @Override
-    protected Format<Object> getPointFormat(TapSelectItem columnDesc) {
-        return new OraclePointFormat();
-    }
 
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
-    @Override
-    protected Format<Object> getPolygonFormat(TapSelectItem columnDesc) {
-        return new OraclePolygonFormat();
+public class OracleTopConverter extends SelectNavigator {
+    private static final Logger LOGGER = Logger.getLogger(OracleTopConverter.class);
+
+    public OracleTopConverter(final ExpressionNavigator en, final ReferenceNavigator rn, final FromItemNavigator fn) {
+        super(en, rn, fn);
     }
 
     @Override
-    protected Format<Object> getRegionFormat(TapSelectItem columnDesc) {
-        return new OracleRegionFormat();
+    public void visit(final PlainSelect plainSelect) {
+        enterPlainSelect(plainSelect);
+
+        final Top top = plainSelect.getTop();
+        if (top != null) {
+            final long rowCount = top.getRowCount();
+            LOGGER.debug("TOP: " + rowCount);
+
+            final MinorThanEquals rowNumClause = new MinorThanEquals();
+            rowNumClause.setLeftExpression(new KeywordExpression("ROWNUM"));
+            rowNumClause.setRightExpression(new LongValue(Long.toString(rowCount)));
+
+            final Expression whereClause = plainSelect.getWhere();
+            final Expression andExpression = whereClause == null ? rowNumClause : new AndExpression(whereClause,
+                                                                                                    rowNumClause);
+
+            plainSelect.setWhere(andExpression);
+            plainSelect.setTop(null);
+        }
+
+        leavePlainSelect();
     }
 }

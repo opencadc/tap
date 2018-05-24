@@ -1,4 +1,4 @@
-FROM opencadc/tap-obscore:alpine
+FROM opencadc/tomcat:alpine
 
 RUN rm -rf webapps/*
 

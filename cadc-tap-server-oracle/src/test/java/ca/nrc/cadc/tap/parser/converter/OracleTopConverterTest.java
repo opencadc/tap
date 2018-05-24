@@ -67,38 +67,68 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.writer.format;
+package ca.nrc.cadc.tap.parser.converter;
 
-import ca.nrc.cadc.dali.util.Format;
-import ca.nrc.cadc.tap.TapSelectItem;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.StringValue;
+import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
+import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.schema.Table;
+import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.SelectExpressionItem;
+import net.sf.jsqlparser.statement.select.Top;
 
-public class OracleFormatFactory extends DefaultFormatFactory {
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
-    @Override
-    protected Format<Object> getCircleFormat(TapSelectItem columnDesc) {
-        return new OracleCircleFormat();
-    }
+import ca.nrc.cadc.tap.parser.function.Concatenate;
+import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
+import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
+import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
-    @Override
-    protected Format<Object> getPointFormat(TapSelectItem columnDesc) {
-        return new OraclePointFormat();
-    }
+import java.util.ArrayList;
+import java.util.List;
 
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
-    @Override
-    protected Format<Object> getPolygonFormat(TapSelectItem columnDesc) {
-        return new OraclePolygonFormat();
-    }
+import org.junit.Test;
+import static org.junit.Assert.*;
 
-    @Override
-    protected Format<Object> getRegionFormat(TapSelectItem columnDesc) {
-        return new OracleRegionFormat();
+
+public class OracleTopConverterTest {
+    @Test
+    public void visitWithQuery() {
+        final OracleTopConverter testSubject =
+            new OracleTopConverter(new ExpressionNavigator(), new ReferenceNavigator(), new FromItemNavigator());
+
+        final Table table = new Table("schema", "table");
+        final Column columnA = new Column(table, "A");
+        final Column columnB = new Column(table, "B");
+        final Column columnC = new Column(table, "C");
+
+        final List<Expression> expressions = new ArrayList<>();
+        expressions.add(columnA);
+        expressions.add(columnB);
+        expressions.add(columnC);
+
+        final Concatenate concatenate = new Concatenate("||", expressions, "/");
+        final SelectExpressionItem expressionItem = new SelectExpressionItem();
+        expressionItem.setExpression(concatenate);
+
+        final List<SelectExpressionItem> selectItems = new ArrayList<>();
+        selectItems.add(expressionItem);
+
+        final PlainSelect plainSelect = new PlainSelect();
+        plainSelect.setSelectItems(selectItems);
+
+        final EqualsTo equalsTo = new EqualsTo();
+        equalsTo.setLeftExpression(columnA);
+        equalsTo.setRightExpression(new StringValue("\"VALUE\""));
+
+        plainSelect.setWhere(equalsTo);
+
+        final Top top = new Top();
+        top.setRowCount(88);
+        plainSelect.setTop(top);
+
+        testSubject.visit(plainSelect);
+
+        assertEquals("Wrong where clause.", "schema.table.A = 'VALUE' AND ROWNUM <= 88",
+                     plainSelect.getWhere().toString());
     }
 }

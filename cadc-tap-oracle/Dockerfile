@@ -6,6 +6,8 @@ FROM oracle/database:11.2.0.2-xe
 
 MAINTAINER djenkins.cadc@gmail.com
 
+ADD sql/* /u01/app/oracle/scripts/setup/
+
 COPY runOracle.sh /u01/app/oracle/
 COPY startOracle.sh /u01/app/oracle/
 

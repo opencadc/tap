@@ -35,6 +35,6 @@ before_script:
 
 script: 
   - cd cadc-tap-server; gradle --stacktrace assemble javadoc install || break -1; cd ../
-  - for db in mysql pg; do cd cadc-tap-$db && docker build -t opencadc/tap-$db:SNAPSHOT .; cd ../cadc-tap-server-$db; gradle --info clean install && cd example && gradle --info clean build && cp build/libs/*.war docker/ && cd docker && docker-compose up -d; ./waitForContainersReady.sh; docker-compose ps; curl -sSL http://localhost:8080/tap-example/availability | grep "service is accepting queries"; docker-compose stop && docker-compose rm -f; cd ../../../; done
-  - cd cadc-tap-server-oracle; gradle --info clean install && cd example && gradle --info clean build && cp build/libs/*.war docker/ && cd docker && docker-compose up -d; ./waitForContainersReady.sh; docker-compose ps; curl -sSL http://localhost:8080/tap-example/availability | grep "service is accepting queries"; docker-compose stop && docker-compose rm -f; cd ../../../
+  - for db in mysql pg; do cd cadc-tap-server-$db; gradle --info clean install; cd ../; done
+  - cd cadc-tap-server-oracle; gradle --info clean install && cd ../
   - for mod in cadc-tap-schema cadc-jsqlparser-compat cadc-adql cadc-test-tap example-tap; do cd $mod; gradle --stacktrace assemble javadoc install || break -1; cd ..; done

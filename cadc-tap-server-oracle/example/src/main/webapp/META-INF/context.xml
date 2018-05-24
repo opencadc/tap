@@ -15,7 +15,7 @@
               removeAbandonedTimeout="600"
               logAbandoned="true"
               testOnBorrow="true"
-              validationQuery="select 123"
+              validationQuery="SELECT 1 FROM DUAL"
     />
     
 </Context>

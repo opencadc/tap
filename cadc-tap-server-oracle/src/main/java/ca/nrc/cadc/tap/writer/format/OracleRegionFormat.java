@@ -69,36 +69,31 @@
 
 package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.dali.util.Format;
-import ca.nrc.cadc.tap.TapSelectItem;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
-public class OracleFormatFactory extends DefaultFormatFactory {
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
-    @Override
-    protected Format<Object> getCircleFormat(TapSelectItem columnDesc) {
-        return new OracleCircleFormat();
-    }
 
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
+public class OracleRegionFormat extends AbstractResultSetFormat {
     @Override
-    protected Format<Object> getPointFormat(TapSelectItem columnDesc) {
-        return new OraclePointFormat();
-    }
-
-    /**
-     * @param columnDesc        The TAP Select item from the query.
-     */
-    @Override
-    protected Format<Object> getPolygonFormat(TapSelectItem columnDesc) {
-        return new OraclePolygonFormat();
+    public Object extract(ResultSet resultSet, int i) throws SQLException {
+        final String value = resultSet.getString(i);
+        return format(value);
     }
 
     @Override
-    protected Format<Object> getRegionFormat(TapSelectItem columnDesc) {
-        return new OracleRegionFormat();
+    public String format(final Object object) {
+        if (object == null) {
+            return null;
+        }
+        else if (!(object instanceof String)) {
+            throw new IllegalArgumentException(
+                "Expected String, was " + object.getClass().getName());
+        }
+
+        final String s = (String) object;
+        return s.replace("Union", "").replace("ICRS", "").replace("Not", "")
+                .replace("(", "").replace(")", "")
+                .replace("Polygon", "Polygon ICRS")
+                .trim();
     }
 }

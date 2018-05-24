@@ -16,6 +16,7 @@ version = '1.0.0'
 
 dependencies {
     compile 'org.opencadc:cadc-tap-server:[1.1.5, )'
+    compile 'org.opencadc:cadc-adql:[1.1, )'
 
     testCompile 'junit:junit:4.+'
     testCompile 'org.opencadc:cadc-util:1.+'

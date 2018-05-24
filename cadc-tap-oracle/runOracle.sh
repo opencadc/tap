@@ -16,6 +16,9 @@ function runUserScripts {
       
     echo "";
     echo "Executing user defined scripts"
+    su -p oracle -c "sqlplus / as sysdba <<EOF
+    startup;
+EOF"
   
     for f in $SCRIPTS_ROOT/*; do
         case "$f" in
@@ -26,6 +29,10 @@ function runUserScripts {
         echo "";
     done
     
+    su -p oracle -c "sqlplus / as sysdba <<EOF
+    shutdown immediate;
+EOF"
+
     echo "DONE: Executing user defined scripts"
     echo "";
   
@@ -179,196 +186,6 @@ EXTPROC_CONNECTION_DATA =
     GRANT DEBUG CONNECT SESSION TO TAP_SCHEMA;
     alter user TAP_SCHEMA quota unlimited on TAP_TS;
 
-    -- Create TAP SCHEMA
-    --CREATE SCHEMA IF NOT EXISTS TAP_SCHEMA;
-
-    -- minimal TAP_SCHEMA creation
-    -- assumes that the TAP_SCHEMA schema exists
-    -- sizes for fields are rather arbitrary and generous
-    CREATE TABLE TAP_SCHEMA.schemas (
-      schema_name varchar(64) NOT NULL,
-      utype varchar(512),
-      description varchar(512),
-      PRIMARY KEY (schema_name)
-    );
-
-    CREATE TABLE TAP_SCHEMA.tables (
-      table_name varchar(128) PRIMARY KEY,
-      schema_name varchar(64) NOT NULL CONSTRAINT tables_schema_fk REFERENCES TAP_SCHEMA.schemas (schema_name),
-      table_type varchar(8) NOT NULL,
-      utype varchar(512),
-      description varchar(512),
-      table_index number(9)
-    );
-
-    CREATE TABLE TAP_SCHEMA.columns (
-      table_name varchar(128) NOT NULL CONSTRAINT columns_tablename_fk REFERENCES TAP_SCHEMA.tables (table_name),
-      column_name varchar(64) NOT NULL,
-      utype varchar(512),
-      ucd varchar(64),
-      unit varchar(64),
-      description varchar(512),
-      datatype varchar(64) NOT NULL,
-      arraysize number(9),
-      principal number(9) NOT NULL,
-      indexed number(9) NOT NULL,
-      std number(9) NOT NULL,
-      column_index number(9),
-      id varchar(32),
-      CONSTRAINT columns_pk PRIMARY KEY (table_name, column_name)
-    );
-
-    CREATE TABLE TAP_SCHEMA.keys (
-      key_id varchar(64) NOT NULL PRIMARY KEY,
-      from_table varchar(128) NOT NULL CONSTRAINT keys_from_table_fk REFERENCES TAP_SCHEMA.tables (table_name),
-      target_table varchar(128) NOT NULL CONSTRAINT keys_target_table_fk REFERENCES TAP_SCHEMA.tables (table_name),
-      utype varchar(512),
-      description varchar(512)
-    );
-
-    CREATE TABLE TAP_SCHEMA.key_columns (
-      key_id varchar(64) NOT NULL CONSTRAINT key_columns_keyid_fk REFERENCES TAP_SCHEMA.keys (key_id),
-      from_column varchar(64) NOT NULL,
-      target_column varchar(64) NOT NULL
-    );
-
-    --GRANT usage ON SCHEMA TAP_SCHEMA TO TAP_SCHEMA;
-    --GRANT SELECT ON ALL tables IN SCHEMA TAP_SCHEMA TO TAP_SCHEMA;
-
-    -- Insert TAP data
-
-    -- content of the TAP_SCHEMA tables that describes the TAP_SCHEMA itself --
-
-    -- delete key columns for keys from tables in the TAP_SCHEMA schema
-    delete from TAP_SCHEMA.key_columns where key_id in (select key_id from TAP_SCHEMA.keys where from_table in
-    (select table_name from TAP_SCHEMA.tables where upper(schema_name) = 'TAP_SCHEMA') or target_table in (select
-    table_name from TAP_SCHEMA.tables where upper(schema_name) = 'TAP_SCHEMA'));
-
-    -- delete keys from tables in the TAP_SCHEMA schema
-    delete from TAP_SCHEMA.keys where
-    from_table in (select table_name from TAP_SCHEMA.tables where upper(schema_name) = 'TAP_SCHEMA')
-    or
-    target_table in (select table_name from TAP_SCHEMA.tables where upper(schema_name) = 'TAP_SCHEMA');
-
-    -- delete columns from tables in the TAP_SCHEMA schema
-    delete from TAP_SCHEMA.columns where table_name in
-    (select table_name from TAP_SCHEMA.tables where upper(schema_name) = 'TAP_SCHEMA');
-
-    -- delete tables in the caom schema
-    delete from TAP_SCHEMA.tables where upper(schema_name) = 'TAP_SCHEMA';
-
-    -- delete the caom schema
-    delete from TAP_SCHEMA.schemas where upper(schema_name) = 'TAP_SCHEMA';
-
-    insert into TAP_SCHEMA.schemas (schema_name,description,utype) values
-    ( 'TAP_SCHEMA', 'a special schema to describe a TAP tableset', NULL );
-
-    insert all
-    into TAP_SCHEMA.tables (schema_name,table_name,table_type,description,utype,table_index) values
-    ( 'TAP_SCHEMA', 'TAP_SCHEMA.schemas', 'table', 'description of schemas in this tableset', NULL, 1)
-    into TAP_SCHEMA.tables (schema_name,table_name,table_type,description,utype,table_index) values
-    ( 'TAP_SCHEMA', 'TAP_SCHEMA.tables', 'table', 'description of tables in this tableset', NULL, 2)
-    into TAP_SCHEMA.tables (schema_name,table_name,table_type,description,utype,table_index) values
-    ( 'TAP_SCHEMA', 'TAP_SCHEMA.columns', 'table', 'description of columns in this tableset', NULL, 3)
-    into TAP_SCHEMA.tables (schema_name,table_name,table_type,description,utype,table_index) values
-    ( 'TAP_SCHEMA', 'TAP_SCHEMA.keys', 'table', 'description of foreign keys in this tableset', NULL, 4)
-    into TAP_SCHEMA.tables (schema_name,table_name,table_type,description,utype,table_index) values
-    ( 'TAP_SCHEMA', 'TAP_SCHEMA.key_columns', 'table', 'description of foreign key columns in this tableset', NULL, 5)
-    select 1 from dual;
-
-    insert all
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.schemas', 'schema_name', 'schema name for reference to TAP_SCHEMA.schemas', NULL, NULL, NULL, 'adql:VARCHAR', 64, 1,0,0,1 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.schemas', 'utype', 'lists the utypes of schemas in the tableset',           NULL, NULL, NULL, 'adql:VARCHAR', 512, 1,0,0,2 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.schemas', 'description', 'describes schemas in the tableset',               NULL, NULL, NULL, 'adql:VARCHAR', 512, 1,0,0,3 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.tables', 'schema_name', 'the schema this table belongs to',                 NULL, NULL, NULL, 'adql:VARCHAR', 512, 1,0,0,1 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.tables', 'table_name', 'the fully qualified table name',                    NULL, NULL, NULL, 'adql:VARCHAR', 64, 1,0,0,2 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.tables', 'table_type', 'one of: table view',                                NULL, NULL, NULL, 'adql:VARCHAR', 8, 1,0,0,3 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.tables', 'utype', 'lists the utype of tables in the tableset',              NULL, NULL, NULL, 'adql:VARCHAR', 512, 1,0,0,4 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.tables', 'description', 'describes tables in the tableset',                 NULL, NULL, NULL, 'adql:VARCHAR', 512, 1,0,0,5 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.tables', 'table_index', 'recommended sort order when listing tables',       NULL, NULL, NULL, 'adql:INTEGER', NULL, 1,0,0,6 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.columns', 'table_name', 'the table this column belongs to',                 NULL, NULL, NULL, 'adql:VARCHAR', 64, 1,0,0,1 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.columns', 'column_name', 'the column name',                                 NULL, NULL, NULL, 'adql:VARCHAR', 64, 1,0,0,2 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.columns', 'utype', 'lists the utypes of columns in the tableset',           NULL, NULL, NULL, 'adql:VARCHAR', 512, 1,0,0,3 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.columns', 'ucd', 'lists the UCDs of columns in the tableset',               NULL, NULL, NULL, 'adql:VARCHAR', 64, 1,0,0,4 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.columns', 'unit', 'lists the unit used for column values in the tableset',  NULL, NULL, NULL, 'adql:VARCHAR', 64, 1,0,0,5 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.columns', 'description', 'describes the columns in the tableset',           NULL, NULL, NULL, 'adql:VARCHAR', 512, 1,0,0,6 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.columns', 'datatype', 'lists the ADQL datatype of columns in the tableset', NULL, NULL, NULL, 'adql:VARCHAR', 64, 1,0,0,7 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.columns', 'arraysize', 'lists the size of variable-length columns in the tableset', NULL, NULL, NULL, 'adql:INTEGER', NULL, 1,0,0,8 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.columns', '"size"', 'deprecated: use arraysize', NULL, NULL, NULL, 'adql:INTEGER', NULL, 1,0,0,9 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.columns', 'principal', 'a principal column; 1 means 1, 0 means 0',      NULL, NULL, NULL, 'adql:INTEGER', NULL, 1,0,0,10 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.columns', 'indexed', 'an indexed column; 1 means 1, 0 means 0',         NULL, NULL, NULL, 'adql:INTEGER', NULL, 1,0,0,11 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.columns', 'std', 'a standard column; 1 means 1, 0 means 0',             NULL, NULL, NULL, 'adql:INTEGER', NULL, 1,0,0,12 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.columns', 'column_index', 'recommended sort order when listing columns of a table',  NULL, NULL, NULL, 'adql:INTEGER', NULL, 1,0,0,13 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.keys', 'key_id', 'unique key to join to TAP_SCHEMA.key_columns',            NULL, NULL, NULL, 'adql:VARCHAR', 64, 1,0,0,1 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.keys', 'from_table', 'the table with the foreign key',                      NULL, NULL, NULL, 'adql:VARCHAR', 64, 1,0,0,2 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.keys', 'target_table', 'the table with the primary key',                    NULL, NULL, NULL, 'adql:VARCHAR', 64, 1,0,0,3 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.keys', 'utype', 'lists the utype of keys in the tableset',              NULL, NULL, NULL, 'adql:VARCHAR', 512, 1,0,0,4 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.keys', 'description', 'describes keys in the tableset',                 NULL, NULL, NULL, 'adql:VARCHAR', 512, 1,0,0,5 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.key_columns', 'key_id', 'key to join to TAP_SCHEMA.keys',                   NULL, NULL, NULL, 'adql:VARCHAR', 64, 1,0,0,1 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.key_columns', 'from_column', 'column in the from_table',                    NULL, NULL, NULL, 'adql:VARCHAR', 64, 1,0,0,2 )
-    into TAP_SCHEMA.columns (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,principal,indexed,std, column_index) values
-    ( 'TAP_SCHEMA.key_columns', 'target_column', 'column in the target_table',                NULL, NULL, NULL, 'adql:VARCHAR', 64, 1,0,0,3 )
-    select 1 from dual;
-
-    insert all
-    into TAP_SCHEMA.keys (key_id, from_table,target_table) values
-    ( 'k1', 'TAP_SCHEMA.tables', 'TAP_SCHEMA.schemas' )
-    into TAP_SCHEMA.keys (key_id, from_table,target_table) values
-    ( 'k2', 'TAP_SCHEMA.columns', 'TAP_SCHEMA.tables' )
-    into TAP_SCHEMA.keys (key_id, from_table,target_table) values
-    ( 'k3', 'TAP_SCHEMA.keys', 'TAP_SCHEMA.tables' )
-    into TAP_SCHEMA.keys (key_id, from_table,target_table) values
-    ( 'k4', 'TAP_SCHEMA.keys', 'TAP_SCHEMA.tables' )
-    into TAP_SCHEMA.keys (key_id, from_table,target_table) values
-    ( 'k5', 'TAP_SCHEMA.key_columns', 'TAP_SCHEMA.keys' )
-    select 1 from dual;
-
-    insert all
-    into TAP_SCHEMA.key_columns (key_id,from_column,target_column) values
-    ( 'k1', 'schema_name', 'schema_name' )
-    into TAP_SCHEMA.key_columns (key_id,from_column,target_column) values
-    ( 'k2', 'table_name', 'table_name' )
-    into TAP_SCHEMA.key_columns (key_id,from_column,target_column) values
-    ( 'k3', 'from_table', 'table_name' )
-    into TAP_SCHEMA.key_columns (key_id,from_column,target_column) values
-    ( 'k4', 'target_table', 'table_name' )
-    into TAP_SCHEMA.key_columns (key_id,from_column,target_column) values
-    ( 'k5', 'key_id', 'key_id' )
-    select 1 from dual;
-
-    -- backwards compatible: fill size column with values from arraysize set above
-    -- update TAP_SCHEMA.columns SET "size" = arraysize WHERE table_name LIKE 'TAP_SCHEMA.%';
-
-
     -- Shrink Temp / SYSTEM Tablespace
     alter database tempfile '/u01/app/oracle/oradata/XE/temp.dbf' resize 10M;
     alter database datafile '/u01/app/oracle/oradata/XE/system.dbf' resize 353M;
@@ -380,6 +197,8 @@ EXTPROC_CONNECTION_DATA =
     -- Remove XDB
     shutdown immediate
     startup upgrade;
+    @/u01/app/oracle/product/11.2.0/xe/rdbms/admin/catnsnmp.sql
+    @/u01/app/oracle/product/11.2.0/xe/rdbms/admin/catsnmp.sql
     @/u01/app/oracle/product/11.2.0/xe/rdbms/admin/catnoqm.sql
     start /u01/app/oracle/product/11.2.0/xe/rdbms/admin/catxdbdv.sql
     start /u01/app/oracle/product/11.2.0/xe/rdbms/admin/dbmsmeta.sql
@@ -452,8 +271,8 @@ if [ "$?" == "0" ]; then
    # Create database
    createDB;
    
-   # Execute custom provided setup scripts
-   runUserScripts $ORACLE_BASE/scripts/setup
+   # Execute custom provided setup scripts   
+   runUserScripts $ORACLE_BASE/scripts/setup   
 fi;
 
 # Check whether database is up and running
