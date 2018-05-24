@@ -34,7 +34,7 @@ before_script:
   - gradle -v  
 
 script: 
-  - cd cadc-tap-server; gradle --stacktrace assemble javadoc install || break -1; cd ../
-  - for db in mysql pg; do cd cadc-tap-server-$db; gradle --info clean install; cd ../; done
-  - cd cadc-tap-server-oracle; gradle --info clean install && cd ../
+  - cd cadc-tap-server; gradle --stacktrace clean assemble javadoc test install || break -1; cd ../
+  - for db in mysql pg; do cd cadc-tap-server-$db; gradle --stacktrace clean assemble javadoc test install; cd ../; done
+  - cd cadc-tap-server-oracle; gradle --stacktrace assemble javadoc test install && cd ../
   - for mod in cadc-tap-schema cadc-jsqlparser-compat cadc-adql cadc-test-tap example-tap; do cd $mod; gradle --stacktrace assemble javadoc install || break -1; cd ..; done
