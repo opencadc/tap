@@ -105,5 +105,6 @@ insert into tap_schema.key_columns11 (key_id,from_column,target_column) values
 update tap_schema.columns11 SET "size" = replace(arraysize::varchar,'*','')::int 
 WHERE table_name LIKE 'tap_schema.%'
   AND arraysize IS NOT NULL
-  AND arraysize NOT LIKE '%x%';
+  AND arraysize NOT LIKE '%x%'
+  AND arraysize != '*';
 
