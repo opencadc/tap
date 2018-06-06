@@ -36,7 +36,4 @@ dependencies {
     testCompile 'org.opencadc:cadc-util:1.+'
     testCompile 'xerces:xercesImpl:2.+'
     testCompile 'org.jdom:jaxen-jdom:1.+'
-
-    // Test with PostgreSQL.
-    testRuntime 'org.postgresql:postgresql:42.2.2'
 }
