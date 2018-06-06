@@ -163,6 +163,7 @@ public class DefaultTableWriter implements TableWriter
     private RssTableWriter rssTableWriter;
     
     private FormatFactory formatFactory;
+    private boolean errorWriter = false;
     
     private long rowcount = 0l;
 
@@ -170,8 +171,14 @@ public class DefaultTableWriter implements TableWriter
     // of writing, this reference will not be needed
     List<TapSelectItem> selectList;
 
-    public DefaultTableWriter() { }
+    public DefaultTableWriter() { 
+        this(false); 
+    }
 
+    public DefaultTableWriter(boolean errorWriter) {
+        this.errorWriter = errorWriter;
+    }
+    
     @Override
     public void setJob(Job job)
     {
@@ -230,9 +237,13 @@ public class DefaultTableWriter implements TableWriter
             format = VOTABLE;
         
         String type = knownFormats.get(format.toLowerCase());
-        if (type == null)
+        if (type == null && errorWriter) {
+            type = VOTABLE;
+            format = VOTABLE;
+        } else if (type == null) {
             throw new UnsupportedOperationException("unknown format: " + format);
-
+        }
+        
         if (type.equals(VOTABLE) && format.equals(VOTABLE))
             format = APPLICATION_VOTABLE_XML;
         

@@ -224,7 +224,29 @@ public class PluginFactory {
         ret.setFormatFactory(getFormatFactory());
         return ret;
     }
-
+    
+    // this makes DefaultTableWriter lenient about requested format
+    // so that writing error document never fails
+    public TableWriter getErrorWriter() {
+        final TableWriter ret;
+        String name = TableWriter.class.getName();
+        String cname = config.getProperty(name);
+        if (cname == null) {
+            DefaultTableWriter dtw = new DefaultTableWriter(true);
+            ret = dtw;
+        } else {
+            try {
+                Class c = Class.forName(cname);
+                ret = (TableWriter) c.newInstance();
+            } catch (Throwable ex) {
+                throw new RuntimeException("config error: failed to create TableWriter " + cname, ex);
+            }
+        }
+        ret.setJob(job);
+        ret.setFormatFactory(getFormatFactory());
+        return ret;
+    }
+    
     public FormatFactory getFormatFactory() {
         FormatFactory ret;
         String name = FormatFactory.class.getName();
