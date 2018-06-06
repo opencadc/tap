@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2018.                            (c) 2018.
+*  (c) 2009.                            (c) 2009.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,61 +62,76 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
+*  $Revision: 4 $
 *
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap;
+package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.upload.datatype.DatabaseDataType;
-import ca.nrc.cadc.uws.Job;
-import ca.nrc.cadc.uws.Parameter;
-import ca.nrc.cadc.uws.ParameterUtil;
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.Polygon;
+import static org.junit.Assert.assertEquals;
 
-import java.util.HashMap;
+
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.Test;
+
+import ca.nrc.cadc.util.Log4jInit;
 import java.util.List;
-import java.util.Map;
-import javax.sql.DataSource;
 
 /**
- * Default implementation of the UploadManager implementation. This does not support upload
- * and throws an UnsupportedOperationException if it finds UPLOAD params in the job.
  *
- * @author pdowler
+ * @author jburke
  */
-public class DefaultUploadManager implements UploadManager {
-    public Map<String, TableDesc> upload(List<Parameter> paramList, String jobID) {
-        List<String> uploads = ParameterUtil.findParameterValues(UPLOAD, paramList);
-        if (uploads == null || uploads.isEmpty()) {
-            return new HashMap<>();
-        }
-        throw new UnsupportedOperationException("UPLOAD parameter not supported by this service");
+public class SPolyFormatTest
+{
+    private static final Logger log = Logger.getLogger(SPointFormatTest.class);
+    static
+    {
+        Log4jInit.setLevel("ca", Level.INFO);
     }
+    private static final String SPOLYGON = " {(0.0349065850398866, 0.0349065850398866),(0.0349065850398866, 0.0698131700797732),(0.0523598775598299, 0.0523598775598299)}";
+    private static final String DALI_POLYGON = "2.0 2.0 2.0 4.0 3.0 3.0";
+    
+    public SPolyFormatTest() { }
 
-    @Override
-    public void setDataSource(DataSource ds) {
-
+    /**
+     * Test of format method, of class SPolyFormatter.
+     */
+    @Test
+    public void testFormat()
+    {
+        log.debug("testFormat");
+        Polygon poly = new Polygon();
+        poly.getVertices().add(new Point(2.0, 2.0));
+        poly.getVertices().add(new Point(2.0, 4.0));
+        poly.getVertices().add(new Point(3.0, 3.0));
+        SPolyFormat fmt = new SPolyFormat();
+        String expResult = DALI_POLYGON;
+        String result = fmt.format(poly);
+        assertEquals(expResult.toUpperCase(), result.toUpperCase());
+        log.info("testFormat passed");
     }
 
     /**
-     * Give database specific data type information.
-     *
-     * @param databaseDataType The DatabaseDataType implementation.
+     * Test of getPolygon method, of class SPolyFormatter.
      */
-    @Override
-    public void setDatabaseDataType(DatabaseDataType databaseDataType) {
+    @Test
+    public void testGetPosition()
+    {
+        log.debug("testGetPolygon");
 
+        SPolyFormat fmt = new SPolyFormat();
+        Polygon polygon = fmt.getPolygon(SPOLYGON);
+        List<Point> coordPairs = polygon.getVertices();
+        assertEquals("", 2.0, coordPairs.get(0).getLongitude(), 0.01);
+        assertEquals("", 2.0, coordPairs.get(0).getLatitude(), 0.01);
+        assertEquals("", 2.0, coordPairs.get(1).getLongitude(), 0.01);
+        assertEquals("", 4.0, coordPairs.get(1).getLatitude(), 0.01);
+        assertEquals("", 3.0, coordPairs.get(2).getLongitude(), 0.01);
+        assertEquals("", 3.0, coordPairs.get(2).getLatitude(), 0.01);
     }
 
-    @Override
-    public void setJob(Job job) {
-
-    }
-
-    @Override
-    public String getUploadSchema() {
-        return "TAP_UPLOAD";
-    }
 }

@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2018.                            (c) 2018.
+*  (c) 2009.                            (c) 2009.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,61 +62,34 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
+*  $Revision: 4 $
 *
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap;
+package ca.nrc.cadc.tap.upload.datatype;
 
-import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.upload.datatype.DatabaseDataType;
-import ca.nrc.cadc.uws.Job;
-import ca.nrc.cadc.uws.Parameter;
-import ca.nrc.cadc.uws.ParameterUtil;
+import ca.nrc.cadc.tap.schema.TapDataType;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import javax.sql.DataSource;
+import org.apache.log4j.Logger;
 
 /**
- * Default implementation of the UploadManager implementation. This does not support upload
- * and throws an UnsupportedOperationException if it finds UPLOAD params in the job.
  *
- * @author pdowler
+ * @author jburke
  */
-public class DefaultUploadManager implements UploadManager {
-    public Map<String, TableDesc> upload(List<Parameter> paramList, String jobID) {
-        List<String> uploads = ParameterUtil.findParameterValues(UPLOAD, paramList);
-        if (uploads == null || uploads.isEmpty()) {
-            return new HashMap<>();
-        }
-        throw new UnsupportedOperationException("UPLOAD parameter not supported by this service");
-    }
-
-    @Override
-    public void setDataSource(DataSource ds) {
-
-    }
-
-    /**
-     * Give database specific data type information.
-     *
-     * @param databaseDataType The DatabaseDataType implementation.
-     */
-    @Override
-    public void setDatabaseDataType(DatabaseDataType databaseDataType) {
-
-    }
-
-    @Override
-    public void setJob(Job job) {
-
-    }
-
-    @Override
-    public String getUploadSchema() {
-        return "TAP_UPLOAD";
+public class PostgreSQLDataType extends BasicDataTypeMapper
+{
+    private static Logger log = Logger.getLogger(PostgreSQLDataType.class);
+    
+    public PostgreSQLDataType() 
+    {
+        // HACK: include pg_sphere types so we don't have to subclass
+        dataTypes.put(TapDataType.POINT, new TypePair("spoint", null));
+        dataTypes.put(TapDataType.CIRCLE, new TypePair("scircle", null));
+        dataTypes.put(TapDataType.POLYGON, new TypePair("spoly", null));
+        dataTypes.put(TapDataType.INTERVAL, new TypePair("polygon", null));
+        
+        dataTypes.put(new TapDataType("char", "*", "adql:POINT"), new TypePair("spoint", null));
+        dataTypes.put(new TapDataType("char", "*", "adql:REGION"), new TypePair("spoly", null));
     }
 }

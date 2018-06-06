@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2018.                            (c) 2018.
+*  (c) 2009.                            (c) 2009.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,61 +62,61 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
+*  $Revision: 4 $
 *
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap;
+package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.upload.datatype.DatabaseDataType;
-import ca.nrc.cadc.uws.Job;
-import ca.nrc.cadc.uws.Parameter;
-import ca.nrc.cadc.uws.ParameterUtil;
+import ca.nrc.cadc.dali.Point;
+import static org.junit.Assert.assertEquals;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import javax.sql.DataSource;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.Test;
+
+import ca.nrc.cadc.util.Log4jInit;
 
 /**
- * Default implementation of the UploadManager implementation. This does not support upload
- * and throws an UnsupportedOperationException if it finds UPLOAD params in the job.
  *
- * @author pdowler
+ * @author jburke
  */
-public class DefaultUploadManager implements UploadManager {
-    public Map<String, TableDesc> upload(List<Parameter> paramList, String jobID) {
-        List<String> uploads = ParameterUtil.findParameterValues(UPLOAD, paramList);
-        if (uploads == null || uploads.isEmpty()) {
-            return new HashMap<>();
-        }
-        throw new UnsupportedOperationException("UPLOAD parameter not supported by this service");
+public class SPointFormatTest
+{
+    private static final Logger log = Logger.getLogger(SPointFormatTest.class);
+    static
+    {
+        Log4jInit.setLevel("ca", Level.INFO);
     }
+    private static final String SPOINT = "(0.174532925199433 , 0.174532925199433)";
+    private static final String DALI_POSITION = "10.0 10.0";
+    private static final Point point = new Point(10.0, 10.0);
 
-    @Override
-    public void setDataSource(DataSource ds) {
+    public SPointFormatTest() { }
 
+    /**
+     * Test of format method, of class SPointFormatter.
+     */
+    @Test
+    public void testFormat()
+    {
+        SPointFormat format = new SPointFormat();
+        String expResult = DALI_POSITION;
+        String result = format.format(point);
+        assertEquals(expResult.toUpperCase(), result.toUpperCase());
     }
 
     /**
-     * Give database specific data type information.
-     *
-     * @param databaseDataType The DatabaseDataType implementation.
+     * Test of getPosition method, of class SPointFormatter.
      */
-    @Override
-    public void setDatabaseDataType(DatabaseDataType databaseDataType) {
-
+    @Test
+    public void testGetPosition()
+    {
+        SPointFormat format = new SPointFormat();
+        Point position = format.getPoint(SPOINT);
+        assertEquals(10.0, position.getLongitude(), 0.0001);
+        assertEquals(10.0, position.getLatitude(), 0.0001);
     }
 
-    @Override
-    public void setJob(Job job) {
-
-    }
-
-    @Override
-    public String getUploadSchema() {
-        return "TAP_UPLOAD";
-    }
 }
