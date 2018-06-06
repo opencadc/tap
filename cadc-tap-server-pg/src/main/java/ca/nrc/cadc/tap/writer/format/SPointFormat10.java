@@ -69,6 +69,8 @@
 
 package ca.nrc.cadc.tap.writer.format;
 
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.postgresql.PgSpoint;
 import ca.nrc.cadc.dali.util.PointFormat;
 import ca.nrc.cadc.stc.Frame;
 import ca.nrc.cadc.stc.Position;
@@ -101,36 +103,17 @@ public class SPointFormat10 extends AbstractResultSetFormat
         return STC.format((Position) object);
     }
 
-    private Position getPosition(Object object)
+    private Position getPosition(String s)
     {
-         if (object == null)
+        if (s == null) {
             return null;
-        if (!(object instanceof String))
-            throw new IllegalArgumentException("Expected String, was " + object.getClass().getName());
-        String s = (String) object;
+        }
 
-        // Get the string inside the enclosing parentheses.
-        int open = s.indexOf("(");
-        int close = s.indexOf(")");
-        if (open == -1 || close == -1)
-            throw new IllegalArgumentException("Missing opening or closing parentheses " + s);
-
-        // Should be 2 values separated by a comma.
-        s = s.substring(open + 1, close);
-        String[] points = s.split(",");
-        if (points.length != 2)
-            throw new IllegalArgumentException("SPoint must have only 2 values " + s);
-
-        // Coordinates.
-        Double x = Double.valueOf(points[0]);
-        Double y = Double.valueOf(points[1]);
-
-        // convert to radians
-        x = x * (180/Math.PI);
-        y = y * (180/Math.PI);
-
+        PgSpoint spoint = new PgSpoint();
+        Point daliP = spoint.getPoint(s);
+        
         // Create STC Position.
-        Position position = new Position(Frame.ICRS, null, null, x, y);
+        Position position = new Position(Frame.ICRS, null, null, daliP.getLongitude(), daliP.getLatitude());
 
         return position;
 }

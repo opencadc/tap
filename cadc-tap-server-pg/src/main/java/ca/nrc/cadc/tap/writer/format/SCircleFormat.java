@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2009.                            (c) 2009.
+ *  (c) 2018.                            (c) 2018.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -70,9 +70,8 @@
 package ca.nrc.cadc.tap.writer.format;
 
 import ca.nrc.cadc.dali.Circle;
-import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.postgresql.PgScircle;
 import ca.nrc.cadc.dali.util.CircleFormat;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -81,73 +80,28 @@ import java.sql.SQLException;
  *
  * @author pdowler
  */
-public class SCircleFormat extends AbstractResultSetFormat
-{
+public class SCircleFormat extends AbstractResultSetFormat {
+
     private final CircleFormat fmt = new CircleFormat();
 
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
-        throws SQLException
-    {
+            throws SQLException {
         String s = resultSet.getString(columnIndex);
         return getCircle(s);
     }
 
     @Override
-    public String format(Object object)
-    {
+    public String format(Object object) {
         return fmt.format((Circle) object);
     }
 
-
-    public Circle getCircle(Object object)
-    {
-         if (object == null)
+    Circle getCircle(String s) {
+        if (s == null) {
             return null;
-        if (!(object instanceof String))
-            throw new IllegalArgumentException("Expected String, was " + object.getClass().getName());
-        String s = (String) object;
+        }
 
-        // scircle format: <(coordinates), radius>
-        // <(0.0174532925199433 , 0.0349065850398866) , 0.0523598775598299>
-        // Get the string inside the enclosing angle brackets.
-        int open = s.indexOf("<");
-        int close = s.indexOf(">");
-        if (open == -1 || close == -1)
-            throw new IllegalArgumentException("Missing opening or closing angle brackets " + s);
-
-        s = s.substring(open + 1, close);
-
-        // Get the string inside the enclosing parentheses.
-        open = s.indexOf("(");
-        close = s.indexOf(")");
-        if (open == -1 || close == -1)
-            throw new IllegalArgumentException("Missing opening or closing parentheses " + s);
-
-        // Should be 2 values separated by a comma.
-        String coordinates = s.substring(open + 1, close);
-        String[] points = coordinates.split(",");
-        if (points.length != 2)
-            throw new IllegalArgumentException("SCirlce coordinates must have only 2 values " + coordinates);
-
-        // Radius
-        s = s.substring (close + 1);
-        open = s.indexOf(",");
-        if (open == -1)
-            throw new IllegalArgumentException("Missing radius after coordinates " + s);
-        s = s.substring(open + 1);
-
-        // Coordinates.
-        Double x = Double.valueOf(points[0]);
-        Double y = Double.valueOf(points[1]);
-        Double r = Double.valueOf(s);
-
-        // convert to radians
-        x = x * (180/Math.PI);
-        y = y * (180/Math.PI);
-        r = r * (180/Math.PI);
-
-        return new Circle(new Point(x, y), r);
+        PgScircle scirc = new PgScircle();
+        return scirc.getCircle(s);
     }
-
 }
