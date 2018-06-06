@@ -1,8 +1,7 @@
 -- minimal tap_schema creation
 -- assumes that the tap_schema schema exists
 -- sizes for fields are rather arbitrary and generous
--- tested with: PostgreSQL 8.x, 9.x
--- tested Sybase 15.x
+-- tested with: Oracle 11g XE
 CREATE TABLE TAP_SCHEMA.schemas11 (
   schema_name varchar(64) NOT NULL,
   utype varchar(512),
