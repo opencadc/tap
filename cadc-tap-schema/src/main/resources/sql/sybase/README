@@ -1,3 +1,0 @@
-The SYBASE tap_schema is internally implemented as a set of tables with tap_schema_ prefix instead of
-a real schema. The service will need to setup a TableNameConverter to convert queries using 
-tap_schema.??? to tap_schema_??? for each of tap_schema table.

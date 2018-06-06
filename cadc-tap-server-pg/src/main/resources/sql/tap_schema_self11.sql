@@ -1,6 +1,7 @@
 
 -- content of the tap_schema tables that describes the tap_schema itself
 -- the 11 suffix on all physical table names means this is the TAP-1.1 version
+-- as required by the cadc-tap-schema library
 
 -- delete key columns for keys from tables in the tap_schema schema
 delete from tap_schema.key_columns11 where
@@ -104,5 +105,6 @@ insert into tap_schema.key_columns11 (key_id,from_column,target_column) values
 update tap_schema.columns11 SET "size" = replace(arraysize::varchar,'*','')::int 
 WHERE table_name LIKE 'tap_schema.%'
   AND arraysize IS NOT NULL
-  AND arraysize NOT LIKE '%x%';
+  AND arraysize NOT LIKE '%x%'
+  AND arraysize != '*';
 

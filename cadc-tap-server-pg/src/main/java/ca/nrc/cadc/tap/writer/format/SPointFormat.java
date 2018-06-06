@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2009.                            (c) 2009.
+ *  (c) 2018.                            (c) 2018.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -70,6 +70,7 @@
 package ca.nrc.cadc.tap.writer.format;
 
 import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.postgresql.PgSpoint;
 import ca.nrc.cadc.dali.util.PointFormat;
 
 import java.sql.ResultSet;
@@ -79,53 +80,29 @@ import java.sql.SQLException;
  * Formats a PGSphere spoint as a DALI-1.1 point.
  *
  */
-public class SPointFormat extends AbstractResultSetFormat
-{
+public class SPointFormat extends AbstractResultSetFormat {
+
     private final PointFormat fmt = new PointFormat();
-    
+
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
-        throws SQLException
-    {
+            throws SQLException {
         String s = resultSet.getString(columnIndex);
         return getPoint(s);
     }
 
     @Override
-    public String format(Object object)
-    {
+    public String format(Object object) {
         return fmt.format((Point) object);
     }
 
-    public Point getPoint(Object object)
-    {
-         if (object == null)
+    Point getPoint(String s) {
+        if (s == null) {
             return null;
-        if (!(object instanceof String))
-            throw new IllegalArgumentException("Expected String, was " + object.getClass().getName());
-        String s = (String) object;
+        }
 
-        // Get the string inside the enclosing parentheses.
-        int open = s.indexOf("(");
-        int close = s.indexOf(")");
-        if (open == -1 || close == -1)
-            throw new IllegalArgumentException("Missing opening or closing parentheses " + s);
-
-        // Should be 2 values separated by a comma.
-        s = s.substring(open + 1, close);
-        String[] points = s.split(",");
-        if (points.length != 2)
-            throw new IllegalArgumentException("SPoint must have only 2 values " + s);
-
-        // Coordinates.
-        Double x = Double.valueOf(points[0]);
-        Double y = Double.valueOf(points[1]);
-
-        // convert radians
-        x = Math.toDegrees(x);
-        y = Math.toDegrees(y);
-
-        return new Point(x, y);
+        PgSpoint spoint = new PgSpoint();
+        return spoint.getPoint(s);
     }
 
 }
