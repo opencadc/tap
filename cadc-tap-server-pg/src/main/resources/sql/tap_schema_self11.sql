@@ -1,6 +1,7 @@
 
 -- content of the tap_schema tables that describes the tap_schema itself
 -- the 11 suffix on all physical table names means this is the TAP-1.1 version
+-- as required by the cadc-tap-schema library
 
 -- delete key columns for keys from tables in the tap_schema schema
 delete from tap_schema.key_columns11 where
