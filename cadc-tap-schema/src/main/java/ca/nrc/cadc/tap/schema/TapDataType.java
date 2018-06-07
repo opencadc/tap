@@ -76,7 +76,7 @@ import org.apache.log4j.Logger;
  * 
  * @author pdowler
  */
-public class TapDataType 
+public class TapDataType
 {
     private static final Logger log = Logger.getLogger(TapDataType.class);
 
@@ -175,6 +175,8 @@ public class TapDataType
     public static final TapDataType FLOAT = new TapDataType("float");
     public static final TapDataType DOUBLE = new TapDataType("double");
     public static final TapDataType CHAR = new TapDataType("char");
+    
+    public static final TapDataType STRING = new TapDataType("char", "*", null);
     
     // DALI types
     public static final TapDataType TIMESTAMP = new TapDataType("char", "*", "timestamp");

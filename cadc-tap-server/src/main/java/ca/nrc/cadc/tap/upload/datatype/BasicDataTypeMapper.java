@@ -122,6 +122,8 @@ public class BasicDataTypeMapper implements DatabaseDataType
         dataTypes.put(TapDataType.FLOAT, new TypePair("REAL", Types.REAL));
         dataTypes.put(TapDataType.DOUBLE, new TypePair("DOUBLE PRECISION", Types.DOUBLE));
         dataTypes.put(TapDataType.CHAR, new TypePair("CHAR", Types.CHAR));
+        
+        dataTypes.put(TapDataType.STRING, new TypePair("CHAR", Types.CHAR));
         dataTypes.put(TapDataType.TIMESTAMP, new TypePair("TIMESTAMP", Types.TIMESTAMP));
     }
     
@@ -184,16 +186,16 @@ public class BasicDataTypeMapper implements DatabaseDataType
      * @param tt
      * @return 
      */
-    protected TypePair findTypePair(TapDataType tt)
-    {
+    protected TypePair findTypePair(TapDataType tt) {
         TypePair dbt = dataTypes.get(tt);
-        if (dbt == null && tt.arraysize != null)
-        {
-            TapDataType tmp = new TapDataType(tt.getDatatype()); // primitive
+        if (dbt == null && tt.arraysize != null) {
+            // input may have a non-matching arraysize
+            TapDataType tmp = new TapDataType(tt.getDatatype(), "*", tt.xtype);
             dbt = dataTypes.get(tmp);
         }
-        if (dbt == null)
+        if (dbt == null) {
             throw new UnsupportedOperationException("unexpected datatype: " + tt);
+        }
         
         log.debug("findTypePair: " + tt + " -> " + dbt);
         return dbt;
