@@ -105,18 +105,9 @@ public class BasicUploadManagerTest
     public static void setUpClass()
         throws Exception
     {
-        try
-        {
-            DBConfig dbrc = new DBConfig();
-            ConnectionConfig conf = dbrc.getConnectionConfig("TAP_UPLOAD_TEST", "cadctest");
-            ds = DBUtil.getDataSource(conf, true, true);
-        }
-        catch(FileNotFoundException e)
-        {
-            // .dbrc file not found. Skip the tests
-            log.warn("No .dbrc file found. Skipping all the BasicUploadManagerTest tests");
-            org.junit.Assume.assumeTrue(false);
-        }
+        DBConfig dbrc = new DBConfig();
+        ConnectionConfig conf = dbrc.getConnectionConfig("TAP_UPLOAD_TEST", "cadctest");
+        ds = DBUtil.getDataSource(conf, true, true);
 
         // map of internal Postgresql datatypes for create table
         // TODO: need to dynamically check/load DB-specific code here

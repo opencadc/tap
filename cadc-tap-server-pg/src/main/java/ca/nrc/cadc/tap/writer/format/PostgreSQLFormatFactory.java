@@ -82,6 +82,7 @@ public class PostgreSQLFormatFactory extends DefaultFormatFactory {
     /**
      * @param columnDesc    The Column description.
      * @throws UnsupportedOperationException    If this column type is not supported.
+     * @return scircle to DALI circle formatter
      */
     @Override
     protected Format<Object> getCircleFormat(TapSelectItem columnDesc) {
@@ -91,6 +92,7 @@ public class PostgreSQLFormatFactory extends DefaultFormatFactory {
     /**
      * @param columnDesc    The Column description.
      * @throws UnsupportedOperationException    If this column type is not supported.
+     * @return spoint to DALI point formatter
      */
     @Override
     protected Format<Object> getPointFormat(TapSelectItem columnDesc) {
@@ -100,9 +102,32 @@ public class PostgreSQLFormatFactory extends DefaultFormatFactory {
     /**
      * @param columnDesc    The Column description.
      * @throws UnsupportedOperationException    If this column type is not supported.
+     * @return spoly to DALI polygon formatter
      */
     @Override
     protected Format<Object> getPolygonFormat(TapSelectItem columnDesc) {
         return new SPolyFormat();
+    }
+    
+    /**
+     * 
+     * @param columnDesc
+     * @return spoint to STC-S position formatter
+     */
+    @Override
+    protected Format<Object> getPositionFormat(TapSelectItem columnDesc)
+    {
+        return new SPointFormat10();
+    }
+    
+    /**
+     * 
+     * @param columnDesc
+     * @return spoly to STC-S region formatter
+     */
+    @Override
+    public Format<Object> getRegionFormat(TapSelectItem columnDesc)
+    {
+        return new SPolyFormat10();
     }
 }

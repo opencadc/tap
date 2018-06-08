@@ -508,7 +508,7 @@ public class QueryRunner implements JobRunner
                 log.debug("Error message: " + errorMessage);
                 
                 log.debug("creating TableWriter for error...");
-                TableWriter ewriter = pfac.getTableWriter();
+                TableWriter ewriter = pfac.getErrorWriter();
                 
                 // write to buffer so we can determine content-length
                 ByteArrayOutputStream bos = new ByteArrayOutputStream();
