@@ -138,7 +138,7 @@ public class TableReader extends TableSetParser
             String dtt = dte.getAttributeValue("type", xsi);
             String dtv = dte.getTextTrim();
             String xtype = dte.getAttributeValue("extendedType");
-            log.warn(cn + ": " + dtt + " " + dtv + " " + xtype);
+            log.debug(cn + ": " + dtt + " " + dtv + " " + xtype);
             String arraysize = null;
             if (TAP_TYPE.equals(dtt))
             {
