@@ -163,21 +163,19 @@ public class TapSchemaDAO
 
     public TapSchema get()
     {
-        // depth 1 = schemas
-        // depth 2 = tables
-        // depth 3 = columns
-        // depth 4 = keys + functions
-        return get(null, MAX_DEPTH); // complete
+        // depth MIN = schemas and tables
+        // depth MAX = columns + keys + functions
+        return get(MAX_DEPTH);
     }
     
     /**
-     * Creates and returns a TapSchema object representing all of the data in TAP_SCHEMA.
+     * Creates and returns a TapSchema object representing some or all of the data in TAP_SCHEMA.
      * 
-     * @param tableName fully qualified table name
-     * @param depth
+     * @param tableName fully qualified table name or null to get all tables
+     * @param depth use MIN_DEPTH to get schame and table names only, MAX_DEPTH to get everything
      * @return TapSchema containing all of the data from TAP_SCHEMA.
      */
-    public TapSchema get(String tableName, int depth)
+    public TapSchema get(int depth)
     {
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
 
@@ -189,7 +187,6 @@ public class TapSchemaDAO
         
         // TAP_SCHEMA.tables
         GetTablesStatement gts = new GetTablesStatement(tablesTableName);
-        gts.setTableName(tableName);
         if (ordered)
             gts.setOrderBy(orderTablesClause);
         List<TableDesc> tableDescs = jdbc.query(gts, new TableMapper());
@@ -201,7 +198,6 @@ public class TapSchemaDAO
         if (depth > MIN_DEPTH)
         {
             GetColumnsStatement gcs = new GetColumnsStatement(columnsTableName);
-            gcs.setTableName(tableName);
             if (ordered)
                 gcs.setOrderBy(orderColumnsClause);
             List<ColumnDesc> columnDescs = jdbc.query(gcs, new ColumnMapper());
@@ -211,15 +207,12 @@ public class TapSchemaDAO
         
             // List of TAP_SCHEMA.keys
             GetKeysStatement gks = new GetKeysStatement(keysTableName);
-            gks.setTableName(tableName);
             if (ordered)
                 gks.setOrderBy(orderKeysClause);
             List<KeyDesc> keyDescs = jdbc.query(gks, new KeyMapper());
 
             // TAP_SCHEMA.key_columns
             GetKeyColumnsStatement gkcs = new GetKeyColumnsStatement(keyColumnsTableName);
-            if (tableName != null)
-                gkcs.setKeyDescs(keyDescs); // get keys for tableName only
             if (ordered)
                 gkcs.setOrderBy(orderKeyColumnsClause);
             List<KeyColumnDesc> keyColumnDescs = jdbc.query(gkcs, new KeyColumnMapper());
@@ -235,6 +228,59 @@ public class TapSchemaDAO
         ret.getSchemaDescs().addAll(schemaDescs);
         ret.getFunctionDescs().addAll(getFunctionDescs());
         return ret;
+    }
+    
+    public TableDesc get(String tableName) {
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        
+        GetTablesStatement gts = new GetTablesStatement(tablesTableName);
+        gts.setTableName(tableName);
+        if (ordered)
+            gts.setOrderBy(orderTablesClause);
+        List<TableDesc> tableDescs = jdbc.query(gts, new TableMapper());
+        if (tableDescs.isEmpty()) {
+            return null;
+        }
+        TableDesc ret = tableDescs.get(0);
+        
+        // column metadata
+        GetColumnsStatement gcs = new GetColumnsStatement(columnsTableName);
+        gcs.setTableName(tableName);
+        if (ordered) {
+            gcs.setOrderBy(orderColumnsClause);
+        }
+        List<ColumnDesc> columnDescs = jdbc.query(gcs, new ColumnMapper());
+        ret.getColumnDescs().addAll(columnDescs);
+        
+        // foreign keys
+        GetKeysStatement gks = new GetKeysStatement(keysTableName);
+        gks.setTableName(tableName);
+        if (ordered) {
+            gks.setOrderBy(orderKeysClause);
+        }
+        List<KeyDesc> keyDescs = jdbc.query(gks, new KeyMapper());
+
+        // TAP_SCHEMA.key_columns
+        GetKeyColumnsStatement gkcs = new GetKeyColumnsStatement(keyColumnsTableName);
+        gkcs.setKeyDescs(keyDescs); // get keys for tableName only
+        if (ordered) {
+            gkcs.setOrderBy(orderKeyColumnsClause);
+        }
+        List<KeyColumnDesc> keyColumnDescs = jdbc.query(gkcs, new KeyColumnMapper());
+
+        addKeyColumnsToKeys(keyDescs, keyColumnDescs);
+        ret.getKeyDescs().addAll(keyDescs);
+        
+        log.debug("found: " + ret);
+        return ret;
+    }
+    
+    public void put(TableDesc td) {
+        throw new UnsupportedOperationException();
+    }
+    
+    public void delete(String tableName) {
+        throw new UnsupportedOperationException();
     }
 
     private class GetSchemasStatement implements PreparedStatementCreator
