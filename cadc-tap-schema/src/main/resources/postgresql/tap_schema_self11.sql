@@ -87,8 +87,8 @@ insert into tap_schema.columns11 (table_name,column_name,description,utype,ucd,u
 insert into tap_schema.keys11 (key_id, from_table,target_table) values
 ( 'k1', 'tap_schema.tables', 'tap_schema.schemas' ),
 ( 'k2', 'tap_schema.columns', 'tap_schema.tables' ), 
-( 'k3', 'tap_schema.keys', 'tap_schema.tables' ),     -- two separate foreign keys: see below
-( 'k4', 'tap_schema.keys', 'tap_schema.tables' ),     -- two separate foreign keys: see below
+( 'k3', 'tap_schema.keys', 'tap_schema.tables' ),
+( 'k4', 'tap_schema.keys', 'tap_schema.tables' ),
 ( 'k5', 'tap_schema.key_columns', 'tap_schema.keys' )
 ;
 
