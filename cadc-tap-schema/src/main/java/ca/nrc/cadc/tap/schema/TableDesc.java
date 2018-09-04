@@ -85,6 +85,32 @@ public class TableDesc
     
     public String description;
     public String utype;
+    public Integer table_index;
+    public TableType tableType = TableType.TABLE;
+    
+    public enum TableType {
+        TABLE("table"),
+        VIEW("view");
+        
+        private String value;
+        
+        TableType(String value) {
+            this.value = value;
+        }
+        
+        static TableType toValue(String s) {
+            for (TableType tt : TableType.values()) {
+                if (tt.value.equals(s)) {
+                    return tt;
+                }
+            }
+            throw new IllegalArgumentException("invalid value: " + s);
+        }
+        
+        public String getValue() {
+            return value;
+        }
+    }
 
     public TableDesc(String schemaName, String tableName) 
     {
