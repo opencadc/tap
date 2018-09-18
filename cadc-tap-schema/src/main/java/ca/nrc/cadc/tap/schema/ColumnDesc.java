@@ -88,6 +88,7 @@ public class ColumnDesc
     public boolean principal;
     public boolean indexed;
     public boolean std;
+    public Integer column_index;
     
     /**
      * An id attribute value to tag the column so the VOTableField element gets an XML ID. 
