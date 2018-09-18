@@ -264,7 +264,7 @@ public class TableServlet extends HttpServlet
                 
                 if (tableName != null)
                 {
-                    TableDesc td = dao.get(tableName);
+                    TableDesc td = dao.getTable(tableName);
                     if (td == null)
                         throw new NoSuchElementException("not found: " + tableName);
                     TableWriter tw = new TableWriter();

@@ -65,50 +65,78 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.schema;
+package ca.nrc.cadc.tap.db;
 
-import ca.nrc.cadc.db.version.InitDatabase;
-import java.net.URL;
+
+import ca.nrc.cadc.db.DatabaseTransactionManager;
+import ca.nrc.cadc.dali.tables.TableData;
+import ca.nrc.cadc.tap.schema.TableDesc;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementCreator;
+import org.springframework.jdbc.core.PreparedStatementSetter;
 
 /**
- *
+ * Utility to bulk load content into a table.
+ * 
  * @author pdowler
  */
-public class InitDatabaseTS extends InitDatabase {
-    private static final Logger log = Logger.getLogger(InitDatabaseTS.class);
+public class TableLoader {
+    private static final Logger log = Logger.getLogger(TableLoader.class);
 
-    public static final String MODEL_NAME = "TAP_SCHEMA";
-    public static final String MODEL_VERSION = "1.1.6";
-    public static final String PREV_MODEL_VERSION = "n/a";
-
-    static String[] CREATE_SQL = new String[] {
-        "tap_schema.ModelVersion.sql",
-        "tap_schema.KeyValue.sql",
-        "tap_schema11.sql",
-        "tap_schema_self11.sql",
-        "tap_schema.permissions.sql"
-    };
-
-    static String[] UPGRADE_SQL = new String[]{
+    private final DataSource dataSource;
+    private final int batchSize;
+    
+    /**
+     * Constructor.
+     * 
+     * @param dataSource destination database connection pool
+     * @param batchSize number of rows per commit transaction
+     */
+    public TableLoader(DataSource dataSource, int batchSize) { 
+        this.dataSource = dataSource;
+        this.batchSize = batchSize;
+    }
+    
+    public void load(TableDesc destTable, TableData data) {
         
-    };
-    
-    public InitDatabaseTS(DataSource dataSource, String database, String schema) {
-        super(dataSource, database, schema, MODEL_NAME, MODEL_VERSION, PREV_MODEL_VERSION);
-        for (String s : CREATE_SQL) {
-            createSQL.add(s);
-        }
-        for (String s : UPGRADE_SQL) {
-            upgradeSQL.add(s);
-        }
+        throw new UnsupportedOperationException("load table data not implemented");
+        
+        /*
+        DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        
+        // TODO: loop over rows, start/commit txn every batchSize rows,
+        // and figure out which API to use for outside/inside loop for fastest
+        // load
+        // need try/catch with transaction rollback and throw on failure
+        // need finally with transaction rollback if still open (BUG)
+        
+        String sql = generateInsertSQL(destTable); 
+        
+        // probably not this
+        PreparedStatementCreator pc = null;
+        jdbc.update(pc);
+        
+        // this? or the override method with int[] types?
+        Object[] values = null;
+        jdbc.update(sql, values);
+        
+        // this?
+        PreparedStatementSetter pss = null;
+        jdbc.update(sql, pss);
+        
+        // this?
+        BatchPreparedStatementSetter bpss = null;
+        jdbc.batchUpdate(sql, bpss);
+        */
     }
-
-    @Override
-    protected URL findSQL(String fname) {
-        return InitDatabaseTS.class.getClassLoader().getResource("postgresql/" + fname);
-    }
- 
     
+    // this assumes that columns in destTable and data are in the same order
+    // generate a parameterised insert statement for use with one of the API choices
+    private String generateInsertSQL(TableDesc td) {
+        throw new UnsupportedOperationException("generateInsertSQL not implemented");
+    }
 }

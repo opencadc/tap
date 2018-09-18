@@ -69,10 +69,9 @@
 
 package ca.nrc.cadc.tap;
 
+import ca.nrc.cadc.tap.db.DatabaseDataType;
 import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.upload.datatype.DatabaseDataType;
 import ca.nrc.cadc.uws.Parameter;
-
 import java.util.List;
 import java.util.Map;
 import javax.sql.DataSource;

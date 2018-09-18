@@ -63,52 +63,69 @@
 *                                       <http://www.gnu.org/licenses/>.
 *
 ************************************************************************
-*/
+ */
 
-package ca.nrc.cadc.tap.schema;
+package ca.nrc.cadc.vosi.actions;
 
-import ca.nrc.cadc.db.version.InitDatabase;
-import java.net.URL;
-import javax.sql.DataSource;
+import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapSchema;
+import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import ca.nrc.cadc.vosi.TableSetWriter;
+import ca.nrc.cadc.vosi.TableWriter;
+import java.io.OutputStreamWriter;
+import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;
 
 /**
  *
  * @author pdowler
  */
-public class InitDatabaseTS extends InitDatabase {
-    private static final Logger log = Logger.getLogger(InitDatabaseTS.class);
+public class GetAction extends TablesAction {
 
-    public static final String MODEL_NAME = "TAP_SCHEMA";
-    public static final String MODEL_VERSION = "1.1.6";
-    public static final String PREV_MODEL_VERSION = "n/a";
+    private static final Logger log = Logger.getLogger(GetAction.class);
 
-    static String[] CREATE_SQL = new String[] {
-        "tap_schema.ModelVersion.sql",
-        "tap_schema.KeyValue.sql",
-        "tap_schema11.sql",
-        "tap_schema_self11.sql",
-        "tap_schema.permissions.sql"
-    };
-
-    static String[] UPGRADE_SQL = new String[]{
-        
-    };
-    
-    public InitDatabaseTS(DataSource dataSource, String database, String schema) {
-        super(dataSource, database, schema, MODEL_NAME, MODEL_VERSION, PREV_MODEL_VERSION);
-        for (String s : CREATE_SQL) {
-            createSQL.add(s);
-        }
-        for (String s : UPGRADE_SQL) {
-            upgradeSQL.add(s);
-        }
+    public GetAction() {
     }
 
     @Override
-    protected URL findSQL(String fname) {
-        return InitDatabaseTS.class.getClassLoader().getResource("postgresql/" + fname);
+    public void doAction() throws Exception {
+        String tableName = getTableName();
+        log.info("GET: " + tableName);
+
+        int depth = TapSchemaDAO.MIN_DEPTH;
+        // TODO: default depth used to be configurable... worth it?
+        if (tableName == null) {
+            // always give the caller what they ask for
+            String detail = syncInput.getParameter("detail");
+            if ("min".equalsIgnoreCase(detail)) {
+                depth = TapSchemaDAO.MIN_DEPTH;
+            } else if ("max".equalsIgnoreCase(detail)) {
+                depth = TapSchemaDAO.MAX_DEPTH;
+            } else if (detail != null) {
+                throw new IllegalArgumentException("invalid parameter value detail=" + detail);
+            }
+        }
+
+        TapSchemaDAO dao = getDAO();
+        if (tableName != null)
+        {
+            TableDesc td = dao.getTable(tableName);
+            if (td == null) {
+                throw new ResourceNotFoundException("not found: " + tableName);
+            }
+            TableWriter tw = new TableWriter();
+            syncOutput.setCode(HttpServletResponse.SC_OK);
+            syncOutput.setHeader("Content-Type", "text/xml");
+            tw.write(td, new OutputStreamWriter(syncOutput.getOutputStream()));
+        }
+        else
+        {
+            TapSchema tapSchema = dao.get(depth);
+            TableSetWriter tsw = new TableSetWriter();
+            syncOutput.setCode(HttpServletResponse.SC_OK);
+            syncOutput.setHeader("Content-Type", "text/xml");
+            tsw.write(tapSchema, new OutputStreamWriter(syncOutput.getOutputStream()));
+        }
     }
- 
-    
 }

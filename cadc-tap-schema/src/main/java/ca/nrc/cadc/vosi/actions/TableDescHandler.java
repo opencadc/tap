@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2018.                            (c) 2018.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,37 +62,91 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
-*
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.upload.datatype;
+package ca.nrc.cadc.vosi.actions;
 
+
+import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
+import ca.nrc.cadc.dali.tables.votable.VOTableField;
+import ca.nrc.cadc.dali.tables.votable.VOTableReader;
+import ca.nrc.cadc.dali.tables.votable.VOTableResource;
+import ca.nrc.cadc.dali.tables.votable.VOTableTable;
+import ca.nrc.cadc.io.ByteCountInputStream;
+import ca.nrc.cadc.rest.InlineContentException;
+import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
+import ca.nrc.cadc.vosi.InvalidTableSetException;
+import ca.nrc.cadc.vosi.TableReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.log4j.Logger;
 
 /**
- * Interface to convert ADQL data types to a database
- * specific data types.
  *
- * @author jburke
+ * @author pdowler
  */
-public interface DatabaseDataType
-{
-    /**
-     * Get the database type for the specified column. This is used in create
-     * table statements.
-     *
-     * @param columnDesc ADQL description of the column
-     * @return database specific data type
-     */
-    String getDataType(ColumnDesc columnDesc);
+public class TableDescHandler implements InlineContentHandler {
+    private static final Logger log = Logger.getLogger(TableDescHandler.class);
 
-    /**
-     * Get the column type as a java.sql.Types constant.
-     * 
-     * @param columnDesc
-     * @return one of the java.sql.Types values
-     */
-    Integer getType(ColumnDesc columnDesc);
+    private static final long BYTE_LIMIT = 1024 * 1024L; // 1 MiB
+    private static final String VOSI_TABLE_TYPE = "text/xml";
+    private static final String VOTABLE_TYPE = "application/x-votable+xml";
+    
+    private String objectTag;
+    
+    public TableDescHandler(String objectTag) { 
+        this.objectTag = objectTag;
+    }
+
+    @Override
+    public Content accept(String name, String contentType, InputStream in) throws InlineContentException, IOException {
+        try {
+            List<ColumnDesc> cols = null;
+            if (VOSI_TABLE_TYPE.equalsIgnoreCase(contentType)) {
+                TableReader tr = new TableReader();
+                ByteCountInputStream istream = new ByteCountInputStream(in, BYTE_LIMIT);
+                TableDesc td = tr.read(istream);
+                cols = td.getColumnDescs();
+            } else if (VOTABLE_TYPE.equalsIgnoreCase(contentType)) {
+                VOTableReader tr = new VOTableReader();
+                ByteCountInputStream istream = new ByteCountInputStream(in, BYTE_LIMIT);
+                VOTableDocument doc = tr.read(istream);
+                cols = toTableDesc(doc);
+            }
+            InlineContentHandler.Content ret = new InlineContentHandler.Content();
+            ret.name = objectTag;
+            ret.value = cols;
+            return ret;
+        } catch (InvalidTableSetException ex) {
+            throw new IllegalArgumentException("invalid input document", ex);
+        }
+    }
+    
+    private List<ColumnDesc> toTableDesc(VOTableDocument doc) {
+        for (VOTableResource vr : doc.getResources()) {
+            VOTableTable vtab = vr.getTable();
+            if (vtab != null) {
+                List<ColumnDesc> ret = new ArrayList<ColumnDesc>();
+                int col = 0;
+                for (VOTableField f : vtab.getFields()) {
+                    TapDataType dt = new TapDataType(f.getDatatype(), f.getArraysize(), f.xtype);
+                    ColumnDesc cd = new ColumnDesc(null, f.getName(), dt);
+                    cd.description = f.description;
+                    cd.id = f.id;
+                    cd.ucd = f.ucd;
+                    cd.unit = f.unit;
+                    cd.utype = f.utype;
+                    cd.column_index = col++; // preserve order
+                    ret.add(cd);
+                }
+            }
+        }
+        throw new UnsupportedOperationException("votable to tap_schema");
+    }
 }

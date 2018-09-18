@@ -63,32 +63,60 @@
 *                                       <http://www.gnu.org/licenses/>.
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.tap.schema;
 
-
 import ca.nrc.cadc.dali.tables.votable.VOTableField;
+import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import org.apache.log4j.Logger;
 
 /**
  *
  * @author pdowler
  */
-public class TapSchemaUtil 
-{
+public class TapSchemaUtil {
+
     private static final Logger log = Logger.getLogger(TapSchemaUtil.class);
 
-    private TapSchemaUtil() { }
-    
+    private TapSchemaUtil() {
+    }
+
     /**
-     * TAP-1.1 conversion of VOTable field metadata to tap_schema column metadata.
+     * Create a tap_schema description of a VOTable.
+     *
+     * @param schemaName
+     * @param tableName
+     * @param votable
+     * @return
+     */
+    public static TableDesc createTableDesc(String schemaName, String tableName, VOTableTable votable) {
+        TableDesc ret = new TableDesc(schemaName, tableName);
+        if (votable == null) {
+            throw new IllegalArgumentException("invalid input: no VOTable with column metadata");
+        }
+
+        for (VOTableField f : votable.getFields()) {
+            try {
+                checkValidIdentifier(f.getName());
+                ColumnDesc columnDesc = TapSchemaUtil.convert(tableName, f);
+                log.debug("column: " + f + " -> " + columnDesc);
+                ret.getColumnDescs().add(columnDesc);
+            } catch (ADQLIdentifierException ex) {
+                throw new IllegalArgumentException("invalid ADQL identifier (column name): " + f.getName(), ex);
+            }
+        }
+        return ret;
+    }
+
+    /**
+     * Convert a VOTable field into tap_schema column descriptor.
+     *
      * @param tableName
      * @param field
-     * @return 
+     * @return
      */
-    public static ColumnDesc convert(String tableName, VOTableField field)
-    {
+    public static ColumnDesc convert(String tableName, VOTableField field) {
         TapDataType dt = new TapDataType(field.getDatatype(), field.getArraysize(), field.xtype);
         ColumnDesc ret = new ColumnDesc(tableName, field.getName(), dt);
         ret.description = field.description;
@@ -96,11 +124,69 @@ public class TapSchemaUtil
         ret.ucd = field.ucd;
         ret.unit = field.unit;
         ret.utype = field.utype;
-        
+
         ret.indexed = false;
         ret.principal = false;
         ret.std = false;
-        
+
         return ret;
+    }
+
+    /**
+     * Validates that the given String is a valid ADQL identifier.
+     *
+     * @param identifier String to be tested.
+     * @return true if a valid ADQL identifier.
+     * @throws ADQLIdentifierException
+     */
+    public static void checkValidIdentifier(String identifier) throws ADQLIdentifierException {
+        // identifier shouldn't be null and cannot be an empty string.
+        if (identifier == null || identifier.trim().isEmpty()) {
+            throw new ADQLIdentifierException("Identifier is null or empty");
+        }
+
+        // identifier cannot start with, contain, or end, with a space.
+        if (identifier.startsWith(" ") || identifier.contains(" ") || identifier.endsWith(" ")) {
+            throw new ADQLIdentifierException("Identifier contains spaces");
+        }
+
+        // identifier must start with a letter {aA-zZ}.
+        if (!isAsciiLetter(identifier.charAt(0))) {
+            throw new ADQLIdentifierException("Identifier must start with a letter");
+        }
+
+        // subsequent characters must be letters, underscores, or digits.
+        for (int i = 1; i < identifier.length(); i++) {
+            if (!isValidIdentifierCharacter(identifier.charAt(i))) {
+                throw new ADQLIdentifierException("Identifier contains an invalid character " + identifier.charAt(i));
+            }
+        }
+    }
+
+    /**
+     * Checks if the char is a valid US ASCII letter.
+     *
+     * @param c char to test.
+     * @return true if the char is valid ASCII, false otherwise.
+     */
+    public static boolean isAsciiLetter(char c) {
+        if (c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z') {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Checks if the char is either a US ASCII char, an underscore,
+     * of a digit.
+     *
+     * @param c char to test.
+     * @return true if the char is a valid ADQL identifier char, false otherwise.
+     */
+    public static boolean isValidIdentifierCharacter(char c) {
+        if (c == '_' || isAsciiLetter(c) || Character.isDigit(c)) {
+            return true;
+        }
+        return false;
     }
 }

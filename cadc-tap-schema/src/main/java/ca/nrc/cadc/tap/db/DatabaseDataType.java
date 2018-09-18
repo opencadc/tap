@@ -62,53 +62,37 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
+*  $Revision: 4 $
+*
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.schema;
+package ca.nrc.cadc.tap.db;
 
-import ca.nrc.cadc.db.version.InitDatabase;
-import java.net.URL;
-import javax.sql.DataSource;
-import org.apache.log4j.Logger;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
 
 /**
+ * Interface to convert ADQL data types to a database
+ * specific data types.
  *
- * @author pdowler
+ * @author jburke
  */
-public class InitDatabaseTS extends InitDatabase {
-    private static final Logger log = Logger.getLogger(InitDatabaseTS.class);
+public interface DatabaseDataType
+{
+    /**
+     * Get the database type for the specified column. This is for use in create
+     * table statements, casts, etc.
+     *
+     * @param columnDesc ADQL description of the column
+     * @return database specific data type
+     */
+    String getDataType(ColumnDesc columnDesc);
 
-    public static final String MODEL_NAME = "TAP_SCHEMA";
-    public static final String MODEL_VERSION = "1.1.6";
-    public static final String PREV_MODEL_VERSION = "n/a";
-
-    static String[] CREATE_SQL = new String[] {
-        "tap_schema.ModelVersion.sql",
-        "tap_schema.KeyValue.sql",
-        "tap_schema11.sql",
-        "tap_schema_self11.sql",
-        "tap_schema.permissions.sql"
-    };
-
-    static String[] UPGRADE_SQL = new String[]{
-        
-    };
-    
-    public InitDatabaseTS(DataSource dataSource, String database, String schema) {
-        super(dataSource, database, schema, MODEL_NAME, MODEL_VERSION, PREV_MODEL_VERSION);
-        for (String s : CREATE_SQL) {
-            createSQL.add(s);
-        }
-        for (String s : UPGRADE_SQL) {
-            upgradeSQL.add(s);
-        }
-    }
-
-    @Override
-    protected URL findSQL(String fname) {
-        return InitDatabaseTS.class.getClassLoader().getResource("postgresql/" + fname);
-    }
- 
-    
+    /**
+     * Get the column type as a java.sql.Types constant.
+     * 
+     * @param columnDesc
+     * @return one of the java.sql.Types values
+     */
+    Integer getType(ColumnDesc columnDesc);
 }

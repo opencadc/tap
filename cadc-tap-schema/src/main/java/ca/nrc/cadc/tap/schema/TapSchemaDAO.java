@@ -236,7 +236,8 @@ public class TapSchemaDAO
         return ret;
     }
     
-    public TableDesc get(String tableName) {
+    // gets table+columns+keys+key_columns
+    public TableDesc getTable(String tableName) {
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         
         GetTablesStatement gts = new GetTablesStatement(tablesTableName);
@@ -281,6 +282,64 @@ public class TapSchemaDAO
         return ret;
     }
     
+    
+    // package access for intTest code only: shallow put of a schema
+    SchemaDesc getSchema(String schemaName) {
+        // List of TAP_SCHEMA.schemas
+        GetSchemasStatement gss = new GetSchemasStatement(schemasTableName);
+        if (ordered)
+            gss.setOrderBy(orderSchemaClause);
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        List<SchemaDesc> schemaDescs = jdbc.query(gss, new SchemaMapper());
+        for (SchemaDesc sd : schemaDescs) {
+            if (sd.getSchemaName().equals(schemaName)) {
+                return sd;
+            }
+        }
+        return null;
+    }
+    
+    void put(SchemaDesc sd) {
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
+        try {
+            SchemaDesc cur = getSchema(sd.getSchemaName());
+            boolean update = (cur != null);
+            tm.startTransaction();
+            
+            PutSchemaStatement sps = new PutSchemaStatement(update);
+            log.debug("put: " + sd.getSchemaName());
+            sps.setSchema(sd);
+            jdbc.update(sps);
+            
+            log.debug("commit transaction");
+            tm.commitTransaction();
+            log.debug("commit transaction: OK");
+        } catch (UnsupportedOperationException rethrow) {
+            throw rethrow;
+        } catch (Exception ex) {
+                try {
+                    log.error("PUT failed - rollback", ex);
+                    tm.rollbackTransaction();
+                    log.error("PUT failed - rollback: OK");
+                } catch (Exception oops) {
+                    log.error("PUT failed - rollback : FAIL", oops);
+                }
+                // TODO: categorise failures better
+                throw new RuntimeException("failed to persist " + sd.getSchemaName(), ex);
+        } finally { 
+            if (tm.isOpen()) {
+                log.error("BUG: open transaction in finally - trying to rollback");
+                try {
+                    tm.rollbackTransaction();
+                    log.error("BUG: rollback in finally: OK");
+                } catch (Exception oops) {
+                    log.error("BUG: rollback in finally: FAIL", oops);
+                }
+                throw new RuntimeException("BUG: open transaction in finally");
+            }
+        }
+    }
     /**
      * Insert or update a table and columns. This does not support add/remove/rename of columns
      * in a table
@@ -290,7 +349,7 @@ public class TapSchemaDAO
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
         try {
-            TableDesc cur = get(td.getTableName());
+            TableDesc cur = getTable(td.getTableName());
             boolean update = (cur != null);
             if (update) {
                 // TODO: check assumption/limitation that all columns in td are also in cur
@@ -346,7 +405,7 @@ public class TapSchemaDAO
                     tm.rollbackTransaction();
                     log.error("PUT failed - rollback: OK");
                 } catch (Exception oops) {
-                    log.error("PUT failed - rollback : FAIL");
+                    log.error("PUT failed - rollback : FAIL", oops);
                 }
                 // TODO: categorise failures better
                 throw new RuntimeException("failed to persist " + td.getTableName(), ex);
@@ -357,7 +416,7 @@ public class TapSchemaDAO
                     tm.rollbackTransaction();
                     log.error("BUG: rollback in finally: OK");
                 } catch (Exception oops) {
-                    log.error("BUG: rollback in finally: FAIL");
+                    log.error("BUG: rollback in finally: FAIL", oops);
                 }
                 throw new RuntimeException("BUG: open transaction in finally");
             }
@@ -368,7 +427,7 @@ public class TapSchemaDAO
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
         try {
-            TableDesc cur = get(tableName);
+            TableDesc cur = getTable(tableName);
             if (cur == null) {
                 throw new ResourceNotFoundException("not found: " + tableName);
             }
@@ -398,7 +457,7 @@ public class TapSchemaDAO
                     tm.rollbackTransaction();
                     log.error("DELETE failed - rollback: OK");
                 } catch (Exception oops) {
-                    log.error("DELETE failed - rollback : FAIL");
+                    log.error("DELETE failed - rollback : FAIL", oops);
                 }
                 // TODO: categorise failures better
                 throw new RuntimeException("failed to delete " + tableName, ex);
@@ -409,7 +468,7 @@ public class TapSchemaDAO
                     tm.rollbackTransaction();
                     log.error("BUG: rollback in finally: OK");
                 } catch (Exception oops) {
-                    log.error("BUG: rollback in finally: FAIL");
+                    log.error("BUG: rollback in finally: FAIL", oops);
                 }
                 throw new RuntimeException("BUG: open transaction in finally");
             }
@@ -699,6 +758,53 @@ public class TapSchemaDAO
                 }
             }
             return prep;
+        }
+    }
+    
+    private class PutSchemaStatement implements PreparedStatementCreator {
+        private SchemaDesc schema;
+        private final boolean update;
+        
+        PutSchemaStatement(boolean update) {
+            this.update = update;
+        }
+
+        public void setSchema(SchemaDesc schema) {
+            this.schema = schema;
+        }
+        
+        @Override
+        public PreparedStatement createPreparedStatement(Connection conn) throws SQLException {
+            StringBuilder sb = new StringBuilder();
+            if (update) {
+                sb.append("UPDATE ").append(schemasTableName);
+                sb.append(" SET (");
+                sb.append(toCommaList(tsSchemaCols, 1));
+                sb.append(") = (");
+                sb.append(toParamList(tsSchemaCols, 1));
+                sb.append(")");
+                sb.append(" WHERE schema_name=?");
+            } else {
+                sb.append("INSERT INTO ").append(schemasTableName);
+                sb.append(" (");
+                sb.append(toCommaList(tsSchemaCols, 0));
+                sb.append(") VALUES (");
+                sb.append(toParamList(tsSchemaCols, 0));
+                sb.append(")");
+            }
+            String sql = sb.toString();
+            log.debug(sql);
+            PreparedStatement ps = conn.prepareStatement(sql);
+            
+            // load values: description, utype, schema_index, schema_name
+            sb = new StringBuilder();
+            int col = 1;
+            safeSetString(sb, ps, col++, schema.description);
+            safeSetString(sb, ps, col++, schema.utype);
+            safeSetInteger(sb, ps, col++, schema.schema_index);
+            safeSetString(sb, ps, col++, schema.getSchemaName());
+            
+            return ps;
         }
     }
     

@@ -65,50 +65,65 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.schema;
+package ca.nrc.cadc.tap.db;
 
-import ca.nrc.cadc.db.version.InitDatabase;
-import java.net.URL;
+import ca.nrc.cadc.db.DatabaseTransactionManager;
+import ca.nrc.cadc.tap.schema.TableDesc;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
- *
+ * Utility to create a database table based on tap_schema descriptor.
+ * 
  * @author pdowler
  */
-public class InitDatabaseTS extends InitDatabase {
-    private static final Logger log = Logger.getLogger(InitDatabaseTS.class);
+public class TableCreator {
+    private static final Logger log = Logger.getLogger(TableCreator.class);
 
-    public static final String MODEL_NAME = "TAP_SCHEMA";
-    public static final String MODEL_VERSION = "1.1.6";
-    public static final String PREV_MODEL_VERSION = "n/a";
-
-    static String[] CREATE_SQL = new String[] {
-        "tap_schema.ModelVersion.sql",
-        "tap_schema.KeyValue.sql",
-        "tap_schema11.sql",
-        "tap_schema_self11.sql",
-        "tap_schema.permissions.sql"
-    };
-
-    static String[] UPGRADE_SQL = new String[]{
-        
-    };
+    private final DataSource dataSource;
     
-    public InitDatabaseTS(DataSource dataSource, String database, String schema) {
-        super(dataSource, database, schema, MODEL_NAME, MODEL_VERSION, PREV_MODEL_VERSION);
-        for (String s : CREATE_SQL) {
-            createSQL.add(s);
-        }
-        for (String s : UPGRADE_SQL) {
-            upgradeSQL.add(s);
+    public TableCreator(DataSource dataSource) { 
+        this.dataSource = dataSource;
+    }
+    
+    public void createTable(TableDesc table) {
+        DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        try {
+            tm.startTransaction();
+            
+            String sql = generateCreate(table);
+            
+            log.debug("sql:\n" + sql);
+            jdbc.execute(sql);
+            
+            tm.commitTransaction();
+        } catch (Exception ex) {
+            try {
+                log.error("create table failed - rollback", ex);
+                tm.rollbackTransaction();
+                log.error("create table failed - rollback: OK");
+            } catch (Exception oops) {
+                log.error("create table failed - rollback : FAIL", oops);
+            }
+            // TODO: categorise failures better
+            throw new RuntimeException("failed to create table " + table.getTableName(), ex);
+        } finally { 
+            if (tm.isOpen()) {
+                log.error("BUG: open transaction in finally - trying to rollback");
+                try {
+                    tm.rollbackTransaction();
+                    log.error("BUG: rollback in finally: OK");
+                } catch (Exception oops) {
+                    log.error("BUG: rollback in finally: FAIL", oops);
+                }
+                throw new RuntimeException("BUG: open transaction in finally");
+            }
         }
     }
-
-    @Override
-    protected URL findSQL(String fname) {
-        return InitDatabaseTS.class.getClassLoader().getResource("postgresql/" + fname);
-    }
- 
     
+    private String generateCreate(TableDesc td) {
+        throw new UnsupportedOperationException("generateCreate");
+    }
 }

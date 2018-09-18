@@ -84,12 +84,14 @@ insert into tap_schema.columns11 (table_name,column_name,description,utype,ucd,u
 ( 'tap_schema.key_columns', 'target_column', 'column in the target_table',                NULL, NULL, NULL, 'char', '64*', NULL, 1,0,0,3 )
 ;
 
-insert into tap_schema.keys11 (key_id, from_table,target_table) values
+insert into tap_schema.keys11 (key_id,from_table,target_table) values
 ( 'k1', 'tap_schema.tables', 'tap_schema.schemas' ),
 ( 'k2', 'tap_schema.columns', 'tap_schema.tables' ), 
 ( 'k3', 'tap_schema.keys', 'tap_schema.tables' ),
 ( 'k4', 'tap_schema.keys', 'tap_schema.tables' ),
-( 'k5', 'tap_schema.key_columns', 'tap_schema.keys' )
+( 'k5', 'tap_schema.key_columns', 'tap_schema.keys' ),
+( 'k6', 'tap_schema.key_columns', 'tap_schema.columns' ),
+( 'k7', 'tap_schema.key_columns', 'tap_schema.columns' )
 ;
 
 insert into tap_schema.key_columns11 (key_id,from_column,target_column) values
@@ -97,7 +99,9 @@ insert into tap_schema.key_columns11 (key_id,from_column,target_column) values
 ( 'k2', 'table_name', 'table_name' ),
 ( 'k3', 'from_table', 'table_name' ),
 ( 'k4', 'target_table', 'table_name' ),
-( 'k5', 'key_id', 'key_id' )
+( 'k5', 'key_id', 'key_id' ),
+( 'k6', 'from_column', 'column_name' ),
+( 'k7', 'target_column', 'column_name' )
 ;
 
 -- backwards compatible: fill "size" column with values from arraysize set above
