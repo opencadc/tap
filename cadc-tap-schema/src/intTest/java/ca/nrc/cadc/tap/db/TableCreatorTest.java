@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2011.                            (c) 2011.
+*  (c) 2018.                            (c) 2018.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,86 +62,143 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
-*
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.schema;
+package ca.nrc.cadc.tap.db;
 
 
 import ca.nrc.cadc.db.ConnectionConfig;
 import ca.nrc.cadc.db.DBConfig;
 import ca.nrc.cadc.db.DBUtil;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.util.Log4jInit;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import javax.sql.DataSource;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 
 /**
  *
  * @author pdowler
  */
-public class TapSchemaDAOTest 
-{
-    private static final Logger log = Logger.getLogger(TapSchemaDAOTest.class);
+public class TableCreatorTest {
+    private static final Logger log = Logger.getLogger(TableCreatorTest.class);
 
-    public TapSchemaDAOTest() { }
+    static {
+        Log4jInit.setLevel("ca.nrc.cadc.tap.db", Level.INFO);
+    }
     
-    static DataSource dataSource;
+    private DataSource dataSource;
+    private final String TEST_SCHEMA = "tap_schema";
     
-    static
-    {
-        Log4jInit.setLevel("ca.nrc.cadc.tap.schema", Level.INFO);
-        
+    public TableCreatorTest() { 
         // create a datasource and register with JNDI
-        try
-        {
+        try {
             DBConfig conf = new DBConfig();
             ConnectionConfig cc = conf.getConnectionConfig("TAP_SCHEMA_TEST", "cadctest");
             dataSource = DBUtil.getDataSource(cc);
             log.info("configured data source: " + cc.getServer() + "," + cc.getDatabase() + "," + cc.getDriver() + "," + cc.getURL());
-        }
-        catch(Exception ex)
-        {
+        } catch (Exception ex) {
             log.error("setup failed", ex);
             throw new IllegalStateException("failed to create DataSource", ex);
         }
     }
     
     @Test
-    public void testReadTapSchemaSelf()
-    {
-        try
-        {
-            TapSchemaDAO dao = new TapSchemaDAO();
-            dao.setDataSource(dataSource);
-            TapSchema ts = dao.get();
-            boolean foundTS = false;
-            for (SchemaDesc sd : ts.getSchemaDescs())
-            {
-                if ( sd.getSchemaName().equalsIgnoreCase("TAP_SCHEMA"))
-                {
-                    foundTS = true;
-                    TableDesc ts_schemas = sd.getTable("TAP_SCHEMA.schemas");
-                    Assert.assertNotNull("found tap_schema.schemas", ts_schemas);
-                    
-                    TableDesc ts_tables = sd.getTable("TAP_SCHEMA.tables");
-                    Assert.assertNotNull("found tap_schema.tables", ts_tables);
-                    
-                    TableDesc ts_columns = sd.getTable("TAP_SCHEMA.columns");
-                    Assert.assertNotNull("found tap_schema.columns", ts_columns);
-                }
-            }
+    public void testCreateCore() {
+        try {
+            String testTable = TEST_SCHEMA + ".testCreateCore";
+            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            orig.tableType = TableDesc.TableType.TABLE;
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c1", TapDataType.SHORT));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c2", TapDataType.INTEGER));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c3", TapDataType.LONG));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c4", TapDataType.FLOAT));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c5", TapDataType.DOUBLE));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c6", TapDataType.TIMESTAMP));
             
-            Assert.assertTrue("found tap_schema", foundTS);
-        }
-        catch(Exception unexpected)
-        {
+            TableCreator tc = new TableCreator(dataSource);
+            tc.setDatabaseDataType(new BasicDataTypeMapper());
+            tc.createTable(orig);
+            log.info("createTable returned");
+            
+            String sql = "SELECT * from " + testTable;
+            JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+            List<List<Object>> rows = jdbc.query(sql, new SimpleRowMapper());
+            Assert.assertNotNull("rows", rows);
+            Assert.assertTrue("empty", rows.isEmpty());
+            log.info("queries empty table");
+            
+            // cleanup
+            tc.dropTable(testTable);
+        } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " +  unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
         }
+    }
+    
+    @Test
+    public void testInvalidTableName() {
+        try {
+            String testTable = TEST_SCHEMA + ".testInvalidTableName;drop table tap_schema.tables";
+            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            orig.tableType = TableDesc.TableType.TABLE;
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
+            
+            TableCreator tc = new TableCreator(dataSource);
+            tc.setDatabaseDataType(new BasicDataTypeMapper());
+            tc.createTable(orig);
+            Assert.fail("expected IllegalArgumentException - createTable returned");
+        } catch (IllegalArgumentException expected) {
+            log.info("caught expected exception: " + expected);
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+    
+    @Test
+    public void testInvalidColumnName() {
+        try {
+            String testTable = TEST_SCHEMA + ".testInvalidColumnName;drop table tap_schema.tables";
+            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            orig.tableType = TableDesc.TableType.TABLE;
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
+            
+            TableCreator tc = new TableCreator(dataSource);
+            tc.setDatabaseDataType(new BasicDataTypeMapper());
+            tc.createTable(orig);
+            Assert.fail("expected IllegalArgumentException - createTable returned");
+        } catch (IllegalArgumentException expected) {
+            log.info("caught expected exception: " + expected);
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+    
+    private static class SimpleRowMapper implements RowMapper {
+
+        @Override
+        public Object mapRow(ResultSet rs, int i) throws SQLException {
+            int num = rs.getMetaData().getColumnCount();
+            List<Object> ret = new ArrayList<Object>(num);
+            for (int c = 1; c <= num; c++) {
+                ret.add(rs.getObject(c));
+            }
+            return ret;
+        }
+        
     }
 }

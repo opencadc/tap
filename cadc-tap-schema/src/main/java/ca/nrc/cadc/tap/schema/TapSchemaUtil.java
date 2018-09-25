@@ -91,6 +91,17 @@ public class TapSchemaUtil {
      * @return
      */
     public static TableDesc createTableDesc(String schemaName, String tableName, VOTableTable votable) {
+        try {
+            checkValidIdentifier(schemaName);
+        } catch (ADQLIdentifierException ex) {
+            throw new IllegalArgumentException("invalid ADQL identifier (schema name): " + schemaName, ex);
+        }
+        try {
+            checkValidIdentifier(tableName);
+        } catch (ADQLIdentifierException ex) {
+            throw new IllegalArgumentException("invalid ADQL identifier (table name): " + tableName, ex);
+        }
+        
         TableDesc ret = new TableDesc(schemaName, tableName);
         if (votable == null) {
             throw new IllegalArgumentException("invalid input: no VOTable with column metadata");
@@ -130,6 +141,24 @@ public class TapSchemaUtil {
         ret.std = false;
 
         return ret;
+    }
+    
+    public static void checkValidTableName(String identifier)  throws ADQLIdentifierException {
+        String[] parts = identifier.split("[.]");
+        String schemaName = null;
+        String tableName = identifier;
+        if (parts.length == 2) {
+            schemaName = parts[0];
+            tableName = parts[1];
+        } else if (parts.length > 2) {
+            throw new ADQLIdentifierException("invalid table name: " + identifier + " (too many parts)");
+        }
+
+        if (schemaName != null) {
+            checkValidIdentifier(schemaName);
+        }
+        
+        checkValidIdentifier(tableName);
     }
 
     /**

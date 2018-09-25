@@ -68,7 +68,10 @@
 package ca.nrc.cadc.tap.db;
 
 import ca.nrc.cadc.db.DatabaseTransactionManager;
+import ca.nrc.cadc.tap.schema.ADQLIdentifierException;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapSchemaUtil;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -82,12 +85,30 @@ public class TableCreator {
     private static final Logger log = Logger.getLogger(TableCreator.class);
 
     private final DataSource dataSource;
+    private DatabaseDataType ddType;
     
     public TableCreator(DataSource dataSource) { 
         this.dataSource = dataSource;
     }
+
+    public void setDatabaseDataType(DatabaseDataType ddType) {
+        this.ddType = ddType;
+    }
     
     public void createTable(TableDesc table) {
+        try {
+            TapSchemaUtil.checkValidTableName(table.getTableName());
+        } catch (ADQLIdentifierException ex) {
+            throw new IllegalArgumentException("invalid table name: " + table.getTableName(), ex);
+        }
+        try {
+            for (ColumnDesc cd : table.getColumnDescs()) {
+                TapSchemaUtil.checkValidIdentifier(cd.getColumnName());
+            }
+        } catch (ADQLIdentifierException ex) {
+            throw new IllegalArgumentException(ex.getMessage());
+        }
+        
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         try {
@@ -123,7 +144,68 @@ public class TableCreator {
         }
     }
     
+    public void dropTable(String tableName) {
+        try {
+            TapSchemaUtil.checkValidTableName(tableName);
+        } catch (ADQLIdentifierException ex) {
+            throw new IllegalArgumentException("invalid table name: " + tableName, ex);
+        }
+        
+        DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        try {
+            TapSchemaUtil.checkValidTableName(tableName);
+            
+            tm.startTransaction();
+            
+            String sql = "DROP TABLE " + tableName;
+            
+            log.debug("sql:\n" + sql);
+            jdbc.execute(sql);
+            
+            tm.commitTransaction();
+        
+        } catch (Exception ex) {
+            try {
+                log.error("drop table failed - rollback", ex);
+                tm.rollbackTransaction();
+                log.error("drop table failed - rollback: OK");
+            } catch (Exception oops) {
+                log.error("drop table failed - rollback : FAIL", oops);
+            }
+            // TODO: categorise failures better
+            throw new RuntimeException("failed to drop table " + tableName, ex);
+        } finally { 
+            if (tm.isOpen()) {
+                log.error("BUG: open transaction in finally - trying to rollback");
+                try {
+                    tm.rollbackTransaction();
+                    log.error("BUG: rollback in finally: OK");
+                } catch (Exception oops) {
+                    log.error("BUG: rollback in finally: FAIL", oops);
+                }
+                throw new RuntimeException("BUG: open transaction in finally");
+            }
+        }
+    }
+    
     private String generateCreate(TableDesc td) {
-        throw new UnsupportedOperationException("generateCreate");
+        StringBuilder sb = new StringBuilder();
+        sb.append("CREATE TABLE ");
+        sb.append(td.getTableName()).append( "(");
+        for (int i = 0; i < td.getColumnDescs().size(); i++)
+        {
+            ColumnDesc columnDesc = td.getColumnDescs().get(i);
+            sb.append(columnDesc.getColumnName());
+            sb.append(" ");
+            sb.append(ddType.getDataType(columnDesc));
+            sb.append(" null ");
+            if (i + 1 < td.getColumnDescs().size())
+                sb.append(", ");
+        }
+        
+        sb.append(")");
+        
+        return sb.toString();
     }
 }

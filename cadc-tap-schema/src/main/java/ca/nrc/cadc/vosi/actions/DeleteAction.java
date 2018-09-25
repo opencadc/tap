@@ -70,10 +70,10 @@ package ca.nrc.cadc.vosi.actions;
 
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.tap.db.TableCreator;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * Drop table. This action drops a database table and removes the description
@@ -104,12 +104,9 @@ public class DeleteAction extends TablesAction {
             ts.setDataSource(ds);
             ts.delete(tableName);
             
-            // drop table: 
-            // if table description exists in tap_schema it is a valid SQL identifier so this
-            // is safe without a PreparedStatement; relies on delete above to throw ResourceNotFoundException
-            String sql = "DROP TABLE " + tableName;
-            JdbcTemplate jdbc = new JdbcTemplate(ds);
-            jdbc.execute(sql);
+            // drop table
+            TableCreator tc = new TableCreator(ds);
+            tc.dropTable(tableName);
             
             tm.commitTransaction();
         } catch (ResourceNotFoundException rethrow) { 
