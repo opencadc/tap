@@ -70,14 +70,18 @@ package ca.nrc.cadc.vosi.actions;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.db.version.KeyValue;
 import ca.nrc.cadc.db.version.KeyValueDAO;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import java.net.URI;
 import java.security.AccessControlException;
 import java.security.Principal;
+import java.util.Set;
+import java.util.TreeSet;
 import javax.naming.NamingException;
 import javax.security.auth.Subject;
 import javax.sql.DataSource;
@@ -172,11 +176,13 @@ public abstract class TablesAction extends RestAction {
     }
     
     void checkSchemaWritePermission(String schemaName) {
-        Principal owner = getSchemaOwner(schemaName);
+        Subject owner = getSchemaOwner(schemaName);
         Subject cur = AuthenticationUtil.getCurrentSubject();
-        for (Principal p : cur.getPrincipals()) {
-            if (AuthenticationUtil.equals(owner, p)) {
-                return;
+        for (Principal cp : cur.getPrincipals()) {
+            for (Principal op : owner.getPrincipals()) {
+                if (AuthenticationUtil.equals(op, cp)) {
+                    return;
+                }
             }
         }
         // TODO: group write permission check
@@ -185,25 +191,20 @@ public abstract class TablesAction extends RestAction {
     
     void checkTableWritePermission(String tableName) {
         String schemaName = getSchemaFromTable(tableName);
-        Principal owner = getSchemaOwner(schemaName);
+        Subject owner = getSchemaOwner(schemaName);
         Subject cur = AuthenticationUtil.getCurrentSubject();
-        for (Principal p : cur.getPrincipals()) {
-            if (AuthenticationUtil.equals(owner, p)) {
-                return;
+        for (Principal cp : cur.getPrincipals()) {
+            for (Principal op : owner.getPrincipals()) {
+                if (AuthenticationUtil.equals(op, cp)) {
+                    return;
+                }
             }
         }
         // TODO: group write permission check
         throw new AccessControlException("permission denied");
     }
     
-    private String getOwnerValue(Subject s) {
-        for (HttpPrincipal p : s.getPrincipals(HttpPrincipal.class)) {
-            return p.getName();
-        }
-        return null;
-    }
-    
-    private Principal getSchemaOwner(String schemaName) {
+    private Subject getSchemaOwner(String schemaName) {
         try {
             DataSource ds = getDataSource();
             KeyValueDAO dao = new KeyValueDAO(ds, null, "tap_schema");
@@ -213,14 +214,22 @@ public abstract class TablesAction extends RestAction {
                 // not listed : no one has permission
                 throw new AccessControlException("permission denied");
             }
-            String owner = kv.value;
-            log.info("schema: " + schemaName + " owner: " + owner);
-            return new HttpPrincipal(owner);
+
+            IdentityManager im = AuthenticationUtil.getIdentityManager();
+            if (im == null) {
+                throw new RuntimeException("CONFIG: no IdentityManager implementation available");
+            }
+            Subject s = im.toSubject(kv.value);
+            log.debug("schema: " + schemaName + " owner: " + s);
+            return s;
         } catch (AccessControlException rethrow) {
             throw rethrow;
         } catch (Exception ex) {
             throw new RuntimeException("CONFIG: failed to find schema owner", ex);
         }
-        
+    }
+    
+    private URI getSchemaWriteGroup(String schemaName) {
+        throw new UnsupportedOperationException("group permissions not implemented");
     }
 }
