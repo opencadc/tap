@@ -95,8 +95,8 @@ public class TableDescHandler implements InlineContentHandler {
     private static final Logger log = Logger.getLogger(TableDescHandler.class);
 
     private static final long BYTE_LIMIT = 1024 * 1024L; // 1 MiB
-    private static final String VOSI_TABLE_TYPE = "text/xml";
-    private static final String VOTABLE_TYPE = "application/x-votable+xml";
+    public static final String VOSI_TABLE_TYPE = "text/xml";
+    public static final String VOTABLE_TYPE = "application/x-votable+xml";
     
     private String objectTag;
     
