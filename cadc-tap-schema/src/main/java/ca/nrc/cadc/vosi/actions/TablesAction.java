@@ -138,7 +138,7 @@ public abstract class TablesAction extends RestAction {
     }
     
     String getTableName() {
-        log.warn("path: " + syncInput.getPath() 
+        log.debug("path: " + syncInput.getPath() 
                 + "\ncomponent: " + syncInput.getComponentPath()
                 + "\ncontext: " + syncInput.getContextPath()
                 + "\nrequest: " + syncInput.getRequestPath());

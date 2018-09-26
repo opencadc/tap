@@ -93,7 +93,7 @@ public class PutAction extends TablesAction {
     @Override
     public void doAction() throws Exception {
         String tableName = getTableName();
-        log.info("PUT: " + tableName);
+        log.debug("PUT: " + tableName);
         
         checkSchemaWritePermission(getSchemaFromTable(tableName));
         
@@ -144,7 +144,6 @@ public class PutAction extends TablesAction {
                 throw new RuntimeException("BUG: open transaction in finally");
             }
         }
-        
         syncOutput.setCode(200);
     }
 

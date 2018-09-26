@@ -91,7 +91,7 @@ public class GetAction extends TablesAction {
     @Override
     public void doAction() throws Exception {
         String tableName = getTableName();
-        log.info("GET: " + tableName);
+        log.debug("GET: " + tableName);
 
         int depth = TapSchemaDAO.MIN_DEPTH;
         // TODO: default depth used to be configurable... worth it?

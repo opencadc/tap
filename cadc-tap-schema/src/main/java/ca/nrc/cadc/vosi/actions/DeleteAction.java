@@ -90,7 +90,7 @@ public class DeleteAction extends TablesAction {
     @Override
     public void doAction() throws Exception {
         String tableName = getTableName();
-        log.info("DELETE: " + tableName);
+        log.debug("DELETE: " + tableName);
         
         checkSchemaWritePermission(getSchemaFromTable(tableName));
         
