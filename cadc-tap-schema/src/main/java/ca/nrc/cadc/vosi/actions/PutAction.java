@@ -70,9 +70,12 @@ package ca.nrc.cadc.vosi.actions;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.net.ResourceAlreadyExistsException;
 import ca.nrc.cadc.rest.InlineContentHandler;
+import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
 import ca.nrc.cadc.tap.db.TableCreator;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import java.util.List;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
@@ -93,11 +96,12 @@ public class PutAction extends TablesAction {
     @Override
     public void doAction() throws Exception {
         String tableName = getTableName();
+        String schemaName = getSchemaFromTable(tableName);
         log.debug("PUT: " + tableName);
         
-        checkSchemaWritePermission(getSchemaFromTable(tableName));
+        checkSchemaWritePermission(schemaName);
         
-        TableDesc inputTable = getInputTable();
+        TableDesc inputTable = getInputTable(schemaName, tableName);
         if (inputTable == null) {
             throw new IllegalArgumentException("no input table");
         }
@@ -116,6 +120,7 @@ public class PutAction extends TablesAction {
 
             // create table
             TableCreator tc = new TableCreator(ds);
+            tc.setDatabaseDataType(new BasicDataTypeMapper()); // TODO: dynamic load of type mapper
             tc.createTable(inputTable);
             
             // add to tap_schema
@@ -152,11 +157,16 @@ public class PutAction extends TablesAction {
         return new TableDescHandler(INPUT_TAG);
     }
     
-    private TableDesc getInputTable() {
-        TableDesc ret = (TableDesc) syncInput.getContent(INPUT_TAG);
-        if (ret == null) {
+    private TableDesc getInputTable(String schemaName, String tableName) {
+        TableDesc input = (TableDesc) syncInput.getContent(INPUT_TAG);
+        if (input == null) {
             throw new IllegalArgumentException("no input: expected a document describing the table to create");
         }
+        // input table with have a default schemaName
+        TableDesc ret = new TableDesc(schemaName, tableName);
+        ret.description = input.description;
+        ret.getColumnDescs().addAll(input.getColumnDescs());
+        
         return ret;
     }
 }

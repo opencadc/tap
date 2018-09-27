@@ -299,6 +299,7 @@ public class TapSchemaDAO
         return null;
     }
     
+    /*
     void put(SchemaDesc sd) {
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
@@ -318,15 +319,15 @@ public class TapSchemaDAO
         } catch (UnsupportedOperationException rethrow) {
             throw rethrow;
         } catch (Exception ex) {
-                try {
-                    log.error("PUT failed - rollback", ex);
-                    tm.rollbackTransaction();
-                    log.error("PUT failed - rollback: OK");
-                } catch (Exception oops) {
-                    log.error("PUT failed - rollback : FAIL", oops);
-                }
-                // TODO: categorise failures better
-                throw new RuntimeException("failed to persist " + sd.getSchemaName(), ex);
+            try {
+                log.error("PUT failed - rollback", ex);
+                tm.rollbackTransaction();
+                log.error("PUT failed - rollback: OK");
+            } catch (Exception oops) {
+                log.error("PUT failed - rollback : FAIL", oops);
+            }
+            // TODO: categorise failures better
+            throw new RuntimeException("failed to persist " + sd.getSchemaName(), ex);
         } finally { 
             if (tm.isOpen()) {
                 log.error("BUG: open transaction in finally - trying to rollback");
@@ -340,6 +341,8 @@ public class TapSchemaDAO
             }
         }
     }
+    */
+    
     /**
      * Insert or update a table and columns. This does not support add/remove/rename of columns
      * in a table
@@ -378,8 +381,17 @@ public class TapSchemaDAO
                     }
                 }
             }
+            SchemaDesc sd = getSchema(td.getSchemaName());
             
             tm.startTransaction();
+            
+            if (sd == null) {
+                sd = new SchemaDesc(td.getSchemaName());
+                PutSchemaStatement pss = new PutSchemaStatement(update);
+                log.debug("put missing schema: " + sd.getSchemaName());
+                pss.setSchema(sd);
+                jdbc.update(pss);
+            }
             
             PutTableStatement pts = new PutTableStatement(update);
             log.debug("put: " + td.getTableName());
@@ -517,7 +529,7 @@ public class TapSchemaDAO
             StringBuilder sb = new StringBuilder();
             sb.append("SELECT ").append(toCommaList(tsSchemaCols, 0));
             sb.append(" FROM ").append(tap_schema_tab);
-            
+
             // customisation
             String tmp = appendWhere(tap_schema_tab, sb.toString());
             

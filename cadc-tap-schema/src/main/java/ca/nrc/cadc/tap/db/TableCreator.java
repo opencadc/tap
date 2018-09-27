@@ -119,6 +119,11 @@ public class TableCreator {
             log.debug("sql:\n" + sql);
             jdbc.execute(sql);
             
+            // grant permissions
+            sql = "GRANT select on " + table.getTableName() +  " to public";
+            log.debug("sql:\n" + sql);
+            jdbc.execute(sql);
+            
             tm.commitTransaction();
         } catch (Exception ex) {
             try {
@@ -158,7 +163,7 @@ public class TableCreator {
             
             tm.startTransaction();
             
-            String sql = "DROP TABLE " + tableName;
+            String sql = "DROP TABLE IF EXISTS " + tableName;
             
             log.debug("sql:\n" + sql);
             jdbc.execute(sql);

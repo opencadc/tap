@@ -79,10 +79,12 @@ import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
+import ca.nrc.cadc.util.StringUtil;
 import ca.nrc.cadc.vosi.InvalidTableSetException;
 import ca.nrc.cadc.vosi.TableReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.log4j.Logger;
@@ -107,28 +109,29 @@ public class TableDescHandler implements InlineContentHandler {
     @Override
     public Content accept(String name, String contentType, InputStream in) throws InlineContentException, IOException {
         try {
-            List<ColumnDesc> cols = null;
+            TableDesc tab = null;
             if (VOSI_TABLE_TYPE.equalsIgnoreCase(contentType)) {
-                TableReader tr = new TableReader();
+                TableReader tr = new TableReader(false); // schema validation causes default arraysize="1" to be injected
                 ByteCountInputStream istream = new ByteCountInputStream(in, BYTE_LIMIT);
-                TableDesc td = tr.read(istream);
-                cols = td.getColumnDescs();
+                String xml = StringUtil.readFromInputStream(istream, "UTF-8");
+                log.debug("input xml:\n" + xml);
+                tab = tr.read(new StringReader(xml));
             } else if (VOTABLE_TYPE.equalsIgnoreCase(contentType)) {
                 VOTableReader tr = new VOTableReader();
                 ByteCountInputStream istream = new ByteCountInputStream(in, BYTE_LIMIT);
                 VOTableDocument doc = tr.read(istream);
-                cols = toTableDesc(doc);
+                tab = toTableDesc(doc);
             }
             InlineContentHandler.Content ret = new InlineContentHandler.Content();
             ret.name = objectTag;
-            ret.value = cols;
+            ret.value = tab;
             return ret;
         } catch (InvalidTableSetException ex) {
             throw new IllegalArgumentException("invalid input document", ex);
         }
     }
     
-    private List<ColumnDesc> toTableDesc(VOTableDocument doc) {
+    private TableDesc toTableDesc(VOTableDocument doc) {
         for (VOTableResource vr : doc.getResources()) {
             VOTableTable vtab = vr.getTable();
             if (vtab != null) {

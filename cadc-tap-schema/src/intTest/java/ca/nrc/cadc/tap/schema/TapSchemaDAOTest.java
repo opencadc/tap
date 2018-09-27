@@ -109,10 +109,10 @@ public class TapSchemaDAOTest {
             init.doInit();
             
             // add test schema so other test content will satisfy FK constraints
-            TapSchemaDAO dao = new TapSchemaDAO();
-            dao.setDataSource(dataSource);
-            SchemaDesc sd = new SchemaDesc(TEST_SCHEMA);
-            dao.put(sd);
+            //TapSchemaDAO dao = new TapSchemaDAO();
+            //dao.setDataSource(dataSource);
+            //SchemaDesc sd = new SchemaDesc(TEST_SCHEMA);
+            //dao.put(sd);
         } catch (Exception ex) {
             log.error("setup failed", ex);
             throw new IllegalStateException("failed to create DataSource", ex);
