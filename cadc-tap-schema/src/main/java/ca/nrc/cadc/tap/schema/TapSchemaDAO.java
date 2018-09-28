@@ -861,7 +861,7 @@ public class TapSchemaDAO
             safeSetString(sb, ps, col++, table.tableType.getValue());
             safeSetString(sb, ps, col++, table.description);
             safeSetString(sb, ps, col++, table.utype);
-            safeSetInteger(sb, ps, col++, table.table_index);
+            safeSetInteger(sb, ps, col++, table.tableIndex);
             safeSetString(sb, ps, col++, table.getSchemaName());
             safeSetString(sb, ps, col++, table.getTableName());
             

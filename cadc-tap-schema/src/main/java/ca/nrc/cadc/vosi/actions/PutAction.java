@@ -162,11 +162,13 @@ public class PutAction extends TablesAction {
         if (input == null) {
             throw new IllegalArgumentException("no input: expected a document describing the table to create");
         }
-        // input table with have a default schemaName
-        TableDesc ret = new TableDesc(schemaName, tableName);
-        ret.description = input.description;
-        ret.getColumnDescs().addAll(input.getColumnDescs());
         
-        return ret;
+        input.setSchemaName(schemaName);
+        input.setTableName(tableName);
+        for (ColumnDesc cd : input.getColumnDescs()) {
+            cd.setTableName(tableName);
+        }
+        
+        return input;
     }
 }

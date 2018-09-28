@@ -132,24 +132,27 @@ public class TableDescHandler implements InlineContentHandler {
     }
     
     private TableDesc toTableDesc(VOTableDocument doc) {
+        // TODO: reject if the table has any rows? try to insert them if it is small enough?
         for (VOTableResource vr : doc.getResources()) {
             VOTableTable vtab = vr.getTable();
             if (vtab != null) {
-                List<ColumnDesc> ret = new ArrayList<ColumnDesc>();
+                TableDesc ret = new TableDesc("default", "default.default");
                 int col = 0;
                 for (VOTableField f : vtab.getFields()) {
                     TapDataType dt = new TapDataType(f.getDatatype(), f.getArraysize(), f.xtype);
-                    ColumnDesc cd = new ColumnDesc(null, f.getName(), dt);
+                    ColumnDesc cd = new ColumnDesc(ret.getTableName(), f.getName(), dt);
                     cd.description = f.description;
                     cd.id = f.id;
                     cd.ucd = f.ucd;
                     cd.unit = f.unit;
                     cd.utype = f.utype;
                     cd.column_index = col++; // preserve order
-                    ret.add(cd);
+                    ret.getColumnDescs().add(cd);
                 }
+                log.debug("create from VOtable: " + ret);
+                return ret;
             }
         }
-        throw new UnsupportedOperationException("votable to tap_schema");
+        throw new IllegalArgumentException("no table description found in VOTable document");
     }
 }
