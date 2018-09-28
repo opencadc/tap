@@ -129,7 +129,6 @@ public class TableCreatorTest {
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c6", TapDataType.TIMESTAMP));
             
             TableCreator tc = new TableCreator(dataSource);
-            tc.setDatabaseDataType(new BasicDataTypeMapper());
             tc.createTable(orig);
             log.info("createTable returned");
             
@@ -157,7 +156,6 @@ public class TableCreatorTest {
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
             
             TableCreator tc = new TableCreator(dataSource);
-            tc.setDatabaseDataType(new BasicDataTypeMapper());
             tc.createTable(orig);
             Assert.fail("expected IllegalArgumentException - createTable returned");
         } catch (IllegalArgumentException expected) {
@@ -177,7 +175,6 @@ public class TableCreatorTest {
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
             
             TableCreator tc = new TableCreator(dataSource);
-            tc.setDatabaseDataType(new BasicDataTypeMapper());
             tc.createTable(orig);
             Assert.fail("expected IllegalArgumentException - createTable returned");
         } catch (IllegalArgumentException expected) {

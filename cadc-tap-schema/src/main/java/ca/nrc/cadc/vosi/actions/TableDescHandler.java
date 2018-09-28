@@ -79,6 +79,7 @@ import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
+import ca.nrc.cadc.tap.schema.TapSchemaUtil;
 import ca.nrc.cadc.util.StringUtil;
 import ca.nrc.cadc.vosi.InvalidTableSetException;
 import ca.nrc.cadc.vosi.TableReader;
@@ -136,19 +137,7 @@ public class TableDescHandler implements InlineContentHandler {
         for (VOTableResource vr : doc.getResources()) {
             VOTableTable vtab = vr.getTable();
             if (vtab != null) {
-                TableDesc ret = new TableDesc("default", "default.default");
-                int col = 0;
-                for (VOTableField f : vtab.getFields()) {
-                    TapDataType dt = new TapDataType(f.getDatatype(), f.getArraysize(), f.xtype);
-                    ColumnDesc cd = new ColumnDesc(ret.getTableName(), f.getName(), dt);
-                    cd.description = f.description;
-                    cd.id = f.id;
-                    cd.ucd = f.ucd;
-                    cd.unit = f.unit;
-                    cd.utype = f.utype;
-                    cd.column_index = col++; // preserve order
-                    ret.getColumnDescs().add(cd);
-                }
+                TableDesc ret = TapSchemaUtil.createTableDesc("default", "default", vtab);
                 log.debug("create from VOtable: " + ret);
                 return ret;
             }

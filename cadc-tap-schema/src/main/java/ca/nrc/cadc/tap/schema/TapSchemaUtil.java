@@ -97,7 +97,7 @@ public class TapSchemaUtil {
             throw new IllegalArgumentException("invalid ADQL identifier (schema name): " + schemaName, ex);
         }
         try {
-            checkValidIdentifier(tableName);
+            checkValidTableName(tableName);
         } catch (ADQLIdentifierException ex) {
             throw new IllegalArgumentException("invalid ADQL identifier (table name): " + tableName, ex);
         }

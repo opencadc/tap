@@ -120,7 +120,6 @@ public class PutAction extends TablesAction {
 
             // create table
             TableCreator tc = new TableCreator(ds);
-            tc.setDatabaseDataType(new BasicDataTypeMapper()); // TODO: dynamic load of type mapper
             tc.createTable(inputTable);
             
             // add to tap_schema

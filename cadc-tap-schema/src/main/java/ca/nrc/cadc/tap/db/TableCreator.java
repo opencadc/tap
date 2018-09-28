@@ -68,6 +68,7 @@
 package ca.nrc.cadc.tap.db;
 
 import ca.nrc.cadc.db.DatabaseTransactionManager;
+import ca.nrc.cadc.tap.PluginFactory;
 import ca.nrc.cadc.tap.schema.ADQLIdentifierException;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
@@ -89,12 +90,11 @@ public class TableCreator {
     
     public TableCreator(DataSource dataSource) { 
         this.dataSource = dataSource;
+        PluginFactory pf = new PluginFactory();
+        this.ddType = pf.getDatabaseDataType();
+        log.warn("loaded: " + ddType.getClass().getName());
     }
 
-    public void setDatabaseDataType(DatabaseDataType ddType) {
-        this.ddType = ddType;
-    }
-    
     public void createTable(TableDesc table) {
         try {
             TapSchemaUtil.checkValidTableName(table.getTableName());

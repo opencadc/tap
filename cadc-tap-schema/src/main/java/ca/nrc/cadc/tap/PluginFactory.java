@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2014.                            (c) 2014.
+*  (c) 2018.                            (c) 2018.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,106 +62,78 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
-*
 ************************************************************************
 */
 
 package ca.nrc.cadc.tap;
 
-import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.schema.TapSchema;
+
+import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
+import ca.nrc.cadc.tap.db.DatabaseDataType;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import ca.nrc.cadc.tap.writer.format.DefaultFormatFactory;
-import ca.nrc.cadc.tap.writer.format.FormatFactory;
-import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.uws.Job;
-import ca.nrc.cadc.uws.Parameter;
-import java.util.HashMap;
-import java.util.Map;
-import org.apache.log4j.Level;
+import java.net.URL;
+import java.util.Properties;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Test;
 
 /**
  *
  * @author pdowler
  */
-public class PluginFactoryTest 
-{
-    private static final Logger log = Logger.getLogger(PluginFactoryTest.class);
+public class PluginFactory {
+    private static final Logger log = Logger.getLogger(PluginFactory.class);
+
+    private static final String CONFIG = PluginFactory.class.getSimpleName() + ".properties";
     
-    static
-    {
-        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
-    }
+    protected final Properties config;
     
-    Job job = new Job() 
-    {
-        @Override
-        public String getID() { return "abcdefg"; }
-    };
-            
-    public PluginFactoryTest() { }
-    
-    //@Test
-    public void testTemplate()
-    {
-        try
-        {
-            
-        }
-        catch(Exception unexpected)
-        {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
+    public PluginFactory() { 
+        this.config = new Properties();
+        URL url = null;
+        try {
+
+            url = PluginFactory.class.getClassLoader().getResource(CONFIG);
+            if (url != null) {
+                config.load(url.openStream());
+            }
+        } catch (Exception ex) {
+            throw new RuntimeException("failed to read " + CONFIG + " from " + url, ex);
         }
     }
     
-    @Test
-    public void testSetup()
-    {
-        try
-        {
-            job.getParameterList().clear();
-            job.getParameterList().add(new Parameter("LANG", "ADQL"));
-            
-            PluginFactoryImpl pf = new PluginFactoryImpl(job);
-            
-            try
-            {
-                Assert.assertNull(pf.getTapQuery()); // no default
+    public DatabaseDataType getDatabaseDataType() {
+        final DatabaseDataType ret;
+        final String name = DatabaseDataType.class.getName();
+        final String cname = config.getProperty(name);
+        if (cname == null) {
+            ret = new BasicDataTypeMapper();
+        } else {
+            try {
+                Class c = Class.forName(cname);
+                ret = (DatabaseDataType) c.newInstance();
+            } catch (Throwable ex) {
+                throw new RuntimeException("config error: failed to create DatabaseDataType " + cname, ex);
+
             }
-            catch(IllegalArgumentException expected)
-            {
-                log.debug("caught expected exception: " + expected);
+        }
+
+        return ret;
+    }
+
+
+    public TapSchemaDAO getTapSchemaDAO() {
+        final TapSchemaDAO ret;
+        String name = TapSchemaDAO.class.getName();
+        String cname = config.getProperty(name);
+        if (cname == null) {
+            ret = new TapSchemaDAO();
+        } else {
+            try {
+                Class c = Class.forName(cname);
+                ret = (TapSchemaDAO) c.newInstance();
+            } catch (Throwable ex) {
+                throw new RuntimeException("config error: failed to create TapSchemaDAO " + cname, ex);
             }
-            
-            MaxRecValidator mrv = pf.getMaxRecValidator();
-            Assert.assertNotNull(mrv);
-            Assert.assertEquals(MaxRecValidator.class, mrv.getClass()); // default impl
-            
-            UploadManager um = pf.getUploadManager();
-            Assert.assertNotNull(um);
-            Assert.assertEquals(DefaultUploadManager.class, um.getClass()); // default impl
-            
-            TableWriter tw = pf.getTableWriter();
-            Assert.assertNotNull(tw);
-            Assert.assertEquals(DefaultTableWriter.class, tw.getClass()); // default impl
-            
-            FormatFactory ff = pf.getFormatFactory();
-            Assert.assertNotNull(ff);
-            Assert.assertEquals(DefaultFormatFactory.class, ff.getClass()); // default impl
-            
-            TapSchemaDAO tsd = pf.getTapSchemaDAO();
-            Assert.assertNotNull(tsd);
-            Assert.assertEquals(TapSchemaDAO.class, tsd.getClass()); // default impl
         }
-        catch(Exception unexpected)
-        {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
-        }
+        return ret;
     }
 }
