@@ -83,18 +83,18 @@ public class BasicDataTypeMapper implements DatabaseDataType
 {
     private static final Logger log = Logger.getLogger(BasicDataTypeMapper.class);
 
-    protected class TypePair
+    protected static class TypePair
     {
         /**
          * Column type for use in create table.
          */
-        String str;
+        public String str;
         
         /**
          * Column type for use in PreparedStatement set methods.
          */
         Integer num;
-        TypePair(String s, Integer n)
+        public TypePair(String s, Integer n)
         {
             this.str = s;
             this.num = n;
@@ -148,13 +148,13 @@ public class BasicDataTypeMapper implements DatabaseDataType
         if (ret.equals("CHAR"))
         {
             if (tt.isVarSize())
-                ret = "VARCHAR";
+                ret = getVarCharType();
             int[] arrayshape = VOTableUtil.getArrayShape(tt.arraysize);
             if (arrayshape != null && arrayshape[0] > 0)
                     ret += "(" + arrayshape[0] + ")";
             else if (tt.isVarSize())
             {
-                ret += "(4096)"; // HACK: arbitrary sensible limit
+                ret += getDefaultCharlimit(); // HACK: arbitrary sensible limit
             }
         }
         
@@ -198,5 +198,26 @@ public class BasicDataTypeMapper implements DatabaseDataType
         
         log.debug("findTypePair: " + tt + " -> " + dbt);
         return dbt;
+    }
+    
+    /**
+     * Return the default quantifier (length of char or varchar columns) when none is
+     * specified. The return must include the correct form of braces in addition to the
+     * size. The default return value is <code>(4096)</code>.
+     * 
+     * @return 
+     */
+    protected String getDefaultCharlimit() {
+        return "(4096)";
+    }
+    
+    /**
+     * Return the database type to use for variable-length character columns. The default
+     * return value is <code>VARCHAR</code>.
+     * 
+     * @return 
+     */
+    protected String getVarCharType() {
+        return "VARCHAR";
     }
 }

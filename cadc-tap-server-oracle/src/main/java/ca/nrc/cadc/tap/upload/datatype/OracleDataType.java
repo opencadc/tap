@@ -34,23 +34,28 @@
 
 package ca.nrc.cadc.tap.upload.datatype;
 
-import java.sql.Types;
-
+import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
+import java.sql.Types;
 
-
+/**
+ * 
+ * @author pdowler
+ */
 public class OracleDataType extends BasicDataTypeMapper {
     // HACK: arbitrary sensible limit.  Maximum is 4000 for Oracle.
-    private static final int DEFAULT_VARCHAR2_QUANTIFIER = 3072;
+    private static final String DEFAULT_VARCHAR2_QUANTIFIER = "(3072)";
 
 
     public OracleDataType() {
+        // override mapping in super class
         dataTypes.put(TapDataType.INTEGER, new TypePair("INT", Types.INTEGER));
-        dataTypes.put(TapDataType.CLOB, new TypePair("VARCHAR2", Types.VARCHAR));
+        dataTypes.put(TapDataType.CLOB, new TypePair("CHAR", Types.INTEGER));
     }
 
-
+    
+/*
     @Override
     public String getDataType(final ColumnDesc columnDesc) {
         final StringBuilder columnDataType = new StringBuilder();
@@ -85,5 +90,16 @@ public class OracleDataType extends BasicDataTypeMapper {
         } catch (NumberFormatException e) {
             return new Double(Double.NaN).intValue();
         }
+    }
+*/
+
+    @Override
+    protected String getVarCharType() {
+        return "VARCHAR2";
+    }
+
+    @Override
+    protected String getDefaultCharlimit() {
+        return DEFAULT_VARCHAR2_QUANTIFIER;
     }
 }

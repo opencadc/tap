@@ -69,8 +69,8 @@
 
 package ca.nrc.cadc.tap.upload.datatype;
 
+import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
 import ca.nrc.cadc.tap.schema.TapDataType;
-
 import java.sql.Types;
 import org.apache.log4j.Logger;
 

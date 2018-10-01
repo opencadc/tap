@@ -12,7 +12,7 @@ repositories {
 
 sourceCompatibility = 1.7
 group = 'org.opencadc'
-version = '1.0.2'
+version = '1.0.3'
 
 dependencies {
     compile 'org.opencadc:cadc-dali-pg:[0.1,)'
