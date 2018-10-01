@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2018.                            (c) 2018.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,24 +62,60 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
-*
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.upload.datatype;
+package ca.nrc.cadc.tap.pg;
 
-import ca.nrc.cadc.tap.pg.PostgresDataTypeMapper;
+
+import ca.nrc.cadc.dali.DoubleInterval;
+import ca.nrc.cadc.dali.postgresql.PgInterval;
+import ca.nrc.cadc.dali.util.DoubleIntervalArrayFormat;
+import ca.nrc.cadc.dali.util.DoubleIntervalFormat;
+import ca.nrc.cadc.tap.writer.format.AbstractResultSetFormat;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import org.apache.log4j.Logger;
 
 /**
- * Backwards compatible place-holder.
- * 
+ *
  * @author pdowler
- * @deprecated use ca.nrc.cadc.tap.pg.PostgresDataTypeMapper directly
  */
-@Deprecated
-public class PostgreSQLDataType extends PostgresDataTypeMapper {
-    public PostgreSQLDataType() {
-        super();
+public class IntervalFormat extends AbstractResultSetFormat {
+    private static final Logger log = Logger.getLogger(IntervalFormat.class);
+
+    private DoubleIntervalFormat fmt = new DoubleIntervalFormat();
+    private DoubleIntervalArrayFormat afmt = new DoubleIntervalArrayFormat();
+    private boolean intervalArray;
+
+    public IntervalFormat(boolean intervalArray) {
+        this.intervalArray = intervalArray;
+    }
+
+    @Override
+    public Object extract(ResultSet resultSet, int columnIndex)
+            throws SQLException {
+        return resultSet.getString(columnIndex);
+    }
+
+    @Override
+    public String format(Object object) {
+        if (object == null) {
+            return "";
+        }
+        if (object instanceof String) {
+            String s = (String) object;
+            log.debug("in: " + s);
+            PgInterval pgi = new PgInterval();
+            if (intervalArray) {
+                DoubleInterval[] i = pgi.getIntervalArray(s);
+                return afmt.format(i);
+            } else {
+                DoubleInterval i = pgi.getInterval(s);
+                return fmt.format(i);
+            }
+        }
+        // this might help debugging more than a throw
+        return object.toString();
     }
 }

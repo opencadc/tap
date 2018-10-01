@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2018.                            (c) 2018.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,24 +62,34 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
-*
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.upload.datatype;
+package ca.nrc.cadc.tap.pg;
 
-import ca.nrc.cadc.tap.pg.PostgresDataTypeMapper;
+
+import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
+import ca.nrc.cadc.tap.schema.TapDataType;
+import java.sql.Types;
+import org.apache.log4j.Logger;
 
 /**
- * Backwards compatible place-holder.
- * 
+ *
  * @author pdowler
- * @deprecated use ca.nrc.cadc.tap.pg.PostgresDataTypeMapper directly
  */
-@Deprecated
-public class PostgreSQLDataType extends PostgresDataTypeMapper {
-    public PostgreSQLDataType() {
-        super();
+public class PostgresDataTypeMapper extends BasicDataTypeMapper {
+    private static final Logger log = Logger.getLogger(PostgresDataTypeMapper.class);
+
+    public PostgresDataTypeMapper() {
+        dataTypes.put(TapDataType.POINT, new TypePair("spoint", null));
+        dataTypes.put(TapDataType.CIRCLE, new TypePair("scircle", null));
+        dataTypes.put(TapDataType.POLYGON, new TypePair("spoly", null));
+        dataTypes.put(TapDataType.INTERVAL, new TypePair("polygon", null));
+        
+        dataTypes.put(new TapDataType("char", "*", "uri"), new TypePair("CHAR", Types.CHAR));
+        dataTypes.put(new TapDataType("char", "36", "uuid"), new TypePair("uuid", null));
+        
+        dataTypes.put(new TapDataType("char", "*", "adql:POINT"), new TypePair("spoint", null));
+        dataTypes.put(new TapDataType("char", "*", "adql:REGION"), new TypePair("spoly", null));
     }
 }

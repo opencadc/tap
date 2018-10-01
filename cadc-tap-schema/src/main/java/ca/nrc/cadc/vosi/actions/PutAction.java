@@ -164,8 +164,10 @@ public class PutAction extends TablesAction {
         
         input.setSchemaName(schemaName);
         input.setTableName(tableName);
+        int c = 0;
         for (ColumnDesc cd : input.getColumnDescs()) {
             cd.setTableName(tableName);
+            cd.column_index = c++;
         }
         
         return input;
