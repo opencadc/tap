@@ -84,6 +84,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 
@@ -115,9 +116,13 @@ public class TableCreatorTest {
     }
     
     @Test
-    public void testCreateCore() {
+    public void testCreateTable() {
         try {
-            String testTable = TEST_SCHEMA + ".testCreateCore";
+            String testTable = TEST_SCHEMA + ".testCreateTable";
+            // cleanup
+            TableCreator tc = new TableCreator(dataSource);
+            tc.dropTable(testTable);
+            
             TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
@@ -128,7 +133,6 @@ public class TableCreatorTest {
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c5", TapDataType.DOUBLE));
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c6", TapDataType.TIMESTAMP));
             
-            TableCreator tc = new TableCreator(dataSource);
             tc.createTable(orig);
             log.info("createTable returned");
             
@@ -146,6 +150,85 @@ public class TableCreatorTest {
             Assert.fail("unexpected exception: " + unexpected);
         }
     }
+    
+    @Test
+    public void testCreateIndex() {
+        try {
+            String testTable = TEST_SCHEMA + ".testCreateIndex";
+            // cleanup
+            TableCreator tc = new TableCreator(dataSource);
+            tc.dropTable(testTable);
+            
+            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            orig.tableType = TableDesc.TableType.TABLE;
+            ColumnDesc col = new ColumnDesc(testTable, "c0", TapDataType.STRING);
+            orig.getColumnDescs().add(col);
+            
+            tc.createTable(orig);
+            log.info("createTable returned");
+            
+            tc.createIndex(col, false);
+            log.info("createIndex returned");
+            
+            String sql = "SELECT * from " + testTable;
+            JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+            List<List<Object>> rows = jdbc.query(sql, new SimpleRowMapper());
+            Assert.assertNotNull("rows", rows);
+            Assert.assertTrue("empty", rows.isEmpty());
+            log.info("queries empty table");
+            
+            // cleanup
+            tc.dropTable(testTable);
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+    
+    @Test
+    public void testCreateUniqueIndex() {
+        try {
+            String testTable = TEST_SCHEMA + ".testCreateUniqueIndex";
+            // cleanup
+            TableCreator tc = new TableCreator(dataSource);
+            tc.dropTable(testTable);
+            
+            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            orig.tableType = TableDesc.TableType.TABLE;
+            ColumnDesc col = new ColumnDesc(testTable, "c0", TapDataType.STRING);
+            orig.getColumnDescs().add(col);
+            
+            tc.createTable(orig);
+            log.info("createTable returned");
+            
+            tc.createIndex(col, true);
+            log.info("createIndex returned");
+            
+            String sql = "SELECT * from " + testTable;
+            JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+            List<List<Object>> rows = jdbc.query(sql, new SimpleRowMapper());
+            Assert.assertNotNull("rows", rows);
+            Assert.assertTrue("empty", rows.isEmpty());
+            log.info("queries empty table");
+            
+            String insert = "INSERT INTO " + testTable + "(c0) values ('foo')";
+            int n = jdbc.update(insert);
+            Assert.assertEquals("insert", 1, n);
+            try {
+                n = jdbc.update(insert);
+                Assert.fail("expected exception but inserted duplicate value n=" + n);
+            } catch (DataIntegrityViolationException expected) {
+                log.info("caught expected exception: " + expected);
+            }
+            
+            // cleanup
+            tc.dropTable(testTable);
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+    
     
     @Test
     public void testInvalidTableName() {
