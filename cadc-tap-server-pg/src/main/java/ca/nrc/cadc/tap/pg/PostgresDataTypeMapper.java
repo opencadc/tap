@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2018.                            (c) 2018.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,49 +62,34 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
-*
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.upload.datatype;
+package ca.nrc.cadc.tap.pg;
 
-import ca.nrc.cadc.tap.upload.VOTableParserException;
+
+import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
+import ca.nrc.cadc.tap.schema.TapDataType;
 import java.sql.Types;
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.log4j.Logger;
 
 /**
- * Constants from various TAP specifications.
+ *
+ * @author pdowler
  */
-public class TapConstants
-{
-    public static final String TAP10_SMALLINT = "adql:SMALLINT";
-    public static final String TAP10_INTEGER = "adql:INTEGER";
-    public static final String TAP10_BIGINT = "adql:BIGINT";
-    public static final String TAP10_REAL = "adql:REAL";
-    public static final String TAP10_DOUBLE = "adql:DOUBLE";
-    public static final String TAP10_CHAR = "adql:CHAR";
-    public static final String TAP10_VARCHAR = "adql:VARCHAR";
-    public static final String TAP10_TIMESTAMP = "adql:TIMESTAMP";
-    public static final String TAP10_CLOB = "adql:CLOB";
-    public static final String TAP10_POINT = "adql:POINT";
-    public static final String TAP10_REGION = "adql:REGION";
-    
-    //public static final String VOT_CHAR = "char";
-    //public static final String VOT_SHORT = "short";
-    //public static final String VOT_INT = "int";
-    //public static final String VOT_LONG = "long";
-    //public static final String VOT_FLOAT = "float";
-    //public static final String VOT_DOUBLE = "double";
-    //public static final String VOT_BOOLEAN = "boolean";
-    //public static final String VOT_BYTE = "byte";
-    //public static final String VOT_UNSIGNED_BYTE = "unsignedByte";
+public class PostgresDataTypeMapper extends BasicDataTypeMapper {
+    private static final Logger log = Logger.getLogger(PostgresDataTypeMapper.class);
 
-    //public static final String XTYPE_TIMESTAMP = "timestamp";
-    //public static final String XTYPE_INTERVAL = "interval";
-    //public static final String XTYPE_POINT = "point";
-    //public static final String XTYPE_CIRCLE = "circle";
-    //public static final String XTYPE_POLYGON = "polygon";
+    public PostgresDataTypeMapper() {
+        dataTypes.put(TapDataType.POINT, new TypePair("spoint", null));
+        dataTypes.put(TapDataType.CIRCLE, new TypePair("scircle", null));
+        dataTypes.put(TapDataType.POLYGON, new TypePair("spoly", null));
+        dataTypes.put(TapDataType.INTERVAL, new TypePair("polygon", null));
+        
+        dataTypes.put(new TapDataType("char", "*", "uri"), new TypePair("CHAR", Types.CHAR));
+        dataTypes.put(new TapDataType("char", "36", "uuid"), new TypePair("uuid", null));
+        
+        dataTypes.put(new TapDataType("char", "*", "adql:POINT"), new TypePair("spoint", null));
+        dataTypes.put(new TapDataType("char", "*", "adql:REGION"), new TypePair("spoly", null));
+    }
 }

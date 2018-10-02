@@ -69,12 +69,11 @@
 
 package ca.nrc.cadc.tap;
 
+import ca.nrc.cadc.tap.db.DatabaseDataType;
 import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.upload.datatype.DatabaseDataType;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
 import ca.nrc.cadc.uws.ParameterUtil;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

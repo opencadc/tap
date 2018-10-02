@@ -130,6 +130,7 @@ public class TableReader extends TableSetParser
     {
         String tn = te.getChildTextTrim("name");
         TableDesc td = new TableDesc(schemaName, tn);
+        td.description = te.getChildTextTrim("description");
         List<Element> cols = te.getChildren("column");
         for (Element ce : cols)
         {
@@ -163,6 +164,7 @@ public class TableReader extends TableSetParser
             
             TapDataType tt = new TapDataType(dtv, arraysize, xtype);
             ColumnDesc cd = new ColumnDesc(tn, cn, tt);
+            cd.description = ce.getChildTextTrim("description");
             td.getColumnDescs().add(cd);
         }
         

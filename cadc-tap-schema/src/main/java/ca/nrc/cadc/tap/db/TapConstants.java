@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2014.                            (c) 2014.
+*  (c) 2018.                            (c) 2018.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,106 +62,27 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
+*  $Revision: 4 $
 *
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap;
-
-import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.schema.TapSchema;
-import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import ca.nrc.cadc.tap.writer.format.DefaultFormatFactory;
-import ca.nrc.cadc.tap.writer.format.FormatFactory;
-import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.uws.Job;
-import ca.nrc.cadc.uws.Parameter;
-import java.util.HashMap;
-import java.util.Map;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Test;
+package ca.nrc.cadc.tap.db;
 
 /**
- *
- * @author pdowler
+ * Constants from various TAP specifications.
  */
-public class PluginFactoryTest 
+public class TapConstants
 {
-    private static final Logger log = Logger.getLogger(PluginFactoryTest.class);
-    
-    static
-    {
-        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
-    }
-    
-    Job job = new Job() 
-    {
-        @Override
-        public String getID() { return "abcdefg"; }
-    };
-            
-    public PluginFactoryTest() { }
-    
-    //@Test
-    public void testTemplate()
-    {
-        try
-        {
-            
-        }
-        catch(Exception unexpected)
-        {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
-        }
-    }
-    
-    @Test
-    public void testSetup()
-    {
-        try
-        {
-            job.getParameterList().clear();
-            job.getParameterList().add(new Parameter("LANG", "ADQL"));
-            
-            PluginFactoryImpl pf = new PluginFactoryImpl(job);
-            
-            try
-            {
-                Assert.assertNull(pf.getTapQuery()); // no default
-            }
-            catch(IllegalArgumentException expected)
-            {
-                log.debug("caught expected exception: " + expected);
-            }
-            
-            MaxRecValidator mrv = pf.getMaxRecValidator();
-            Assert.assertNotNull(mrv);
-            Assert.assertEquals(MaxRecValidator.class, mrv.getClass()); // default impl
-            
-            UploadManager um = pf.getUploadManager();
-            Assert.assertNotNull(um);
-            Assert.assertEquals(DefaultUploadManager.class, um.getClass()); // default impl
-            
-            TableWriter tw = pf.getTableWriter();
-            Assert.assertNotNull(tw);
-            Assert.assertEquals(DefaultTableWriter.class, tw.getClass()); // default impl
-            
-            FormatFactory ff = pf.getFormatFactory();
-            Assert.assertNotNull(ff);
-            Assert.assertEquals(DefaultFormatFactory.class, ff.getClass()); // default impl
-            
-            TapSchemaDAO tsd = pf.getTapSchemaDAO();
-            Assert.assertNotNull(tsd);
-            Assert.assertEquals(TapSchemaDAO.class, tsd.getClass()); // default impl
-        }
-        catch(Exception unexpected)
-        {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
-        }
-    }
+    public static final String TAP10_SMALLINT = "adql:SMALLINT";
+    public static final String TAP10_INTEGER = "adql:INTEGER";
+    public static final String TAP10_BIGINT = "adql:BIGINT";
+    public static final String TAP10_REAL = "adql:REAL";
+    public static final String TAP10_DOUBLE = "adql:DOUBLE";
+    public static final String TAP10_CHAR = "adql:CHAR";
+    public static final String TAP10_VARCHAR = "adql:VARCHAR";
+    public static final String TAP10_TIMESTAMP = "adql:TIMESTAMP";
+    public static final String TAP10_CLOB = "adql:CLOB";
+    public static final String TAP10_POINT = "adql:POINT";
+    public static final String TAP10_REGION = "adql:REGION";
 }

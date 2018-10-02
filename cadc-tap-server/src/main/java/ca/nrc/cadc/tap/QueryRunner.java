@@ -178,17 +178,10 @@ public class QueryRunner implements JobRunner
         log.info(logInfo.end());
     }
 
-    /**
-     * Factory method to create the PluginFactory. The default implementation
-     * can be configured using a properties file, but if the application requires
-     * integration with some other configuration system then this method could be
-     * overridden to create a custom subclass of PluginFactory.
-     * 
-     * @return 
-     */
-    protected PluginFactory getPluginFactory()
+    
+    protected PluginFactoryImpl getPluginFactory()
     {
-        return new PluginFactory(job);
+        return new PluginFactoryImpl(job);
     }
     
     /**
@@ -220,7 +213,7 @@ public class QueryRunner implements JobRunner
     }
     
     /**
-     * Get the DataSOurce to be used to insert uploaded tables into the database. 
+     * Get the DataSource to be used to insert uploaded tables into the database. 
      * By default, this uses JNDI to find an app-server supplied DataSource named 
      * <code>jdbc/tapuploadadm</code>.
      * 
@@ -247,7 +240,7 @@ public class QueryRunner implements JobRunner
         log.debug("run: " + job.getID());
         List<Parameter> paramList = job.getParameterList();
         log.debug("job " + job.getID() + ": " + paramList.size() + " parameters");
-        PluginFactory pfac = getPluginFactory();
+        PluginFactoryImpl pfac = getPluginFactory();
         log.debug("loaded: " + pfac);
 
         ResultStore rs = null;

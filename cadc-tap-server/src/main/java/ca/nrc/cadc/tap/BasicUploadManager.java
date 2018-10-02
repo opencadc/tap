@@ -66,6 +66,7 @@
 *
 ************************************************************************
 */
+
 package ca.nrc.cadc.tap;
 
 import ca.nrc.cadc.dali.Circle;
@@ -76,6 +77,9 @@ import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.stc.Position;
 import ca.nrc.cadc.stc.Region;
 import ca.nrc.cadc.stc.StcsParsingException;
+import ca.nrc.cadc.tap.db.DatabaseDataType;
+import ca.nrc.cadc.tap.db.TableCreator;
+import ca.nrc.cadc.tap.db.TapConstants;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.upload.JDOMVOTableParser;
@@ -83,8 +87,6 @@ import ca.nrc.cadc.tap.upload.UploadParameters;
 import ca.nrc.cadc.tap.upload.UploadTable;
 import ca.nrc.cadc.tap.upload.VOTableParser;
 import ca.nrc.cadc.tap.upload.VOTableParserException;
-import ca.nrc.cadc.tap.upload.datatype.DatabaseDataType;
-import ca.nrc.cadc.tap.upload.datatype.TapConstants;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
 import java.io.IOException;
@@ -219,12 +221,6 @@ public class BasicUploadManager implements UploadManager
                 return metadata;
             }
 
-            // acquire connection
-            con = dataSource.getConnection();
-
-            con.setAutoCommit(false);
-            txn = true;
-
             // Process each table.
             for (UploadTable uploadTable : uploadParameters.uploadTables)
             {
@@ -246,26 +242,20 @@ public class BasicUploadManager implements UploadManager
                 metadata.put(databaseTableName, tableDesc);
                 log.debug("upload table: " + databaseTableName + " aka " + tableDesc);
                 
-                // Build the SQL to create the table.
-                String tableSQL = getCreateTableSQL(tableDesc, databaseTableName, databaseDataType);
-                log.debug("Create table SQL: " + tableSQL);
-
-                // Create the table.
-                stmt = con.createStatement();
-                stmt.executeUpdate(tableSQL);
+                String tableName = tableDesc.getTableName();
+                tableDesc.setTableName(databaseTableName);
+                TableCreator tc = new TableCreator(dataSource);
+                tc.createTable(tableDesc);
+                tableDesc.setTableName(tableName);
                 
-                // Grant select access for others to query.
-                String grantSQL = getGrantSelectTableSQL(databaseTableName);
-                if (grantSQL != null && !grantSQL.isEmpty())
-                {
-                    log.debug("Grant select SQL: " + grantSQL);
-                    stmt.executeUpdate(grantSQL);
-                }
-                
-                // commit the create and grant
-                con.commit();
-
                 // Get a PreparedStatement that populates the table.
+                
+                // acquire connection
+                con = dataSource.getConnection();
+
+                con.setAutoCommit(false);
+                txn = true;
+            
                 String insertSQL = getInsertTableSQL(tableDesc, databaseTableName); 
                 ps = con.prepareStatement(insertSQL);
                 log.debug("Insert table SQL: " + insertSQL);

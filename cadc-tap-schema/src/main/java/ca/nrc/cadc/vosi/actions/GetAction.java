@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2011.                            (c) 2011.
+*  (c) 2018.                            (c) 2018.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,86 +62,70 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
-*
 ************************************************************************
-*/
+ */
 
-package ca.nrc.cadc.tap.schema;
+package ca.nrc.cadc.vosi.actions;
 
-
-import ca.nrc.cadc.db.ConnectionConfig;
-import ca.nrc.cadc.db.DBConfig;
-import ca.nrc.cadc.db.DBUtil;
-import ca.nrc.cadc.util.Log4jInit;
-import javax.sql.DataSource;
-import org.apache.log4j.Level;
+import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapSchema;
+import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import ca.nrc.cadc.vosi.TableSetWriter;
+import ca.nrc.cadc.vosi.TableWriter;
+import java.io.OutputStreamWriter;
+import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Test;
 
 /**
  *
  * @author pdowler
  */
-public class TapSchemaDAOTest 
-{
-    private static final Logger log = Logger.getLogger(TapSchemaDAOTest.class);
+public class GetAction extends TablesAction {
 
-    public TapSchemaDAOTest() { }
-    
-    static DataSource dataSource;
-    
-    static
-    {
-        Log4jInit.setLevel("ca.nrc.cadc.tap.schema", Level.INFO);
-        
-        // create a datasource and register with JNDI
-        try
-        {
-            DBConfig conf = new DBConfig();
-            ConnectionConfig cc = conf.getConnectionConfig("TAP_SCHEMA_TEST", "cadctest");
-            dataSource = DBUtil.getDataSource(cc);
-            log.info("configured data source: " + cc.getServer() + "," + cc.getDatabase() + "," + cc.getDriver() + "," + cc.getURL());
-        }
-        catch(Exception ex)
-        {
-            log.error("setup failed", ex);
-            throw new IllegalStateException("failed to create DataSource", ex);
-        }
+    private static final Logger log = Logger.getLogger(GetAction.class);
+
+    public GetAction() {
     }
-    
-    @Test
-    public void testReadTapSchemaSelf()
-    {
-        try
-        {
-            TapSchemaDAO dao = new TapSchemaDAO();
-            dao.setDataSource(dataSource);
-            TapSchema ts = dao.get();
-            boolean foundTS = false;
-            for (SchemaDesc sd : ts.getSchemaDescs())
-            {
-                if ( sd.getSchemaName().equalsIgnoreCase("TAP_SCHEMA"))
-                {
-                    foundTS = true;
-                    TableDesc ts_schemas = sd.getTable("TAP_SCHEMA.schemas");
-                    Assert.assertNotNull("found tap_schema.schemas", ts_schemas);
-                    
-                    TableDesc ts_tables = sd.getTable("TAP_SCHEMA.tables");
-                    Assert.assertNotNull("found tap_schema.tables", ts_tables);
-                    
-                    TableDesc ts_columns = sd.getTable("TAP_SCHEMA.columns");
-                    Assert.assertNotNull("found tap_schema.columns", ts_columns);
-                }
+
+    @Override
+    public void doAction() throws Exception {
+        String tableName = getTableName();
+        log.debug("GET: " + tableName);
+
+        int depth = TapSchemaDAO.MIN_DEPTH;
+        // TODO: default depth used to be configurable... worth it?
+        if (tableName == null) {
+            // always give the caller what they ask for
+            String detail = syncInput.getParameter("detail");
+            if ("min".equalsIgnoreCase(detail)) {
+                depth = TapSchemaDAO.MIN_DEPTH;
+            } else if ("max".equalsIgnoreCase(detail)) {
+                depth = TapSchemaDAO.MAX_DEPTH;
+            } else if (detail != null) {
+                throw new IllegalArgumentException("invalid parameter value detail=" + detail);
             }
-            
-            Assert.assertTrue("found tap_schema", foundTS);
         }
-        catch(Exception unexpected)
+
+        TapSchemaDAO dao = getDAO();
+        if (tableName != null)
         {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " +  unexpected);
+            TableDesc td = dao.getTable(tableName);
+            if (td == null) {
+                throw new ResourceNotFoundException("not found: " + tableName);
+            }
+            TableWriter tw = new TableWriter();
+            syncOutput.setCode(HttpServletResponse.SC_OK);
+            syncOutput.setHeader("Content-Type", "text/xml");
+            tw.write(td, new OutputStreamWriter(syncOutput.getOutputStream()));
+        }
+        else
+        {
+            TapSchema tapSchema = dao.get(depth);
+            TableSetWriter tsw = new TableSetWriter();
+            syncOutput.setCode(HttpServletResponse.SC_OK);
+            syncOutput.setHeader("Content-Type", "text/xml");
+            tsw.write(tapSchema, new OutputStreamWriter(syncOutput.getOutputStream()));
         }
     }
 }

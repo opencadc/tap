@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2014.                            (c) 2014.
+*  (c) 2018.                            (c) 2018.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,106 +62,81 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
-*
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap;
+package ca.nrc.cadc.tap.db;
 
+
+import ca.nrc.cadc.db.DatabaseTransactionManager;
+import ca.nrc.cadc.dali.tables.TableData;
 import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.schema.TapSchema;
-import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import ca.nrc.cadc.tap.writer.format.DefaultFormatFactory;
-import ca.nrc.cadc.tap.writer.format.FormatFactory;
-import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.uws.Job;
-import ca.nrc.cadc.uws.Parameter;
-import java.util.HashMap;
-import java.util.Map;
-import org.apache.log4j.Level;
+import javax.sql.DataSource;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Test;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementCreator;
+import org.springframework.jdbc.core.PreparedStatementSetter;
 
 /**
- *
+ * Utility to bulk load content into a table.
+ * 
  * @author pdowler
  */
-public class PluginFactoryTest 
-{
-    private static final Logger log = Logger.getLogger(PluginFactoryTest.class);
+public class TableLoader {
+    private static final Logger log = Logger.getLogger(TableLoader.class);
+
+    private final DataSource dataSource;
+    private final int batchSize;
     
-    static
-    {
-        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
+    /**
+     * Constructor.
+     * 
+     * @param dataSource destination database connection pool
+     * @param batchSize number of rows per commit transaction
+     */
+    public TableLoader(DataSource dataSource, int batchSize) { 
+        this.dataSource = dataSource;
+        this.batchSize = batchSize;
     }
     
-    Job job = new Job() 
-    {
-        @Override
-        public String getID() { return "abcdefg"; }
-    };
-            
-    public PluginFactoryTest() { }
-    
-    //@Test
-    public void testTemplate()
-    {
-        try
-        {
-            
-        }
-        catch(Exception unexpected)
-        {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
-        }
+    public void load(TableDesc destTable, TableData data) {
+        
+        throw new UnsupportedOperationException("load table data not implemented");
+        
+        /*
+        DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        
+        // TODO: loop over rows, start/commit txn every batchSize rows,
+        // and figure out which API to use for outside/inside loop for fastest
+        // load
+        // need try/catch with transaction rollback and throw on failure
+        // need finally with transaction rollback if still open (BUG)
+        
+        String sql = generateInsertSQL(destTable); 
+        
+        // probably not this
+        PreparedStatementCreator pc = null;
+        jdbc.update(pc);
+        
+        // this? or the override method with int[] types?
+        Object[] values = null;
+        jdbc.update(sql, values);
+        
+        // this?
+        PreparedStatementSetter pss = null;
+        jdbc.update(sql, pss);
+        
+        // this?
+        BatchPreparedStatementSetter bpss = null;
+        jdbc.batchUpdate(sql, bpss);
+        */
     }
     
-    @Test
-    public void testSetup()
-    {
-        try
-        {
-            job.getParameterList().clear();
-            job.getParameterList().add(new Parameter("LANG", "ADQL"));
-            
-            PluginFactoryImpl pf = new PluginFactoryImpl(job);
-            
-            try
-            {
-                Assert.assertNull(pf.getTapQuery()); // no default
-            }
-            catch(IllegalArgumentException expected)
-            {
-                log.debug("caught expected exception: " + expected);
-            }
-            
-            MaxRecValidator mrv = pf.getMaxRecValidator();
-            Assert.assertNotNull(mrv);
-            Assert.assertEquals(MaxRecValidator.class, mrv.getClass()); // default impl
-            
-            UploadManager um = pf.getUploadManager();
-            Assert.assertNotNull(um);
-            Assert.assertEquals(DefaultUploadManager.class, um.getClass()); // default impl
-            
-            TableWriter tw = pf.getTableWriter();
-            Assert.assertNotNull(tw);
-            Assert.assertEquals(DefaultTableWriter.class, tw.getClass()); // default impl
-            
-            FormatFactory ff = pf.getFormatFactory();
-            Assert.assertNotNull(ff);
-            Assert.assertEquals(DefaultFormatFactory.class, ff.getClass()); // default impl
-            
-            TapSchemaDAO tsd = pf.getTapSchemaDAO();
-            Assert.assertNotNull(tsd);
-            Assert.assertEquals(TapSchemaDAO.class, tsd.getClass()); // default impl
-        }
-        catch(Exception unexpected)
-        {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
-        }
+    // this assumes that columns in destTable and data are in the same order
+    // generate a parameterised insert statement for use with one of the API choices
+    private String generateInsertSQL(TableDesc td) {
+        throw new UnsupportedOperationException("generateInsertSQL not implemented");
     }
 }

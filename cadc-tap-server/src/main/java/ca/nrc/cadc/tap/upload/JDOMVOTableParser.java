@@ -137,24 +137,7 @@ public class JDOMVOTableParser implements VOTableParser
         throws IOException, VOTableParserException
     {
         init();
-        TableDesc tableDesc = new TableDesc(UploadManager.SCHEMA, tableName);
-        
-        if (votable != null)
-        {
-            for (VOTableField f : votable.getFields())
-            {
-                try { UploadUtil.isValidateIdentifier(f.getName()); }
-                catch(ADQLIdentifierException ex)
-                {
-                    throw new VOTableParserException("invalid ADQL identifier (column name): " + f.getName(), ex);
-                }
-                ColumnDesc columnDesc = TapSchemaUtil.convert(tableName, f);
-                
-                log.debug("ColumnDesc: " + f + " -> " + columnDesc);
-                
-                tableDesc.getColumnDescs().add(columnDesc);
-            }
-        }
+        TableDesc tableDesc = TapSchemaUtil.createTableDesc(UploadManager.SCHEMA, tableName, votable);
         log.debug("table: " + tableDesc);
         return tableDesc;
     }

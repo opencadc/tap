@@ -83,6 +83,7 @@ public class SchemaDesc
     
     public String description;
     public String utype;
+    public Integer schema_index;
 
     public SchemaDesc(String schemaName)
     {

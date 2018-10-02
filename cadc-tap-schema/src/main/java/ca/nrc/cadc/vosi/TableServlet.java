@@ -260,22 +260,26 @@ public class TableServlet extends HttpServlet
                         throw new IllegalArgumentException("invalid parameter value detail="+detail + " for " + pathStr);
                 }    
                 
-                TapSchema tapSchema = dao.get(tableName, depth);
-                started = true;
-                response.setStatus(HttpServletResponse.SC_OK);
-                response.setContentType("text/xml");
+                
                 
                 if (tableName != null)
                 {
-                    TableDesc td = tapSchema.findTable(tableName);
+                    TableDesc td = dao.getTable(tableName);
                     if (td == null)
                         throw new NoSuchElementException("not found: " + tableName);
                     TableWriter tw = new TableWriter();
+                    response.setStatus(HttpServletResponse.SC_OK);
+                    response.setContentType("text/xml");
+                    started = true;
                     tw.write(td, response.getWriter());
                 }
                 else
                 {
+                    TapSchema tapSchema = dao.get(depth);
                     TableSetWriter tsw = new TableSetWriter();
+                    response.setStatus(HttpServletResponse.SC_OK);
+                    response.setContentType("text/xml");
+                    started = true;
                     tsw.write(tapSchema, response.getWriter());
                 }
             }
