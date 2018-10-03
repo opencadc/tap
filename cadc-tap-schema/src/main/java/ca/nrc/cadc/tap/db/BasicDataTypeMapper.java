@@ -173,7 +173,7 @@ public class BasicDataTypeMapper implements DatabaseDataType {
     }
 
     @Override
-    public String getIndexUsingQualifier(ColumnDesc columnDesc) {
+    public String getIndexUsingQualifier(ColumnDesc columnDesc, boolean unique) {
         return null;
     }
 

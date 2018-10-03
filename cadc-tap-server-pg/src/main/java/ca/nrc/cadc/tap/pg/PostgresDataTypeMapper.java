@@ -100,13 +100,16 @@ public class PostgresDataTypeMapper extends BasicDataTypeMapper {
     }
 
     @Override
-    public String getIndexUsingQualifier(ColumnDesc columnDesc) {
+    public String getIndexUsingQualifier(ColumnDesc columnDesc, boolean unique) {
         TypePair tp = findTypePair(columnDesc.getDatatype());
         switch(tp.str) {
             case "spoint":
             case "scircle":
             case "spoly":
             case "polygon":
+                if (unique) {
+                    throw new IllegalArgumentException("unique index not supported for column type: " + columnDesc.getDatatype());
+                }
                 return "gist";
             default:
                 return null;

@@ -161,6 +161,7 @@ public class TableCreator {
         try {
             tm.startTransaction();
             
+            // IF EXISTS non-standard but easier than checking
             String sql = "DROP TABLE IF EXISTS " + tableName;
             
             log.debug("sql:\n" + sql);
@@ -223,7 +224,9 @@ public class TableCreator {
             } catch (Exception oops) {
                 log.error("create index failed - rollback : FAIL", oops);
             }
-            // TODO: categorise failures better
+            if (ex instanceof IllegalArgumentException) {
+                throw ex;
+            }
             throw new RuntimeException("failed to create index on " + cd.getTableName() + "(" + cd.getColumnName() + ")", ex);
         } finally { 
             if (tm.isOpen()) {
@@ -271,7 +274,7 @@ public class TableCreator {
         sb.append(indexName);
         sb.append(" ON ").append(cd.getTableName());
         
-        String using = ddType.getIndexUsingQualifier(cd);
+        String using = ddType.getIndexUsingQualifier(cd, unique);
         if (using != null) {
             sb.append(" USING ").append(using);
         }
