@@ -159,10 +159,9 @@ public class TableCreator {
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         try {
-            TapSchemaUtil.checkValidTableName(tableName);
-            
             tm.startTransaction();
             
+            // IF EXISTS non-standard but easier than checking
             String sql = "DROP TABLE IF EXISTS " + tableName;
             
             log.debug("sql:\n" + sql);
@@ -194,6 +193,56 @@ public class TableCreator {
         }
     }
     
+    public void createIndex(ColumnDesc cd, boolean unique) {
+        try {
+            TapSchemaUtil.checkValidTableName(cd.getTableName());
+        } catch (ADQLIdentifierException ex) {
+            throw new IllegalArgumentException("invalid table name: " + cd.getTableName(), ex);
+        }
+        try {
+            TapSchemaUtil.checkValidIdentifier(cd.getColumnName());
+        } catch (ADQLIdentifierException ex) {
+            throw new IllegalArgumentException("invalid column name: " + cd.getColumnName(), ex);
+        }
+        
+        DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        try {
+            tm.startTransaction();
+            String sql = generateCreateIndex(cd, unique);
+            
+            log.debug("sql:\n" + sql);
+            jdbc.execute(sql);
+            
+            tm.commitTransaction();
+        
+        } catch (Exception ex) {
+            try {
+                log.error("create index failed - rollback", ex);
+                tm.rollbackTransaction();
+                log.error("create index failed - rollback: OK");
+            } catch (Exception oops) {
+                log.error("create index failed - rollback : FAIL", oops);
+            }
+            if (ex instanceof IllegalArgumentException) {
+                throw ex;
+            }
+            throw new RuntimeException("failed to create index on " + cd.getTableName() + "(" + cd.getColumnName() + ")", ex);
+        } finally { 
+            if (tm.isOpen()) {
+                log.error("BUG: open transaction in finally - trying to rollback");
+                try {
+                    tm.rollbackTransaction();
+                    log.error("BUG: rollback in finally: OK");
+                } catch (Exception oops) {
+                    log.error("BUG: rollback in finally: FAIL", oops);
+                }
+                throw new RuntimeException("BUG: open transaction in finally");
+            }
+        }
+    }
+    
+    
     private String generateCreate(TableDesc td) {
         StringBuilder sb = new StringBuilder();
         sb.append("CREATE TABLE ");
@@ -209,6 +258,32 @@ public class TableCreator {
                 sb.append(", ");
         }
         
+        sb.append(")");
+        
+        return sb.toString();
+    }
+    
+    private String generateCreateIndex(ColumnDesc cd, boolean unique) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("CREATE");
+        if (unique) {
+            sb.append(" UNIQUE");
+        }
+        sb.append(" INDEX ");
+        String indexName = "i_" + cd.getTableName().replace(".", "_") + "_" + cd.getColumnName();
+        sb.append(indexName);
+        sb.append(" ON ").append(cd.getTableName());
+        
+        String using = ddType.getIndexUsingQualifier(cd, unique);
+        if (using != null) {
+            sb.append(" USING ").append(using);
+        }
+        sb.append(" (");
+        sb.append(cd.getColumnName());
+        String iop = ddType.getIndexColumnOperator(cd);
+        if (iop != null) {
+            sb.append(" ").append(iop);
+        }
         sb.append(")");
         
         return sb.toString();

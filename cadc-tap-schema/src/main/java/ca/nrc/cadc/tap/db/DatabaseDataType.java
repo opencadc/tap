@@ -95,4 +95,23 @@ public interface DatabaseDataType
      * @return one of the java.sql.Types values
      */
     Integer getType(ColumnDesc columnDesc);
+    
+    /**
+     * Get an optional USING qualifier for index creation. If you don't know what this
+     * is just return null.
+     * 
+     * @param columnDesc
+     * @return 
+     * @throws IllegalArgumentException if unique==true and the column type or qualifier 
+     *  does not support unique indices
+     */
+    String getIndexUsingQualifier(ColumnDesc columnDesc, boolean unique);
+    
+    /**
+     * Get an optional operator for index creation. If you don't know what this
+     * is just return null.
+     * @param columnDesc
+     * @return 
+     */
+    String getIndexColumnOperator(ColumnDesc columnDesc);
 }

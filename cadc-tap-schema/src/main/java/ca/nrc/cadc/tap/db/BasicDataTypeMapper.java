@@ -63,7 +63,7 @@
 *                                       <http://www.gnu.org/licenses/>.
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.tap.db;
 
@@ -79,41 +79,40 @@ import org.apache.log4j.Logger;
  *
  * @author pdowler
  */
-public class BasicDataTypeMapper implements DatabaseDataType
-{
+public class BasicDataTypeMapper implements DatabaseDataType {
+
     private static final Logger log = Logger.getLogger(BasicDataTypeMapper.class);
 
-    protected static class TypePair
-    {
+    protected static class TypePair {
+
         /**
          * Column type for use in create table.
          */
         public String str;
-        
+
         /**
          * Column type for use in PreparedStatement set methods.
          */
         Integer num;
-        public TypePair(String s, Integer n)
-        {
+
+        public TypePair(String s, Integer n) {
             this.str = s;
             this.num = n;
         }
+
         @Override
-        public String toString()
-        {
+        public String toString() {
             return str + ":" + num;
         }
     }
-    
+
     /**
      * Mapping of ADQL data types to PostgreSQL data types. Subclasses can (must)
      * add a mapping for optional types.
      */
     protected final Map<TapDataType, TypePair> dataTypes = new HashMap<>();
-    
-    public BasicDataTypeMapper() 
-    { 
+
+    public BasicDataTypeMapper() {
         // votable type -> db type
         dataTypes.put(TapDataType.SHORT, new TypePair("SMALLINT", Types.SMALLINT));
         dataTypes.put(TapDataType.INTEGER, new TypePair("INTEGER", Types.INTEGER));
@@ -121,69 +120,78 @@ public class BasicDataTypeMapper implements DatabaseDataType
         dataTypes.put(TapDataType.FLOAT, new TypePair("REAL", Types.REAL));
         dataTypes.put(TapDataType.DOUBLE, new TypePair("DOUBLE PRECISION", Types.DOUBLE));
         dataTypes.put(TapDataType.CHAR, new TypePair("CHAR", Types.CHAR));
-        
+
         dataTypes.put(TapDataType.STRING, new TypePair("CHAR", Types.CHAR));
         dataTypes.put(TapDataType.TIMESTAMP, new TypePair("TIMESTAMP", Types.TIMESTAMP));
     }
-    
+
     /**
      * Get the column type for use in create table statements. This method uses the
      * dataType map and the findTypePair method so it should work for columns that match
-     * a map key exactly plus arrays of primitives (e.g,. char(8)). It also handles making 
+     * a map key exactly plus arrays of primitives (e.g,. char(8)). It also handles making
      * variable sized columns for char (e.g. varchar) and imposes a limit when one is not
      * specified.
-     * 
+     *
      * @param columnDesc ADQL description of the column
      * @return datatype string for use in create table
      */
     @Override
-    public String getDataType(ColumnDesc columnDesc)
-    {
+    public String getDataType(ColumnDesc columnDesc) {
         TapDataType tt = columnDesc.getDatatype();
         TypePair dbt = findTypePair(tt);
-        if (dbt == null)
+        if (dbt == null) {
             throw new UnsupportedOperationException("unsupported database column type: " + tt);
-        
+        }
+
         String ret = dbt.str;
-        if (ret.equals("CHAR"))
-        {
-            if (tt.isVarSize())
+        if (ret.equals("CHAR")) {
+            if (tt.isVarSize()) {
                 ret = getVarCharType();
+            }
             int[] arrayshape = VOTableUtil.getArrayShape(tt.arraysize);
-            if (arrayshape != null && arrayshape[0] > 0)
-                    ret += "(" + arrayshape[0] + ")";
-            else if (tt.isVarSize())
-            {
+            if (arrayshape != null && arrayshape[0] > 0) {
+                ret += "(" + arrayshape[0] + ")";
+            } else if (tt.isVarSize()) {
                 ret += getDefaultCharlimit(); // HACK: arbitrary sensible limit
             }
         }
-        
+
         log.debug("getDataType (return): " + columnDesc + " -> " + ret);
         return ret;
     }
 
     /**
-     * 
+     *
      * @param columnDesc
      * @return data type code for use in PreparedStatement set methods
      */
     @Override
-    public Integer getType(ColumnDesc columnDesc)
-    {
+    public Integer getType(ColumnDesc columnDesc) {
         TapDataType tt = columnDesc.getDatatype();
         TypePair dbt = findTypePair(tt);
         return dbt.num;
     }
 
+    @Override
+    public String getIndexUsingQualifier(ColumnDesc columnDesc, boolean unique) {
+        return null;
+    }
+
+    @Override
+    public String getIndexColumnOperator(ColumnDesc columnDesc) {
+        return null;
+    }
+    
+    
     /**
      * Find or create a TypePair for the specified data type. The current implementation
      * looks for exact matches in the dataTypes map and, if not found, it rechecks with
-     * just the base datatype when the specified TapDataType has length is greater than 
-     * 1; the latter takes care of arrays of strings (char(n) or char(*)) and should work 
+     * just the base datatype when the specified TapDataType has length is greater than
+     * 1; the latter takes care of arrays of strings (char(n) or char(*)) and should work
      * for other arrays.
-     * 
+     *
      * @param tt
-     * @return 
+     * @return
      */
     protected TypePair findTypePair(TapDataType tt) {
         TypePair dbt = dataTypes.get(tt);
@@ -195,27 +203,27 @@ public class BasicDataTypeMapper implements DatabaseDataType
         if (dbt == null) {
             throw new UnsupportedOperationException("unexpected datatype: " + tt);
         }
-        
+
         log.debug("findTypePair: " + tt + " -> " + dbt);
         return dbt;
     }
-    
+
     /**
      * Return the default quantifier (length of char or varchar columns) when none is
      * specified. The return must include the correct form of braces in addition to the
      * size. The default return value is <code>(4096)</code>.
-     * 
-     * @return 
+     *
+     * @return
      */
     protected String getDefaultCharlimit() {
         return "(4096)";
     }
-    
+
     /**
      * Return the database type to use for variable-length character columns. The default
      * return value is <code>VARCHAR</code>.
-     * 
-     * @return 
+     *
+     * @return
      */
     protected String getVarCharType() {
         return "VARCHAR";

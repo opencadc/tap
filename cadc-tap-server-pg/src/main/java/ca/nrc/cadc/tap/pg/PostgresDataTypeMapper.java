@@ -69,6 +69,7 @@ package ca.nrc.cadc.tap.pg;
 
 
 import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
 import java.sql.Types;
 import org.apache.log4j.Logger;
@@ -91,5 +92,27 @@ public class PostgresDataTypeMapper extends BasicDataTypeMapper {
         
         dataTypes.put(new TapDataType("char", "*", "adql:POINT"), new TypePair("spoint", null));
         dataTypes.put(new TapDataType("char", "*", "adql:REGION"), new TypePair("spoly", null));
+    }
+
+    @Override
+    public String getIndexColumnOperator(ColumnDesc columnDesc) {
+        return null;
+    }
+
+    @Override
+    public String getIndexUsingQualifier(ColumnDesc columnDesc, boolean unique) {
+        TypePair tp = findTypePair(columnDesc.getDatatype());
+        switch(tp.str) {
+            case "spoint":
+            case "scircle":
+            case "spoly":
+            case "polygon":
+                if (unique) {
+                    throw new IllegalArgumentException("unique index not supported for column type: " + columnDesc.getDatatype());
+                }
+                return "gist";
+            default:
+                return null;
+        }
     }
 }

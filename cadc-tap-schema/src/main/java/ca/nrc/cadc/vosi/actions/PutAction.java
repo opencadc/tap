@@ -107,15 +107,15 @@ public class PutAction extends TablesAction {
         }
         
         DataSource ds = getDataSource();
+        TapSchemaDAO ts = new TapSchemaDAO();
+        ts.setDataSource(ds);
+        TableDesc td = ts.getTable(tableName);
+        if (td != null) {
+            throw new ResourceAlreadyExistsException("table " + tableName + " already exists");
+        }
+            
         DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
         try {
-            TapSchemaDAO ts = new TapSchemaDAO();
-            ts.setDataSource(ds);
-            TableDesc td = ts.getTable(tableName);
-            if (td != null) {
-                throw new ResourceAlreadyExistsException("table " + tableName + " already exists");
-            }
-            
             tm.startTransaction();
 
             // create table
