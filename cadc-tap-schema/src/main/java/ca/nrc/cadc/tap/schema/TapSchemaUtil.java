@@ -119,6 +119,20 @@ public class TapSchemaUtil {
         }
         return ret;
     }
+    
+    /**
+     * Create a VOTableField from a ColumnDesc.
+     *
+     * @param column
+     * @return The associated VOTableField
+     */
+    public static VOTableField convert(ColumnDesc column) {
+        if (column.getDatatype().arraysize != null) {
+            return new VOTableField(column.getColumnName(), column.getDatatype().getDatatype(), column.getDatatype().arraysize);
+        } else {
+            return new VOTableField(column.getColumnName(), column.getDatatype().getDatatype());
+        }
+    }
 
     /**
      * Convert a VOTable field into tap_schema column descriptor.

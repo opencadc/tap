@@ -67,136 +67,144 @@
 
 package ca.nrc.cadc.tap.db;
 
-
-import ca.nrc.cadc.db.DatabaseTransactionManager;
-import ca.nrc.cadc.dali.tables.TableData;
-import ca.nrc.cadc.tap.schema.ColumnDesc;
-import ca.nrc.cadc.tap.schema.TableDesc;
-
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
-import javax.sql.DataSource;
-import org.apache.log4j.Logger;
-import org.springframework.jdbc.core.BatchPreparedStatementSetter;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.PreparedStatementCreator;
-import org.springframework.jdbc.core.PreparedStatementSetter;
+import com.csvreader.CsvReader;
+
+import ca.nrc.cadc.dali.tables.TableData;
+import ca.nrc.cadc.dali.tables.votable.VOTableField;
+import ca.nrc.cadc.dali.util.Format;
+import ca.nrc.cadc.dali.util.FormatFactory;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapSchemaUtil;
+import ca.nrc.cadc.vosi.actions.TableContentHandler;
 
 /**
- * Utility to bulk load content into a table.
+ * Class to produce formatted row and column data through an iterator.
  * 
- * @author pdowler, majorb
+ * @author majorb
+ *
  */
-public class TableLoader {
-    private static final Logger log = Logger.getLogger(TableLoader.class);
-
-    private final DataSource dataSource;
-    private final int batchSize;
-    private long totalInserts = 0;
+public class AsciiTableData implements TableData, Iterator<List<Object>> {
+    
+    private TableDesc tableDesc;
+    private CsvReader reader;
+    private List<String> columnNames;
+    private Map<String, Format> columnFormats;
+    private boolean hasNext;
+    private FormatFactory formatFactory = new FormatFactory();
     
     /**
      * Constructor.
      * 
-     * @param dataSource destination database connection pool
-     * @param batchSize number of rows per commit transaction
+     * @param in The data stream
+     * @param contentType The content type of the data
+     * @param orig The original table description
+     * @throws IOException If a data handling error occurs
      */
-    public TableLoader(DataSource dataSource, int batchSize) { 
-        this.dataSource = dataSource;
-        this.batchSize = batchSize;
+    public AsciiTableData(InputStream in, String contentType, TableDesc orig) throws IOException {
+        char delimiter = ',';
+        if (contentType.equals(TableContentHandler.CONTENT_TYPE_TSV)) {
+            delimiter = '\t';
+        }
+        reader = new CsvReader(in, delimiter, Charset.defaultCharset());
+        if (!reader.readHeaders()) {
+            throw new RuntimeException("No inline data.");
+        }
+        columnNames = Arrays.asList(reader.getHeaders());
+        tableDesc = createTableDesc(orig);
+        columnFormats = createColumnFormats();
+        hasNext = reader.readRecord();
     }
-    
-    /**
-     * Load the table data.
-     * 
-     * @param destTable The table description
-     * @param data The table data.
-     */
-    public void load(TableDesc destTable, TableData data) { 
-        
-        DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
-        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
-        
-        // Loop over rows, start/commit txn every batchSize rows
-        String sql = generateInsertSQL(destTable); 
-        boolean done = false;
-        Iterator<List<Object>> dataIterator = data.iterator();
-        List<Object> nextRow = null;
-        
-        while (!done) {
-            
-            try {
-                int count = 0;
-                tm.startTransaction();
-                
-                while (count < batchSize && dataIterator.hasNext()) {
-                    nextRow = dataIterator.next();
-                    jdbc.update(sql, nextRow.toArray());
-                    count++;
-                }
-                log.debug("Inserting " + count + " rows in this batch.");
-            
-                tm.commitTransaction();
-                totalInserts += count;
-                done = !dataIterator.hasNext();
-                
-            } catch (Throwable t) {
-                log.error("Batch insert failure", t);
-                try {
-                    if (tm.isOpen()) {
-                        tm.rollbackTransaction();
-                    }
-                } catch (Throwable t2) {
-                    log.error("Unexpected: could not rollback transaction", t2);
-                }
-                throw new RuntimeException("Inserted " + totalInserts + " rows. " +
-                    "Current batch of " + batchSize + " failed with: " + t.getMessage());
-                
-            } finally {
-                if (tm.isOpen()) {
-                    log.error("BUG: Transaction manager unexpectedly open, rolling back.");
-                    try {
-                        tm.rollbackTransaction();
-                    }
-                    catch (Throwable t) {
-                        log.error("Unexpected: could not rollback transaction", t);
-                    }
-                }
-            }
-            
-        }
-        log.debug("Inserted a total of " + totalInserts + " rows.");
-    }
-    
-    // this assumes that columns in destTable and data are in the same order
-    // generate a parameterized insert statement for use with one of the API choices
-    private String generateInsertSQL(TableDesc td) {
-        
-        StringBuilder sb = new StringBuilder("insert into ");
-        sb.append(td.getTableName());
-        sb.append(" (");
-        for (ColumnDesc cd : td.getColumnDescs()) {
-            sb.append(cd.getColumnName());
-            sb.append(", ");
-        }
-        sb.setLength(sb.length() - 2);
-        sb.append(") values (");
-        for (ColumnDesc cd : td.getColumnDescs()) {
-            sb.append("?, ");
-        }
-        sb.setLength(sb.length() - 2);
-        sb.append(")");
 
-        return sb.toString();
+    /**
+     * Return the data iterator.
+     */
+    @Override
+    public Iterator<List<Object>> iterator() {
+        return this;
     }
     
     /**
-     * @return The total number of rows inserted.
+     * Get the table description for the data stream.
+     * @return
      */
-    public long getTotalInserts() {
-        return totalInserts;
+    public TableDesc getTableDesc() {
+        return tableDesc;
+    }
+
+    /**
+     * @return True if the data stream has more rows.
+     */
+    @Override
+    public boolean hasNext() {
+        return hasNext;
+    }
+
+    /**
+     * @return The list of formatted objects representing a row of data.
+     */
+    @Override
+    public List<Object> next() {
+        if (!hasNext) {
+            throw new IllegalStateException("No more data to read.");
+        }
+        if (reader.getColumnCount() != columnNames.size()) {
+            throw new RuntimeException("wrong number of columns (" +
+                reader.getColumnCount() + ") expected " + columnNames.size());
+        }
+        try {
+            List<Object> row = new ArrayList<Object>(columnNames.size());
+            String cell = null;
+            Object value = null;
+            Format format = null;
+            for (String col : columnNames) {
+                cell = reader.get(col);
+                format = columnFormats.get(col);
+                value = format.format(cell);
+                row.add(value);
+            }
+            hasNext = reader.readRecord();
+            return row;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read data stream.", e);
+        }
     }
     
+    private TableDesc createTableDesc(TableDesc orig) {
+        if (columnNames.size() == 0) {
+            throw new IllegalArgumentException("No data columns.");
+        }
+        TableDesc tableDesc = new TableDesc(orig.getSchemaName(), orig.getTableName());
+        ColumnDesc colDesc = null;
+        for (String col : columnNames) {
+            colDesc = tableDesc.getColumn(col);
+            if (colDesc == null) {
+                throw new IllegalArgumentException("Unrecognized column name: " + col);
+            }
+            tableDesc.getColumnDescs().add(colDesc);
+        }
+        return tableDesc;
+    }
+    
+    private Map<String, Format> createColumnFormats() {
+        columnFormats = new HashMap<String, Format>(columnNames.size());
+        for (String col : columnNames) {
+            ColumnDesc colDesc = tableDesc.getColumn(col);
+            VOTableField voTableField = TapSchemaUtil.convert(colDesc);
+            Format format = formatFactory.getFormat(voTableField);
+            columnFormats.put(col, format);
+        }
+        return columnFormats;
+    }
+
 }

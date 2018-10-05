@@ -185,7 +185,7 @@ public class TableCreatorTest {
         }
     }
     
-    private static class SimpleRowMapper implements RowMapper {
+    public static class SimpleRowMapper implements RowMapper {
 
         @Override
         public Object mapRow(ResultSet rs, int i) throws SQLException {

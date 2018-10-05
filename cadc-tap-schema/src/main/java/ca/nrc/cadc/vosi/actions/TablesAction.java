@@ -157,7 +157,7 @@ public abstract class TablesAction extends RestAction {
      */
     protected TapSchemaDAO getDAO() {
         try {
-            DataSource ds = getDataSource();;
+            DataSource ds = getDataSource();
             TapSchemaDAO dao = (TapSchemaDAO) tapSchemaImpl.newInstance();
             dao.setDataSource(ds);
             dao.setOrdered(true);
