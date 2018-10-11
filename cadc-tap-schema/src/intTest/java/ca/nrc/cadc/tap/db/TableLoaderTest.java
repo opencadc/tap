@@ -45,6 +45,21 @@ public class TableLoaderTest {
     }
     
     @Test
+    public void testPostNoTableName() {
+        Assert.fail("not yet written");
+    }
+    
+    @Test
+    public void testPostNoColumnRow() {
+        Assert.fail("not yet written");
+    }
+    
+    @Test
+    public void testPostInvalidColumnName() {
+        Assert.fail("not yet written");
+    }
+    
+    @Test
     public void testLoadCsvData() {
         try {
             String testTable = TEST_SCHEMA + ".testLoadData";

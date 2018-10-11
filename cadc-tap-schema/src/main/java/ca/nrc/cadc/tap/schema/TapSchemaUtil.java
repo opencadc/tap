@@ -127,11 +127,11 @@ public class TapSchemaUtil {
      * @return The associated VOTableField
      */
     public static VOTableField convert(ColumnDesc column) {
-        if (column.getDatatype().arraysize != null) {
-            return new VOTableField(column.getColumnName(), column.getDatatype().getDatatype(), column.getDatatype().arraysize);
-        } else {
-            return new VOTableField(column.getColumnName(), column.getDatatype().getDatatype());
-        }
+        VOTableField vtf = new VOTableField(
+            column.getColumnName(), column.getDatatype().getDatatype(),
+            column.getDatatype().arraysize);
+        vtf.xtype = column.getDatatype().xtype;
+        return vtf;
     }
 
     /**

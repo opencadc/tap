@@ -86,12 +86,18 @@ public class PostAction extends TablesAction {
     
     private static final int BATCH_SIZE = 1000;
     
+    TableContentHandler tableContentHanlder;
+    
     public PostAction() {
+        tableContentHanlder = new TableContentHandler();
     }
 
     @Override
     public void doAction() throws Exception {
         String tableName = getTableName();
+        if (tableName == null) {
+            throw new IllegalArgumentException("Missing table name in path.");
+        }
         String schemaName = getSchemaFromTable(tableName);
         log.debug("POST: " + tableName);
         
@@ -99,7 +105,7 @@ public class PostAction extends TablesAction {
         
         DataSource ds = getDataSource();
         
-        try {
+ //       try {
             
             TapSchemaDAO ts = new TapSchemaDAO();
             ts.setDataSource(ds);
@@ -109,23 +115,24 @@ public class PostAction extends TablesAction {
             }
             
             InputStream content = (InputStream) syncInput.getContent(TableContentHandler.TABLE_CONTENT);
-            AsciiTableData tableData = new AsciiTableData(content, syncInput.getHeader("ContentType"), tableDesc);            
+            AsciiTableData tableData = new AsciiTableData(content, tableContentHanlder.getContentType(), tableDesc);            
             TableLoader tl = new TableLoader(ds, BATCH_SIZE);
             tl.load(tableData.getTableDesc(), tableData);
             
             String msg = "Inserted " + tl.getTotalInserts() + " rows to table " + tableName;
+
+            syncOutput.setCode(200);
             syncOutput.getOutputStream().write(msg.getBytes("UTF-8"));
             
-        } catch (Exception ex) {
-            log.error("POST failed: " + ex);
-            throw new RuntimeException("failed to insert rows to table " + tableName, ex);
-        }
-        syncOutput.setCode(200);        
+//        } catch (Exception ex) {
+//            log.error("POST failed: " + ex);
+//            throw new RuntimeException("failed to insert rows to table " + tableName, ex);
+//        } 
     }
     
     @Override
     protected InlineContentHandler getInlineContentHandler() {
-        return new TableContentHandler();
+        return tableContentHanlder;
     }
 
 }

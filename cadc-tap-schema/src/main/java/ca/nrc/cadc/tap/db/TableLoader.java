@@ -69,6 +69,7 @@ package ca.nrc.cadc.tap.db;
 
 
 import ca.nrc.cadc.db.DatabaseTransactionManager;
+import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.dali.tables.TableData;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
@@ -143,7 +144,7 @@ public class TableLoader {
                 done = !dataIterator.hasNext();
                 
             } catch (Throwable t) {
-                log.error("Batch insert failure", t);
+                log.error("Batch insert failure, rolling back transaction.");
                 try {
                     if (tm.isOpen()) {
                         tm.rollbackTransaction();
@@ -151,8 +152,15 @@ public class TableLoader {
                 } catch (Throwable t2) {
                     log.error("Unexpected: could not rollback transaction", t2);
                 }
-                throw new RuntimeException("Inserted " + totalInserts + " rows. " +
-                    "Current batch of " + batchSize + " failed with: " + t.getMessage());
+                // This could be a database error or user data error... 
+                if (t instanceof TransientException || t instanceof IllegalStateException) {
+                    log.error("Batch insert failure", t);
+                    throw new RuntimeException("Inserted " + totalInserts + " rows. " +
+                        "Current batch of " + batchSize + " failed with: " + t.getMessage());
+                } else {
+                    throw new IllegalArgumentException("Inserted " + totalInserts + " rows. " +
+                        "Current batch of " + batchSize + " failed with: " + t.getMessage());
+                }
                 
             } finally {
                 if (tm.isOpen()) {

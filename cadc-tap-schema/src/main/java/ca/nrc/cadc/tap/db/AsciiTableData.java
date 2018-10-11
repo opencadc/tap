@@ -77,6 +77,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 import com.csvreader.CsvReader;
 
 import ca.nrc.cadc.dali.tables.TableData;
@@ -95,6 +97,8 @@ import ca.nrc.cadc.vosi.actions.TableContentHandler;
  *
  */
 public class AsciiTableData implements TableData, Iterator<List<Object>> {
+    
+    private static final Logger log = Logger.getLogger(AsciiTableData.class);
     
     private TableDesc tableDesc;
     private CsvReader reader;
@@ -159,7 +163,7 @@ public class AsciiTableData implements TableData, Iterator<List<Object>> {
             throw new IllegalStateException("No more data to read.");
         }
         if (reader.getColumnCount() != columnNames.size()) {
-            throw new RuntimeException("wrong number of columns (" +
+            throw new IllegalArgumentException("wrong number of columns (" +
                 reader.getColumnCount() + ") expected " + columnNames.size());
         }
         try {
@@ -170,7 +174,7 @@ public class AsciiTableData implements TableData, Iterator<List<Object>> {
             for (String col : columnNames) {
                 cell = reader.get(col);
                 format = columnFormats.get(col);
-                value = format.format(cell);
+                value = format.parse(cell);
                 row.add(value);
             }
             hasNext = reader.readRecord();
@@ -187,7 +191,7 @@ public class AsciiTableData implements TableData, Iterator<List<Object>> {
         TableDesc tableDesc = new TableDesc(orig.getSchemaName(), orig.getTableName());
         ColumnDesc colDesc = null;
         for (String col : columnNames) {
-            colDesc = tableDesc.getColumn(col);
+            colDesc = orig.getColumn(col);
             if (colDesc == null) {
                 throw new IllegalArgumentException("Unrecognized column name: " + col);
             }
