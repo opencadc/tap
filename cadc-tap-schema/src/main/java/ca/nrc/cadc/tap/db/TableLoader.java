@@ -129,10 +129,10 @@ public class TableLoader {
         boolean done = false;
         Iterator<List<Object>> dataIterator = data.iterator();
         List<Object> nextRow = null;
-        
-        while (!done) {
+
+        try {
             
-            try {
+            while (!done) {
                 int count = 0;
                 tm.startTransaction();
                 
@@ -147,48 +147,46 @@ public class TableLoader {
                 tm.commitTransaction();
                 totalInserts += count;
                 done = !dataIterator.hasNext();
-                
-            } catch (Throwable t) {
-                try {
-                    data.close();
-                } catch (Exception ex) {
-                    log.error("unexpected exception trying to close input stream", ex);
-                }
-                log.error("Batch insert failure, rolling back transaction.");
-                try {
-                    if (tm.isOpen()) {
-                        tm.rollbackTransaction();
-                    }
-                } catch (Throwable t2) {
-                    log.error("Unexpected: could not rollback transaction", t2);
-                }
-                // This could be a database error or user data error... 
-                if (t instanceof TransientException || t instanceof IllegalStateException) {
-                    log.error("Batch insert failure", t);
-                    throw new RuntimeException("Inserted " + totalInserts + " rows. " +
-                        "Current batch of " + batchSize + " failed with: " + t.getMessage());
-                } else {
-                    throw new IllegalArgumentException("Inserted " + totalInserts + " rows. " +
-                        "Current batch of " + batchSize + " failed with: " + t.getMessage());
-                }
-                
-            } finally {
-                if (tm.isOpen()) {
-                    log.error("BUG: Transaction manager unexpectedly open, rolling back.");
-                    try {
-                        tm.rollbackTransaction();
-                    }
-                    catch (Throwable t) {
-                        log.error("Unexpected: could not rollback transaction", t);
-                    }
-                }
-                try {
-                    data.close();
-                } catch (Exception ex) {
-                    log.warn("exception trying to close input stream in finally: ignoring it", ex);
-                }
             }
             
+        } catch (Throwable t) {
+            try {
+                data.close();
+            } catch (Exception ex) {
+                log.error("unexpected exception trying to close input stream", ex);
+            }
+            log.error("Batch insert failure, rolling back transaction.");
+            try {
+                if (tm.isOpen()) {
+                    tm.rollbackTransaction();
+                }
+            } catch (Throwable t2) {
+                log.error("Unexpected: could not rollback transaction", t2);
+            }
+            // This could be a database error or user data error... 
+            if (t instanceof IllegalArgumentException) {
+                throw new IllegalArgumentException("Inserted " + totalInserts + " rows. " +
+                    "Current batch of " + batchSize + " failed with: " + t.getMessage());
+            }
+            log.error("Batch insert failure", t);
+            throw new RuntimeException("Inserted " + totalInserts + " rows. " +
+                "Current batch of " + batchSize + " failed with: " + t.getMessage());
+            
+        } finally {
+            if (tm.isOpen()) {
+                log.error("BUG: Transaction manager unexpectedly open, rolling back.");
+                try {
+                    tm.rollbackTransaction();
+                }
+                catch (Throwable t) {
+                    log.error("Unexpected: could not rollback transaction", t);
+                }
+            }
+            try {
+                data.close();
+            } catch (Exception ex) {
+                log.warn("exception trying to close input stream in finally: ignoring it", ex);
+            }
         }
         log.debug("Inserted a total of " + totalInserts + " rows.");
     }
