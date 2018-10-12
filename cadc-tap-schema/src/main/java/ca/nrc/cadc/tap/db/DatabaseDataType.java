@@ -69,6 +69,10 @@
 
 package ca.nrc.cadc.tap.db;
 
+import ca.nrc.cadc.dali.Circle;
+import ca.nrc.cadc.dali.DoubleInterval;
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.Polygon;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 
 /**
@@ -114,4 +118,58 @@ public interface DatabaseDataType
      * @return 
      */
     String getIndexColumnOperator(ColumnDesc columnDesc);
+    
+    /**
+     * Convert TAP-1.0 ADQL/STC point value to a database object for insert.
+     * 
+     * @param pos
+     * @return 
+     */
+    Object getPointObject(ca.nrc.cadc.stc.Position pos);
+
+    /**
+     * Convert TAP-1.0 ADQL/STC region value to a database object for insert.
+     * 
+     * @param reg
+     * @return 
+     */
+    Object getRegionObject(ca.nrc.cadc.stc.Region reg);
+    
+    /**
+     * Convert DALI-1.1 point to a database object for insert.
+     * 
+     * @param p
+     * @return 
+     */
+    Object getPointObject(Point p);
+    
+    /**
+     * Convert DALI-1.1 circle to a database object for insert.
+     * 
+     * @param c
+     * @return 
+     */
+    Object getCircleObject(Circle c);
+    
+    /**
+     * Convert DALI-1.1 polygon to a database object for insert.
+     * 
+     * @param poly
+     * @return 
+     */
+    Object getPolygonObject(Polygon poly);
+
+    /**
+     * Convert DALI-1.1 interval to a database object for insert.
+     * @param inter
+     * @return 
+     */
+    Object getIntervalObject(DoubleInterval inter);
+
+    /**
+     * Convert an array of DALI-1.1 intervals to a database object for insert.
+     * @param inter
+     * @return 
+     */
+    Object getIntervalArrayObject(DoubleInterval[] inter);
 }

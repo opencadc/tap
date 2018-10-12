@@ -215,7 +215,6 @@ public class TableCreator {
             jdbc.execute(sql);
             
             tm.commitTransaction();
-        
         } catch (Exception ex) {
             try {
                 log.error("create index failed - rollback", ex);

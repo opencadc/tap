@@ -98,11 +98,9 @@ public class PostAction extends TablesAction {
         if (tableName == null) {
             throw new IllegalArgumentException("Missing table name in path.");
         }
-        String schemaName = getSchemaFromTable(tableName);
+        
         log.debug("POST: " + tableName);
-        
-        checkSchemaWritePermission(schemaName);
-        
+        checkTableWritePermission(tableName);
         DataSource ds = getDataSource();
         
  //       try {

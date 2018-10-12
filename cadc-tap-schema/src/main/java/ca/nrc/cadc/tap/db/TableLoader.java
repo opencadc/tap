@@ -68,23 +68,23 @@
 package ca.nrc.cadc.tap.db;
 
 
+import ca.nrc.cadc.dali.Circle;
+import ca.nrc.cadc.dali.DoubleInterval;
+import ca.nrc.cadc.dali.Interval;
+import ca.nrc.cadc.dali.LongInterval;
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.Polygon;
+import ca.nrc.cadc.dali.tables.TableData;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.net.TransientException;
-import ca.nrc.cadc.dali.tables.TableData;
+import ca.nrc.cadc.tap.PluginFactory;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
-
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.List;
-
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
-import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.PreparedStatementCreator;
-import org.springframework.jdbc.core.PreparedStatementSetter;
 
 /**
  * Utility to bulk load content into a table.
@@ -94,6 +94,7 @@ import org.springframework.jdbc.core.PreparedStatementSetter;
 public class TableLoader {
     private static final Logger log = Logger.getLogger(TableLoader.class);
 
+    private final DatabaseDataType ddType;
     private final DataSource dataSource;
     private final int batchSize;
     private long totalInserts = 0;
@@ -107,6 +108,9 @@ public class TableLoader {
     public TableLoader(DataSource dataSource, int batchSize) { 
         this.dataSource = dataSource;
         this.batchSize = batchSize;
+        PluginFactory pf = new PluginFactory();
+        this.ddType = pf.getDatabaseDataType();
+        log.warn("loaded: " + ddType.getClass().getName());
     }
     
     /**
@@ -134,6 +138,7 @@ public class TableLoader {
                 
                 while (count < batchSize && dataIterator.hasNext()) {
                     nextRow = dataIterator.next();
+                    convertValueObjects(nextRow);
                     jdbc.update(sql, nextRow.toArray());
                     count++;
                 }
@@ -207,4 +212,35 @@ public class TableLoader {
         return totalInserts;
     }
     
+    private void convertValueObjects(List<Object> values) {
+        for (int i=0; i < values.size(); i++) {
+            Object v = values.get(i);
+            if (v != null) {
+                if (v instanceof DoubleInterval) {
+                    Object nv = ddType.getIntervalObject((DoubleInterval) v);
+                    values.set(i, nv);
+                } else if (v instanceof LongInterval) {
+                    Interval inter = (Interval) v;
+                    DoubleInterval di = new DoubleInterval(inter.getLower().doubleValue(), inter.getUpper().doubleValue());
+                    Object nv = ddType.getIntervalObject(di);
+                    values.set(i, nv);
+                } else if (v instanceof Point) {
+                    Object nv = ddType.getPointObject((Point) v);
+                    values.set(i, nv);
+                } else if (v instanceof Circle) {
+                    Object nv = ddType.getCircleObject((Circle) v);
+                    values.set(i, nv);
+                } else if (v instanceof Polygon) {
+                    Object nv = ddType.getPolygonObject((Polygon) v);
+                    values.set(i, nv);
+                } else if (v instanceof ca.nrc.cadc.stc.Position) {
+                    Object nv = ddType.getPointObject((ca.nrc.cadc.stc.Position) v);
+                    values.set(i, nv);
+                } else if (v instanceof ca.nrc.cadc.stc.Region) {
+                    Object nv = ddType.getRegionObject((ca.nrc.cadc.stc.Region) v);
+                    values.set(i, nv);
+                }
+            }
+        }
+    }
 }

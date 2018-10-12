@@ -68,11 +68,21 @@
 package ca.nrc.cadc.tap.pg;
 
 
+import ca.nrc.cadc.dali.Circle;
+import ca.nrc.cadc.dali.DoubleInterval;
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.Polygon;
+import ca.nrc.cadc.dali.postgresql.PgInterval;
+import ca.nrc.cadc.dali.postgresql.PgScircle;
+import ca.nrc.cadc.dali.postgresql.PgSpoint;
+import ca.nrc.cadc.dali.postgresql.PgSpoly;
 import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
+import java.sql.SQLException;
 import java.sql.Types;
 import org.apache.log4j.Logger;
+import org.postgresql.util.PGobject;
 
 /**
  *
@@ -114,5 +124,64 @@ public class PostgresDataTypeMapper extends BasicDataTypeMapper {
             default:
                 return null;
         }
+    }
+    
+    @Override
+    public Object getPointObject(ca.nrc.cadc.stc.Position pos)
+    {
+        Point p = new Point(pos.getCoordPair().getX(), pos.getCoordPair().getY());
+        return getPointObject(p);
+    }
+
+    @Override
+    public Object getRegionObject(ca.nrc.cadc.stc.Region reg)
+    {
+        if (reg instanceof ca.nrc.cadc.stc.Polygon)
+        {
+            ca.nrc.cadc.stc.Polygon poly = ( ca.nrc.cadc.stc.Polygon) reg;
+            Polygon p = new Polygon();
+            for (ca.nrc.cadc.stc.CoordPair c : poly.getCoordPairs()) {
+                p.getVertices().add(new Point(c.getX(), c.getY()));
+            }
+            return getPolygonObject(p);
+        }
+        throw new UnsupportedOperationException("cannot convert a " + reg.getClass().getSimpleName());
+    }
+    
+    @Override
+    public Object getPointObject(Point p)
+    {
+        PgSpoint pgs = new PgSpoint();
+        PGobject pgo = pgs.generatePoint(p);
+        return pgo;
+    }
+
+    @Override
+    public Object getCircleObject(Circle c) {
+        PgScircle pgs = new PgScircle();
+        PGobject pgo = pgs.generateCircle(c);
+        return pgo;
+    }
+    
+    @Override
+    public Object getPolygonObject(Polygon poly)
+    {
+        PgSpoly pgs = new PgSpoly();
+        PGobject pgo = pgs.generatePolygon(poly);
+        return pgo;
+    }
+
+    @Override
+    public Object getIntervalObject(DoubleInterval inter)
+    {
+        PgInterval gen = new PgInterval();
+        return gen.generatePolygon2D(inter);
+    }
+
+    @Override
+    public Object getIntervalArrayObject(DoubleInterval[] inter)
+    {
+        PgInterval gen = new PgInterval();
+        return gen.generatePolygon2D(inter);
     }
 }

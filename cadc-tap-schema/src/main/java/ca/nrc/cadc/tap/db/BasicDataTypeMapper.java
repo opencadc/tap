@@ -67,7 +67,13 @@
 
 package ca.nrc.cadc.tap.db;
 
+import ca.nrc.cadc.dali.Circle;
+import ca.nrc.cadc.dali.DoubleInterval;
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.Polygon;
 import ca.nrc.cadc.dali.tables.votable.VOTableUtil;
+import ca.nrc.cadc.stc.Position;
+import ca.nrc.cadc.stc.Region;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
 import java.sql.Types;
@@ -227,5 +233,40 @@ public class BasicDataTypeMapper implements DatabaseDataType {
      */
     protected String getVarCharType() {
         return "VARCHAR";
+    }
+
+    @Override
+    public Object getPointObject(Position pos) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object getRegionObject(Region reg) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object getPointObject(Point p) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object getCircleObject(Circle c) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object getPolygonObject(Polygon poly) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object getIntervalObject(DoubleInterval inter) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object getIntervalArrayObject(DoubleInterval[] inter) {
+        throw new UnsupportedOperationException();
     }
 }
