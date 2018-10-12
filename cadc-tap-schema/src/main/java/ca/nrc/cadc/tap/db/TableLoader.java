@@ -119,7 +119,7 @@ public class TableLoader {
      * @param destTable The table description
      * @param data The table data.
      */
-    public void load(TableDesc destTable, AsciiTableData data) { 
+    public void load(TableDesc destTable, TableDataStream data) { 
         
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);

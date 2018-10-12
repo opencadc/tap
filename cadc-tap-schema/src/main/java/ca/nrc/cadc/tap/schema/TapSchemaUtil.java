@@ -179,7 +179,6 @@ public class TapSchemaUtil {
      * Validates that the given String is a valid ADQL identifier.
      *
      * @param identifier String to be tested.
-     * @return true if a valid ADQL identifier.
      * @throws ADQLIdentifierException
      */
     public static void checkValidIdentifier(String identifier) throws ADQLIdentifierException {

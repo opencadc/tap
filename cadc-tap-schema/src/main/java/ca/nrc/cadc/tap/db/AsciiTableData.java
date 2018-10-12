@@ -67,6 +67,14 @@
 
 package ca.nrc.cadc.tap.db;
 
+import ca.nrc.cadc.dali.tables.votable.VOTableField;
+import ca.nrc.cadc.dali.util.Format;
+import ca.nrc.cadc.dali.util.FormatFactory;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapSchemaUtil;
+import ca.nrc.cadc.vosi.actions.TableContentHandler;
+import com.csvreader.CsvReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -76,19 +84,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.log4j.Logger;
-
-import com.csvreader.CsvReader;
-
-import ca.nrc.cadc.dali.tables.TableData;
-import ca.nrc.cadc.dali.tables.votable.VOTableField;
-import ca.nrc.cadc.dali.util.Format;
-import ca.nrc.cadc.dali.util.FormatFactory;
-import ca.nrc.cadc.tap.schema.ColumnDesc;
-import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.schema.TapSchemaUtil;
-import ca.nrc.cadc.vosi.actions.TableContentHandler;
 
 /**
  * Class to produce formatted row and column data through an iterator.
@@ -96,7 +92,7 @@ import ca.nrc.cadc.vosi.actions.TableContentHandler;
  * @author majorb
  *
  */
-public class AsciiTableData implements TableData, Iterator<List<Object>> {
+public class AsciiTableData implements TableDataStream, Iterator<List<Object>> {
     
     private static final Logger log = Logger.getLogger(AsciiTableData.class);
     
