@@ -119,7 +119,7 @@ public class TableLoader {
      * @param destTable The table description
      * @param data The table data.
      */
-    public void load(TableDesc destTable, TableData data) { 
+    public void load(TableDesc destTable, AsciiTableData data) { 
         
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
@@ -149,6 +149,11 @@ public class TableLoader {
                 done = !dataIterator.hasNext();
                 
             } catch (Throwable t) {
+                try {
+                    data.close();
+                } catch (Exception ex) {
+                    log.error("unexpected exception trying to close input stream", ex);
+                }
                 log.error("Batch insert failure, rolling back transaction.");
                 try {
                     if (tm.isOpen()) {
@@ -176,6 +181,11 @@ public class TableLoader {
                     catch (Throwable t) {
                         log.error("Unexpected: could not rollback transaction", t);
                     }
+                }
+                try {
+                    data.close();
+                } catch (Exception ex) {
+                    log.warn("exception trying to close input stream in finally: ignoring it", ex);
                 }
             }
             

@@ -122,7 +122,7 @@ public class AsciiTableData implements TableData, Iterator<List<Object>> {
         }
         reader = new CsvReader(in, delimiter, Charset.defaultCharset());
         if (!reader.readHeaders()) {
-            throw new RuntimeException("No inline data.");
+            throw new IllegalArgumentException("No inline header and data.");
         }
         columnNames = Arrays.asList(reader.getHeaders());
         tableDesc = createTableDesc(orig);
@@ -130,6 +130,12 @@ public class AsciiTableData implements TableData, Iterator<List<Object>> {
         hasNext = reader.readRecord();
     }
 
+    public void close() {
+        if (reader != null) {
+            reader.close();
+        }
+    }
+    
     /**
      * Return the data iterator.
      */
