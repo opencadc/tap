@@ -92,7 +92,7 @@ public class TableCreator {
         this.dataSource = dataSource;
         PluginFactory pf = new PluginFactory();
         this.ddType = pf.getDatabaseDataType();
-        log.warn("loaded: " + ddType.getClass().getName());
+        log.debug("loaded: " + ddType.getClass().getName());
     }
 
     public void createTable(TableDesc table) {

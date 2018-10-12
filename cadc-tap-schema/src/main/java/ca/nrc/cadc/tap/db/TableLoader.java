@@ -110,7 +110,7 @@ public class TableLoader {
         this.batchSize = batchSize;
         PluginFactory pf = new PluginFactory();
         this.ddType = pf.getDatabaseDataType();
-        log.warn("loaded: " + ddType.getClass().getName());
+        log.debug("loaded: " + ddType.getClass().getName());
     }
     
     /**
@@ -155,7 +155,7 @@ public class TableLoader {
             } catch (Exception ex) {
                 log.error("unexpected exception trying to close input stream", ex);
             }
-            log.error("Batch insert failure, rolling back transaction.");
+            log.error("Batch insert failure, rolling back transaction", t);
             try {
                 if (tm.isOpen()) {
                     tm.rollbackTransaction();
@@ -185,7 +185,7 @@ public class TableLoader {
             try {
                 data.close();
             } catch (Exception ex) {
-                log.warn("exception trying to close input stream in finally: ignoring it", ex);
+                log.debug("exception trying to close input stream in finally: ignoring it", ex);
             }
         }
         log.debug("Inserted a total of " + totalInserts + " rows.");
