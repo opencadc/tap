@@ -79,6 +79,8 @@ import ca.nrc.cadc.stc.Region;
 import ca.nrc.cadc.stc.StcsParsingException;
 import ca.nrc.cadc.tap.db.DatabaseDataType;
 import ca.nrc.cadc.tap.db.TableCreator;
+import ca.nrc.cadc.tap.db.TableDataStream;
+import ca.nrc.cadc.tap.db.TableLoader;
 import ca.nrc.cadc.tap.db.TapConstants;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
@@ -200,11 +202,6 @@ public class BasicUploadManager implements UploadManager
         // Map of database table name to table descriptions.
         Map<String, TableDesc> metadata = new HashMap<String, TableDesc>();
 
-        // Statements
-        Statement stmt = null;
-        PreparedStatement ps = null;
-        Connection con = null;
-        boolean txn = false;
         UploadTable cur = null;
 
         //FormatterFactory factory = DefaultFormatterFactory.getFormatterFactory();
@@ -230,7 +227,7 @@ public class BasicUploadManager implements UploadManager
                 // TODO: make configurable.
                 log.debug(uploadTable);
                 
-                VOTableParser parser = getVOTableParser(uploadTable);
+                final VOTableParser parser = getVOTableParser(uploadTable);
 
                 // Get the Table description.
                 TableDesc tableDesc = parser.getTableDesc();
@@ -242,61 +239,27 @@ public class BasicUploadManager implements UploadManager
                 metadata.put(databaseTableName, tableDesc);
                 log.debug("upload table: " + databaseTableName + " aka " + tableDesc);
                 
-                String tableName = tableDesc.getTableName();
+                final String tableName = tableDesc.getTableName();
                 tableDesc.setTableName(databaseTableName);
+                
                 TableCreator tc = new TableCreator(dataSource);
                 tc.createTable(tableDesc);
-                tableDesc.setTableName(tableName);
                 
-                // Get a PreparedStatement that populates the table.
-                
-                // acquire connection
-                con = dataSource.getConnection();
-
-                con.setAutoCommit(false);
-                txn = true;
-            
-                String insertSQL = getInsertTableSQL(tableDesc, databaseTableName); 
-                ps = con.prepareStatement(insertSQL);
-                log.debug("Insert table SQL: " + insertSQL);
-
-                // Populate the table from the VOTable tabledata rows.
-                int numRows = 0;
-                Iterator<List<Object>> it = parser.iterator();
-                while (it.hasNext())
-                {
-                    // Get the data for the next row.
-                    List<Object> row = it.next();
-
-                    // Update the PreparedStatement with the row data.
-                    updatePreparedStatement(ps, databaseDataType, tableDesc.getColumnDescs(), row);
-
-                    // Execute the update.
-                    ps.executeUpdate();
-                    
-                    // commit every NUM_ROWS_PER_COMMIT rows
-                    if (numRows != 0 && (numRows % NUM_ROWS_PER_COMMIT) == 0)
-                    {
-                        log.debug(NUM_ROWS_PER_COMMIT + " rows committed");
-                        con.commit();
+                TableLoader tld = new TableLoader(dataSource, 1000);
+                tld.load(tableDesc, new TableDataStream() {
+                    @Override
+                    public void close() {
+                        //no-op: fully read already
                     }
-                    
-                    // Check if we've reached exceeded the max number of rows.
-                    numRows++;
-                    if (numRows == maxUploadRows)
-                        throw new UnsupportedOperationException("Exceded maximum number of allowed rows: " + maxUploadRows);
-                }
+
+                    @Override
+                    public Iterator<List<Object>> iterator() {
+                        return parser.iterator();
+                    }
+                });
                 
-                // Commit remaining rows.
-                con.commit();
-                
-                log.debug(numRows + " rows inserted into " + databaseTableName);
+                tableDesc.setTableName(tableName);
             }
-            txn = false;
-        }
-        catch(StcsParsingException ex)
-        {
-            throw new RuntimeException("failed to parse table " + cur.tableName + " from " + cur.uri, ex);
         }
         catch(VOTableParserException ex)
         {
@@ -306,43 +269,7 @@ public class BasicUploadManager implements UploadManager
         {
             throw new RuntimeException("failed to read table " + cur.tableName + " from " + cur.uri, ex);
         }
-        catch (SQLException e)
-        {
-            throw new RuntimeException("failed to create and load table in DB", e);
-        }
-        finally
-        {
-            try
-            {
-                if (con != null)
-                    con.rollback();
-            }
-            catch (SQLException ignore) { }
-            if (stmt != null)
-            {
-                try
-                {
-                    stmt.close();
-                }
-                catch (SQLException ignore) { }
-            }
-            if (ps != null)
-            {
-                try
-                {
-                    ps.close();
-                }
-                catch (SQLException ignore) { }
-            }
-            if (con != null)
-            {
-                try
-                {
-                    con.close();
-                }
-                catch (SQLException ignore) { }
-            }
-        }
+       
         return metadata;
     }
     
@@ -405,215 +332,4 @@ public class BasicUploadManager implements UploadManager
         sb.append(uploadTable.jobID);
         return sb.toString();
     }
-    
-    /**
-     * Create the SQL required to create a table described by the TableDesc.
-     *
-     * @param tableDesc describes the table.
-     * @param databaseTableName fully qualified table name.
-     * @param databaseDataType map of SQL types to database specific data types.
-     * @return SQL to create the table.
-     * @throws SQLException
-     */
-    protected String getCreateTableSQL(TableDesc tableDesc, String databaseTableName, DatabaseDataType databaseDataType)
-        throws SQLException
-    {
-        StringBuilder sb = new StringBuilder();
-        sb.append("create table ");
-        sb.append(databaseTableName);
-        sb.append(" ( ");
-        for (int i = 0; i < tableDesc.getColumnDescs().size(); i++)
-        {
-            ColumnDesc columnDesc = tableDesc.getColumnDescs().get(i);
-            sb.append(columnDesc.getColumnName());
-            sb.append(" ");
-            sb.append(databaseDataType.getDataType(columnDesc));
-            sb.append(" null ");
-            if (i + 1 < tableDesc.getColumnDescs().size())
-                sb.append(", ");
-        }
-        sb.append(" ) ");
-        return sb.toString();
-    }
-    
-    /**
-     * Create the SQL required to create a PreparedStatement
-     * to insert into the table described by the TableDesc.
-     * 
-     * @param tableDesc describes the table.
-     * @return SQL to create the table.
-     */
-    protected String getInsertTableSQL(TableDesc tableDesc, String databaseTableName)
-    {
-        StringBuilder sb = new StringBuilder();
-        sb.append("insert into ");
-        sb.append(databaseTableName);
-        sb.append(" ( ");
-        for (int i = 0; i < tableDesc.getColumnDescs().size(); i++)
-        {
-            ColumnDesc columnDesc = tableDesc.getColumnDescs().get(i);
-            sb.append(columnDesc.getColumnName());
-            if (i + 1 < tableDesc.getColumnDescs().size())
-                sb.append(", ");
-        }
-        sb.append(" ) values ( ");
-        for (int i = 0; i < tableDesc.getColumnDescs().size(); i++)
-        {
-            sb.append("?");
-            if (i + 1 < tableDesc.getColumnDescs().size())
-                sb.append(", ");
-        }
-        sb.append(" ) ");
-        return sb.toString();
-    }
-
-    /**
-     * Updated the PreparedStatement with the row data using the ColumnDesc to
-     * determine each column data type.
-     *
-     * @param ps the prepared statement.
-     * @param databaseDataType
-     * @param columnDescs List of ColumnDesc for this table.
-     * @param row Array containing the data to be inserted into the database.
-     * @throws SQLException if the statement is closed or if the parameter index type doesn't match.
-     */
-    protected void updatePreparedStatement(PreparedStatement ps, DatabaseDataType databaseDataType,
-            List<ColumnDesc> columnDescs, List<Object> row)
-        throws SQLException, StcsParsingException
-    {
-        int i = 1;
-        for (Object value : row)
-        {
-            ColumnDesc columnDesc = columnDescs.get(i-1);
-            log.debug("update ps: " + columnDesc.getColumnName() + "[" + columnDesc.getDatatype() + "] = " + value);
-
-            Integer sqlType = databaseDataType.getType(columnDesc);
-            
-            if (sqlType == null) // db-specific
-            {
-                Object dbv = null;
-                if (value instanceof Point)
-                    dbv = getPointObject((Point) value);
-                else if (value instanceof Circle)
-                    dbv = getCircleObject((Circle) value);
-                else if (value instanceof Polygon)
-                    dbv = getPolygonObject((Polygon) value);
-                else if (value instanceof DoubleInterval)
-                    dbv = getIntervalObject((DoubleInterval) value);
-                //else if (value instanceof LongInterval)
-                //    dbv = getIntervalObject((LongInterval) value);
-                else if (value instanceof Position)
-                    dbv = getPointObject((Position) value);
-                else if (value instanceof Region)
-                    dbv = getRegionObject((Region) value);
-                
-                ps.setObject(i, dbv); // could be null
-            }
-            else if (value == null) // null
-                ps.setNull(i, sqlType);
-            else
-            {
-                switch(sqlType)
-                {
-                    case Types.TIMESTAMP:
-                        Date date = (Date) value;
-                        ps.setTimestamp(i, new Timestamp(date.getTime())); // UTC
-                        break;
-                    default:
-                        ps.setObject(i, value, sqlType);
-                }
-                
-            }
-            i++;
-        }
-    }
-
-    /**
-     * Convert DALI point value to an object for insert.
-     *
-     * @param p
-     * @throws SQLException
-     * @return an object suitable for use with PreparedStatement.setObject(int,Object)
-     */
-    protected Object getPointObject(Point p)
-        throws SQLException
-    {
-        throw new UnsupportedOperationException("cannot convert DALI point -> internal database type");
-    }
-    
-    /**
-     * Convert DALI circle value to an object for insert.
-     *
-     * @param c
-     * @throws SQLException
-     * @return an object suitable for use with PreparedStatement.setObject(int,Object)
-     */
-    protected Object getCircleObject(Circle c)
-        throws SQLException
-    {
-        throw new UnsupportedOperationException("cannot convert DALI circle -> internal database type");
-    }
-    
-    /**
-     * Convert DALI polygon value to an object for insert.
-     * 
-     * @param poly
-     * @return an object suitable for use with PreparedStatement.setObject(int,Object)
-     * @throws SQLException 
-     */
-    protected Object getPolygonObject(Polygon poly)
-        throws SQLException
-    {
-        throw new UnsupportedOperationException("cannot convert DALI polygon -> internal database type");
-    }
-    
-    /**
-     * Convert DALI interval value to an object for insert.
-     * 
-     * @param inter
-     * @return  an object suitable for use with PreparedStatement.setObject(int,Object)
-     */
-    protected Object getIntervalObject(DoubleInterval inter)
-    {
-        throw new UnsupportedOperationException("cannot convert DALI interval -> internal database type");
-    }
-    
-    /**
-     * Convert array of DALI interval values to an object for insert.
-     * 
-     * @param inter
-     * @return  an object suitable for use with PreparedStatement.setObject(int,Object)
-     */
-    protected Object getIntervalArrayObject(DoubleInterval[] inter)
-    {
-        throw new UnsupportedOperationException("cannot convert DALI interval array -> internal database type");
-    }
-    
-    /**
-     * Convert STC-S (TAP-1.0) adql:POINT value into an object for insert.
-     * 
-     * @param pos
-     * @return an object suitable for use with PreparedStatement.setObject(int,Object)
-     * @throws SQLException 
-     * 
-     */
-    protected Object getPointObject(Position pos)
-        throws SQLException
-    {
-        throw new UnsupportedOperationException("cannot convert STC-S Position -> internal database type");
-    }
-
-    /**
-     * Convert STC-S (TAP-1.0) adql:REGION value into an object for insert.
-     *
-     * @param reg
-     * @throws SQLException
-     * @return an object suitable for use with PreparedStatement.setObject(int,Object)
-     */
-    protected Object getRegionObject(Region reg)
-        throws SQLException
-    {
-        throw new UnsupportedOperationException("cannot convert STC-S Region -> internal database type");
-    }
-
 }
