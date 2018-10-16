@@ -181,6 +181,8 @@ public class AsciiTableData implements TableDataStream, Iterator<List<Object>> {
             }
             hasNext = reader.readRecord();
             return row;
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("invalid number: " + ex.getMessage());
         } catch (IOException e) {
             throw new RuntimeException("Failed to read data stream.", e);
         }
