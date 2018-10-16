@@ -185,6 +185,12 @@ public class AsciiTableData implements TableDataStream, Iterator<List<Object>> {
             throw new RuntimeException("Failed to read data stream.", e);
         }
     }
+
+    @Override
+    public void remove() {
+        throw new UnsupportedOperationException();
+    }
+    
     
     private TableDesc createTableDesc(TableDesc orig) {
         if (columnNames.size() == 0) {
