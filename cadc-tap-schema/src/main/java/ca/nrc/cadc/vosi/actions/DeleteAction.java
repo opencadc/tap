@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2018.                            (c) 2018.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,37 +62,79 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
-*
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.upload.datatype;
+package ca.nrc.cadc.vosi.actions;
 
-import ca.nrc.cadc.tap.schema.ColumnDesc;
+
+import ca.nrc.cadc.db.DatabaseTransactionManager;
+import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.tap.db.TableCreator;
+import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import javax.sql.DataSource;
+import org.apache.log4j.Logger;
 
 /**
- * Interface to convert ADQL data types to a database
- * specific data types.
- *
- * @author jburke
+ * Drop table. This action drops a database table and removes the description
+ * to the tap_schema.
+ * 
+ * @author pdowler
  */
-public interface DatabaseDataType
-{
-    /**
-     * Get the database type for the specified column. This is used in create
-     * table statements.
-     *
-     * @param columnDesc ADQL description of the column
-     * @return database specific data type
-     */
-    String getDataType(ColumnDesc columnDesc);
+public class DeleteAction extends TablesAction {
+    private static final Logger log = Logger.getLogger(DeleteAction.class);
 
-    /**
-     * Get the column type as a java.sql.Types constant.
-     * 
-     * @param columnDesc
-     * @return one of the java.sql.Types values
-     */
-    Integer getType(ColumnDesc columnDesc);
+    public DeleteAction() { 
+    }
+
+    @Override
+    public void doAction() throws Exception {
+        String tableName = getTableName();
+        log.debug("DELETE: " + tableName);
+        
+        checkSchemaWritePermission(getSchemaFromTable(tableName));
+        
+        DataSource ds = getDataSource();
+        DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
+        try {
+            tm.startTransaction();
+            
+            // remove from tap_schema
+            TapSchemaDAO ts = new TapSchemaDAO();
+            ts.setDataSource(ds);
+            ts.delete(tableName);
+            
+            // drop table
+            TableCreator tc = new TableCreator(ds);
+            tc.dropTable(tableName);
+            
+            tm.commitTransaction();
+        } catch (ResourceNotFoundException rethrow) { 
+            tm.rollbackTransaction();
+            throw rethrow;
+        }catch (Exception ex) {
+            try {
+                log.error("DELETE failed - rollback", ex);
+                tm.rollbackTransaction();
+                log.error("DELETE failed - rollback: OK");
+            } catch (Exception oops) {
+                log.error("DELETE failed - rollback : FAIL", oops);
+            }
+            // TODO: categorise failures better
+            throw new RuntimeException("failed to delete " + tableName, ex);
+        } finally { 
+            if (tm.isOpen()) {
+                log.error("BUG: open transaction in finally - trying to rollback");
+                try {
+                    tm.rollbackTransaction();
+                    log.error("BUG: rollback in finally: OK");
+                } catch (Exception oops) {
+                    log.error("BUG: rollback in finally: FAIL", oops);
+                }
+                throw new RuntimeException("BUG: open transaction in finally");
+            }
+        }
+        
+        syncOutput.setCode(200);
+    }
 }

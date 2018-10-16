@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2014.                            (c) 2014.
+*  (c) 2018.                            (c) 2018.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,106 +62,126 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
-*
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap;
+package ca.nrc.cadc.tap.pg;
 
-import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.schema.TapSchema;
-import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import ca.nrc.cadc.tap.writer.format.DefaultFormatFactory;
-import ca.nrc.cadc.tap.writer.format.FormatFactory;
-import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.uws.Job;
-import ca.nrc.cadc.uws.Parameter;
-import java.util.HashMap;
-import java.util.Map;
-import org.apache.log4j.Level;
+
+import ca.nrc.cadc.dali.Circle;
+import ca.nrc.cadc.dali.DoubleInterval;
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.Polygon;
+import ca.nrc.cadc.dali.postgresql.PgInterval;
+import ca.nrc.cadc.dali.postgresql.PgScircle;
+import ca.nrc.cadc.dali.postgresql.PgSpoint;
+import ca.nrc.cadc.dali.postgresql.PgSpoly;
+import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
+import java.sql.SQLException;
+import java.sql.Types;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Test;
+import org.postgresql.util.PGobject;
 
 /**
  *
  * @author pdowler
  */
-public class PluginFactoryTest 
-{
-    private static final Logger log = Logger.getLogger(PluginFactoryTest.class);
-    
-    static
-    {
-        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
+public class PostgresDataTypeMapper extends BasicDataTypeMapper {
+    private static final Logger log = Logger.getLogger(PostgresDataTypeMapper.class);
+
+    public PostgresDataTypeMapper() {
+        dataTypes.put(TapDataType.POINT, new TypePair("spoint", null));
+        dataTypes.put(TapDataType.CIRCLE, new TypePair("scircle", null));
+        dataTypes.put(TapDataType.POLYGON, new TypePair("spoly", null));
+        dataTypes.put(TapDataType.INTERVAL, new TypePair("polygon", null));
+        
+        dataTypes.put(new TapDataType("char", "*", "uri"), new TypePair("CHAR", Types.CHAR));
+        dataTypes.put(new TapDataType("char", "36", "uuid"), new TypePair("uuid", null));
+        
+        dataTypes.put(new TapDataType("char", "*", "adql:POINT"), new TypePair("spoint", null));
+        dataTypes.put(new TapDataType("char", "*", "adql:REGION"), new TypePair("spoly", null));
+    }
+
+    @Override
+    public String getIndexColumnOperator(ColumnDesc columnDesc) {
+        return null;
+    }
+
+    @Override
+    public String getIndexUsingQualifier(ColumnDesc columnDesc, boolean unique) {
+        TypePair tp = findTypePair(columnDesc.getDatatype());
+        switch(tp.str) {
+            case "spoint":
+            case "scircle":
+            case "spoly":
+            case "polygon":
+                if (unique) {
+                    throw new IllegalArgumentException("unique index not supported for column type: " + columnDesc.getDatatype());
+                }
+                return "gist";
+            default:
+                return null;
+        }
     }
     
-    Job job = new Job() 
+    @Override
+    public Object getPointObject(ca.nrc.cadc.stc.Position pos)
     {
-        @Override
-        public String getID() { return "abcdefg"; }
-    };
-            
-    public PluginFactoryTest() { }
-    
-    //@Test
-    public void testTemplate()
+        Point p = new Point(pos.getCoordPair().getX(), pos.getCoordPair().getY());
+        return getPointObject(p);
+    }
+
+    @Override
+    public Object getRegionObject(ca.nrc.cadc.stc.Region reg)
     {
-        try
+        if (reg instanceof ca.nrc.cadc.stc.Polygon)
         {
-            
+            ca.nrc.cadc.stc.Polygon poly = ( ca.nrc.cadc.stc.Polygon) reg;
+            Polygon p = new Polygon();
+            for (ca.nrc.cadc.stc.CoordPair c : poly.getCoordPairs()) {
+                p.getVertices().add(new Point(c.getX(), c.getY()));
+            }
+            return getPolygonObject(p);
         }
-        catch(Exception unexpected)
-        {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
-        }
+        throw new UnsupportedOperationException("cannot convert a " + reg.getClass().getSimpleName());
     }
     
-    @Test
-    public void testSetup()
+    @Override
+    public Object getPointObject(Point p)
     {
-        try
-        {
-            job.getParameterList().clear();
-            job.getParameterList().add(new Parameter("LANG", "ADQL"));
-            
-            PluginFactoryImpl pf = new PluginFactoryImpl(job);
-            
-            try
-            {
-                Assert.assertNull(pf.getTapQuery()); // no default
-            }
-            catch(IllegalArgumentException expected)
-            {
-                log.debug("caught expected exception: " + expected);
-            }
-            
-            MaxRecValidator mrv = pf.getMaxRecValidator();
-            Assert.assertNotNull(mrv);
-            Assert.assertEquals(MaxRecValidator.class, mrv.getClass()); // default impl
-            
-            UploadManager um = pf.getUploadManager();
-            Assert.assertNotNull(um);
-            Assert.assertEquals(DefaultUploadManager.class, um.getClass()); // default impl
-            
-            TableWriter tw = pf.getTableWriter();
-            Assert.assertNotNull(tw);
-            Assert.assertEquals(DefaultTableWriter.class, tw.getClass()); // default impl
-            
-            FormatFactory ff = pf.getFormatFactory();
-            Assert.assertNotNull(ff);
-            Assert.assertEquals(DefaultFormatFactory.class, ff.getClass()); // default impl
-            
-            TapSchemaDAO tsd = pf.getTapSchemaDAO();
-            Assert.assertNotNull(tsd);
-            Assert.assertEquals(TapSchemaDAO.class, tsd.getClass()); // default impl
-        }
-        catch(Exception unexpected)
-        {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
-        }
+        PgSpoint pgs = new PgSpoint();
+        PGobject pgo = pgs.generatePoint(p);
+        return pgo;
+    }
+
+    @Override
+    public Object getCircleObject(Circle c) {
+        PgScircle pgs = new PgScircle();
+        PGobject pgo = pgs.generateCircle(c);
+        return pgo;
+    }
+    
+    @Override
+    public Object getPolygonObject(Polygon poly)
+    {
+        PgSpoly pgs = new PgSpoly();
+        PGobject pgo = pgs.generatePolygon(poly);
+        return pgo;
+    }
+
+    @Override
+    public Object getIntervalObject(DoubleInterval inter)
+    {
+        PgInterval gen = new PgInterval();
+        return gen.generatePolygon2D(inter);
+    }
+
+    @Override
+    public Object getIntervalArrayObject(DoubleInterval[] inter)
+    {
+        PgInterval gen = new PgInterval();
+        return gen.generatePolygon2D(inter);
     }
 }

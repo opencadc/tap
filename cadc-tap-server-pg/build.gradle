@@ -12,10 +12,11 @@ repositories {
 
 sourceCompatibility = 1.7
 group = 'org.opencadc'
-version = '1.0.1'
+version = '1.0.3'
 
 dependencies {
     compile 'org.opencadc:cadc-dali-pg:[0.1,)'
+    compile 'org.opencadc:cadc-tap-schema:[1.1.6, )'
     compile 'org.opencadc:cadc-tap-server:[1.1.5, )'
 
     testCompile 'junit:junit:4.+'

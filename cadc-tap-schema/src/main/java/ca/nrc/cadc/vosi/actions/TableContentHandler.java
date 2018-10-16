@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2011.                            (c) 2011.
+*  (c) 2018.                            (c) 2018.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,86 +62,51 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
-*
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.schema;
+package ca.nrc.cadc.vosi.actions;
 
+import java.io.IOException;
+import java.io.InputStream;
 
-import ca.nrc.cadc.db.ConnectionConfig;
-import ca.nrc.cadc.db.DBConfig;
-import ca.nrc.cadc.db.DBUtil;
-import ca.nrc.cadc.util.Log4jInit;
-import javax.sql.DataSource;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Test;
 
-/**
- *
- * @author pdowler
- */
-public class TapSchemaDAOTest 
-{
-    private static final Logger log = Logger.getLogger(TapSchemaDAOTest.class);
+import ca.nrc.cadc.dali.tables.TableData;
+import ca.nrc.cadc.rest.InlineContentException;
+import ca.nrc.cadc.rest.InlineContentHandler;
 
-    public TapSchemaDAOTest() { }
+public class TableContentHandler implements InlineContentHandler {
     
-    static DataSource dataSource;
+    private static final Logger log = Logger.getLogger(TableContentHandler.class);
     
-    static
-    {
-        Log4jInit.setLevel("ca.nrc.cadc.tap.schema", Level.INFO);
+    public static final String TABLE_CONTENT = "tableContent";
+    public static final String CONTENT_TYPE_CSV = "text/csv";
+    public static final String CONTENT_TYPE_TSV = "text/tab-separated-values";
+    
+    private String contentType;
+    
+    @Override
+    public Content accept(String name, String contentType, InputStream inputStream)
+            throws InlineContentException, IOException {
         
-        // create a datasource and register with JNDI
-        try
-        {
-            DBConfig conf = new DBConfig();
-            ConnectionConfig cc = conf.getConnectionConfig("TAP_SCHEMA_TEST", "cadctest");
-            dataSource = DBUtil.getDataSource(cc);
-            log.info("configured data source: " + cc.getServer() + "," + cc.getDatabase() + "," + cc.getDriver() + "," + cc.getURL());
+        log.debug("Content-Type: " + contentType);
+        if (contentType == null) {
+            throw new IllegalArgumentException("Table ContentType requried.");
         }
-        catch(Exception ex)
-        {
-            log.error("setup failed", ex);
-            throw new IllegalStateException("failed to create DataSource", ex);
+        if (!contentType.equals(CONTENT_TYPE_CSV) && !contentType.equals(CONTENT_TYPE_TSV)) {
+            throw new IllegalArgumentException("Unsupported table ContentType: " + contentType);
         }
+        this.contentType = contentType;
+        
+        InlineContentHandler.Content content = new InlineContentHandler.Content();
+        content.name = TABLE_CONTENT;
+        content.value = inputStream;
+        return content;
     }
     
-    @Test
-    public void testReadTapSchemaSelf()
-    {
-        try
-        {
-            TapSchemaDAO dao = new TapSchemaDAO();
-            dao.setDataSource(dataSource);
-            TapSchema ts = dao.get();
-            boolean foundTS = false;
-            for (SchemaDesc sd : ts.getSchemaDescs())
-            {
-                if ( sd.getSchemaName().equalsIgnoreCase("TAP_SCHEMA"))
-                {
-                    foundTS = true;
-                    TableDesc ts_schemas = sd.getTable("TAP_SCHEMA.schemas");
-                    Assert.assertNotNull("found tap_schema.schemas", ts_schemas);
-                    
-                    TableDesc ts_tables = sd.getTable("TAP_SCHEMA.tables");
-                    Assert.assertNotNull("found tap_schema.tables", ts_tables);
-                    
-                    TableDesc ts_columns = sd.getTable("TAP_SCHEMA.columns");
-                    Assert.assertNotNull("found tap_schema.columns", ts_columns);
-                }
-            }
-            
-            Assert.assertTrue("found tap_schema", foundTS);
-        }
-        catch(Exception unexpected)
-        {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " +  unexpected);
-        }
+    public String getContentType() {
+        return contentType;
     }
+
 }

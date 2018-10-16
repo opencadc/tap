@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2014.                            (c) 2014.
+*  (c) 2018.                            (c) 2018.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,106 +62,114 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
+*  $Revision: 4 $
 *
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap;
+package ca.nrc.cadc.tap.db;
 
-import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.schema.TapSchema;
-import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import ca.nrc.cadc.tap.writer.format.DefaultFormatFactory;
-import ca.nrc.cadc.tap.writer.format.FormatFactory;
-import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.uws.Job;
-import ca.nrc.cadc.uws.Parameter;
-import java.util.HashMap;
-import java.util.Map;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Test;
+import ca.nrc.cadc.dali.Circle;
+import ca.nrc.cadc.dali.DoubleInterval;
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.Polygon;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
 
 /**
+ * Interface to convert ADQL data types to a database
+ * specific data types.
  *
- * @author pdowler
+ * @author jburke
  */
-public class PluginFactoryTest 
+public interface DatabaseDataType
 {
-    private static final Logger log = Logger.getLogger(PluginFactoryTest.class);
+    /**
+     * Get the database type for the specified column. This is for use in create
+     * table statements, casts, etc.
+     *
+     * @param columnDesc ADQL description of the column
+     * @return database specific data type
+     */
+    String getDataType(ColumnDesc columnDesc);
+
+    /**
+     * Get the column type as a java.sql.Types constant.
+     * 
+     * @param columnDesc
+     * @return one of the java.sql.Types values
+     */
+    Integer getType(ColumnDesc columnDesc);
     
-    static
-    {
-        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
-    }
+    /**
+     * Get an optional USING qualifier for index creation. If you don't know what this
+     * is just return null.
+     * 
+     * @param columnDesc
+     * @return 
+     * @throws IllegalArgumentException if unique==true and the column type or qualifier 
+     *  does not support unique indices
+     */
+    String getIndexUsingQualifier(ColumnDesc columnDesc, boolean unique);
     
-    Job job = new Job() 
-    {
-        @Override
-        public String getID() { return "abcdefg"; }
-    };
-            
-    public PluginFactoryTest() { }
+    /**
+     * Get an optional operator for index creation. If you don't know what this
+     * is just return null.
+     * @param columnDesc
+     * @return 
+     */
+    String getIndexColumnOperator(ColumnDesc columnDesc);
     
-    //@Test
-    public void testTemplate()
-    {
-        try
-        {
-            
-        }
-        catch(Exception unexpected)
-        {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
-        }
-    }
+    /**
+     * Convert TAP-1.0 ADQL/STC point value to a database object for insert.
+     * 
+     * @param pos
+     * @return 
+     */
+    Object getPointObject(ca.nrc.cadc.stc.Position pos);
+
+    /**
+     * Convert TAP-1.0 ADQL/STC region value to a database object for insert.
+     * 
+     * @param reg
+     * @return 
+     */
+    Object getRegionObject(ca.nrc.cadc.stc.Region reg);
     
-    @Test
-    public void testSetup()
-    {
-        try
-        {
-            job.getParameterList().clear();
-            job.getParameterList().add(new Parameter("LANG", "ADQL"));
-            
-            PluginFactoryImpl pf = new PluginFactoryImpl(job);
-            
-            try
-            {
-                Assert.assertNull(pf.getTapQuery()); // no default
-            }
-            catch(IllegalArgumentException expected)
-            {
-                log.debug("caught expected exception: " + expected);
-            }
-            
-            MaxRecValidator mrv = pf.getMaxRecValidator();
-            Assert.assertNotNull(mrv);
-            Assert.assertEquals(MaxRecValidator.class, mrv.getClass()); // default impl
-            
-            UploadManager um = pf.getUploadManager();
-            Assert.assertNotNull(um);
-            Assert.assertEquals(DefaultUploadManager.class, um.getClass()); // default impl
-            
-            TableWriter tw = pf.getTableWriter();
-            Assert.assertNotNull(tw);
-            Assert.assertEquals(DefaultTableWriter.class, tw.getClass()); // default impl
-            
-            FormatFactory ff = pf.getFormatFactory();
-            Assert.assertNotNull(ff);
-            Assert.assertEquals(DefaultFormatFactory.class, ff.getClass()); // default impl
-            
-            TapSchemaDAO tsd = pf.getTapSchemaDAO();
-            Assert.assertNotNull(tsd);
-            Assert.assertEquals(TapSchemaDAO.class, tsd.getClass()); // default impl
-        }
-        catch(Exception unexpected)
-        {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
-        }
-    }
+    /**
+     * Convert DALI-1.1 point to a database object for insert.
+     * 
+     * @param p
+     * @return 
+     */
+    Object getPointObject(Point p);
+    
+    /**
+     * Convert DALI-1.1 circle to a database object for insert.
+     * 
+     * @param c
+     * @return 
+     */
+    Object getCircleObject(Circle c);
+    
+    /**
+     * Convert DALI-1.1 polygon to a database object for insert.
+     * 
+     * @param poly
+     * @return 
+     */
+    Object getPolygonObject(Polygon poly);
+
+    /**
+     * Convert DALI-1.1 interval to a database object for insert.
+     * @param inter
+     * @return 
+     */
+    Object getIntervalObject(DoubleInterval inter);
+
+    /**
+     * Convert an array of DALI-1.1 intervals to a database object for insert.
+     * @param inter
+     * @return 
+     */
+    Object getIntervalArrayObject(DoubleInterval[] inter);
 }

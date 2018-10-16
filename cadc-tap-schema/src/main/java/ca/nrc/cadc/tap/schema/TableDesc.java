@@ -78,13 +78,39 @@ import java.util.List;
  */
 public class TableDesc
 {
-    private final String schemaName;
-    private final String tableName;
+    private String schemaName;
+    private String tableName;
     private final List<ColumnDesc> columnDescs = new ArrayList<ColumnDesc>();
     private final List<KeyDesc> keyDescs = new ArrayList<KeyDesc>();
     
     public String description;
     public String utype;
+    public Integer tableIndex;
+    public TableType tableType = TableType.TABLE;
+    
+    public enum TableType {
+        TABLE("table"),
+        VIEW("view");
+        
+        private String value;
+        
+        TableType(String value) {
+            this.value = value;
+        }
+        
+        static TableType toValue(String s) {
+            for (TableType tt : TableType.values()) {
+                if (tt.value.equals(s)) {
+                    return tt;
+                }
+            }
+            throw new IllegalArgumentException("invalid value: " + s);
+        }
+        
+        public String getValue() {
+            return value;
+        }
+    }
 
     public TableDesc(String schemaName, String tableName) 
     {
@@ -94,9 +120,17 @@ public class TableDesc
         this.tableName = tableName;
     }
 
+    public void setSchemaName(String schemaName) {
+        this.schemaName = schemaName;
+    }
+
     public String getSchemaName()
     {
         return schemaName;
+    }
+
+    public void setTableName(String tableName) {
+        this.tableName = tableName;
     }
 
     public String getTableName()

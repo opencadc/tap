@@ -197,9 +197,8 @@ public class TableSet
         eleTable.setAttribute("type", "output");
 
         Element ele;
-        ele = new Element("name");
-        ele.setText(td.getTableName());
-        eleTable.addContent(ele);
+        addChild(eleTable, "name", td.getTableName());
+        addChild(eleTable, "description", td.description);
 
         if (td.getColumnDescs() != null) for (ColumnDesc cd : td.getColumnDescs())
         {

@@ -256,6 +256,7 @@ public class TableSetReaderWriterTest
                 TableDesc etd = eti.next();
                 TableDesc atd = ati.next();
                 Assert.assertEquals(etd.getTableName(), atd.getTableName());
+                Assert.assertEquals(etd.description, atd.description);
                 Assert.assertEquals("num columns in " + etd.getTableName(), etd.getColumnDescs().size(), atd.getColumnDescs().size());
                 
                 Iterator<ColumnDesc> eci = etd.getColumnDescs().iterator();
@@ -269,6 +270,7 @@ public class TableSetReaderWriterTest
                     TapDataType edt = ecd.getDatatype();
                     TapDataType adt = acd.getDatatype();
                     Assert.assertEquals(edt.getDatatype(), adt.getDatatype());
+                    Assert.assertEquals(ecd.description, acd.description);
                     
                     String expArraySize = edt.arraysize;
                     if (edt.arraysize == null && !edt.isVarSize() && ver >= 11)

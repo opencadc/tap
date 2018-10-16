@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2014.                            (c) 2014.
+*  (c) 2018.                            (c) 2018.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,106 +62,114 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
-*
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap;
+package ca.nrc.cadc.vosi.actions;
 
+import ca.nrc.cadc.db.DatabaseTransactionManager;
+import ca.nrc.cadc.net.ResourceAlreadyExistsException;
+import ca.nrc.cadc.rest.InlineContentHandler;
+import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
+import ca.nrc.cadc.tap.db.TableCreator;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import ca.nrc.cadc.tap.writer.format.DefaultFormatFactory;
-import ca.nrc.cadc.tap.writer.format.FormatFactory;
-import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.uws.Job;
-import ca.nrc.cadc.uws.Parameter;
-import java.util.HashMap;
-import java.util.Map;
-import org.apache.log4j.Level;
+import java.util.List;
+import javax.sql.DataSource;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Test;
 
 /**
- *
+ * Create table. This action creates a new database table and adds a description
+ * to the tap_schema.
+ * 
  * @author pdowler
  */
-public class PluginFactoryTest 
-{
-    private static final Logger log = Logger.getLogger(PluginFactoryTest.class);
+public class PutAction extends TablesAction {
+    private static final Logger log = Logger.getLogger(PutAction.class);
     
-    static
-    {
-        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
+    private static final String INPUT_TAG = "inputTable";
+
+    public PutAction() { 
+    }
+
+    @Override
+    public void doAction() throws Exception {
+        String tableName = getTableName();
+        String schemaName = getSchemaFromTable(tableName);
+        log.debug("PUT: " + tableName);
+        
+        checkSchemaWritePermission(schemaName);
+        
+        TableDesc inputTable = getInputTable(schemaName, tableName);
+        if (inputTable == null) {
+            throw new IllegalArgumentException("no input table");
+        }
+        
+        DataSource ds = getDataSource();
+        TapSchemaDAO ts = new TapSchemaDAO();
+        ts.setDataSource(ds);
+        TableDesc td = ts.getTable(tableName);
+        if (td != null) {
+            throw new ResourceAlreadyExistsException("table " + tableName + " already exists");
+        }
+            
+        DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
+        try {
+            tm.startTransaction();
+
+            // create table
+            TableCreator tc = new TableCreator(ds);
+            tc.createTable(inputTable);
+            
+            // add to tap_schema
+            ts.put(inputTable);
+            
+            tm.commitTransaction();
+        } catch (Exception ex) {
+            try {
+                log.error("PUT failed - rollback", ex);
+                tm.rollbackTransaction();
+                log.error("PUT failed - rollback: OK");
+            } catch (Exception oops) {
+                log.error("PUT failed - rollback : FAIL", oops);
+            }
+            // TODO: categorise failures better
+            throw new RuntimeException("failed to create/add " + tableName, ex);
+        } finally { 
+            if (tm.isOpen()) {
+                log.error("BUG: open transaction in finally - trying to rollback");
+                try {
+                    tm.rollbackTransaction();
+                    log.error("BUG: rollback in finally: OK");
+                } catch (Exception oops) {
+                    log.error("BUG: rollback in finally: FAIL", oops);
+                }
+                throw new RuntimeException("BUG: open transaction in finally");
+            }
+        }
+        syncOutput.setCode(200);
+    }
+
+    @Override
+    protected InlineContentHandler getInlineContentHandler() {
+        return new TableDescHandler(INPUT_TAG);
     }
     
-    Job job = new Job() 
-    {
-        @Override
-        public String getID() { return "abcdefg"; }
-    };
-            
-    public PluginFactoryTest() { }
-    
-    //@Test
-    public void testTemplate()
-    {
-        try
-        {
-            
+    private TableDesc getInputTable(String schemaName, String tableName) {
+        TableDesc input = (TableDesc) syncInput.getContent(INPUT_TAG);
+        if (input == null) {
+            throw new IllegalArgumentException("no input: expected a document describing the table to create");
         }
-        catch(Exception unexpected)
-        {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
+        
+        input.setSchemaName(schemaName);
+        input.setTableName(tableName);
+        int c = 0;
+        for (ColumnDesc cd : input.getColumnDescs()) {
+            cd.setTableName(tableName);
+            cd.column_index = c++;
         }
-    }
-    
-    @Test
-    public void testSetup()
-    {
-        try
-        {
-            job.getParameterList().clear();
-            job.getParameterList().add(new Parameter("LANG", "ADQL"));
-            
-            PluginFactoryImpl pf = new PluginFactoryImpl(job);
-            
-            try
-            {
-                Assert.assertNull(pf.getTapQuery()); // no default
-            }
-            catch(IllegalArgumentException expected)
-            {
-                log.debug("caught expected exception: " + expected);
-            }
-            
-            MaxRecValidator mrv = pf.getMaxRecValidator();
-            Assert.assertNotNull(mrv);
-            Assert.assertEquals(MaxRecValidator.class, mrv.getClass()); // default impl
-            
-            UploadManager um = pf.getUploadManager();
-            Assert.assertNotNull(um);
-            Assert.assertEquals(DefaultUploadManager.class, um.getClass()); // default impl
-            
-            TableWriter tw = pf.getTableWriter();
-            Assert.assertNotNull(tw);
-            Assert.assertEquals(DefaultTableWriter.class, tw.getClass()); // default impl
-            
-            FormatFactory ff = pf.getFormatFactory();
-            Assert.assertNotNull(ff);
-            Assert.assertEquals(DefaultFormatFactory.class, ff.getClass()); // default impl
-            
-            TapSchemaDAO tsd = pf.getTapSchemaDAO();
-            Assert.assertNotNull(tsd);
-            Assert.assertEquals(TapSchemaDAO.class, tsd.getClass()); // default impl
-        }
-        catch(Exception unexpected)
-        {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
-        }
+        
+        return input;
     }
 }

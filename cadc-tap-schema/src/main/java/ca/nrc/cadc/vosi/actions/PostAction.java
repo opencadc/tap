@@ -3,12 +3,12 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2018.                            (c) 2018.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 *  All rights reserved                  Tous droits réservés
-*                                       
+*
 *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 *  expressed, implied, or               énoncée, implicite ou légale,
 *  statutory, of any kind with          de quelque nature que ce
@@ -31,10 +31,10 @@
 *  software without specific prior      de ce logiciel sans autorisation
 *  written permission.                  préalable et particulière
 *                                       par écrit.
-*                                       
+*
 *  This file is part of the             Ce fichier fait partie du projet
 *  OpenCADC project.                    OpenCADC.
-*                                       
+*
 *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 *  you can redistribute it and/or       vous pouvez le redistribuer ou le
 *  modify it under the terms of         modifier suivant les termes de
@@ -44,7 +44,7 @@
 *  either version 3 of the              : soit la version 3 de cette
 *  License, or (at your option)         licence, soit (à votre gré)
 *  any later version.                   toute version ultérieure.
-*                                       
+*
 *  OpenCADC is distributed in the       OpenCADC est distribué
 *  hope that it will be useful,         dans l’espoir qu’il vous
 *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -54,7 +54,7 @@
 *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 *  General Public License for           Générale Publique GNU Affero
 *  more details.                        pour plus de détails.
-*                                       
+*
 *  You should have received             Vous devriez avoir reçu une
 *  a copy of the GNU Affero             copie de la Licence Générale
 *  General Public License along         Publique GNU Affero avec
@@ -62,106 +62,75 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
-*
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.integration;
+package ca.nrc.cadc.vosi.actions;
 
-import ca.nrc.cadc.util.Log4jInit;
-import java.util.ArrayList;
-import java.util.List;
+import java.io.InputStream;
+
+import javax.sql.DataSource;
 
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.uws.Parameter;
-import org.apache.log4j.Level;
-import org.junit.Assert;
-import org.junit.Test;
+import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.rest.InlineContentHandler;
+import ca.nrc.cadc.tap.db.AsciiTableData;
+import ca.nrc.cadc.tap.db.TableLoader;
+import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 
-/**
- * Integration test (requires DB) for UploadManager implementation.
- * 
- * @author pdowler
- */
-public class UploadManagerUploadTest
-{
-    private static final Logger log = Logger.getLogger( UploadManagerUploadTest.class );
-
-    static
-    {
-        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
-    }
+public class PostAction extends TablesAction {
     
-    @Test
-    public void testUploadSingleParamPair() 
-    {
-        List<Parameter> paramList = new ArrayList<Parameter>();
-        paramList.add( new Parameter( "UPLOAD",  "mytable,http://localhost/voTableExample.xml" ) );
-        doSuccessTest(paramList);
-        log.debug( "*****  Finished test method: testUploadSingleParamPair()  *****" );
-        
-    }
-	
-    public void testUploadSchemaInTableName() 
-    {
-        List<Parameter> paramList = new ArrayList<Parameter>();
-        paramList.add( new Parameter( "UPLOAD",  "TAP_upload.mytable,http://localhost/voTableExample.xml" ) );
-        doSuccessTest(paramList);
-        log.debug( "*****  Finished test method: testUploadSchemaInTableName()  *****" );
-    }
-
-    public void testUploadMultipleParamPair() 
-    {
-        List<Parameter> paramList = new ArrayList<Parameter>();
-        paramList.add( new Parameter( "UPLOAD",  "a,http://localhost/voTableExample3.xml" ) );
-        paramList.add( new Parameter( "UPLOAD",  "b,http://localhost/voTableExample4.xml" ) );
-        doSuccessTest(paramList);
-        log.debug( "*****  Finished test method: testUploadMultipleParamPair()  *****" );
-    }
+    private static final Logger log = Logger.getLogger(PostAction.class);
     
-    public void testMissingFile() 
-    {
-        List<Parameter> paramList = new ArrayList<Parameter>();
-        paramList.add( new Parameter( "UPLOAD",  "c,http://localhost/voTableExample3.xml" ) );
-        paramList.add( new Parameter( "UPLOAD",  "d,http://localhost/missingExample4.xml" ) );
-        doFailTest(paramList);
-        log.debug( "*****  Finished test method: testUploadTwoColumns()  *****" );
+    private static final int BATCH_SIZE = 1000;
+    
+    TableContentHandler tableContentHanlder;
+    
+    public PostAction() {
+        tableContentHanlder = new TableContentHandler();
     }
 
-    // actually invoke the upload manager
-    // TODO: handle tests that should fail or write a dofail() method
-    void doSuccessTest(List<Parameter> paramList)
-    {
-        try
-        {
-            // TODO
-        }
-        catch(Exception ex)
-        {
-            log.error("unexpected exception", ex);
-            Assert.fail("unexpected exception: " + ex);
+    @Override
+    public void doAction() throws Exception {
+        String tableName = getTableName();
+        if (tableName == null) {
+            throw new IllegalArgumentException("Missing table name in path.");
         }
         
+        log.debug("POST: " + tableName);
+        checkTableWritePermission(tableName);
+        DataSource ds = getDataSource();
         
-    }
-    void doFailTest(List<Parameter> paramList)
-    {
-        try
-        {
-            // TODO
+ //       try {
             
-            Assert.fail("expected IllegalArgumentException");
-        }
-        catch(IllegalArgumentException expected)
-        {
-            log.info("caught expected: " + expected);
-        }
-        catch(Exception ex)
-        {
-            log.error("unexpected exception", ex);
-            Assert.fail("unexpected exception: " + ex);
-        }
+            TapSchemaDAO ts = new TapSchemaDAO();
+            ts.setDataSource(ds);
+            TableDesc tableDesc = ts.getTable(tableName);
+            if (tableDesc == null) {
+                throw new ResourceNotFoundException("Table not found: " + tableName);
+            }
+            
+            InputStream content = (InputStream) syncInput.getContent(TableContentHandler.TABLE_CONTENT);
+            AsciiTableData tableData = new AsciiTableData(content, tableContentHanlder.getContentType(), tableDesc);            
+            TableLoader tl = new TableLoader(ds, BATCH_SIZE);
+            tl.load(tableData.getTableDesc(), tableData);
+            
+            String msg = "Inserted " + tl.getTotalInserts() + " rows to table " + tableName;
+
+            syncOutput.setCode(200);
+            syncOutput.getOutputStream().write(msg.getBytes("UTF-8"));
+            
+//        } catch (Exception ex) {
+//            log.error("POST failed: " + ex);
+//            throw new RuntimeException("failed to insert rows to table " + tableName, ex);
+//        } 
     }
+    
+    @Override
+    protected InlineContentHandler getInlineContentHandler() {
+        return tableContentHanlder;
+    }
+
 }

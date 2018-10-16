@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2014.                            (c) 2014.
+*  (c) 2018.                            (c) 2018.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,106 +62,86 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
-*
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap;
+package ca.nrc.cadc.vosi.actions;
 
+
+import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
+import ca.nrc.cadc.dali.tables.votable.VOTableField;
+import ca.nrc.cadc.dali.tables.votable.VOTableReader;
+import ca.nrc.cadc.dali.tables.votable.VOTableResource;
+import ca.nrc.cadc.dali.tables.votable.VOTableTable;
+import ca.nrc.cadc.io.ByteCountInputStream;
+import ca.nrc.cadc.rest.InlineContentException;
+import ca.nrc.cadc.rest.InlineContentHandler;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.schema.TapSchema;
-import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import ca.nrc.cadc.tap.writer.format.DefaultFormatFactory;
-import ca.nrc.cadc.tap.writer.format.FormatFactory;
-import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.uws.Job;
-import ca.nrc.cadc.uws.Parameter;
-import java.util.HashMap;
-import java.util.Map;
-import org.apache.log4j.Level;
+import ca.nrc.cadc.tap.schema.TapDataType;
+import ca.nrc.cadc.tap.schema.TapSchemaUtil;
+import ca.nrc.cadc.util.StringUtil;
+import ca.nrc.cadc.vosi.InvalidTableSetException;
+import ca.nrc.cadc.vosi.TableReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Test;
 
 /**
  *
  * @author pdowler
  */
-public class PluginFactoryTest 
-{
-    private static final Logger log = Logger.getLogger(PluginFactoryTest.class);
+public class TableDescHandler implements InlineContentHandler {
+    private static final Logger log = Logger.getLogger(TableDescHandler.class);
+
+    private static final long BYTE_LIMIT = 1024 * 1024L; // 1 MiB
+    public static final String VOSI_TABLE_TYPE = "text/xml";
+    public static final String VOTABLE_TYPE = "application/x-votable+xml";
     
-    static
-    {
-        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
+    private String objectTag;
+    
+    public TableDescHandler(String objectTag) { 
+        this.objectTag = objectTag;
+    }
+
+    @Override
+    public Content accept(String name, String contentType, InputStream in) throws InlineContentException, IOException {
+        try {
+            TableDesc tab = null;
+            if (VOSI_TABLE_TYPE.equalsIgnoreCase(contentType)) {
+                TableReader tr = new TableReader(false); // schema validation causes default arraysize="1" to be injected
+                ByteCountInputStream istream = new ByteCountInputStream(in, BYTE_LIMIT);
+                String xml = StringUtil.readFromInputStream(istream, "UTF-8");
+                log.debug("input xml:\n" + xml);
+                tab = tr.read(new StringReader(xml));
+            } else if (VOTABLE_TYPE.equalsIgnoreCase(contentType)) {
+                VOTableReader tr = new VOTableReader();
+                ByteCountInputStream istream = new ByteCountInputStream(in, BYTE_LIMIT);
+                VOTableDocument doc = tr.read(istream);
+                tab = toTableDesc(doc);
+            }
+            InlineContentHandler.Content ret = new InlineContentHandler.Content();
+            ret.name = objectTag;
+            ret.value = tab;
+            return ret;
+        } catch (InvalidTableSetException ex) {
+            throw new IllegalArgumentException("invalid input document", ex);
+        }
     }
     
-    Job job = new Job() 
-    {
-        @Override
-        public String getID() { return "abcdefg"; }
-    };
-            
-    public PluginFactoryTest() { }
-    
-    //@Test
-    public void testTemplate()
-    {
-        try
-        {
-            
-        }
-        catch(Exception unexpected)
-        {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
-        }
-    }
-    
-    @Test
-    public void testSetup()
-    {
-        try
-        {
-            job.getParameterList().clear();
-            job.getParameterList().add(new Parameter("LANG", "ADQL"));
-            
-            PluginFactoryImpl pf = new PluginFactoryImpl(job);
-            
-            try
-            {
-                Assert.assertNull(pf.getTapQuery()); // no default
+    private TableDesc toTableDesc(VOTableDocument doc) {
+        // TODO: reject if the table has any rows? try to insert them if it is small enough?
+        for (VOTableResource vr : doc.getResources()) {
+            VOTableTable vtab = vr.getTable();
+            if (vtab != null) {
+                TableDesc ret = TapSchemaUtil.createTableDesc("default", "default", vtab);
+                log.debug("create from VOtable: " + ret);
+                return ret;
             }
-            catch(IllegalArgumentException expected)
-            {
-                log.debug("caught expected exception: " + expected);
-            }
-            
-            MaxRecValidator mrv = pf.getMaxRecValidator();
-            Assert.assertNotNull(mrv);
-            Assert.assertEquals(MaxRecValidator.class, mrv.getClass()); // default impl
-            
-            UploadManager um = pf.getUploadManager();
-            Assert.assertNotNull(um);
-            Assert.assertEquals(DefaultUploadManager.class, um.getClass()); // default impl
-            
-            TableWriter tw = pf.getTableWriter();
-            Assert.assertNotNull(tw);
-            Assert.assertEquals(DefaultTableWriter.class, tw.getClass()); // default impl
-            
-            FormatFactory ff = pf.getFormatFactory();
-            Assert.assertNotNull(ff);
-            Assert.assertEquals(DefaultFormatFactory.class, ff.getClass()); // default impl
-            
-            TapSchemaDAO tsd = pf.getTapSchemaDAO();
-            Assert.assertNotNull(tsd);
-            Assert.assertEquals(TapSchemaDAO.class, tsd.getClass()); // default impl
         }
-        catch(Exception unexpected)
-        {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
-        }
+        throw new IllegalArgumentException("no table description found in VOTable document");
     }
 }

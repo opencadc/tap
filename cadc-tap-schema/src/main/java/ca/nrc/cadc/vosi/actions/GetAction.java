@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2018.                            (c) 2018.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,49 +62,70 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
-*
 ************************************************************************
-*/
+ */
 
-package ca.nrc.cadc.tap.upload.datatype;
+package ca.nrc.cadc.vosi.actions;
 
-import ca.nrc.cadc.tap.upload.VOTableParserException;
-import java.sql.Types;
-import java.util.HashMap;
-import java.util.Map;
+import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapSchema;
+import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import ca.nrc.cadc.vosi.TableSetWriter;
+import ca.nrc.cadc.vosi.TableWriter;
+import java.io.OutputStreamWriter;
+import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;
 
 /**
- * Constants from various TAP specifications.
+ *
+ * @author pdowler
  */
-public class TapConstants
-{
-    public static final String TAP10_SMALLINT = "adql:SMALLINT";
-    public static final String TAP10_INTEGER = "adql:INTEGER";
-    public static final String TAP10_BIGINT = "adql:BIGINT";
-    public static final String TAP10_REAL = "adql:REAL";
-    public static final String TAP10_DOUBLE = "adql:DOUBLE";
-    public static final String TAP10_CHAR = "adql:CHAR";
-    public static final String TAP10_VARCHAR = "adql:VARCHAR";
-    public static final String TAP10_TIMESTAMP = "adql:TIMESTAMP";
-    public static final String TAP10_CLOB = "adql:CLOB";
-    public static final String TAP10_POINT = "adql:POINT";
-    public static final String TAP10_REGION = "adql:REGION";
-    
-    //public static final String VOT_CHAR = "char";
-    //public static final String VOT_SHORT = "short";
-    //public static final String VOT_INT = "int";
-    //public static final String VOT_LONG = "long";
-    //public static final String VOT_FLOAT = "float";
-    //public static final String VOT_DOUBLE = "double";
-    //public static final String VOT_BOOLEAN = "boolean";
-    //public static final String VOT_BYTE = "byte";
-    //public static final String VOT_UNSIGNED_BYTE = "unsignedByte";
+public class GetAction extends TablesAction {
 
-    //public static final String XTYPE_TIMESTAMP = "timestamp";
-    //public static final String XTYPE_INTERVAL = "interval";
-    //public static final String XTYPE_POINT = "point";
-    //public static final String XTYPE_CIRCLE = "circle";
-    //public static final String XTYPE_POLYGON = "polygon";
+    private static final Logger log = Logger.getLogger(GetAction.class);
+
+    public GetAction() {
+    }
+
+    @Override
+    public void doAction() throws Exception {
+        String tableName = getTableName();
+        log.debug("GET: " + tableName);
+
+        int depth = TapSchemaDAO.MIN_DEPTH;
+        // TODO: default depth used to be configurable... worth it?
+        if (tableName == null) {
+            // always give the caller what they ask for
+            String detail = syncInput.getParameter("detail");
+            if ("min".equalsIgnoreCase(detail)) {
+                depth = TapSchemaDAO.MIN_DEPTH;
+            } else if ("max".equalsIgnoreCase(detail)) {
+                depth = TapSchemaDAO.MAX_DEPTH;
+            } else if (detail != null) {
+                throw new IllegalArgumentException("invalid parameter value detail=" + detail);
+            }
+        }
+
+        TapSchemaDAO dao = getDAO();
+        if (tableName != null)
+        {
+            TableDesc td = dao.getTable(tableName);
+            if (td == null) {
+                throw new ResourceNotFoundException("not found: " + tableName);
+            }
+            TableWriter tw = new TableWriter();
+            syncOutput.setCode(HttpServletResponse.SC_OK);
+            syncOutput.setHeader("Content-Type", "text/xml");
+            tw.write(td, new OutputStreamWriter(syncOutput.getOutputStream()));
+        }
+        else
+        {
+            TapSchema tapSchema = dao.get(depth);
+            TableSetWriter tsw = new TableSetWriter();
+            syncOutput.setCode(HttpServletResponse.SC_OK);
+            syncOutput.setHeader("Content-Type", "text/xml");
+            tsw.write(tapSchema, new OutputStreamWriter(syncOutput.getOutputStream()));
+        }
+    }
 }

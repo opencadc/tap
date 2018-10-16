@@ -76,7 +76,7 @@ package ca.nrc.cadc.tap.schema;
  */
 public class ColumnDesc
 {
-    private final String tableName;
+    private String tableName;
     private final String columnName;
     private final TapDataType datatype;
     
@@ -88,6 +88,7 @@ public class ColumnDesc
     public boolean principal;
     public boolean indexed;
     public boolean std;
+    public Integer column_index;
     
     /**
      * An id attribute value to tag the column so the VOTableField element gets an XML ID. 
@@ -104,6 +105,10 @@ public class ColumnDesc
         this.tableName = tableName;
         this.columnName = columnName;
         this.datatype = datatype;
+    }
+
+    public void setTableName(String tableName) {
+        this.tableName = tableName;
     }
 
     public String getTableName()
