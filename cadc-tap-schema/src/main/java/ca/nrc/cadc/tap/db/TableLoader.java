@@ -130,10 +130,10 @@ public class TableLoader {
         Iterator<List<Object>> dataIterator = data.iterator();
         List<Object> nextRow = null;
 
+        int count = 0;
         try {
-            
             while (!done) {
-                int count = 0;
+                count = 0;
                 tm.startTransaction();
                 
                 while (count < batchSize && dataIterator.hasNext()) {
@@ -155,7 +155,6 @@ public class TableLoader {
             } catch (Exception ex) {
                 log.error("unexpected exception trying to close input stream", ex);
             }
-            log.error("Batch insert failure, rolling back transaction", t);
             try {
                 if (tm.isOpen()) {
                     tm.rollbackTransaction();
@@ -166,7 +165,7 @@ public class TableLoader {
             // This could be a database error or user data error... 
             if (t instanceof IllegalArgumentException) {
                 throw new IllegalArgumentException("Inserted " + totalInserts + " rows. " +
-                    "Current batch of " + batchSize + " failed with: " + t.getMessage());
+                    "Current batch failed with: " + t.getMessage() + " on line " + (totalInserts + count));
             }
             log.error("Batch insert failure", t);
             throw new RuntimeException("Inserted " + totalInserts + " rows. " +
