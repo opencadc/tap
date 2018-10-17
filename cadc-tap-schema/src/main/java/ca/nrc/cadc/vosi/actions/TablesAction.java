@@ -73,6 +73,7 @@ import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.db.version.KeyValue;
 import ca.nrc.cadc.db.version.KeyValueDAO;
+import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
@@ -174,6 +175,11 @@ public abstract class TablesAction extends RestAction {
     
     void checkSchemaWritePermission(String schemaName) {
         Subject owner = getOwner(schemaName);
+        if (owner == null) {
+            // not listed : no one has permission
+            throw new AccessControlException("permission denied");
+        }
+        
         Subject cur = AuthenticationUtil.getCurrentSubject();
         for (Principal cp : cur.getPrincipals()) {
             for (Principal op : owner.getPrincipals()) {
@@ -186,8 +192,17 @@ public abstract class TablesAction extends RestAction {
         throw new AccessControlException("permission denied");
     }
     
-    void checkTableWritePermission(String tableName) {
+    void checkTableWritePermission(String tableName) throws ResourceNotFoundException {
         Subject owner = getOwner(tableName);
+        if (owner == null) {
+            Subject schemaOwner = getOwner(getSchemaFromTable(tableName));
+            if (schemaOwner == null) {
+                throw new AccessControlException("permission denied");
+            } else {
+                throw new ResourceNotFoundException("not found: " + tableName);
+            }
+        }
+        
         Subject cur = AuthenticationUtil.getCurrentSubject();
         for (Principal cp : cur.getPrincipals()) {
             for (Principal op : owner.getPrincipals()) {
@@ -229,8 +244,7 @@ public abstract class TablesAction extends RestAction {
             String key = name + ".owner";
             KeyValue kv = dao.get(key);
             if (kv == null || kv.value == null) {
-                // not listed : no one has permission
-                throw new AccessControlException("permission denied");
+                return null;
             }
 
             IdentityManager im = AuthenticationUtil.getIdentityManager();
