@@ -69,7 +69,6 @@ package ca.nrc.cadc.vosi.actions;
 
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.db.version.KeyValue;
@@ -80,8 +79,6 @@ import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import java.net.URI;
 import java.security.AccessControlException;
 import java.security.Principal;
-import java.util.Set;
-import java.util.TreeSet;
 import javax.naming.NamingException;
 import javax.security.auth.Subject;
 import javax.sql.DataSource;
@@ -176,7 +173,7 @@ public abstract class TablesAction extends RestAction {
     }
     
     void checkSchemaWritePermission(String schemaName) {
-        Subject owner = getSchemaOwner(schemaName);
+        Subject owner = getOwner(schemaName);
         Subject cur = AuthenticationUtil.getCurrentSubject();
         for (Principal cp : cur.getPrincipals()) {
             for (Principal op : owner.getPrincipals()) {
@@ -190,8 +187,7 @@ public abstract class TablesAction extends RestAction {
     }
     
     void checkTableWritePermission(String tableName) {
-        String schemaName = getSchemaFromTable(tableName);
-        Subject owner = getSchemaOwner(schemaName);
+        Subject owner = getOwner(tableName);
         Subject cur = AuthenticationUtil.getCurrentSubject();
         for (Principal cp : cur.getPrincipals()) {
             for (Principal op : owner.getPrincipals()) {
@@ -200,15 +196,37 @@ public abstract class TablesAction extends RestAction {
                 }
             }
         }
-        // TODO: group write permission check
+        // TODO: group write permission check? 
         throw new AccessControlException("permission denied");
     }
     
-    private Subject getSchemaOwner(String schemaName) {
+    void setTableOwner(String tableName, Subject s) {
+        IdentityManager im = AuthenticationUtil.getIdentityManager();
+        if (im == null) {
+            throw new RuntimeException("CONFIG: no IdentityManager implementation available");
+        }
+        KeyValue kv = new KeyValue(tableName + ".owner");
+        
+        DataSource ds = getDataSource();
+        KeyValueDAO dao = new KeyValueDAO(ds, null, "tap_schema");
+        
+        if (s == null) {
+            dao.delete(kv.getName());
+            log.debug("setOwner: " + kv.getName() + " deleted");
+        } else {
+            kv.value = im.toOwner(s).toString();
+            dao.put(kv);
+            log.debug("setOwner: " + kv.getName() + " = " + kv.value);
+        }
+        
+    }
+    
+    // can be schemaName or tableName
+    private Subject getOwner(String name) {
         try {
             DataSource ds = getDataSource();
             KeyValueDAO dao = new KeyValueDAO(ds, null, "tap_schema");
-            String key = schemaName + ".owner";
+            String key = name + ".owner";
             KeyValue kv = dao.get(key);
             if (kv == null || kv.value == null) {
                 // not listed : no one has permission
@@ -220,12 +238,12 @@ public abstract class TablesAction extends RestAction {
                 throw new RuntimeException("CONFIG: no IdentityManager implementation available");
             }
             Subject s = im.toSubject(kv.value);
-            log.debug("schema: " + schemaName + " owner: " + s);
+            log.debug("schema: " + name + " owner: " + s);
             return s;
         } catch (AccessControlException rethrow) {
             throw rethrow;
         } catch (Exception ex) {
-            throw new RuntimeException("CONFIG: failed to find schema owner", ex);
+            throw new RuntimeException("CONFIG: failed to find owner for object " + name, ex);
         }
     }
     

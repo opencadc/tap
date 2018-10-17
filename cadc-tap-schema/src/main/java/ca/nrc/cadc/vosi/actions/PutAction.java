@@ -67,6 +67,7 @@
 
 package ca.nrc.cadc.vosi.actions;
 
+import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.net.ResourceAlreadyExistsException;
 import ca.nrc.cadc.rest.InlineContentHandler;
@@ -124,6 +125,9 @@ public class PutAction extends TablesAction {
             
             // add to tap_schema
             ts.put(inputTable);
+            
+            // set owner
+            setTableOwner(tableName, AuthenticationUtil.getCurrentSubject());
             
             tm.commitTransaction();
         } catch (Exception ex) {

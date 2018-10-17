@@ -44,17 +44,17 @@ public class TableLoaderTest {
         }
     }
     
-    @Test
+    //@Test
     public void testPostNoTableName() {
         Assert.fail("not yet written");
     }
     
-    @Test
+    //@Test
     public void testPostNoColumnRow() {
         Assert.fail("not yet written");
     }
     
-    @Test
+    //@Test
     public void testPostInvalidColumnName() {
         Assert.fail("not yet written");
     }
