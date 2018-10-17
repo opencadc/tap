@@ -67,19 +67,21 @@
 
 package ca.nrc.cadc.vosi.actions;
 
-import java.io.InputStream;
-
-import javax.sql.DataSource;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.tap.db.AsciiTableData;
 import ca.nrc.cadc.tap.db.TableLoader;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import java.io.InputStream;
+import javax.sql.DataSource;
+import org.apache.log4j.Logger;
 
+/**
+ * Update table content by accepting data via the input stream.
+ * 
+ * @author pdowler
+ */
 public class PostAction extends TablesAction {
     
     private static final Logger log = Logger.getLogger(PostAction.class);
@@ -95,37 +97,30 @@ public class PostAction extends TablesAction {
     @Override
     public void doAction() throws Exception {
         String tableName = getTableName();
+        log.debug("POST: " + tableName);
         if (tableName == null) {
             throw new IllegalArgumentException("Missing table name in path.");
         }
         
-        log.debug("POST: " + tableName);
         checkTableWritePermission(tableName);
         DataSource ds = getDataSource();
         
- //       try {
-            
-            TapSchemaDAO ts = new TapSchemaDAO();
-            ts.setDataSource(ds);
-            TableDesc tableDesc = ts.getTable(tableName);
-            if (tableDesc == null) {
-                throw new ResourceNotFoundException("Table not found: " + tableName);
-            }
-            
-            InputStream content = (InputStream) syncInput.getContent(TableContentHandler.TABLE_CONTENT);
-            AsciiTableData tableData = new AsciiTableData(content, tableContentHanlder.getContentType(), tableDesc);            
-            TableLoader tl = new TableLoader(ds, BATCH_SIZE);
-            tl.load(tableData.getTableDesc(), tableData);
-            
-            String msg = "Inserted " + tl.getTotalInserts() + " rows to table " + tableName;
+        TapSchemaDAO ts = new TapSchemaDAO();
+        ts.setDataSource(ds);
+        TableDesc tableDesc = ts.getTable(tableName);
+        if (tableDesc == null) {
+            throw new ResourceNotFoundException("Table not found: " + tableName);
+        }
 
-            syncOutput.setCode(200);
-            syncOutput.getOutputStream().write(msg.getBytes("UTF-8"));
-            
-//        } catch (Exception ex) {
-//            log.error("POST failed: " + ex);
-//            throw new RuntimeException("failed to insert rows to table " + tableName, ex);
-//        } 
+        InputStream content = (InputStream) syncInput.getContent(TableContentHandler.TABLE_CONTENT);
+        AsciiTableData tableData = new AsciiTableData(content, tableContentHanlder.getContentType(), tableDesc);            
+        TableLoader tl = new TableLoader(ds, BATCH_SIZE);
+        tl.load(tableData.getTableDesc(), tableData);
+
+        String msg = "Inserted " + tl.getTotalInserts() + " rows to table " + tableName;
+
+        syncOutput.setCode(200);
+        syncOutput.getOutputStream().write(msg.getBytes("UTF-8"));
     }
     
     @Override

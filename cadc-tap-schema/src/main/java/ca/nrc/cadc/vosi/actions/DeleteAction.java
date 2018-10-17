@@ -91,6 +91,9 @@ public class DeleteAction extends TablesAction {
     public void doAction() throws Exception {
         String tableName = getTableName();
         log.debug("DELETE: " + tableName);
+        if (tableName == null) {
+            throw new IllegalArgumentException("Missing table name in path.");
+        }
         
         checkSchemaWritePermission(getSchemaFromTable(tableName));
         
@@ -107,6 +110,8 @@ public class DeleteAction extends TablesAction {
             // drop table
             TableCreator tc = new TableCreator(ds);
             tc.dropTable(tableName);
+            
+            setTableOwner(tableName, null);
             
             tm.commitTransaction();
         } catch (ResourceNotFoundException rethrow) { 

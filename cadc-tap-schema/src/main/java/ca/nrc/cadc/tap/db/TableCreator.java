@@ -205,11 +205,12 @@ public class TableCreator {
             throw new IllegalArgumentException("invalid column name: " + cd.getColumnName(), ex);
         }
         
+        String sql = generateCreateIndex(cd, unique);
+        
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         try {
             tm.startTransaction();
-            String sql = generateCreateIndex(cd, unique);
             
             log.debug("sql:\n" + sql);
             jdbc.execute(sql);
