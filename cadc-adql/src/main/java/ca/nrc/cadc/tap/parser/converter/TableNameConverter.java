@@ -50,6 +50,9 @@ public class TableNameConverter extends FromItemNavigator
         {
             t.setSchemaName(parts[0]);
             t.setName(parts[1]);
+        } else if (parts.length == 3) {
+            t.setSchemaName(parts[0] + "." + parts[1]);
+            t.setName(parts[2]);
         }
         else
             throw new IllegalArgumentException("expected new table name to have 1-2 parts, found " + parts.length);
