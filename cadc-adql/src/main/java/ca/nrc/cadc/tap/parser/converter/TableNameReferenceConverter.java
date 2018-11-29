@@ -114,15 +114,17 @@ public class TableNameReferenceConverter extends ReferenceNavigator
     {
         Table t = new Table();
         String[] parts = newName.split("[.]");
-        if (parts.length == 1)
+        if (parts.length == 1) {
             t.setName(parts[0]);
-        else if (parts.length == 2)
-        {
+        } else if (parts.length == 2) {
             t.setSchemaName(parts[0]);
             t.setName(parts[1]);
+        } else if (parts.length == 3) {
+            t.setSchemaName(parts[0] + "." + parts[1]);
+            t.setName(parts[2]);
         }
         else
-            throw new IllegalArgumentException("expected new table name to have 1-2 parts, found " + parts.length);
+            throw new IllegalArgumentException("expected new table name to have 1-3 parts, found " + parts.length);
 
         map.put(originalName, t);
     }
