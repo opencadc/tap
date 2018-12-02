@@ -114,7 +114,10 @@ class Util {
                 }
             }
         }
-        // TODO: group write permission check
+        
+        URI rwGroup = getReadWriteGroup(ds, schemaName);
+        // TODO: see if cur is a member of rwGroup: LocalAuthority, GMSClient, blah blah
+        
         throw new AccessControlException("permission denied");
     }
     
@@ -137,7 +140,13 @@ class Util {
                 }
             }
         }
-        // TODO: group write permission check? 
+        // not owner: group write permission check
+        
+        // - check group write on schema?
+        String schemaName = Util.getSchemaFromTable(tableName);
+        
+        // - check group write on table?
+        
         throw new AccessControlException("permission denied");
     }
     
@@ -158,7 +167,6 @@ class Util {
             dao.put(kv);
             log.debug("setOwner: " + kv.getName() + " = " + kv.value);
         }
-        
     }
     
     // can be schemaName or tableName
@@ -178,14 +186,45 @@ class Util {
             Subject s = im.toSubject(kv.value);
             log.debug("schema: " + name + " owner: " + s);
             return s;
-        } catch (AccessControlException rethrow) {
+        } catch (RuntimeException rethrow) {
             throw rethrow;
         } catch (Exception ex) {
             throw new RuntimeException("CONFIG: failed to find owner for object " + name, ex);
         }
     }
     
-    private URI getSchemaWriteGroup(String schemaName) {
-        throw new UnsupportedOperationException("group permissions not implemented");
+    static URI getReadWriteGroup(DataSource ds, String name) {
+        try {
+            KeyValueDAO dao = new KeyValueDAO(ds, null, "tap_schema");
+            String key = name + ".rw-group";
+            KeyValue kv = dao.get(key);
+            if (kv == null || kv.value == null) {
+                return null;
+            }
+
+            URI ret = new URI(kv.value);
+            log.debug("schema: " + name + " RW group: " + ret);
+            return ret;
+        } catch (Exception ex) {
+            throw new RuntimeException("CONFIG: failed to find RW group for object " + name, ex);
+        }
+    }
+    
+    // TODO: what REST API is gojing to call this?
+    // POST /youcat/blah/tables/{name}?rw={group URI} where {name} is a schema name or table name?
+    static void setReadWriteGroup(DataSource ds, String name, URI group) {
+        
+        KeyValue kv = new KeyValue(name + ".rw-group");
+        
+        KeyValueDAO dao = new KeyValueDAO(ds, null, "tap_schema");
+        
+        if (group == null) {
+            dao.delete(kv.getName());
+            log.debug("setReadWriteGroup: " + kv.getName() + " deleted");
+        } else {
+            kv.value = group.toASCIIString();
+            dao.put(kv);
+            log.debug("setReadWriteGroup: " + kv.getName() + " = " + kv.value);
+        }
     }
 }
