@@ -92,20 +92,10 @@ public abstract class TablesAction extends RestAction {
     }
 
     protected final DataSource getDataSource() {
-        String rp = syncInput.getRequestPath();
-        String[] ss = rp.split("/");
-        String ds = DEFAULT_DS_NAME;
-        // 0: empty str
-        // 1: service name
-        if (ss.length == 4) {
-            // 2: sub-service/hierarchical name (optional)
-            ds = "jdbc/" + ss[2] + "-tapadm";
-        }
-        // 2|3: resource name (tables)
         try {
-            return DBUtil.findJNDIDataSource(ds);
+            return DBUtil.findJNDIDataSource(DEFAULT_DS_NAME);
         } catch (NamingException ex) {
-            throw new RuntimeException("CONFIG: failed to find datasource " + ds, ex);
+            throw new RuntimeException("CONFIG: failed to find datasource " + DEFAULT_DS_NAME, ex);
         } 
     }
     
