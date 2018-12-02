@@ -107,7 +107,7 @@ public class GetAction extends TablesAction {
             }
         }
 
-        TapSchemaDAO dao = getDAO();
+        TapSchemaDAO dao = getTapSchemaDAO();
         if (tableName != null)
         {
             TableDesc td = dao.getTable(tableName);

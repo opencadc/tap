@@ -115,9 +115,10 @@ public class TableUpdateRunner implements JobRunner {
     }
 
     private JobUpdater jobUpdater;
-    private Job job;
     private WebServiceLogInfo logInfo;
 
+    protected Job job;
+    
     public TableUpdateRunner() {
     }
 
@@ -152,7 +153,7 @@ public class TableUpdateRunner implements JobRunner {
     private void doit() {
         try {
             try {
-                ExecutionPhase ep = jobUpdater.setPhase(job.getID(), ExecutionPhase.QUEUED, ExecutionPhase.EXECUTING);
+                ExecutionPhase ep = jobUpdater.setPhase(job.getID(), ExecutionPhase.QUEUED, ExecutionPhase.EXECUTING, new Date());
                 if (!ExecutionPhase.EXECUTING.equals(ep)) {
                     ep = jobUpdater.getPhase(job.getID());
                     log.debug(job.getID() + ": QUEUED -> EXECUTING [FAILED] -- phase is " + ep);
@@ -244,7 +245,7 @@ public class TableUpdateRunner implements JobRunner {
                     }
                 }
 
-                ep = jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING, ExecutionPhase.COMPLETED);
+                ep = jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING, ExecutionPhase.COMPLETED, new Date());
                 logInfo.setSuccess(true);
             } catch (IllegalArgumentException ex) {
                 logInfo.setMessage(ex.getMessage());

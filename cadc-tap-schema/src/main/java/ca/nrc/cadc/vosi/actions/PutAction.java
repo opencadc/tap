@@ -108,7 +108,7 @@ public class PutAction extends TablesAction {
         }
         
         DataSource ds = getDataSource();
-        TapSchemaDAO ts = new TapSchemaDAO();
+        TapSchemaDAO ts = getTapSchemaDAO();
         ts.setDataSource(ds);
         TableDesc td = ts.getTable(tableName);
         if (td != null) {

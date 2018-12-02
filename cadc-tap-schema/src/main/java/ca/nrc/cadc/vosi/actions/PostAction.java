@@ -103,10 +103,8 @@ public class PostAction extends TablesAction {
         }
         
         checkTableWritePermission(tableName);
-        DataSource ds = getDataSource();
         
-        TapSchemaDAO ts = new TapSchemaDAO();
-        ts.setDataSource(ds);
+        TapSchemaDAO ts = getTapSchemaDAO();
         TableDesc tableDesc = ts.getTable(tableName);
         if (tableDesc == null) {
             throw new ResourceNotFoundException("Table not found: " + tableName);
@@ -114,7 +112,7 @@ public class PostAction extends TablesAction {
 
         InputStream content = (InputStream) syncInput.getContent(TableContentHandler.TABLE_CONTENT);
         AsciiTableData tableData = new AsciiTableData(content, tableContentHanlder.getContentType(), tableDesc);            
-        TableLoader tl = new TableLoader(ds, BATCH_SIZE);
+        TableLoader tl = new TableLoader(getDataSource(), BATCH_SIZE);
         tl.load(tableData.getTableDesc(), tableData);
 
         String msg = "Inserted " + tl.getTotalInserts() + " rows to table " + tableName;
