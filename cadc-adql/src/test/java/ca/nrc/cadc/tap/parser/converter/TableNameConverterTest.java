@@ -65,115 +65,121 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.vosi.actions;
+package ca.nrc.cadc.tap.parser.converter;
 
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.db.DatabaseTransactionManager;
-import ca.nrc.cadc.net.ResourceAlreadyExistsException;
-import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
-import ca.nrc.cadc.tap.db.TableCreator;
-import ca.nrc.cadc.tap.schema.ColumnDesc;
-import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import java.util.List;
-import javax.sql.DataSource;
+
+import ca.nrc.cadc.tap.AdqlQuery;
+import ca.nrc.cadc.tap.TapQuery;
+import ca.nrc.cadc.tap.parser.TestUtil;
+import ca.nrc.cadc.tap.parser.converter.postgresql.MatchConverter;
+import ca.nrc.cadc.tap.parser.converter.postgresql.MatchConverterTest;
+import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
+import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
+import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
+import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
+import ca.nrc.cadc.tap.parser.schema.BlobClobColumnValidator;
+import ca.nrc.cadc.tap.parser.schema.ExpressionValidator;
+import ca.nrc.cadc.tap.parser.schema.TapSchemaTableValidator;
+import ca.nrc.cadc.tap.schema.TapSchema;
+import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.uws.Job;
+import ca.nrc.cadc.uws.Parameter;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
- * Create table. This action creates a new database table and adds a description
- * to the tap_schema.
- * 
+ *
  * @author pdowler
  */
-public class PutAction extends TablesAction {
-    private static final Logger log = Logger.getLogger(PutAction.class);
-    
-    private static final String INPUT_TAG = "inputTable";
+public class TableNameConverterTest {
+    private static final Logger log = Logger.getLogger(TableNameConverterTest.class);
 
-    public PutAction() { 
+    static {
+        Log4jInit.setLevel("ca.nrc.cadc.tap.parser", Level.INFO);
     }
-
-    @Override
-    public void doAction() throws Exception {
-        String tableName = getTableName();
-        String schemaName = getSchemaFromTable(tableName);
-        log.debug("PUT: " + tableName);
-        
-        checkSchemaWritePermission(schemaName);
-        
-        TableDesc inputTable = getInputTable(schemaName, tableName);
-        if (inputTable == null) {
-            throw new IllegalArgumentException("no input table");
-        }
-        
-        DataSource ds = getDataSource();
-        TapSchemaDAO ts = getTapSchemaDAO();
-        ts.setDataSource(ds);
-        TableDesc td = ts.getTable(tableName);
-        if (td != null) {
-            throw new ResourceAlreadyExistsException("table " + tableName + " already exists");
-        }
-            
-        DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
+    
+    public TableNameConverterTest() { 
+    }
+    
+    @Test
+    public void testTable() {
         try {
-            tm.startTransaction();
-
-            // create table
-            TableCreator tc = new TableCreator(ds);
-            tc.createTable(inputTable);
-            
-            // add to tap_schema
-            ts.put(inputTable);
-            
-            // set owner
-            setTableOwner(tableName, AuthenticationUtil.getCurrentSubject());
-            
-            tm.commitTransaction();
-        } catch (Exception ex) {
-            try {
-                log.error("PUT failed - rollback", ex);
-                tm.rollbackTransaction();
-                log.error("PUT failed - rollback: OK");
-            } catch (Exception oops) {
-                log.error("PUT failed - rollback : FAIL", oops);
-            }
-            // TODO: categorise failures better
-            throw new RuntimeException("failed to create/add " + tableName, ex);
-        } finally { 
-            if (tm.isOpen()) {
-                log.error("BUG: open transaction in finally - trying to rollback");
-                try {
-                    tm.rollbackTransaction();
-                    log.error("BUG: rollback in finally: OK");
-                } catch (Exception oops) {
-                    log.error("BUG: rollback in finally: FAIL", oops);
-                }
-                throw new RuntimeException("BUG: open transaction in finally");
-            }
+            String adql = "select obs_publisher_did from ivoa.ObsCore";
+            String sql = doit("testSingle", "myObsCoreTable", adql);
+            Assert.assertEquals("select obs_publisher_did from myObsCoreTable".toLowerCase(), sql.toLowerCase());
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
         }
-        syncOutput.setCode(200);
-    }
-
-    @Override
-    protected InlineContentHandler getInlineContentHandler() {
-        return new TableDescHandler(INPUT_TAG);
     }
     
-    private TableDesc getInputTable(String schemaName, String tableName) {
-        TableDesc input = (TableDesc) syncInput.getContent(INPUT_TAG);
-        if (input == null) {
-            throw new IllegalArgumentException("no input: expected a document describing the table to create");
+    @Test
+    public void testSchemaTable() {
+        try {
+            String adql = "select obs_publisher_did from ivoa.ObsCore";
+            String sql = doit("testSingle", "mySchema.myObsCoreTable", adql);
+            Assert.assertEquals("select obs_publisher_did from mySchema.myObsCoreTable".toLowerCase(), sql.toLowerCase());
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+    
+    @Test
+    public void testCatalogSchemaTable() {
+        try {
+            String adql = "select obs_publisher_did from ivoa.ObsCore";
+            String sql = doit("testSingle", "myCatalog.mySchema.myObsCoreTable", adql);
+            Assert.assertEquals("select obs_publisher_did from myCatalog.mySchema.myObsCoreTable".toLowerCase(), sql.toLowerCase());
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+    
+    private String doit(String method, String tableName, String query)
+    {
+        try
+        {
+            log.info("IN: " + query);
+            Parameter para = new Parameter("QUERY", query);
+            job.getParameterList().add(para);
+            TapQuery tapQuery = new TestQuery(tableName);
+            tapQuery.setJob(job);
+            String sql = tapQuery.getSQL();
+            log.info(method + " OUT: " + sql);
+            return sql;
+        }
+        finally
+        {
+            job.getParameterList().clear();
+        }
+    }
+    
+    Job job = new Job() 
+    {
+        @Override
+        public String getID() { return "abcdefg"; }
+    };
+    
+    static class TestQuery extends AdqlQuery
+    {
+        String internalTableName;
+        TestQuery(String tn) {
+            this.internalTableName = tn;
         }
         
-        input.setSchemaName(schemaName);
-        input.setTableName(tableName);
-        int c = 0;
-        for (ColumnDesc cd : input.getColumnDescs()) {
-            cd.setTableName(tableName);
-            cd.column_index = c++;
+        @Override
+        protected void init()
+        {
+            //super.init();
+            TapSchema tapSchema = TestUtil.mockTapSchema();
+            TableNameConverter tnc = new TableNameConverter(true);
+            tnc.put("ivoa.ObsCore", internalTableName);
+            TableNameReferenceConverter tnrc = new TableNameReferenceConverter(tnc.map);
+            super.navigatorList.add(new SelectNavigator(new ExpressionNavigator(), tnrc, tnc));
         }
-        
-        return input;
     }
 }

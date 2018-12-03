@@ -103,7 +103,7 @@ public class DeleteAction extends TablesAction {
             tm.startTransaction();
             
             // remove from tap_schema
-            TapSchemaDAO ts = new TapSchemaDAO();
+            TapSchemaDAO ts = getTapSchemaDAO();
             ts.setDataSource(ds);
             ts.delete(tableName);
             

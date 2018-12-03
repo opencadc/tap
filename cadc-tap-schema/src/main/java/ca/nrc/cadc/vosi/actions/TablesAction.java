@@ -68,18 +68,12 @@
 package ca.nrc.cadc.vosi.actions;
 
 
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.db.DBUtil;
-import ca.nrc.cadc.db.version.KeyValue;
-import ca.nrc.cadc.db.version.KeyValueDAO;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
+import ca.nrc.cadc.tap.PluginFactory;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import java.net.URI;
-import java.security.AccessControlException;
-import java.security.Principal;
 import javax.naming.NamingException;
 import javax.security.auth.Subject;
 import javax.sql.DataSource;
@@ -92,41 +86,16 @@ import org.apache.log4j.Logger;
 public abstract class TablesAction extends RestAction {
     private static final Logger log = Logger.getLogger(TablesAction.class);
 
-    private Class tapSchemaImpl = TapSchemaDAO.class;
-    private String dataSourceName = "jdbc/tapadm";
+    private static String DEFAULT_DS_NAME = "jdbc/tapadm";
     
     public TablesAction() { 
     }
 
-    /**
-     * Override the default use of TapSchemaDAO to use a subclass.
-     * 
-     * @param tapSchemaImpl 
-     */
-    public void setTapSchemaImpl(Class tapSchemaImpl) {
-        if (tapSchemaImpl == null) {
-            throw new IllegalArgumentException("setTapSchemaImpl: arg cannot be null");
-        }
-        this.tapSchemaImpl = tapSchemaImpl;
-    }
-
-    /**
-     * Override the default data source name (jdbc/tapadm).
-     * 
-     * @param dataSourceName 
-     */
-    public void setDataSourceName(String dataSourceName) {
-        if (dataSourceName == null) {
-            throw new IllegalArgumentException("setDataSourcename: arg cannot be null");
-        }
-        this.dataSourceName = dataSourceName;
-    }
-    
     protected final DataSource getDataSource() {
         try {
-            return DBUtil.findJNDIDataSource(dataSourceName);
+            return DBUtil.findJNDIDataSource(DEFAULT_DS_NAME);
         } catch (NamingException ex) {
-            throw new RuntimeException("CONFIG: failed to find datasource " + dataSourceName, ex);
+            throw new RuntimeException("CONFIG: failed to find datasource " + DEFAULT_DS_NAME, ex);
         } 
     }
     
@@ -136,10 +105,6 @@ public abstract class TablesAction extends RestAction {
     }
     
     String getTableName() {
-        log.debug("path: " + syncInput.getPath() 
-                + "\ncomponent: " + syncInput.getComponentPath()
-                + "\ncontext: " + syncInput.getContextPath()
-                + "\nrequest: " + syncInput.getRequestPath());
         String path = syncInput.getPath();
         // TODO: move this empty str to null up to SyncInput?
         if (path != null && path.isEmpty()) {
@@ -153,115 +118,28 @@ public abstract class TablesAction extends RestAction {
      * 
      * @return 
      */
-    protected TapSchemaDAO getDAO() {
-        try {
-            DataSource ds = getDataSource();
-            TapSchemaDAO dao = (TapSchemaDAO) tapSchemaImpl.newInstance();
-            dao.setDataSource(ds);
-            dao.setOrdered(true);
-            return dao;
-        } catch (Exception ex) {
-            throw new RuntimeException("CONFIG: failed to instantiate " + tapSchemaImpl.getName(), ex);
-        }
+    protected TapSchemaDAO getTapSchemaDAO() {
+        PluginFactory pf = new PluginFactory();
+        TapSchemaDAO dao = pf.getTapSchemaDAO();
+        DataSource ds = getDataSource();
+        dao.setDataSource(ds);
+        dao.setOrdered(true);
+        return dao;
     }
     
-    final String getSchemaFromTable(String tableName) {
-        String[] st = tableName.split("[.]");
-        if (st.length == 2) {
-            return st[0];
-        }
-        throw new IllegalArgumentException("invalid table name: " + tableName + " (expected: <schema>.<table>)");
+    String getSchemaFromTable(String table) {
+        return Util.getSchemaFromTable(table);
     }
     
     void checkSchemaWritePermission(String schemaName) {
-        Subject owner = getOwner(schemaName);
-        if (owner == null) {
-            // not listed : no one has permission
-            throw new AccessControlException("permission denied");
-        }
-        
-        Subject cur = AuthenticationUtil.getCurrentSubject();
-        for (Principal cp : cur.getPrincipals()) {
-            for (Principal op : owner.getPrincipals()) {
-                if (AuthenticationUtil.equals(op, cp)) {
-                    return;
-                }
-            }
-        }
-        // TODO: group write permission check
-        throw new AccessControlException("permission denied");
+        Util.checkSchemaWritePermission(getDataSource(), schemaName);
     }
     
     void checkTableWritePermission(String tableName) throws ResourceNotFoundException {
-        Subject owner = getOwner(tableName);
-        if (owner == null) {
-            Subject schemaOwner = getOwner(getSchemaFromTable(tableName));
-            if (schemaOwner == null) {
-                throw new AccessControlException("permission denied");
-            } else {
-                throw new ResourceNotFoundException("not found: " + tableName);
-            }
-        }
-        
-        Subject cur = AuthenticationUtil.getCurrentSubject();
-        for (Principal cp : cur.getPrincipals()) {
-            for (Principal op : owner.getPrincipals()) {
-                if (AuthenticationUtil.equals(op, cp)) {
-                    return;
-                }
-            }
-        }
-        // TODO: group write permission check? 
-        throw new AccessControlException("permission denied");
+        Util.checkTableWritePermission(getDataSource(), tableName);
     }
     
     void setTableOwner(String tableName, Subject s) {
-        IdentityManager im = AuthenticationUtil.getIdentityManager();
-        if (im == null) {
-            throw new RuntimeException("CONFIG: no IdentityManager implementation available");
-        }
-        KeyValue kv = new KeyValue(tableName + ".owner");
-        
-        DataSource ds = getDataSource();
-        KeyValueDAO dao = new KeyValueDAO(ds, null, "tap_schema");
-        
-        if (s == null) {
-            dao.delete(kv.getName());
-            log.debug("setOwner: " + kv.getName() + " deleted");
-        } else {
-            kv.value = im.toOwner(s).toString();
-            dao.put(kv);
-            log.debug("setOwner: " + kv.getName() + " = " + kv.value);
-        }
-        
-    }
-    
-    // can be schemaName or tableName
-    private Subject getOwner(String name) {
-        try {
-            DataSource ds = getDataSource();
-            KeyValueDAO dao = new KeyValueDAO(ds, null, "tap_schema");
-            String key = name + ".owner";
-            KeyValue kv = dao.get(key);
-            if (kv == null || kv.value == null) {
-                return null;
-            }
-
-            IdentityManager im = AuthenticationUtil.getIdentityManager();
-            if (im == null) {
-                throw new RuntimeException("CONFIG: no IdentityManager implementation available");
-            }
-            Subject s = im.toSubject(kv.value);
-            log.debug("schema: " + name + " owner: " + s);
-            return s;
-        } catch (AccessControlException rethrow) {
-            throw rethrow;
-        } catch (Exception ex) {
-            throw new RuntimeException("CONFIG: failed to find owner for object " + name, ex);
-        }
-    }
-    
-    private URI getSchemaWriteGroup(String schemaName) {
-        throw new UnsupportedOperationException("group permissions not implemented");
+        Util.setTableOwner(getDataSource(), tableName, s);
     }
 }
