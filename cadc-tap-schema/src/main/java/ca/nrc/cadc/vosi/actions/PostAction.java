@@ -74,6 +74,8 @@ import ca.nrc.cadc.tap.db.AsciiTableData;
 import ca.nrc.cadc.tap.db.TableLoader;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import ca.nrc.cadc.util.StringUtil;
+
 import java.io.InputStream;
 import java.net.URI;
 
@@ -107,8 +109,9 @@ public class PostAction extends TablesAction {
         
         // see if this is a group-write permission set call
         if (syncInput.getParameterNames().contains("grw")) {
-            String gwr = syncInput.getParameter("grw");
-            setGroup(name, gwr);
+            String grw = syncInput.getParameter("grw");
+            log.debug("group read-write set request: " + grw);
+            setGroup(name, grw);
         } else {
             uploadData(name);
         }
@@ -119,13 +122,15 @@ public class PostAction extends TablesAction {
         TapSchemaDAO ts = getTapSchemaDAO();
         // assume 'name' is the schema, unless there's a table
         if (ts.getTable(name) != null) {
+            log.debug("checking table permission");
             checkTableWritePermission(name);
         } else {
+            log.debug("checking schema permission");
             checkSchemaWritePermission(name);
         }
         
         URI groupURI = null;
-        if (group != null) {
+        if (group != null && group.trim().length() > 0) {
             // validate the group
             try {
                 groupURI = new GroupURI(group).getURI();

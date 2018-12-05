@@ -113,7 +113,6 @@ public class DeleteAction extends TablesAction {
             
             setTableOwner(tableName, null);
             setReadWriteGroup(tableName, null);
-            setReadWriteGroup(getSchemaFromTable(tableName), null);
             
             tm.commitTransaction();
         } catch (ResourceNotFoundException rethrow) { 
