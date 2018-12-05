@@ -74,6 +74,9 @@ import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.tap.PluginFactory;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+
+import java.net.URI;
+
 import javax.naming.NamingException;
 import javax.security.auth.Subject;
 import javax.sql.DataSource;
@@ -129,6 +132,14 @@ public abstract class TablesAction extends RestAction {
     
     String getSchemaFromTable(String table) {
         return Util.getSchemaFromTable(table);
+    }
+    
+    Subject getOwner(String name) {
+        return Util.getOwner(getDataSource(), name);
+    }
+    
+    void setReadWriteGroup(String name, URI group) {
+        Util.setReadWriteGroup(getDataSource(), name, group);
     }
     
     void checkSchemaWritePermission(String schemaName) {

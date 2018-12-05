@@ -68,14 +68,28 @@
 package ca.nrc.cadc.vosi.actions;
 
 
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupURI;
+import ca.nrc.cadc.ac.Role;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.client.GMSClient;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.IdentityManager;
+import ca.nrc.cadc.cred.client.CredUtil;
 import ca.nrc.cadc.db.version.KeyValue;
 import ca.nrc.cadc.db.version.KeyValueDAO;
 import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.reg.Standards;
+import ca.nrc.cadc.reg.client.LocalAuthority;
+
+import java.io.IOException;
 import java.net.URI;
 import java.security.AccessControlException;
 import java.security.Principal;
+import java.security.cert.CertificateException;
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.security.auth.Subject;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
@@ -115,8 +129,17 @@ class Util {
             }
         }
         
-        URI rwGroup = getReadWriteGroup(ds, schemaName);
-        // TODO: see if cur is a member of rwGroup: LocalAuthority, GMSClient, blah blah
+        // check group write on schema
+        URI rwSchemaGroup = getReadWriteGroup(ds, schemaName);
+        if (rwSchemaGroup != null) {
+            GroupURI groupURI = new GroupURI(rwSchemaGroup);
+            URI serviceID = groupURI.getServiceID();
+            GMSClient gmsClient = new GMSClient(serviceID);
+            if (isMember(gmsClient, rwSchemaGroup)) {
+                log.debug("user has schema level (" + schemaName + ") group access via " + rwSchemaGroup);
+                return;
+            }
+        }
         
         throw new AccessControlException("permission denied");
     }
@@ -136,16 +159,43 @@ class Util {
         for (Principal cp : cur.getPrincipals()) {
             for (Principal op : owner.getPrincipals()) {
                 if (AuthenticationUtil.equals(op, cp)) {
+                    log.debug("user is owner, permission granted");
                     return;
                 }
             }
         }
-        // not owner: group write permission check
         
-        // - check group write on schema?
+        // not owner: do group write permission check
+        GMSClient gmsClient = null;
+        GroupURI groupURI = null;
+        URI serviceID = null;
+        
+        // check group write on schema
         String schemaName = Util.getSchemaFromTable(tableName);
+        URI rwSchemaGroup = getReadWriteGroup(ds, schemaName);
+        if (rwSchemaGroup != null) {
+            groupURI = new GroupURI(rwSchemaGroup);
+            serviceID = groupURI.getServiceID();
+            gmsClient = new GMSClient(serviceID);
+            if (isMember(gmsClient, rwSchemaGroup)) {
+                log.debug("user has schema level (" + schemaName + ") group access via " + rwSchemaGroup);
+                return;
+            }
+        }
         
-        // - check group write on table?
+        // check group write on table
+        URI rwTableGroup = getReadWriteGroup(ds, tableName);
+        if (rwTableGroup != null) {
+            groupURI = new GroupURI(rwTableGroup);
+            // if the service id is different, reinstantiate the GMSClient
+            if (gmsClient == null || !groupURI.getServiceID().equals(serviceID)) {
+                gmsClient = new GMSClient(groupURI.getServiceID());
+            }
+            if (isMember(gmsClient, rwTableGroup)) {
+                log.debug("user has table level (" + tableName + ") group access via " + rwTableGroup);
+                return;
+            }
+        }
         
         throw new AccessControlException("permission denied");
     }
@@ -210,21 +260,43 @@ class Util {
         }
     }
     
-    // TODO: what REST API is gojing to call this?
-    // POST /youcat/blah/tables/{name}?rw={group URI} where {name} is a schema name or table name?
     static void setReadWriteGroup(DataSource ds, String name, URI group) {
         
         KeyValue kv = new KeyValue(name + ".rw-group");
         
         KeyValueDAO dao = new KeyValueDAO(ds, null, "tap_schema");
+        KeyValue persisted = dao.get(name);
         
-        if (group == null) {
+        if (group == null || persisted != null) {
             dao.delete(kv.getName());
             log.debug("setReadWriteGroup: " + kv.getName() + " deleted");
-        } else {
+        }
+        if (group != null) {
             kv.value = group.toASCIIString();
             dao.put(kv);
             log.debug("setReadWriteGroup: " + kv.getName() + " = " + kv.value);
         }
+    }
+    
+    private static boolean isMember(GMSClient gmsClient, URI grantingGroup) throws AccessControlException {
+        try {
+            if (CredUtil.checkCredentials()) {
+                List<Group> groups = gmsClient.getMemberships(Role.MEMBER);
+                for (Group group : groups) {
+                    if (group.getID().getURI().equals(grantingGroup)) {
+                        log.debug("group match: " + grantingGroup);
+                        return true;
+                    }
+                }
+            }
+        } catch (UserNotFoundException ex) {
+            throw new RuntimeException("failed to find group memberships (unknown user)", ex);
+        } catch (CertificateException ex) {
+            throw new RuntimeException("failed to find group memberships (invalid proxy certficate)", ex);
+        } catch (IOException ex) {
+            throw new RuntimeException("failed to find group memberships", ex);
+        }
+        log.debug("no group match");
+        return false;
     }
 }

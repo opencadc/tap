@@ -95,7 +95,7 @@ public class DeleteAction extends TablesAction {
             throw new IllegalArgumentException("Missing table name in path.");
         }
         
-        checkSchemaWritePermission(getSchemaFromTable(tableName));
+        checkTableWritePermission(tableName);
         
         DataSource ds = getDataSource();
         DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
@@ -112,6 +112,8 @@ public class DeleteAction extends TablesAction {
             tc.dropTable(tableName);
             
             setTableOwner(tableName, null);
+            setReadWriteGroup(tableName, null);
+            setReadWriteGroup(getSchemaFromTable(tableName), null);
             
             tm.commitTransaction();
         } catch (ResourceNotFoundException rethrow) { 
