@@ -65,52 +65,36 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.vosi.actions;
+package ca.nrc.cadc.tap.db;
 
-import java.io.IOException;
 import java.io.InputStream;
+import java.util.Iterator;
+import java.util.List;
 
-import org.apache.log4j.Logger;
+import ca.nrc.cadc.tap.schema.TableDesc;
 
-import ca.nrc.cadc.dali.tables.TableData;
-import ca.nrc.cadc.rest.InlineContentException;
-import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.tap.db.AsciiTableData;
-import ca.nrc.cadc.tap.db.FitsTableData;
-import ca.nrc.cadc.tap.db.TableDataStream;
+public class FitsTableData implements TableDataInputStream {
+    
+    public FitsTableData(InputStream in) {
+        
+    }
 
-public class TableContentHandler implements InlineContentHandler {
-    
-    private static final Logger log = Logger.getLogger(TableContentHandler.class);
-    
-    public static final String TABLE_DATA = "tableData";
-    public static final String CONTENT_TYPE_CSV = "text/csv";
-    public static final String CONTENT_TYPE_TSV = "text/tab-separated-values";
-    public static final String CONTENT_TYPE_FITS = "application/fits";
-    
     @Override
-    public Content accept(String name, String contentType, InputStream inputStream)
-            throws InlineContentException, IOException {
+    public Iterator<List<Object>> iterator() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public void close() {
+        // TODO Auto-generated method stub
         
-        log.debug("Content-Type: " + contentType);
-        TableDataStream tableData = null;
-        if (contentType == null) {
-            throw new IllegalArgumentException("Table Content-Type is requried.");
-        }
-        if (contentType.equals(CONTENT_TYPE_CSV) || contentType.equals(CONTENT_TYPE_TSV)) {
-            tableData = new AsciiTableData(inputStream, contentType);
-        }
-        if (contentType.equals(CONTENT_TYPE_FITS)) {
-            tableData = new FitsTableData(inputStream);
-        }
-        if (tableData == null) {       
-            throw new IllegalArgumentException("Unsupported table ContentType: " + contentType);
-        }
-        
-        InlineContentHandler.Content content = new InlineContentHandler.Content();
-        content.name = TABLE_DATA;
-        content.value = tableData;
-        return content;
+    }
+
+    @Override
+    public TableDesc acceptTargetTableDesc(TableDesc desc) {
+        // TODO Auto-generated method stub
+        return null;
     }
 
 }

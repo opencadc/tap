@@ -32,6 +32,7 @@ dependencies {
     compile 'org.opencadc:cadc-dali:[1.1,)'
     compile 'org.opencadc:cadc-rest:[1.2.2,)'
     compile 'org.opencadc:cadc-access-control:[1.1.13,)'
+    compile 'gov.nasa.gsfc.heasarc:nom-tam-fits:1.15.2'
 
     testCompile 'junit:junit:4.+'
     testCompile 'xerces:xercesImpl:2.+'

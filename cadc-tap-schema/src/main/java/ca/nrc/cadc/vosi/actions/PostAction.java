@@ -68,13 +68,17 @@
 package ca.nrc.cadc.vosi.actions;
 
 import ca.nrc.cadc.ac.GroupURI;
+import ca.nrc.cadc.dali.tables.TableData;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.tap.db.AsciiTableData;
+import ca.nrc.cadc.tap.db.TableDataInputStream;
+import ca.nrc.cadc.tap.db.TableDataStream;
 import ca.nrc.cadc.tap.db.TableLoader;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import ca.nrc.cadc.util.StringUtil;
+import nom.tam.fits.Fits;
 
 import java.io.InputStream;
 import java.net.URI;
@@ -149,15 +153,15 @@ public class PostAction extends TablesAction {
         checkTableWritePermission(tableName);
         
         TapSchemaDAO ts = getTapSchemaDAO();
-        TableDesc tableDesc = ts.getTable(tableName);
-        if (tableDesc == null) {
+        TableDesc targetTableDesc = ts.getTable(tableName);
+        if (targetTableDesc == null) {
             throw new ResourceNotFoundException("Table not found: " + tableName);
         }
 
-        InputStream content = (InputStream) syncInput.getContent(TableContentHandler.TABLE_CONTENT);
-        AsciiTableData tableData = new AsciiTableData(content, tableContentHanlder.getContentType(), tableDesc);            
+        TableDataInputStream tableData = (TableDataInputStream) syncInput.getContent(TableContentHandler.TABLE_DATA);
+        TableDesc resultTableDesc = tableData.acceptTargetTableDesc(targetTableDesc);
         TableLoader tl = new TableLoader(getDataSource(), BATCH_SIZE);
-        tl.load(tableData.getTableDesc(), tableData);
+        tl.load(resultTableDesc, tableData);
 
         String msg = "Inserted " + tl.getTotalInserts() + " rows to table " + tableName;
 
@@ -169,5 +173,35 @@ public class PostAction extends TablesAction {
     protected InlineContentHandler getInlineContentHandler() {
         return tableContentHanlder;
     }
+    
+    
+    private void test() throws Exception {
+        
+        InputStream content = (InputStream) syncInput.getContent(TableContentHandler.TABLE_DATA);
+        Fits f = new Fits(content);
+    }
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 }
