@@ -67,13 +67,18 @@
 
 package ca.nrc.cadc.vosi.actions;
 
+import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.tap.db.AsciiTableData;
 import ca.nrc.cadc.tap.db.TableLoader;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import ca.nrc.cadc.util.StringUtil;
+
 import java.io.InputStream;
+import java.net.URI;
+
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
@@ -96,11 +101,50 @@ public class PostAction extends TablesAction {
 
     @Override
     public void doAction() throws Exception {
-        String tableName = getTableName();
-        log.debug("POST: " + tableName);
-        if (tableName == null) {
+        String name = getTableName();
+        log.debug("POST: " + name);
+        if (name == null) {
             throw new IllegalArgumentException("Missing table name in path.");
         }
+        
+        // see if this is a group-write permission set call
+        if (syncInput.getParameterNames().contains("grw")) {
+            String grw = syncInput.getParameter("grw");
+            log.debug("group read-write set request: " + grw);
+            setGroup(name, grw);
+        } else {
+            uploadData(name);
+        }
+    }
+    
+    private void setGroup(String name, String group) throws Exception {
+        
+        TapSchemaDAO ts = getTapSchemaDAO();
+        // assume 'name' is the schema, unless there's a table
+        if (ts.getTable(name) != null) {
+            log.debug("checking table permission");
+            checkTableWritePermission(name);
+        } else {
+            log.debug("checking schema permission");
+            checkSchemaWritePermission(name);
+        }
+        
+        URI groupURI = null;
+        if (group != null && group.trim().length() > 0) {
+            // validate the group
+            try {
+                groupURI = new GroupURI(group).getURI();
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException(
+                    "Failed to set group write permissions: " + e.getMessage());
+            }
+        }
+        
+        setReadWriteGroup(name, groupURI);
+        syncOutput.setCode(200);
+    }
+    
+    private void uploadData(String tableName) throws Exception {
         
         checkTableWritePermission(tableName);
         

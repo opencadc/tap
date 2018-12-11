@@ -85,6 +85,8 @@ import ca.nrc.cadc.uws.server.JobRunner;
 import ca.nrc.cadc.uws.server.JobUpdater;
 import ca.nrc.cadc.uws.server.SyncOutput;
 import ca.nrc.cadc.uws.util.JobLogInfo;
+
+import java.security.AccessControlException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -161,6 +163,7 @@ public class TableUpdateRunner implements JobRunner {
                     logInfo.setMessage("Could not set job phase to EXECUTING.");
                     return;
                 }
+                
                 log.debug(job.getID() + ": QUEUED -> EXECUTING [OK]");
 
                 ParamExtractor pe = new ParamExtractor(PARAM_NAMES);
@@ -168,10 +171,17 @@ public class TableUpdateRunner implements JobRunner {
                 String tableName = getSingleValue("table", params);
                 String columnName = getSingleValue("index", params);
                 boolean unique = "true".equals(getSingleValue("unique", params));
-
+                
+                if (tableName == null) {
+                    throw new IllegalArgumentException("missing parameter 'table'");
+                }
+                if (columnName == null) {
+                    throw new IllegalArgumentException("missing parameter 'index'");
+                }
                 
                 DataSource ds = getDataSource();
                 try {
+                    log.debug("Checking table write permission");
                     Util.checkTableWritePermission(ds, tableName);
                 } catch (ResourceNotFoundException ex) {
                     throw new IllegalArgumentException("table not found: " + tableName);
@@ -187,8 +197,6 @@ public class TableUpdateRunner implements JobRunner {
                     log.error("INCONSISTENT STATE: permission check says table " + tableName + "exists but it is not in tap_schema");
                     throw new IllegalArgumentException("table not found: " + tableName);
                 }
-                
-                
                 
                 ColumnDesc cd = td.getColumn(columnName);
                 if (cd == null) {
@@ -247,6 +255,11 @@ public class TableUpdateRunner implements JobRunner {
 
                 ep = jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING, ExecutionPhase.COMPLETED, new Date());
                 logInfo.setSuccess(true);
+            } catch (AccessControlException ex) {
+                logInfo.setMessage(ex.getMessage());
+                logInfo.setSuccess(true);
+                ErrorSummary es = new ErrorSummary(ex.getMessage(), ErrorType.FATAL);
+                jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING, ExecutionPhase.ERROR, es, new Date());
             } catch (IllegalArgumentException ex) {
                 logInfo.setMessage(ex.getMessage());
                 logInfo.setSuccess(true);
