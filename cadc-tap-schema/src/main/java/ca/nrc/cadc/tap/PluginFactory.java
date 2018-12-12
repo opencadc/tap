@@ -71,7 +71,7 @@ package ca.nrc.cadc.tap;
 import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
 import ca.nrc.cadc.tap.db.DatabaseDataType;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import ca.nrc.cadc.vosi.actions.DataSourceFinder;
+import ca.nrc.cadc.vosi.actions.DataSourceProvider;
 import java.net.URL;
 import java.util.Properties;
 import org.apache.log4j.Logger;
@@ -120,19 +120,19 @@ public class PluginFactory {
         return ret;
     }
 
-    public DataSourceFinder getDataSourceFinder() {
-        final DataSourceFinder ret;
-        String name = DataSourceFinder.class.getName();
+    public DataSourceProvider getDataSourceProvider() {
+        final DataSourceProvider ret;
+        String name = DataSourceProvider.class.getName();
         String cname = config.getProperty(name);
         if (cname == null) {
-            ret=  new DataSourceFinder();
+            ret=  new DataSourceProvider();
         } else {
             try {
                 Class c = Class.forName(cname);
-                ret = (DataSourceFinder) c.newInstance();
+                ret = (DataSourceProvider) c.newInstance();
             }
             catch (Throwable ex) {
-                throw new RuntimeException("config error: failed to create DataSourceFinder " + cname, ex);
+                throw new RuntimeException("config error: failed to create DataSourceProvider " + cname, ex);
             }
         }
         return ret;

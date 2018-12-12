@@ -77,12 +77,12 @@ import org.apache.log4j.Logger;
  * 
  * @author pdowler
  */
-public class DataSourceFinder {
-    private static final Logger log = Logger.getLogger(DataSourceFinder.class);
+public class DataSourceProvider {
+    private static final Logger log = Logger.getLogger(DataSourceProvider.class);
 
     private static final String DEFAULT_DS_NAME = "jdbc/tapadm";
     
-    public DataSourceFinder() { 
+    public DataSourceProvider() { 
     }
     
     /**

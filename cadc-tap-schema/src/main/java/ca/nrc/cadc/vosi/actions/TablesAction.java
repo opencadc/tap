@@ -67,17 +67,12 @@
 
 package ca.nrc.cadc.vosi.actions;
 
-
-import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.tap.PluginFactory;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-
 import java.net.URI;
-
-import javax.naming.NamingException;
 import javax.security.auth.Subject;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
@@ -96,7 +91,7 @@ public abstract class TablesAction extends RestAction {
 
     protected final DataSource getDataSource() {
         PluginFactory pf = new PluginFactory();
-        DataSourceFinder dsf = pf.getDataSourceFinder();
+        DataSourceProvider dsf = pf.getDataSourceProvider();
         return dsf.getDataSource(super.syncInput.getRequestPath());
     }
     
