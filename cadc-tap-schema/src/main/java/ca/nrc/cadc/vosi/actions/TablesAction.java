@@ -89,17 +89,15 @@ import org.apache.log4j.Logger;
 public abstract class TablesAction extends RestAction {
     private static final Logger log = Logger.getLogger(TablesAction.class);
 
-    private static String DEFAULT_DS_NAME = "jdbc/tapadm";
+    
     
     public TablesAction() { 
     }
 
     protected final DataSource getDataSource() {
-        try {
-            return DBUtil.findJNDIDataSource(DEFAULT_DS_NAME);
-        } catch (NamingException ex) {
-            throw new RuntimeException("CONFIG: failed to find datasource " + DEFAULT_DS_NAME, ex);
-        } 
+        PluginFactory pf = new PluginFactory();
+        DataSourceFinder dsf = pf.getDataSourceFinder();
+        return dsf.getDataSource(super.syncInput.getRequestPath());
     }
     
     @Override
@@ -121,7 +119,7 @@ public abstract class TablesAction extends RestAction {
      * 
      * @return 
      */
-    protected TapSchemaDAO getTapSchemaDAO() {
+    protected final TapSchemaDAO getTapSchemaDAO() {
         PluginFactory pf = new PluginFactory();
         TapSchemaDAO dao = pf.getTapSchemaDAO();
         DataSource ds = getDataSource();

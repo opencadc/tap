@@ -67,103 +67,37 @@
 
 package ca.nrc.cadc.vosi.actions;
 
-import ca.nrc.cadc.ac.GroupURI;
-import ca.nrc.cadc.net.ResourceNotFoundException;
-import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.tap.db.AsciiTableData;
-import ca.nrc.cadc.tap.db.TableLoader;
-import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import java.io.InputStream;
-import java.net.URI;
+import ca.nrc.cadc.db.DBUtil;
+import javax.naming.NamingException;
+import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
 /**
- * Update table content by accepting data via the input stream.
+ * Default implementation of getDataSource for TablesAction. 
  * 
  * @author pdowler
  */
-public class PostAction extends TablesAction {
-    
-    private static final Logger log = Logger.getLogger(PostAction.class);
-    
-    private static final int BATCH_SIZE = 1000;
-    
-    TableContentHandler tableContentHanlder;
-    
-    public PostAction() {
-        tableContentHanlder = new TableContentHandler();
-    }
+public class DataSourceFinder {
+    private static final Logger log = Logger.getLogger(DataSourceFinder.class);
 
-    @Override
-    public void doAction() throws Exception {
-        String name = getTableName();
-        log.debug("POST: " + name);
-        if (name == null) {
-            throw new IllegalArgumentException("Missing table name in path.");
-        }
-        
-        // see if this is a group-write permission set call
-        if (syncInput.getParameterNames().contains("grw")) {
-            String grw = syncInput.getParameter("grw");
-            log.debug("group read-write set request: " + grw);
-            setGroup(name, grw);
-        } else {
-            uploadData(name);
-        }
+    private static final String DEFAULT_DS_NAME = "jdbc/tapadm";
+    
+    public DataSourceFinder() { 
     }
     
-    private void setGroup(String name, String group) throws Exception {
-        
-        TapSchemaDAO ts = getTapSchemaDAO();
-        // assume 'name' is the schema, unless there's a table
-        if (ts.getTable(name) != null) {
-            log.debug("checking table permission");
-            checkTableWritePermission(name);
-        } else {
-            log.debug("checking schema permission");
-            checkSchemaWritePermission(name);
+    /**
+     * The default behaviour is to find a data source named <code>jdbc/tapadm</code> 
+     * using JNDI. Subclasses may override this method to provide a request-path 
+     * dependent data source.
+     * 
+     * @param requestPath ignored in the default implementation
+     * @return the DataSource
+     */
+    public DataSource getDataSource(String requestPath) {
+        try {
+            return DBUtil.findJNDIDataSource(DEFAULT_DS_NAME);
+        } catch (NamingException ex) {
+            throw new RuntimeException("CONFIG: failed to find datasource " + DEFAULT_DS_NAME, ex);
         }
-        
-        URI groupURI = null;
-        if (group != null && group.trim().length() > 0) {
-            // validate the group
-            try {
-                groupURI = new GroupURI(group).getURI();
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException(
-                    "Failed to set group write permissions: " + e.getMessage());
-            }
-        }
-        
-        setReadWriteGroup(name, groupURI);
-        syncOutput.setCode(200);
     }
-    
-    private void uploadData(String tableName) throws Exception {
-        
-        checkTableWritePermission(tableName);
-        
-        TapSchemaDAO ts = getTapSchemaDAO();
-        TableDesc tableDesc = ts.getTable(tableName);
-        if (tableDesc == null) {
-            throw new ResourceNotFoundException("Table not found: " + tableName);
-        }
-
-        InputStream content = (InputStream) syncInput.getContent(TableContentHandler.TABLE_CONTENT);
-        AsciiTableData tableData = new AsciiTableData(content, tableContentHanlder.getContentType(), tableDesc);            
-        TableLoader tl = new TableLoader(getDataSource(), BATCH_SIZE);
-        tl.load(tableData.getTableDesc(), tableData);
-
-        String msg = "Inserted " + tl.getTotalInserts() + " rows to table " + tableName;
-
-        syncOutput.setCode(200);
-        syncOutput.getOutputStream().write(msg.getBytes("UTF-8"));
-    }
-    
-    @Override
-    protected InlineContentHandler getInlineContentHandler() {
-        return tableContentHanlder;
-    }
-
 }

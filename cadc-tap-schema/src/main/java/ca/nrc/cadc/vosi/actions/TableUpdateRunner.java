@@ -85,7 +85,6 @@ import ca.nrc.cadc.uws.server.JobRunner;
 import ca.nrc.cadc.uws.server.JobUpdater;
 import ca.nrc.cadc.uws.server.SyncOutput;
 import ca.nrc.cadc.uws.util.JobLogInfo;
-
 import java.security.AccessControlException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -96,7 +95,14 @@ import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
 /**
- *
+ * TableUpdateRunner can be used for UWS async and sync jobs that modify a table.
+ * Supported table modifications: 
+ * <ul>
+ * <li> async or sync: create (unique) index on  a single column </li>
+ * </ul>
+ * 
+ * TODO: sync append rows from input stream, async append rows from URI
+ * 
  * @author pdowler
  */
 public class TableUpdateRunner implements JobRunner {

@@ -79,17 +79,12 @@ import ca.nrc.cadc.cred.client.CredUtil;
 import ca.nrc.cadc.db.version.KeyValue;
 import ca.nrc.cadc.db.version.KeyValueDAO;
 import ca.nrc.cadc.net.ResourceNotFoundException;
-import ca.nrc.cadc.reg.Standards;
-import ca.nrc.cadc.reg.client.LocalAuthority;
-
 import java.io.IOException;
 import java.net.URI;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.security.cert.CertificateException;
-import java.util.ArrayList;
 import java.util.List;
-
 import javax.security.auth.Subject;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;

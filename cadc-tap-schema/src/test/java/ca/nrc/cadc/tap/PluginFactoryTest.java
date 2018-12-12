@@ -71,7 +71,7 @@ import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
 import ca.nrc.cadc.tap.db.DatabaseDataType;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.uws.Parameter;
+import ca.nrc.cadc.vosi.actions.DataSourceFinder;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -93,7 +93,7 @@ public class PluginFactoryTest {
     }
 
     @Test
-    public void testSetup() {
+    public void testDefaultSetup() {
         try {
             PluginFactory pf = new PluginFactory();
 
@@ -104,6 +104,11 @@ public class PluginFactoryTest {
             TapSchemaDAO tsd = pf.getTapSchemaDAO();
             Assert.assertNotNull(tsd);
             Assert.assertEquals(TapSchemaDAO.class, tsd.getClass()); // default impl
+            
+            DataSourceFinder dsf = pf.getDataSourceFinder();
+            Assert.assertNotNull(dsf);
+            Assert.assertEquals(DataSourceFinder.class, dsf.getClass()); // default impl
+            
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
