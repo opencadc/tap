@@ -69,9 +69,11 @@ package ca.nrc.cadc.vosi.actions;
 
 import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.dali.tables.TableData;
+import ca.nrc.cadc.io.ByteCountInputStream;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.tap.db.AsciiTableData;
+import ca.nrc.cadc.tap.db.FitsTableData;
 import ca.nrc.cadc.tap.db.TableDataInputStream;
 import ca.nrc.cadc.tap.db.TableDataStream;
 import ca.nrc.cadc.tap.db.TableLoader;
@@ -79,8 +81,18 @@ import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import ca.nrc.cadc.util.StringUtil;
 import nom.tam.fits.Fits;
+import uk.ac.starlink.fits.FitsTableBuilder;
+import uk.ac.starlink.table.StarTable;
+import uk.ac.starlink.table.TableFormatException;
+import uk.ac.starlink.table.TableSink;
+import uk.ac.starlink.votable.DataFormat;
+import uk.ac.starlink.votable.VOSerializer;
 
+import java.io.BufferedWriter;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringWriter;
 import java.net.URI;
 
 import javax.sql.DataSource;
@@ -173,35 +185,5 @@ public class PostAction extends TablesAction {
     protected InlineContentHandler getInlineContentHandler() {
         return tableContentHanlder;
     }
-    
-    
-    private void test() throws Exception {
-        
-        InputStream content = (InputStream) syncInput.getContent(TableContentHandler.TABLE_DATA);
-        Fits f = new Fits(content);
-    }
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     
 }

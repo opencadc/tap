@@ -110,6 +110,7 @@ public class TableContentHandler implements InlineContentHandler {
         InlineContentHandler.Content content = new InlineContentHandler.Content();
         content.name = TABLE_DATA;
         content.value = tableData;
+        
         return content;
     }
 

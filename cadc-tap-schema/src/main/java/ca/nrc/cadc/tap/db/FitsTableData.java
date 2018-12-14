@@ -67,34 +67,287 @@
 
 package ca.nrc.cadc.tap.db;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
+import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.dali.tables.votable.VOTableField;
+import ca.nrc.cadc.dali.util.Format;
+import ca.nrc.cadc.dali.util.FormatFactory;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapSchemaUtil;
+import uk.ac.starlink.fits.FitsTableBuilder;
+import uk.ac.starlink.table.ColumnInfo;
+import uk.ac.starlink.table.StarTable;
+import uk.ac.starlink.table.TableSink;
 
 public class FitsTableData implements TableDataInputStream {
     
-    public FitsTableData(InputStream in) {
-        
+    private static final int QUEUE_BUFFER_SIZE = 10000;
+    
+    private static final Logger log = Logger.getLogger(FitsTableData.class);
+    
+    private Map<String, Format<?>> columnFormats;
+    private FormatFactory formatFactory = new FormatFactory();
+    private FitsRowIterator iterator;
+    private FitsTableReader sink;
+    private List<String> columnNames;
+    private int colCount;
+    
+    public FitsTableData(final InputStream in) throws IOException {
+        try {
+            
+            BlockingQueue<Object[]> queue = new ArrayBlockingQueue<Object[]>(QUEUE_BUFFER_SIZE);
+            sink = new FitsTableReader(queue);
+            iterator = new FitsRowIterator(queue);
+            
+            // launch a thread to read the table data into a queue
+            Runnable r = new Runnable() {
+                public void run() {
+                    try {
+                        new FitsTableBuilder().streamStarTable(in, sink, null);
+                    } catch (Throwable t) {
+                        sink.throwable = t;
+                        throw new RuntimeException("Queue producing thread failed", t);
+                    }
+                }  
+            };
+            Thread t = new Thread(r, "FitsQueueDataProducer");
+            t.start();
+            
+            // wait for the metadata (headers) to be read
+            log.debug("meta done: " + sink.isMetaDone());
+            log.debug("sink throwable: " + sink.getThrowable());
+            while (!sink.isMetaDone() && sink.getThrowable() == null) {
+                try {
+                    log.debug("sleeping for 10ms");
+                    Thread.sleep(10);
+                } catch (InterruptedException e) {}
+                log.debug("meta done: " + sink.isMetaDone());
+                log.debug("sink throwable: " + sink.getThrowable());
+            }
+            
+            if (sink.getThrowable() != null) {
+                throw new RuntimeException("Metadata reading failed: " + sink.getThrowable());
+            }
+            
+        } catch (Exception e) {
+            log.debug("Error reading fits file", e);
+            throw new IllegalArgumentException("Error reading fits file: " + e.getMessage());
+        }
     }
 
     @Override
     public Iterator<List<Object>> iterator() {
-        // TODO Auto-generated method stub
-        return null;
+        if (iterator == null) {
+            throw new IllegalStateException("BUG: acceptTargetTableDesc hasn't been called yet.");
+        }
+        return iterator;
     }
 
     @Override
     public void close() {
-        // TODO Auto-generated method stub
-        
+        try {
+            iterator.close();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to close FITS stream.", e);
+        }
     }
 
     @Override
-    public TableDesc acceptTargetTableDesc(TableDesc desc) {
-        // TODO Auto-generated method stub
-        return null;
+    public TableDesc acceptTargetTableDesc(TableDesc target) {
+        TableDesc td = new TableDesc(target.getSchemaName(), target.getTableName());
+        
+        List<ColumnInfo> cols = sink.getColumns();
+        log.debug("Column count: " + cols.size());
+        if (cols.size() < 1) {
+            throw new IllegalArgumentException("No data columns");
+        }
+        columnNames = new ArrayList<String>(cols.size());
+        ColumnDesc colDesc = null;
+        String colName = null;
+        for (ColumnInfo col : cols) {
+            colName = col.getName();
+            columnNames.add(colName);
+            colDesc = target.getColumn(colName);
+            if (colDesc == null) {
+                throw new IllegalArgumentException("Unrecognized column name: " + colName);
+            }
+            td.getColumnDescs().add(colDesc);
+        }        
+        columnFormats = createColumnFormats(td);
+        colCount = columnFormats.size();
+        return td;
     }
+    
+    private Map<String, Format<?>> createColumnFormats(TableDesc tableDesc) {
+        columnFormats = new HashMap<String, Format<?>>(tableDesc.getColumnDescs().size());
+        for (ColumnDesc colDesc : tableDesc.getColumnDescs()) {
+            VOTableField voTableField = TapSchemaUtil.convert(colDesc);
+            Format<?> format = formatFactory.getFormat(voTableField);
+            log.debug("Created format: " + format);
+            columnFormats.put(colDesc.getColumnName(), format);
+        }
+        return columnFormats;
+    }
+    
+    class FitsRowIterator implements Iterator<List<Object>> {
+
+        BlockingQueue<Object[]> queue;
+        
+        FitsRowIterator(BlockingQueue<Object[]> queue) {
+            this.queue = queue;
+        }
+        
+        public void close() throws IOException {
+        }
+
+        @Override
+        public boolean hasNext() {
+            if (sink.getThrowable() != null) {
+                log.debug("Producing thread throwable detected", sink.getThrowable());
+                throw new RuntimeException("Producing thread throwable", sink.getThrowable());
+            }
+            return !queue.isEmpty() || !sink.isDone();
+        }
+
+        @Override
+        public List<Object> next() {
+            if (!this.hasNext()) {
+                throw new IllegalStateException("No more data to read.");
+            }
+
+            Object[] nextRow = null;
+            try {
+                nextRow = queue.take();
+                log.debug("Took row from queue: " + nextRow);
+            } catch (InterruptedException e) {
+                throw new IllegalStateException("Interrupeted while taking queue rows", e);
+            }
+            if (nextRow.length != colCount) {
+                throw new IllegalArgumentException("wrong number of columns (" +
+                     nextRow.length + ") expected " + colCount);
+            }
+
+            List<Object> ret = new ArrayList<Object>(colCount);
+            Object cell = null;
+            Object value = null;
+            Format<?> format = null;
+            String colName = null;
+            for (int i=0; i<colCount; i++) {
+                colName = columnNames.get(i);
+                format = columnFormats.get(colName);
+                log.debug("Using formatter: " + format.getClass());
+                cell = nextRow[i];
+                if (cell == null) {
+                    log.debug("Cell in column " + i + " is null");
+                    value = null;
+                } else {
+                    log.debug("Cell in column " + i + ": " + nextRow[i] + " is type " + nextRow[i].getClass().getCanonicalName());
+                    String strValue = null;
+                    if (cell instanceof String) {
+                        strValue = (String) cell;
+                    } else {
+                        strValue = convert(cell);
+                    }
+                    value = format.parse(strValue);
+                }
+                ret.add(value);
+            }
+            return ret;
+            
+        }
+        
+        private String convert(Object o) {
+            if (o.getClass().isArray()) {
+                int length = Array.getLength(o);
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < length; i ++) {
+                    sb.append(Array.get(o, i));
+                    sb.append(" ");
+                }
+                if (sb.length() > 0) {
+                    sb.setLength(sb.length() - 1);
+                }
+                return sb.toString();
+            }
+            return o.toString();
+        }
+
+    }
+    
+    class FitsTableReader implements TableSink {
+        
+        StarTable meta;
+        BlockingQueue<Object[]> queue;
+        boolean done = false;
+        boolean metaDone = false;
+        Throwable throwable = null;
+        
+        public FitsTableReader(BlockingQueue<Object[]> queue) {
+            this.queue = queue;
+        }
+        
+        public void acceptMetadata(StarTable meta) {
+            this.meta = meta;
+            metaDone = true;
+        }
+        
+        public List<ColumnInfo> getColumns() {
+            if (meta == null) {
+                IllegalStateException e = new IllegalStateException("BUG: stream hasn't been started.");
+                throwable = e;
+                throw e;
+            }
+            
+            List<ColumnInfo> cols = new ArrayList<ColumnInfo>(meta.getColumnCount());
+            ColumnInfo next;
+            for (int i=0; i<meta.getColumnCount(); i++) {
+                next = meta.getColumnInfo(i);
+                cols.add(next);
+                log.debug("Added column: " + next);
+            }
+            
+            return cols;
+        }
+        
+        public void acceptRow(Object[] row) {
+            try {
+                // TODO: remove this log line
+                log.debug("Adding row to queue: " + row);
+                queue.put(row);
+            } catch (InterruptedException e) {
+                throwable = e;
+                throw new IllegalStateException("Interrupeted while inserting queue rows", e);
+            }
+        }
+        
+        public void endRows() {
+            log.debug("endRows called");
+            done = true;
+        }
+        
+        public boolean isMetaDone() {
+            return metaDone;
+        }
+        
+        public boolean isDone() {
+            return done;
+        }
+        
+        public Throwable getThrowable() {
+            return throwable;
+        }
+    };
 
 }
