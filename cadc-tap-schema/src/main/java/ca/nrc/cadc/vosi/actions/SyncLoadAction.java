@@ -67,83 +67,60 @@
 
 package ca.nrc.cadc.vosi.actions;
 
+
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.rest.RestAction;
-import ca.nrc.cadc.tap.PluginFactory;
+import ca.nrc.cadc.tap.db.AsciiTableData;
+import ca.nrc.cadc.tap.db.TableDataInputStream;
+import ca.nrc.cadc.tap.db.TableLoader;
+import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import java.net.URI;
-import javax.security.auth.Subject;
+import java.io.IOException;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
 /**
- *
+ * Action that processes data stream and appends rows to a table.
+ * 
  * @author pdowler
  */
-public abstract class TablesAction extends RestAction {
-    private static final Logger log = Logger.getLogger(TablesAction.class);
+public class SyncLoadAction extends TablesAction {
+    private static final Logger log = Logger.getLogger(SyncLoadAction.class);
 
+    private static final int BATCH_SIZE = 1000;
     
-    
-    public TablesAction() { 
-    }
-
-    protected final DataSource getDataSource() {
-        PluginFactory pf = new PluginFactory();
-        DataSourceProvider dsf = pf.getDataSourceProvider();
-        return dsf.getDataSource(super.syncInput.getRequestPath());
+    public SyncLoadAction() { 
     }
     
     @Override
-    protected InlineContentHandler getInlineContentHandler() {
-        return null;
-    }
-    
-    String getTableName() {
-        String path = syncInput.getPath();
-        // TODO: move this empty str to null up to SyncInput?
-        if (path != null && path.isEmpty()) {
-            return null;
+    public void doAction() throws Exception {
+        String tableName = getTableName();
+        log.debug("POST: " + tableName);
+        if (tableName == null) {
+            throw new IllegalArgumentException("Missing table name in path");
         }
-        return path;
-    }
     
-    /**
-     * Create and configure a TapSchemaDAO instance. 
-     * 
-     * @return 
-     */
-    protected final TapSchemaDAO getTapSchemaDAO() {
-        PluginFactory pf = new PluginFactory();
-        TapSchemaDAO dao = pf.getTapSchemaDAO();
-        DataSource ds = getDataSource();
-        dao.setDataSource(ds);
-        dao.setOrdered(true);
-        return dao;
+        checkTableWritePermission(tableName);
+
+        TapSchemaDAO ts = getTapSchemaDAO();
+        TableDesc targetTableDesc = ts.getTable(tableName);
+        if (targetTableDesc == null) {
+            throw new ResourceNotFoundException("Table not found: " + tableName);
+        }
+
+        TableDataInputStream tableData = (TableDataInputStream) syncInput.getContent(TableContentHandler.TABLE_DATA);
+        TableDesc resultTableDesc = tableData.acceptTargetTableDesc(targetTableDesc);
+        TableLoader tl = new TableLoader(getDataSource(), BATCH_SIZE);
+        tl.load(resultTableDesc, tableData);
+
+        String msg = "Inserted " + tl.getTotalInserts() + " rows to table " + tableName;
+
+        syncOutput.setCode(200);
+        syncOutput.getOutputStream().write(msg.getBytes("UTF-8"));
     }
-    
-    String getSchemaFromTable(String table) {
-        return Util.getSchemaFromTable(table);
-    }
-    
-    Subject getOwner(String name) {
-        return Util.getOwner(getDataSource(), name);
-    }
-    
-    void setReadWriteGroup(String name, URI group) {
-        Util.setReadWriteGroup(getDataSource(), name, group);
-    }
-    
-    void checkSchemaWritePermission(String schemaName) {
-        Util.checkSchemaWritePermission(getDataSource(), schemaName);
-    }
-    
-    void checkTableWritePermission(String tableName) throws ResourceNotFoundException {
-        Util.checkTableWritePermission(getDataSource(), tableName);
-    }
-    
-    void setTableOwner(String tableName, Subject s) {
-        Util.setTableOwner(getDataSource(), tableName, s);
+
+    @Override
+    protected InlineContentHandler getInlineContentHandler() {
+        return new TableContentHandler();
     }
 }

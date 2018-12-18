@@ -67,36 +67,13 @@
 
 package ca.nrc.cadc.vosi.actions;
 
-import ca.nrc.cadc.ac.GroupURI;
-import ca.nrc.cadc.dali.tables.TableData;
-import ca.nrc.cadc.io.ByteCountInputStream;
-import ca.nrc.cadc.net.ResourceNotFoundException;
-import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.tap.db.AsciiTableData;
-import ca.nrc.cadc.tap.db.FitsTableData;
-import ca.nrc.cadc.tap.db.TableDataInputStream;
-import ca.nrc.cadc.tap.db.TableDataStream;
-import ca.nrc.cadc.tap.db.TableLoader;
-import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import ca.nrc.cadc.util.StringUtil;
-import nom.tam.fits.Fits;
-import uk.ac.starlink.fits.FitsTableBuilder;
-import uk.ac.starlink.table.StarTable;
-import uk.ac.starlink.table.TableFormatException;
-import uk.ac.starlink.table.TableSink;
-import uk.ac.starlink.votable.DataFormat;
-import uk.ac.starlink.votable.VOSerializer;
-
-import java.io.BufferedWriter;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringWriter;
 import java.net.URI;
 
-import javax.sql.DataSource;
 import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.ac.GroupURI;
+import ca.nrc.cadc.rest.InlineContentHandler;
+import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 
 /**
  * Update table content by accepting data via the input stream.
@@ -107,12 +84,7 @@ public class PostAction extends TablesAction {
     
     private static final Logger log = Logger.getLogger(PostAction.class);
     
-    private static final int BATCH_SIZE = 1000;
-    
-    TableContentHandler tableContentHanlder;
-    
     public PostAction() {
-        tableContentHanlder = new TableContentHandler();
     }
 
     @Override
@@ -128,9 +100,8 @@ public class PostAction extends TablesAction {
             String grw = syncInput.getParameter("grw");
             log.debug("group read-write set request: " + grw);
             setGroup(name, grw);
-        } else {
-            uploadData(name);
         }
+        // TODO: handle tap_schema metadata update (part of PutAction)
     }
     
     private void setGroup(String name, String group) throws Exception {
@@ -160,30 +131,10 @@ public class PostAction extends TablesAction {
         syncOutput.setCode(200);
     }
     
-    private void uploadData(String tableName) throws Exception {
-        
-        checkTableWritePermission(tableName);
-        
-        TapSchemaDAO ts = getTapSchemaDAO();
-        TableDesc targetTableDesc = ts.getTable(tableName);
-        if (targetTableDesc == null) {
-            throw new ResourceNotFoundException("Table not found: " + tableName);
-        }
-
-        TableDataInputStream tableData = (TableDataInputStream) syncInput.getContent(TableContentHandler.TABLE_DATA);
-        TableDesc resultTableDesc = tableData.acceptTargetTableDesc(targetTableDesc);
-        TableLoader tl = new TableLoader(getDataSource(), BATCH_SIZE);
-        tl.load(resultTableDesc, tableData);
-
-        String msg = "Inserted " + tl.getTotalInserts() + " rows to table " + tableName;
-
-        syncOutput.setCode(200);
-        syncOutput.getOutputStream().write(msg.getBytes("UTF-8"));
-    }
-    
     @Override
     protected InlineContentHandler getInlineContentHandler() {
-        return tableContentHanlder;
+        // TODO: return a TableDescHandler so we can read docs and update tap_schema metadata
+        return super.getInlineContentHandler();
     }
     
 }

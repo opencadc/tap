@@ -67,83 +67,37 @@
 
 package ca.nrc.cadc.vosi.actions;
 
-import ca.nrc.cadc.net.ResourceNotFoundException;
-import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.rest.RestAction;
-import ca.nrc.cadc.tap.PluginFactory;
-import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import java.net.URI;
-import javax.security.auth.Subject;
+import ca.nrc.cadc.db.DBUtil;
+import javax.naming.NamingException;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
 /**
- *
+ * Default implementation of getDataSource for TablesAction. 
+ * 
  * @author pdowler
  */
-public abstract class TablesAction extends RestAction {
-    private static final Logger log = Logger.getLogger(TablesAction.class);
+public class DataSourceProvider {
+    private static final Logger log = Logger.getLogger(DataSourceProvider.class);
 
+    private static final String DEFAULT_DS_NAME = "jdbc/tapadm";
     
-    
-    public TablesAction() { 
-    }
-
-    protected final DataSource getDataSource() {
-        PluginFactory pf = new PluginFactory();
-        DataSourceProvider dsf = pf.getDataSourceProvider();
-        return dsf.getDataSource(super.syncInput.getRequestPath());
-    }
-    
-    @Override
-    protected InlineContentHandler getInlineContentHandler() {
-        return null;
-    }
-    
-    String getTableName() {
-        String path = syncInput.getPath();
-        // TODO: move this empty str to null up to SyncInput?
-        if (path != null && path.isEmpty()) {
-            return null;
-        }
-        return path;
+    public DataSourceProvider() { 
     }
     
     /**
-     * Create and configure a TapSchemaDAO instance. 
+     * The default behaviour is to find a data source named <code>jdbc/tapadm</code> 
+     * using JNDI. Subclasses may override this method to provide a request-path 
+     * dependent data source.
      * 
-     * @return 
+     * @param requestPath ignored in the default implementation
+     * @return the DataSource
      */
-    protected final TapSchemaDAO getTapSchemaDAO() {
-        PluginFactory pf = new PluginFactory();
-        TapSchemaDAO dao = pf.getTapSchemaDAO();
-        DataSource ds = getDataSource();
-        dao.setDataSource(ds);
-        dao.setOrdered(true);
-        return dao;
-    }
-    
-    String getSchemaFromTable(String table) {
-        return Util.getSchemaFromTable(table);
-    }
-    
-    Subject getOwner(String name) {
-        return Util.getOwner(getDataSource(), name);
-    }
-    
-    void setReadWriteGroup(String name, URI group) {
-        Util.setReadWriteGroup(getDataSource(), name, group);
-    }
-    
-    void checkSchemaWritePermission(String schemaName) {
-        Util.checkSchemaWritePermission(getDataSource(), schemaName);
-    }
-    
-    void checkTableWritePermission(String tableName) throws ResourceNotFoundException {
-        Util.checkTableWritePermission(getDataSource(), tableName);
-    }
-    
-    void setTableOwner(String tableName, Subject s) {
-        Util.setTableOwner(getDataSource(), tableName, s);
+    public DataSource getDataSource(String requestPath) {
+        try {
+            return DBUtil.findJNDIDataSource(DEFAULT_DS_NAME);
+        } catch (NamingException ex) {
+            throw new RuntimeException("CONFIG: failed to find datasource " + DEFAULT_DS_NAME, ex);
+        }
     }
 }
