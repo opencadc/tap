@@ -67,48 +67,68 @@
 
 package ca.nrc.cadc.vosi.actions;
 
-import java.io.IOException;
-import java.io.InputStream;
 
+import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.rest.InlineContentHandler;
+import ca.nrc.cadc.tap.db.AsciiTableData;
+import ca.nrc.cadc.tap.db.TableLoader;
+import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import java.io.IOException;
+import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.dali.tables.TableData;
-import ca.nrc.cadc.rest.InlineContentException;
-import ca.nrc.cadc.rest.InlineContentHandler;
+/**
+ * Action that processes data stream and appends rows to a table.
+ * 
+ * @author pdowler
+ */
+public class SyncLoadAction extends TablesAction {
+    private static final Logger log = Logger.getLogger(SyncLoadAction.class);
 
-public class TableContentHandler implements InlineContentHandler {
+    private static final int BATCH_SIZE = 1000;
     
-    private static final Logger log = Logger.getLogger(TableContentHandler.class);
-    
-    public static final String TABLE_CONTENT = "tableContent";
-    public static final String CONTENT_TYPE_CSV = "text/csv";
-    public static final String CONTENT_TYPE_TSV = "text/tab-separated-values";
-    
-    static class ContentRef {
-        String contentType;
-        InputStream istream;
-
-        public ContentRef(String contentType, InputStream istream) {
-            this.contentType = contentType;
-            this.istream = istream;
-        }
+    public SyncLoadAction() { 
     }
     
     @Override
-    public Content accept(String name, String contentType, InputStream inputStream)
-            throws InlineContentException, IOException {
-        
-        log.debug("Content-Type: " + contentType);
-        if (contentType == null) {
-            throw new IllegalArgumentException("Table ContentType required.");
+    public void doAction() throws Exception {
+        String tableName = getTableName();
+        log.debug("POST: " + tableName);
+        if (tableName == null) {
+            throw new IllegalArgumentException("Missing table name in path");
         }
-        if (!contentType.equals(CONTENT_TYPE_CSV) && !contentType.equals(CONTENT_TYPE_TSV)) {
-            throw new IllegalArgumentException("Unsupported table ContentType: " + contentType);
-        }
+    
+        DataSource ds = getDataSource();
+        Util.checkTableWritePermission(ds, tableName);
         
-        InlineContentHandler.Content content = new InlineContentHandler.Content();
-        content.name = TABLE_CONTENT;
-        content.value = new ContentRef(contentType, inputStream);
-        return content;
+        TapSchemaDAO ts = getTapSchemaDAO();
+        TableDesc tableDesc = ts.getTable(tableName);
+        if (tableDesc == null) {
+            throw new ResourceNotFoundException("Table not found: " + tableName);
+        }
+
+        // check input
+        final TableContentHandler.ContentRef content = (TableContentHandler.ContentRef) syncInput.getContent(TableContentHandler.TABLE_CONTENT);
+        if (content == null) {
+            throw new IllegalArgumentException("not found: content stream");
+        }
+        // TODO: make content optional and also check for create index params?
+        
+        if (content != null) {
+            AsciiTableData tableData = new AsciiTableData(content.istream, content.contentType, tableDesc);            
+            TableLoader tl = new TableLoader(getDataSource(), BATCH_SIZE);
+            tl.load(tableData.getTableDesc(), tableData);
+
+            String msg = "Inserted " + tl.getTotalInserts() + " rows to table " + tableName;
+
+            syncOutput.setCode(200);
+            syncOutput.getOutputStream().write(msg.getBytes("UTF-8"));
+        }
+    }
+
+    @Override
+    protected InlineContentHandler getInlineContentHandler() {
+        return new TableContentHandler();
     }
 }

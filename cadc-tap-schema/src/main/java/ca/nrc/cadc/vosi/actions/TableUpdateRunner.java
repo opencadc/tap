@@ -72,6 +72,7 @@ import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.log.WebServiceLogInfo;
 import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.rest.SyncOutput;
 import ca.nrc.cadc.tap.PluginFactory;
 import ca.nrc.cadc.tap.db.TableCreator;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
@@ -83,7 +84,6 @@ import ca.nrc.cadc.uws.ExecutionPhase;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.server.JobRunner;
 import ca.nrc.cadc.uws.server.JobUpdater;
-import ca.nrc.cadc.uws.server.SyncOutput;
 import ca.nrc.cadc.uws.util.JobLogInfo;
 import java.security.AccessControlException;
 import java.util.ArrayList;
@@ -177,6 +177,8 @@ public class TableUpdateRunner implements JobRunner {
                 String tableName = getSingleValue("table", params);
                 String columnName = getSingleValue("index", params);
                 boolean unique = "true".equals(getSingleValue("unique", params));
+                
+                // TODO: make create index optional and check for table load from URI params
                 
                 if (tableName == null) {
                     throw new IllegalArgumentException("missing parameter 'table'");

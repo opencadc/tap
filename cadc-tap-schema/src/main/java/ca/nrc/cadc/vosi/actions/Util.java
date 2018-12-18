@@ -229,7 +229,7 @@ class Util {
                 throw new RuntimeException("CONFIG: no IdentityManager implementation available");
             }
             Subject s = im.toSubject(kv.value);
-            log.debug("schema: " + name + " owner: " + s);
+            log.debug("object: " + name + " owner: " + s);
             return s;
         } catch (RuntimeException rethrow) {
             throw rethrow;
