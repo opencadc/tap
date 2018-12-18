@@ -363,10 +363,9 @@ public class QueryRunner implements JobRunner
                     t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
                     diagnostics.add(new Result("diag", URI.create("jndi:connect:"+dt)));
 
-                    // manually control transaction, make fetch size (client batch size) small,
+                    // make fetch size (client batch size) small,
                     // and restrict to forward only so that client memory usage is minimal since
                     // we are only interested in reading the ResultSet once
-                    connection.setAutoCommit(false);
                     pstmt = connection.prepareStatement(sql);
                     pstmt.setFetchSize(1000);
                     pstmt.setFetchDirection(ResultSet.FETCH_FORWARD);
@@ -431,11 +430,6 @@ public class QueryRunner implements JobRunner
             {
                 if (connection != null)
                 {
-                    try
-                    {
-                        connection.setAutoCommit(true);
-                    }
-                    catch(Throwable ignore) { }
                     try
                     {
                         resultSet.close();
