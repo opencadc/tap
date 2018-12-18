@@ -71,6 +71,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -120,7 +121,7 @@ public class FitsTableData implements TableDataInputStream {
                         sink.throwable = t;
                         throw new RuntimeException("Queue producing thread failed", t);
                     }
-                }  
+                }
             };
             Thread t = new Thread(r, "FitsQueueDataProducer");
             t.start();
@@ -149,9 +150,6 @@ public class FitsTableData implements TableDataInputStream {
 
     @Override
     public Iterator<List<Object>> iterator() {
-        if (iterator == null) {
-            throw new IllegalStateException("BUG: acceptTargetTableDesc hasn't been called yet.");
-        }
         return iterator;
     }
 
@@ -191,14 +189,14 @@ public class FitsTableData implements TableDataInputStream {
     }
     
     private Map<String, Format<?>> createColumnFormats(TableDesc tableDesc) {
-        columnFormats = new HashMap<String, Format<?>>(tableDesc.getColumnDescs().size());
+        Map<String, Format<?>> cf = new HashMap<String, Format<?>>(tableDesc.getColumnDescs().size());
         for (ColumnDesc colDesc : tableDesc.getColumnDescs()) {
             VOTableField voTableField = TapSchemaUtil.convert(colDesc);
             Format<?> format = formatFactory.getFormat(voTableField);
             log.debug("Created format: " + format);
-            columnFormats.put(colDesc.getColumnName(), format);
+            cf.put(colDesc.getColumnName(), format);
         }
-        return columnFormats;
+        return cf;
     }
     
     class FitsRowIterator implements Iterator<List<Object>> {
@@ -210,6 +208,7 @@ public class FitsTableData implements TableDataInputStream {
         }
         
         public void close() throws IOException {
+            // nothing to close
         }
 
         @Override
@@ -230,7 +229,7 @@ public class FitsTableData implements TableDataInputStream {
             Object[] nextRow = null;
             try {
                 nextRow = queue.take();
-                log.debug("Took row from queue: " + nextRow);
+                log.debug("Took row from queue: " + Arrays.toString(nextRow));
             } catch (InterruptedException e) {
                 throw new IllegalStateException("Interrupeted while taking queue rows", e);
             }
@@ -247,19 +246,10 @@ public class FitsTableData implements TableDataInputStream {
             for (int i=0; i<colCount; i++) {
                 colName = columnNames.get(i);
                 format = columnFormats.get(colName);
-                log.debug("Using formatter: " + format.getClass());
                 cell = nextRow[i];
-                if (cell == null) {
-                    log.debug("Cell in column " + i + " is null");
-                    value = null;
-                } else {
-                    log.debug("Cell in column " + i + ": " + nextRow[i] + " is type " + nextRow[i].getClass().getCanonicalName());
-                    String strValue = null;
-                    if (cell instanceof String) {
-                        strValue = (String) cell;
-                    } else {
-                        strValue = convert(cell);
-                    }
+                value = null;
+                String strValue = convert(cell);
+                if (strValue != null) { 
                     value = format.parse(strValue);
                 }
                 ret.add(value);
@@ -268,7 +258,21 @@ public class FitsTableData implements TableDataInputStream {
             
         }
         
+        /**
+         * Currently conversion is simply turning the object
+         * back into the string form that the formaters expect
+         * on the parse() method.  
+         * 
+         * @param o
+         * @return The object in an expected string format.
+         */
         private String convert(Object o) {
+            if (o == null) {
+                return null;
+            }
+            if (o instanceof String) {
+                return (String) o;
+            }
             if (o.getClass().isArray()) {
                 int length = Array.getLength(o);
                 StringBuilder sb = new StringBuilder();
@@ -323,9 +327,8 @@ public class FitsTableData implements TableDataInputStream {
         
         public void acceptRow(Object[] row) {
             try {
-                // TODO: remove this log line
-                log.debug("Adding row to queue: " + row);
                 queue.put(row);
+                log.debug("Put row in queue: " + Arrays.toString(row));
             } catch (InterruptedException e) {
                 throwable = e;
                 throw new IllegalStateException("Interrupeted while inserting queue rows", e);
