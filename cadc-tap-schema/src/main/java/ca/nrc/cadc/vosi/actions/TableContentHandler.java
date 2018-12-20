@@ -84,7 +84,15 @@ public class TableContentHandler implements InlineContentHandler {
     public static final String CONTENT_TYPE_CSV = "text/csv";
     public static final String CONTENT_TYPE_TSV = "text/tab-separated-values";
     
-    private String contentType;
+    static class ContentRef {
+        String contentType;
+        InputStream istream;
+
+        public ContentRef(String contentType, InputStream istream) {
+            this.contentType = contentType;
+            this.istream = istream;
+        }
+    }
     
     @Override
     public Content accept(String name, String contentType, InputStream inputStream)
@@ -92,21 +100,15 @@ public class TableContentHandler implements InlineContentHandler {
         
         log.debug("Content-Type: " + contentType);
         if (contentType == null) {
-            throw new IllegalArgumentException("Table ContentType requried.");
+            throw new IllegalArgumentException("Table ContentType required.");
         }
         if (!contentType.equals(CONTENT_TYPE_CSV) && !contentType.equals(CONTENT_TYPE_TSV)) {
             throw new IllegalArgumentException("Unsupported table ContentType: " + contentType);
         }
-        this.contentType = contentType;
         
         InlineContentHandler.Content content = new InlineContentHandler.Content();
         content.name = TABLE_CONTENT;
-        content.value = inputStream;
+        content.value = new ContentRef(contentType, inputStream);
         return content;
     }
-    
-    public String getContentType() {
-        return contentType;
-    }
-
 }

@@ -67,113 +67,68 @@
 
 package ca.nrc.cadc.vosi.actions;
 
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.db.DatabaseTransactionManager;
-import ca.nrc.cadc.net.ResourceAlreadyExistsException;
+
+import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
-import ca.nrc.cadc.tap.db.TableCreator;
-import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.db.AsciiTableData;
+import ca.nrc.cadc.tap.db.TableLoader;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import java.util.List;
+import java.io.IOException;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
 /**
- * Create table. This action creates a new database table and adds a description
- * to the tap_schema.
+ * Action that processes data stream and appends rows to a table.
  * 
  * @author pdowler
  */
-public class PutAction extends TablesAction {
-    private static final Logger log = Logger.getLogger(PutAction.class);
+public class SyncLoadAction extends TablesAction {
+    private static final Logger log = Logger.getLogger(SyncLoadAction.class);
+
+    private static final int BATCH_SIZE = 1000;
     
-    private static final String INPUT_TAG = "inputTable";
-
-    public PutAction() { 
+    public SyncLoadAction() { 
     }
-
+    
     @Override
     public void doAction() throws Exception {
         String tableName = getTableName();
-        String schemaName = getSchemaFromTable(tableName);
-        log.debug("PUT: " + tableName);
-        
-        checkSchemaWritePermission(schemaName);
-        
-        TableDesc inputTable = getInputTable(schemaName, tableName);
-        if (inputTable == null) {
-            throw new IllegalArgumentException("no input table");
+        log.debug("POST: " + tableName);
+        if (tableName == null) {
+            throw new IllegalArgumentException("Missing table name in path");
         }
-        
+    
         DataSource ds = getDataSource();
+        Util.checkTableWritePermission(ds, tableName);
+        
         TapSchemaDAO ts = getTapSchemaDAO();
-        ts.setDataSource(ds);
-        TableDesc td = ts.getTable(tableName);
-        if (td != null) {
-            throw new ResourceAlreadyExistsException("table " + tableName + " already exists");
+        TableDesc tableDesc = ts.getTable(tableName);
+        if (tableDesc == null) {
+            throw new ResourceNotFoundException("Table not found: " + tableName);
         }
-            
-        DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
-        try {
-            tm.startTransaction();
 
-            // create table
-            TableCreator tc = new TableCreator(ds);
-            tc.createTable(inputTable);
-            
-            // add to tap_schema
-            ts.put(inputTable);
-            
-            // set owner
-            setTableOwner(tableName, AuthenticationUtil.getCurrentSubject());
-            
-            tm.commitTransaction();
-        } catch (Exception ex) {
-            try {
-                log.error("PUT failed - rollback", ex);
-                tm.rollbackTransaction();
-                log.error("PUT failed - rollback: OK");
-            } catch (Exception oops) {
-                log.error("PUT failed - rollback : FAIL", oops);
-            }
-            // TODO: categorise failures better
-            throw new RuntimeException("failed to create/add " + tableName, ex);
-        } finally { 
-            if (tm.isOpen()) {
-                log.error("BUG: open transaction in finally - trying to rollback");
-                try {
-                    tm.rollbackTransaction();
-                    log.error("BUG: rollback in finally: OK");
-                } catch (Exception oops) {
-                    log.error("BUG: rollback in finally: FAIL", oops);
-                }
-                throw new RuntimeException("BUG: open transaction in finally");
-            }
+        // check input
+        final TableContentHandler.ContentRef content = (TableContentHandler.ContentRef) syncInput.getContent(TableContentHandler.TABLE_CONTENT);
+        if (content == null) {
+            throw new IllegalArgumentException("not found: content stream");
         }
-        syncOutput.setCode(200);
+        // TODO: make content optional and also check for create index params?
+        
+        if (content != null) {
+            AsciiTableData tableData = new AsciiTableData(content.istream, content.contentType, tableDesc);            
+            TableLoader tl = new TableLoader(getDataSource(), BATCH_SIZE);
+            tl.load(tableData.getTableDesc(), tableData);
+
+            String msg = "Inserted " + tl.getTotalInserts() + " rows to table " + tableName;
+
+            syncOutput.setCode(200);
+            syncOutput.getOutputStream().write(msg.getBytes("UTF-8"));
+        }
     }
 
     @Override
     protected InlineContentHandler getInlineContentHandler() {
-        return new TableDescHandler(INPUT_TAG);
-    }
-    
-    private TableDesc getInputTable(String schemaName, String tableName) {
-        TableDesc input = (TableDesc) syncInput.getContent(INPUT_TAG);
-        if (input == null) {
-            throw new IllegalArgumentException("no input: expected a document describing the table to create");
-        }
-        
-        input.setSchemaName(schemaName);
-        input.setTableName(tableName);
-        int c = 0;
-        for (ColumnDesc cd : input.getColumnDescs()) {
-            cd.setTableName(tableName);
-            cd.column_index = c++;
-        }
-        
-        return input;
+        return new TableContentHandler();
     }
 }

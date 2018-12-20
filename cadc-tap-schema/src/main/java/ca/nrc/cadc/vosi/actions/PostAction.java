@@ -67,14 +67,10 @@
 
 package ca.nrc.cadc.vosi.actions;
 
-import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.tap.db.AsciiTableData;
-import ca.nrc.cadc.tap.db.TableLoader;
-import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import java.io.InputStream;
-import javax.sql.DataSource;
+import java.net.URI;
 import org.apache.log4j.Logger;
 
 /**
@@ -86,46 +82,57 @@ public class PostAction extends TablesAction {
     
     private static final Logger log = Logger.getLogger(PostAction.class);
     
-    private static final int BATCH_SIZE = 1000;
-    
-    TableContentHandler tableContentHanlder;
-    
     public PostAction() {
-        tableContentHanlder = new TableContentHandler();
     }
 
     @Override
     public void doAction() throws Exception {
-        String tableName = getTableName();
-        log.debug("POST: " + tableName);
-        if (tableName == null) {
+        String name = getTableName();
+        log.debug("POST: " + name);
+        if (name == null) {
             throw new IllegalArgumentException("Missing table name in path.");
         }
         
-        checkTableWritePermission(tableName);
-        DataSource ds = getDataSource();
-        
-        TapSchemaDAO ts = new TapSchemaDAO();
-        ts.setDataSource(ds);
-        TableDesc tableDesc = ts.getTable(tableName);
-        if (tableDesc == null) {
-            throw new ResourceNotFoundException("Table not found: " + tableName);
+        // see if this is a group-write permission set call
+        if (syncInput.getParameterNames().contains("grw")) {
+            String grw = syncInput.getParameter("grw");
+            log.debug("group read-write set request: " + grw);
+            setGroup(name, grw);
         }
-
-        InputStream content = (InputStream) syncInput.getContent(TableContentHandler.TABLE_CONTENT);
-        AsciiTableData tableData = new AsciiTableData(content, tableContentHanlder.getContentType(), tableDesc);            
-        TableLoader tl = new TableLoader(ds, BATCH_SIZE);
-        tl.load(tableData.getTableDesc(), tableData);
-
-        String msg = "Inserted " + tl.getTotalInserts() + " rows to table " + tableName;
-
+        // TODO: handle tap_schema metadata update (part of PutAction)
+    }
+    
+    private void setGroup(String name, String group) throws Exception {
+        
+        TapSchemaDAO ts = getTapSchemaDAO();
+        // assume 'name' is the schema, unless there's a table
+        if (ts.getTable(name) != null) {
+            log.debug("checking table permission");
+            checkTableWritePermission(name);
+        } else {
+            log.debug("checking schema permission");
+            checkSchemaWritePermission(name);
+        }
+        
+        URI groupURI = null;
+        if (group != null && group.trim().length() > 0) {
+            // validate the group
+            try {
+                groupURI = new GroupURI(group).getURI();
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException(
+                    "Failed to set group write permissions: " + e.getMessage());
+            }
+        }
+        
+        setReadWriteGroup(name, groupURI);
         syncOutput.setCode(200);
-        syncOutput.getOutputStream().write(msg.getBytes("UTF-8"));
     }
     
     @Override
     protected InlineContentHandler getInlineContentHandler() {
-        return tableContentHanlder;
+        // TODO: return a TableDescHandler so we can read docs and update tap_schema metadata
+        return super.getInlineContentHandler();
     }
 
 }

@@ -67,113 +67,37 @@
 
 package ca.nrc.cadc.vosi.actions;
 
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.db.DatabaseTransactionManager;
-import ca.nrc.cadc.net.ResourceAlreadyExistsException;
-import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
-import ca.nrc.cadc.tap.db.TableCreator;
-import ca.nrc.cadc.tap.schema.ColumnDesc;
-import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import java.util.List;
+import ca.nrc.cadc.db.DBUtil;
+import javax.naming.NamingException;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
 /**
- * Create table. This action creates a new database table and adds a description
- * to the tap_schema.
+ * Default implementation of getDataSource for TablesAction. 
  * 
  * @author pdowler
  */
-public class PutAction extends TablesAction {
-    private static final Logger log = Logger.getLogger(PutAction.class);
+public class DataSourceProvider {
+    private static final Logger log = Logger.getLogger(DataSourceProvider.class);
+
+    private static final String DEFAULT_DS_NAME = "jdbc/tapadm";
     
-    private static final String INPUT_TAG = "inputTable";
-
-    public PutAction() { 
+    public DataSourceProvider() { 
     }
-
-    @Override
-    public void doAction() throws Exception {
-        String tableName = getTableName();
-        String schemaName = getSchemaFromTable(tableName);
-        log.debug("PUT: " + tableName);
-        
-        checkSchemaWritePermission(schemaName);
-        
-        TableDesc inputTable = getInputTable(schemaName, tableName);
-        if (inputTable == null) {
-            throw new IllegalArgumentException("no input table");
-        }
-        
-        DataSource ds = getDataSource();
-        TapSchemaDAO ts = getTapSchemaDAO();
-        ts.setDataSource(ds);
-        TableDesc td = ts.getTable(tableName);
-        if (td != null) {
-            throw new ResourceAlreadyExistsException("table " + tableName + " already exists");
-        }
-            
-        DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
+    
+    /**
+     * The default behaviour is to find a data source named <code>jdbc/tapadm</code> 
+     * using JNDI. Subclasses may override this method to provide a request-path 
+     * dependent data source.
+     * 
+     * @param requestPath ignored in the default implementation
+     * @return the DataSource
+     */
+    public DataSource getDataSource(String requestPath) {
         try {
-            tm.startTransaction();
-
-            // create table
-            TableCreator tc = new TableCreator(ds);
-            tc.createTable(inputTable);
-            
-            // add to tap_schema
-            ts.put(inputTable);
-            
-            // set owner
-            setTableOwner(tableName, AuthenticationUtil.getCurrentSubject());
-            
-            tm.commitTransaction();
-        } catch (Exception ex) {
-            try {
-                log.error("PUT failed - rollback", ex);
-                tm.rollbackTransaction();
-                log.error("PUT failed - rollback: OK");
-            } catch (Exception oops) {
-                log.error("PUT failed - rollback : FAIL", oops);
-            }
-            // TODO: categorise failures better
-            throw new RuntimeException("failed to create/add " + tableName, ex);
-        } finally { 
-            if (tm.isOpen()) {
-                log.error("BUG: open transaction in finally - trying to rollback");
-                try {
-                    tm.rollbackTransaction();
-                    log.error("BUG: rollback in finally: OK");
-                } catch (Exception oops) {
-                    log.error("BUG: rollback in finally: FAIL", oops);
-                }
-                throw new RuntimeException("BUG: open transaction in finally");
-            }
+            return DBUtil.findJNDIDataSource(DEFAULT_DS_NAME);
+        } catch (NamingException ex) {
+            throw new RuntimeException("CONFIG: failed to find datasource " + DEFAULT_DS_NAME, ex);
         }
-        syncOutput.setCode(200);
-    }
-
-    @Override
-    protected InlineContentHandler getInlineContentHandler() {
-        return new TableDescHandler(INPUT_TAG);
-    }
-    
-    private TableDesc getInputTable(String schemaName, String tableName) {
-        TableDesc input = (TableDesc) syncInput.getContent(INPUT_TAG);
-        if (input == null) {
-            throw new IllegalArgumentException("no input: expected a document describing the table to create");
-        }
-        
-        input.setSchemaName(schemaName);
-        input.setTableName(tableName);
-        int c = 0;
-        for (ColumnDesc cd : input.getColumnDescs()) {
-            cd.setTableName(tableName);
-            cd.column_index = c++;
-        }
-        
-        return input;
     }
 }
