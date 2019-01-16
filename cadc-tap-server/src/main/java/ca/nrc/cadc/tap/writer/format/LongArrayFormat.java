@@ -76,14 +76,11 @@ import java.sql.SQLException;
  *
  * @author pdowler
  */
-public class LongArrayFormat implements ResultSetFormat
+public class LongArrayFormat extends AbstractResultSetFormat
 {
 
-    @Override
-    public Object parse(String s)
-    {
-        throw new UnsupportedOperationException("TAP Formats cannot parse strings.");
-    }
+    private static final ca.nrc.cadc.dali.util.LongArrayFormat fmt 
+            = new ca.nrc.cadc.dali.util.LongArrayFormat();
 
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
@@ -118,36 +115,20 @@ public class LongArrayFormat implements ResultSetFormat
                 throw new IllegalArgumentException("Error accessing array data for " + object.getClass().getCanonicalName(), e);
             }
         }
-        if (object instanceof long[])
-            return toString((long[]) object);
-
+        
         if (object instanceof Long[])
-            return toString((Long[]) object);
+        {
+            Long[] arr = (Long[]) object;
+            long[] tmp = new long[arr.length];
+            for (int i = 0; i < arr.length; i++) {
+                tmp[i] = arr[i]; // unbox
+            }
+            object = tmp;
+        }
+        
+        if (object instanceof long[])
+            return fmt.format((long[]) object);
 
         throw new IllegalArgumentException(object.getClass().getCanonicalName() + " not supported.");
     }
-
-    private String toString(long[] iarray)
-    {
-        StringBuilder sb = new StringBuilder();
-        for (long i : iarray)
-        {
-            sb.append(Long.toString(i));
-            sb.append(" ");
-        }
-        return sb.substring(0, sb.length() - 1); // trim trailing space
-    }
-
-    private String toString(Long[] iarray)
-    {
-        StringBuilder sb = new StringBuilder();
-        for (Long i : iarray)
-        {
-            sb.append(i.toString());
-            sb.append(" ");
-        }
-        return sb.substring(0, sb.length() - 1); // trim trailing space
-    }
-
-
 }

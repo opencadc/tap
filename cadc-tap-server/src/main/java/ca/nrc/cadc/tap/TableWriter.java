@@ -69,9 +69,7 @@
 
 package ca.nrc.cadc.tap;
 
-import ca.nrc.cadc.tap.schema.ParamDesc;
 import ca.nrc.cadc.tap.writer.format.FormatFactory;
-import ca.nrc.cadc.uws.Job;
 import java.sql.ResultSet;
 import java.util.List;
 
@@ -84,7 +82,7 @@ public interface TableWriter extends ca.nrc.cadc.dali.tables.TableWriter<ResultS
 {
     void setFormatFactory(FormatFactory ff);
     
-    public void setSelectList(List<ParamDesc> selectList);
+    public void setSelectList(List<TapSelectItem> selectList);
     
     public void setQueryInfo(String queryInfo);
 
@@ -93,4 +91,6 @@ public interface TableWriter extends ca.nrc.cadc.dali.tables.TableWriter<ResultS
 
     @Override
     public String getExtension();
+    
+    public long getRowCount();
 }

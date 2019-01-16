@@ -185,6 +185,10 @@ public class SelectDeParser implements SelectVisitor, OrderByVisitor, SelectItem
 
 	public void visit(Table tableName) {
 		buffer.append(tableName.getWholeTableName());
+		String alias = tableName.getAlias();
+		if (alias != null && !alias.isEmpty()) {
+			buffer.append(" AS " + alias);
+		}
 	}
 
 	public void deparseOrderBy(List orderByElements) {
@@ -273,9 +277,6 @@ public class SelectDeParser implements SelectVisitor, OrderByVisitor, SelectItem
 		
 		FromItem fromItem = join.getRightItem();
 		fromItem.accept(this);
-		if (fromItem.getAlias() != null) {
-			buffer.append(" AS " + fromItem.getAlias());
-		}
 		if (join.getOnExpression() != null) {
 			buffer.append(" ON ");
 			join.getOnExpression().accept(expressionVisitor);

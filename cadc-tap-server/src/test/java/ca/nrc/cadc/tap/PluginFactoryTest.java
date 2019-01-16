@@ -122,15 +122,12 @@ public class PluginFactoryTest
     @Test
     public void testSetup()
     {
-        TapSchema tapSchema=  new TapSchema();
-        Map<String, TableDesc> extraTables = new HashMap<String, TableDesc>();
-        
         try
         {
             job.getParameterList().clear();
             job.getParameterList().add(new Parameter("LANG", "ADQL"));
             
-            PluginFactory pf = new PluginFactory(job);
+            PluginFactoryImpl pf = new PluginFactoryImpl(job);
             
             try
             {

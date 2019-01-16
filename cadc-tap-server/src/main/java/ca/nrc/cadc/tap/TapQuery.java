@@ -69,7 +69,6 @@
 
 package ca.nrc.cadc.tap;
 
-import ca.nrc.cadc.tap.schema.ParamDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import java.util.List;
@@ -109,8 +108,15 @@ public interface TapQuery extends TapPlugin
     /**
      * @return the metadata for columns in the result set
      */
-    public List<ParamDesc> getSelectList();
+    public List<TapSelectItem> getSelectList();
 
+    /**
+     * Check if the query is on the <code>tap_schema</code>.
+     * 
+     * @return true if query uses tap_schema; otherwise false
+     */
+    public boolean isTapSchemaQuery();
+    
     /**
      * Provide a text description of the relevant part of the query. This should
      * be the main parameters that define the query. For example, for an ADQL query

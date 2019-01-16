@@ -76,15 +76,11 @@ import java.sql.SQLException;
  *
  * @author pdowler
  */
-public class FloatArrayFormat implements ResultSetFormat
+public class FloatArrayFormat extends AbstractResultSetFormat
 {
-
-    @Override
-    public Object parse(String s)
-    {
-        throw new UnsupportedOperationException("TAP Formats cannot parse strings.");
-    }
-
+    private static final ca.nrc.cadc.dali.util.FloatArrayFormat fmt 
+            = new ca.nrc.cadc.dali.util.FloatArrayFormat();
+    
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
             throws SQLException
@@ -118,35 +114,20 @@ public class FloatArrayFormat implements ResultSetFormat
                 throw new IllegalArgumentException("Error accessing array data for " + object.getClass().getCanonicalName(), e);
             }
         }
-        if (object instanceof float[])
-            return toString((float[]) object);
-
+        
         if (object instanceof Float[])
-            return toString((Float[]) object);
+        {
+            Float[] arr = (Float[]) object;
+            float[] tmp = new float[arr.length];
+            for (int i = 0; i < arr.length; i++) {
+                tmp[i] = arr[i]; // unbox
+            }
+            object = tmp;
+        }
+        
+        if (object instanceof float[])
+            return fmt.format((float[]) object);
 
         throw new IllegalArgumentException(object.getClass().getCanonicalName() + " not supported.");
     }
-
-    private String toString(float[] iarray)
-    {
-        StringBuilder sb = new StringBuilder();
-        for (float i : iarray)
-        {
-            sb.append(Float.toString(i));
-            sb.append(" ");
-        }
-        return sb.substring(0, sb.length() - 1); // trim trailing space
-    }
-
-    private String toString(Float[] iarray)
-    {
-        StringBuilder sb = new StringBuilder();
-        for (Float i : iarray)
-        {
-            sb.append(i.toString());
-            sb.append(" ");
-        }
-        return sb.substring(0, sb.length() - 1); // trim trailing space
-    }
-
 }

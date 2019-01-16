@@ -76,17 +76,11 @@ import java.sql.SQLException;
  * Formats a byte[] into a String.
  *
  */
-public class ByteArrayFormat implements ResultSetFormat
+public class ByteArrayFormat extends AbstractResultSetFormat
 {
-
     private ca.nrc.cadc.dali.util.ByteArrayFormat bfmt = new ca.nrc.cadc.dali.util.ByteArrayFormat();
     
     @Override
-    public Object parse(String s)
-    {
-        throw new UnsupportedOperationException("TAP Formats cannot parse strings.");
-    }
-
     public String format(Object t)
     {
         if (t == null)
@@ -119,6 +113,7 @@ public class ByteArrayFormat implements ResultSetFormat
                 throw new IllegalArgumentException("Error accessing array data for " + object.getClass().getCanonicalName(), e);
             }
         }
+        
         if (object instanceof Byte[])
         {
             Byte[] ba = (Byte[]) object;
@@ -127,6 +122,7 @@ public class ByteArrayFormat implements ResultSetFormat
                 ret[i] = ba[i]; // unbox
             object = ret;
         }
+        
         if (object instanceof byte[])
             return object;
         

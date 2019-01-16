@@ -75,7 +75,7 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.uws.Parameter;
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.apache.log4j.Level;
 import org.junit.Test;
 

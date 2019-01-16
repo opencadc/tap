@@ -71,8 +71,7 @@ package ca.nrc.cadc.tap.writer.format;
 
 import ca.nrc.cadc.dali.util.Format;
 import ca.nrc.cadc.tap.TapPlugin;
-import ca.nrc.cadc.tap.schema.ColumnDesc;
-import ca.nrc.cadc.tap.schema.ParamDesc;
+import ca.nrc.cadc.tap.TapSelectItem;
 import java.util.List;
 
 /**
@@ -81,30 +80,7 @@ import java.util.List;
  */
 public interface FormatFactory extends TapPlugin
 {
-    List<Format<Object>> getFormats(List<ParamDesc> selectList);
+    List<Format<Object>> getFormats(List<TapSelectItem> selectList);
 
-    Format<Object> getFormat(ColumnDesc columnDesc);
-
-    Format<Object> getFormat(ParamDesc paramDesc);
-
-//    Formatter getIntegerFormatter(ColumnDesc columnDesc);
-//
-//    Formatter getDoubleFormatter(ColumnDesc columnDesc);
-//
-//    Formatter getLongFormatter(ColumnDesc columnDesc);
-//
-//    Formatter getStringFormatter(ColumnDesc columnDesc);
-//
-//    Formatter getByteArrayFormatter(ColumnDesc columnDesc);
-//
-//    Formatter getIntArrayFormatter(ColumnDesc columnDesc);
-//
-//    Formatter getDoubleArrayFormatter(ColumnDesc columnDesc);
-//
-//    Formatter getTimestampFormatter(ColumnDesc columnDesc);
-//
-//    Formatter getPointFormatter(ColumnDesc columnDesc);
-//
-//    Formatter getRegionFormatter(ColumnDesc columnDesc);
-
+    Format<Object> getFormat(TapSelectItem selectitem);
 }

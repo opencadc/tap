@@ -42,9 +42,8 @@ public class SampleJobManager extends SimpleJobManager
         super.setJobPersistence(jobPersist);
         super.setJobExecutor(jobExec);
         
-        // these are the default values from super class SimpleJobManager
-        //setMaxExecDuration(3600L);     // one hour
-        //setMaxQuote(3600L);            // one hour 
-        //setMaxDestruction(7*24*3600L); // 7 days
+        setMaxExecDuration(600L);      // 10 minutes
+        setMaxQuote(3600L);            // one hour 
+        setMaxDestruction(2*3600L);    // two hour so in-memory jobsget cleaned up
     }
 }

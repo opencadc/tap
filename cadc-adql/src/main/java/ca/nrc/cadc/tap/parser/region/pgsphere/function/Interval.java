@@ -116,7 +116,7 @@ public class Interval extends Function
         }
         catch(ClassCastException ex)
         {
-            throw new IllegalArgumentException("Intervakl bounds must be double, found: " 
+            throw new IllegalArgumentException("Interval bounds must be double, found: " 
                 + lower.getClass().getSimpleName() + "," + upper.getClass().getSimpleName());
                     
         }

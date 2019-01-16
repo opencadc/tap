@@ -88,12 +88,11 @@ import ca.nrc.cadc.dali.util.Format;
 import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.net.NetUtil;
 import ca.nrc.cadc.tap.TableWriter;
-import ca.nrc.cadc.tap.schema.ParamDesc;
+import ca.nrc.cadc.tap.TapSelectItem;
 import ca.nrc.cadc.tap.writer.format.FormatFactory;
 import ca.nrc.cadc.tap.writer.format.ResultSetFormat;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
-import javax.swing.TransferHandler;
 
 /**
  *
@@ -107,7 +106,7 @@ public class RssTableWriter implements TableWriter
     private DateFormat dateFormat = DateUtil.getDateFormat(RFC_822__DATE_FORMAT, DateUtil.LOCAL);
 
     // List of column names used in the select statement.
-    protected List<ParamDesc> selectList;
+    protected List<TapSelectItem> selectList;
 
     protected String info;
     
@@ -115,17 +114,21 @@ public class RssTableWriter implements TableWriter
     
     private Job job;
     
+    private long rowcount = 0l;
+    
 
     public RssTableWriter()
     {
         
     }
 
+    @Override
     public void setJob(Job job)
     {
         this.job = job;
     }
 
+    @Override
     public void setQueryInfo(String info)
     {
         this.info = info;
@@ -143,28 +146,39 @@ public class RssTableWriter implements TableWriter
         return "application/rss+xml";
     }
 
+    @Override
     public String getErrorContentType()
     {
         return getContentType();
     }
+
+    @Override
+    public long getRowCount()
+    {
+        return rowcount;
+    }
     
     
 
-    public void setSelectList(List<ParamDesc> selectList)
+    @Override
+    public void setSelectList(List<TapSelectItem> selectList)
     {
         this.selectList = selectList;
     }
 
+    @Override
     public void setFormatFactory(ca.nrc.cadc.dali.util.FormatFactory ff)
     {
         
     }
 
+    @Override
     public void setFormatFactory(FormatFactory formatFactory)
     {
         this.formatFactory = formatFactory;
     }
 
+    @Override
     public void write(Throwable t, OutputStream out) 
         throws IOException
     {
@@ -285,9 +299,9 @@ public class RssTableWriter implements TableWriter
                     }
                     else
                     {
-                        ParamDesc paramDesc = selectList.get(columnIndex - 1);
+                        TapSelectItem selectitem = selectList.get(columnIndex - 1);
                         sb.append("<tr><td align=\"right\">");
-                        sb.append(paramDesc.name);
+                        sb.append(selectitem.getName());
                         sb.append("</td><td align=\"left\">");
                         Format<Object> format = formats.get(columnIndex - 1);
                         Object obj = null;
@@ -314,7 +328,8 @@ public class RssTableWriter implements TableWriter
         {
             throw new RuntimeException(e.getMessage());
         }
-
+        this.rowcount = itemCount;
+        
         // channel description.
         Element channelDescription = new Element("description");
         channelDescription.setText("The " + itemCount + " most recent from " + info);

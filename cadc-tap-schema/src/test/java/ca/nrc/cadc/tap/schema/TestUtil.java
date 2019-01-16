@@ -85,7 +85,7 @@ import java.util.List;
 public class TestUtil
 {
     
-    public static TapSchema createSimpleTapSchema(int numSchemas, int numTables, int numColumns, int numFunctions)
+    public static TapSchema createSimpleTapSchema(int tapVersion, int numSchemas, int numTables, int numColumns, int numFunctions)
     {
         TapSchema ret = new TapSchema();
         for (int s=0; s<numSchemas; s++)
@@ -97,15 +97,52 @@ public class TestUtil
             {
                 String tn = "table" + t;
                 TableDesc td = new TableDesc(sn, tn);
+                td.description = "this is " + tn;
                 
                 for (int c=0; c<numColumns; c++)
                 {
-                    String cn = "column" + c;
-                    Integer arraysize = null;
+                    
+                    String cn = "c_int" + c;
+                    String asz = null;
                     if (c > 0)
-                        arraysize = c;
-                    ColumnDesc cd = new ColumnDesc(tn, cn, "adql:INTEGER", arraysize);
-                    td.getColumnDescs().add(cd);
+                        asz = Integer.toString(c);
+                    if (tapVersion == 10)
+                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("adql:INTEGER", asz, null)));
+                    else
+                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("int", asz, null)));
+                    
+                    cn = "c_double" + c;
+                    asz = null;
+                    if (tapVersion == 10)
+                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("adql:DOUBLE", asz, null)));
+                    else
+                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("double", asz, null)));
+                    
+                    cn = "c_char" + c;
+                    asz = null;
+                    if (tapVersion == 10)
+                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("adql:CHAR", asz, null)));
+                    else
+                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("char", asz, null)));
+                }
+                String cn = "c_interval";
+                
+                ColumnDesc ci = new ColumnDesc(tn, cn, new TapDataType("double", "2", "interval"));
+                ci.description = "interval column";
+                td.getColumnDescs().add(ci);
+
+                cn = "c_polygon";
+                if (tapVersion == 10)
+                {
+                    ColumnDesc cp = new ColumnDesc(tn, cn, new TapDataType("adql:REGION", "*", null));
+                    cp.description = "region column";
+                    td.getColumnDescs().add(cp);
+                }
+                else
+                {
+                    ColumnDesc cp = new ColumnDesc(tn, cn, new TapDataType("double", "*", "polygon"));
+                    cp.description = "polygon column";
+                    td.getColumnDescs().add(cp);
                 }
                 sd.getTableDescs().add(td);
             }
@@ -116,7 +153,7 @@ public class TestUtil
         for (int f=0; f<numFunctions; f++)
         {
             String s = "func" + f;
-            FunctionDesc fd = new FunctionDesc(s, null);
+            FunctionDesc fd = new FunctionDesc(s, new TapDataType("double"));
         }
         
         return ret;

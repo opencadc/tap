@@ -3,12 +3,12 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2018.                            (c) 2018.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 *  All rights reserved                  Tous droits réservés
-*                                       
+*
 *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 *  expressed, implied, or               énoncée, implicite ou légale,
 *  statutory, of any kind with          de quelque nature que ce
@@ -31,10 +31,10 @@
 *  software without specific prior      de ce logiciel sans autorisation
 *  written permission.                  préalable et particulière
 *                                       par écrit.
-*                                       
+*
 *  This file is part of the             Ce fichier fait partie du projet
 *  OpenCADC project.                    OpenCADC.
-*                                       
+*
 *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 *  you can redistribute it and/or       vous pouvez le redistribuer ou le
 *  modify it under the terms of         modifier suivant les termes de
@@ -44,7 +44,7 @@
 *  either version 3 of the              : soit la version 3 de cette
 *  License, or (at your option)         licence, soit (à votre gré)
 *  any later version.                   toute version ultérieure.
-*                                       
+*
 *  OpenCADC is distributed in the       OpenCADC est distribué
 *  hope that it will be useful,         dans l’espoir qu’il vous
 *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -54,7 +54,7 @@
 *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 *  General Public License for           Générale Publique GNU Affero
 *  more details.                        pour plus de détails.
-*                                       
+*
 *  You should have received             Vous devriez avoir reçu une
 *  a copy of the GNU Affero             copie de la Licence Générale
 *  General Public License along         Publique GNU Affero avec
@@ -69,6 +69,7 @@
 
 package ca.nrc.cadc.tap;
 
+import ca.nrc.cadc.tap.db.DatabaseDataType;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.uws.Parameter;
 import java.util.List;
@@ -77,37 +78,46 @@ import javax.sql.DataSource;
 
 /**
  * Interface for classes that support the UPLOAD parameter. A service must
- * provide an implementation called <code>ca.nrc.cadc.tamp.UploadManagerImpl</code>. 
+ * provide an implementation called <code>ca.nrc.cadc.tamp.UploadManagerImpl</code>.
  * The simplest approach is to extend one of the provided classes that implement
  * this interface.
- * 
+ *
  * @author pdowler
  */
-public interface UploadManager extends TapPlugin
-{
+public interface UploadManager extends TapPlugin {
     /**
      * The parameter name as defined in the TAP 1.0 specification.
      */
-    public static final String UPLOAD = "UPLOAD";
-    
+    String UPLOAD = "UPLOAD";
+
     /**
      * The schema where uploaded tables are created as specified in the
      * TAP 1.0 specification.
      */
-    public static final String SCHEMA = "TAP_UPLOAD";
-    
+    String SCHEMA = "TAP_UPLOAD";
+
     /**
-     * The caller specifies the datasource to use for creating tables.
-     * @param ds
+     * The caller specifies the DataSource to use for creating tables.
+     *
+     * @param ds        The new DataSource.
      */
-    public void setDataSource(DataSource ds);
-    
+    void setDataSource(DataSource ds);
+
+    /**
+     * Give database specific data type information.
+     *
+     * @param databaseDataType      The DatabaseDataType implementation.
+     */
+    void setDatabaseDataType(final DatabaseDataType databaseDataType);
+
     /**
      * Find and process all UPLOAD requests.
-     * 
+     *
      * @param paramList list of all parameters passed to the service
-     * @param jobID the UWS jobID
+     * @param jobID     the UWS jobID
      * @return map of service generated upload table name to user-specified table metadata
      */
-    public Map<String, TableDesc> upload(List<Parameter> paramList, String jobID);
+    Map<String, TableDesc> upload(List<Parameter> paramList, String jobID);
+
+    String getUploadSchema();
 }

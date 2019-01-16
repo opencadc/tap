@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2016.                            (c) 2016.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -66,27 +66,29 @@
 *
 ************************************************************************
 */
+
 package ca.nrc.cadc.tap;
 
-import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
-import ca.nrc.cadc.dali.tables.votable.VOTableReader;
-import ca.nrc.cadc.dali.tables.votable.VOTableResource;
-import ca.nrc.cadc.dali.tables.votable.VOTableTable;
+import ca.nrc.cadc.dali.Circle;
+import ca.nrc.cadc.dali.DoubleInterval;
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.Polygon;
 import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.stc.Position;
 import ca.nrc.cadc.stc.Region;
-import ca.nrc.cadc.stc.STC;
 import ca.nrc.cadc.stc.StcsParsingException;
+import ca.nrc.cadc.tap.db.DatabaseDataType;
+import ca.nrc.cadc.tap.db.TableCreator;
+import ca.nrc.cadc.tap.db.TableDataStream;
+import ca.nrc.cadc.tap.db.TableLoader;
+import ca.nrc.cadc.tap.db.TapConstants;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.upload.DatabaseDataTypeFactory;
 import ca.nrc.cadc.tap.upload.JDOMVOTableParser;
 import ca.nrc.cadc.tap.upload.UploadParameters;
 import ca.nrc.cadc.tap.upload.UploadTable;
 import ca.nrc.cadc.tap.upload.VOTableParser;
 import ca.nrc.cadc.tap.upload.VOTableParserException;
-import ca.nrc.cadc.tap.upload.datatype.ADQLDataType;
-import ca.nrc.cadc.tap.upload.datatype.DatabaseDataType;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
 import java.io.IOException;
@@ -95,8 +97,9 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.text.DateFormat;
-import java.text.ParseException;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -109,7 +112,7 @@ import org.apache.log4j.Logger;
  *
  * @author jburke
  */
-public abstract class BasicUploadManager implements UploadManager
+public class BasicUploadManager implements UploadManager
 {
     private static final Logger log = Logger.getLogger(BasicUploadManager.class);
     
@@ -120,12 +123,17 @@ public abstract class BasicUploadManager implements UploadManager
      * DataSource for the DB.
      */
     protected DataSource dataSource;
-    
+
+    /**
+     * Database Specific data type.
+     */
+    protected DatabaseDataType databaseDataType;
+
     /**
      * IVOA DateFormat
      */
     protected DateFormat dateFormat;
-    
+
     /**
      * Maximum number of rows allowed in the UPLOAD VOTable.
      */
@@ -144,23 +152,38 @@ public abstract class BasicUploadManager implements UploadManager
         dateFormat = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
     }
 
+    @Override
+    public String getUploadSchema()
+    {
+        return "TAP_UPLOAD";
+    }
+    
     /**
      * Set the DataSource used for creating and populating tables.
      * @param ds
      */
+    @Override
     public void setDataSource(DataSource ds)
     {
         this.dataSource = ds;
     }
 
+    /**
+     * Give database specific data type information.
+     *
+     * @param databaseDataType The DatabaseDataType implementation.
+     */
+    @Override
+    public void setDatabaseDataType(DatabaseDataType databaseDataType) {
+        this.databaseDataType = databaseDataType;
+    }
+
+    @Override
     public void setJob(Job job)
     {
         this.job = job;
     }
-    
-    protected abstract DatabaseDataType getDatabaseDataType(Connection con)
-        throws SQLException;
-    
+
     /**
      * Find and process all UPLOAD requests.
      *
@@ -168,6 +191,7 @@ public abstract class BasicUploadManager implements UploadManager
      * @param jobID the UWS jobID.
      * @return map of service generated upload table name to user-specified table metadata
      */
+    @Override
     public Map<String, TableDesc> upload(List<Parameter> paramList, String jobID)
     {
         log.debug("upload jobID " + jobID);
@@ -178,11 +202,6 @@ public abstract class BasicUploadManager implements UploadManager
         // Map of database table name to table descriptions.
         Map<String, TableDesc> metadata = new HashMap<String, TableDesc>();
 
-        // Statements
-        Statement stmt = null;
-        PreparedStatement ps = null;
-        Connection con = null;
-        boolean txn = false;
         UploadTable cur = null;
 
         //FormatterFactory factory = DefaultFormatterFactory.getFormatterFactory();
@@ -199,16 +218,6 @@ public abstract class BasicUploadManager implements UploadManager
                 return metadata;
             }
 
-            // acquire connection
-            con = dataSource.getConnection();
-            
-            // DataType containing mapping of java.sql.Types
-            // to database data type names.
-            DatabaseDataType databaseDataType = getDatabaseDataType(con);
-
-            con.setAutoCommit(false);
-            txn = true;
-
             // Process each table.
             for (UploadTable uploadTable : uploadParameters.uploadTables)
             {
@@ -218,10 +227,11 @@ public abstract class BasicUploadManager implements UploadManager
                 // TODO: make configurable.
                 log.debug(uploadTable);
                 
-                VOTableParser parser = getVOTableParser(uploadTable);
+                final VOTableParser parser = getVOTableParser(uploadTable);
 
                 // Get the Table description.
                 TableDesc tableDesc = parser.getTableDesc();
+                sanitizeTable(tableDesc);
 
                 // Fully qualified name of the table in the database.
                 String databaseTableName = getDatabaseTableName(uploadTable);
@@ -229,67 +239,27 @@ public abstract class BasicUploadManager implements UploadManager
                 metadata.put(databaseTableName, tableDesc);
                 log.debug("upload table: " + databaseTableName + " aka " + tableDesc);
                 
-                // Build the SQL to create the table.
-                String tableSQL = getCreateTableSQL(tableDesc, databaseTableName, databaseDataType);
-                log.debug("Create table SQL: " + tableSQL);
-
-                // Create the table.
-                stmt = con.createStatement();
-                stmt.executeUpdate(tableSQL);
+                final String tableName = tableDesc.getTableName();
+                tableDesc.setTableName(databaseTableName);
                 
-                // Grant select access for others to query.
-                String grantSQL = getGrantSelectTableSQL(databaseTableName);
-                if (grantSQL != null && !grantSQL.isEmpty())
-                {
-                    log.debug("Grant select SQL: " + grantSQL);
-                    stmt.executeUpdate(grantSQL);
-                }
+                TableCreator tc = new TableCreator(dataSource);
+                tc.createTable(tableDesc);
                 
-                // commit the create and grant
-                con.commit();
-
-                // Get a PreparedStatement that populates the table.
-                String insertSQL = getInsertTableSQL(tableDesc, databaseTableName); 
-                ps = con.prepareStatement(insertSQL);
-                log.debug("Insert table SQL: " + insertSQL);
-
-                // Populate the table from the VOTable tabledata rows.
-                int numRows = 0;
-                Iterator<List<Object>> it = parser.iterator();
-                while (it.hasNext())
-                {
-                    // Get the data for the next row.
-                    List<Object> row = it.next();
-
-                    // Update the PreparedStatement with the row data.
-                    updatePreparedStatement(ps, tableDesc.getColumnDescs(), row);
-
-                    // Execute the update.
-                    ps.executeUpdate();
-                    
-                    // commit every NUM_ROWS_PER_COMMIT rows
-                    if (numRows != 0 && (numRows % NUM_ROWS_PER_COMMIT) == 0)
-                    {
-                        log.debug(NUM_ROWS_PER_COMMIT + " rows committed");
-                        con.commit();
+                TableLoader tld = new TableLoader(dataSource, 1000);
+                tld.load(tableDesc, new TableDataStream() {
+                    @Override
+                    public void close() {
+                        //no-op: fully read already
                     }
-                    
-                    // Check if we've reached exceeded the max number of rows.
-                    numRows++;
-                    if (numRows == maxUploadRows)
-                        throw new UnsupportedOperationException("Exceded maximum number of allowed rows: " + maxUploadRows);
-                }
+
+                    @Override
+                    public Iterator<List<Object>> iterator() {
+                        return parser.iterator();
+                    }
+                });
                 
-                // Commit remaining rows.
-                con.commit();
-                
-                log.debug(numRows + " rows inserted into " + databaseTableName);
+                tableDesc.setTableName(tableName);
             }
-            txn = false;
-        }
-        catch(StcsParsingException ex)
-        {
-            throw new RuntimeException("failed to parse table " + cur.tableName + " from " + cur.uri, ex);
         }
         catch(VOTableParserException ex)
         {
@@ -299,58 +269,42 @@ public abstract class BasicUploadManager implements UploadManager
         {
             throw new RuntimeException("failed to read table " + cur.tableName + " from " + cur.uri, ex);
         }
-        catch (SQLException e)
-        {
-            throw new RuntimeException("failed to create and load table in DB", e);
-        }
-        finally
-        {
-            try
-            {
-                if (con != null)
-                    con.rollback();
-            }
-            catch (SQLException ignore) { }
-            if (stmt != null)
-            {
-                try
-                {
-                    stmt.close();
-                }
-                catch (SQLException ignore) { }
-            }
-            if (ps != null)
-            {
-                try
-                {
-                    ps.close();
-                }
-                catch (SQLException ignore) { }
-            }
-            if (con != null)
-            {
-                try
-                {
-                    con.close();
-                }
-                catch (SQLException ignore) { }
-            }
-        }
+       
         return metadata;
     }
     
     protected VOTableParser getVOTableParser(UploadTable uploadTable)
             throws IOException
     {
-        VOTableReader r = new VOTableReader();
-        // TODO: wrap a ByteCountInputStream here to limit input data volume
-        VOTableDocument vdoc = r.read(uploadTable.uri.toURL().openStream());
-        String tname = uploadTable.tableName;
-        if (!tname.toUpperCase().startsWith(SCHEMA))
-            tname = SCHEMA + "." + tname;
-        return new JDOMVOTableParser(vdoc, tname);
+        VOTableParser ret = new JDOMVOTableParser();
+        ret.setUpload(uploadTable);
+        return ret;
     }
 
+    /**
+     * Remove redundant metadata like TAP-1.0 xtypes for primitive columns.
+     * 
+     * @param td 
+     */
+    protected void sanitizeTable(TableDesc td)
+    {
+        for (ColumnDesc cd : td.getColumnDescs())
+        {
+            String xtype = cd.getDatatype().xtype;
+            if (TapConstants.TAP10_TIMESTAMP.equals(xtype))
+                cd.getDatatype().xtype = "timestamp"; // DALI-1.1
+            
+            if (oldXtypes.contains(xtype))
+                cd.getDatatype().xtype = null;
+        }
+    }
+    // TAP-1.0 xtypes that can just be dropped from ColumnDesc
+    private final List<String> oldXtypes = Arrays.asList(
+            TapConstants.TAP10_CHAR,  TapConstants.TAP10_VARCHAR,
+            TapConstants.TAP10_DOUBLE, TapConstants.TAP10_REAL,
+            TapConstants.TAP10_BIGINT, TapConstants.TAP10_INTEGER, TapConstants.TAP10_SMALLINT
+    );
+    
     /**
      * Create the SQL to grant select privileges for the UPLOAD table.
      * 
@@ -378,193 +332,4 @@ public abstract class BasicUploadManager implements UploadManager
         sb.append(uploadTable.jobID);
         return sb.toString();
     }
-    
-    /**
-     * Create the SQL required to create a table described by the TableDesc.
-     *
-     * @param tableDesc describes the table.
-     * @param databaseTableName fully qualified table name.
-     * @param databaseDataType map of SQL types to database specific data types.
-     * @return SQL to create the table.
-     * @throws SQLException
-     */
-    protected String getCreateTableSQL(TableDesc tableDesc, String databaseTableName, DatabaseDataType databaseDataType)
-        throws SQLException
-    {
-        StringBuilder sb = new StringBuilder();
-        sb.append("create table ");
-        sb.append(databaseTableName);
-        sb.append(" ( ");
-        for (int i = 0; i < tableDesc.getColumnDescs().size(); i++)
-        {
-            ColumnDesc columnDesc = tableDesc.getColumnDescs().get(i);
-            sb.append(columnDesc.getColumnName());
-            sb.append(" ");
-            sb.append(databaseDataType.getDataType(columnDesc));
-            sb.append(" null ");
-            if (i + 1 < tableDesc.getColumnDescs().size())
-                sb.append(", ");
-        }
-        sb.append(" ) ");
-        return sb.toString();
-    }
-    
-    /**
-     * Create the SQL required to create a PreparedStatement
-     * to insert into the table described by the TableDesc.
-     * 
-     * @param tableDesc describes the table.
-     * @return SQL to create the table.
-     */
-    protected String getInsertTableSQL(TableDesc tableDesc, String databaseTableName)
-    {
-        StringBuilder sb = new StringBuilder();
-        sb.append("insert into ");
-        sb.append(databaseTableName);
-        sb.append(" ( ");
-        for (int i = 0; i < tableDesc.getColumnDescs().size(); i++)
-        {
-            ColumnDesc columnDesc = tableDesc.getColumnDescs().get(i);
-            sb.append(columnDesc.getColumnName());
-            if (i + 1 < tableDesc.getColumnDescs().size())
-                sb.append(", ");
-        }
-        sb.append(" ) values ( ");
-        for (int i = 0; i < tableDesc.getColumnDescs().size(); i++)
-        {
-            sb.append("?");
-            if (i + 1 < tableDesc.getColumnDescs().size())
-                sb.append(", ");
-        }
-        sb.append(" ) ");
-        return sb.toString();
-    }
-
-    /**
-     * Updated the PreparedStatement with the row data using the ColumnDesc to
-     * determine each column data type.
-     *
-     * @param ps the prepared statement.
-     * @param columnDescs List of ColumnDesc for this table.
-     * @param row Array containing the data to be inserted into the database.
-     * @throws SQLException if the statement is closed or if the parameter index type doesn't match.
-     */
-    protected void updatePreparedStatement(PreparedStatement ps, List<ColumnDesc> columnDescs, List<Object> row)
-        throws SQLException, StcsParsingException
-    {
-        int i = 1;
-        for (Object value : row)
-        {
-            ColumnDesc columnDesc = columnDescs.get(i-1);
-            log.debug("update ps: " + columnDesc.getColumnName() + "[" + columnDesc.getDatatype() + "] = " + value);
-
-            if (value == null)
-                ps.setNull(i, ADQLDataType.getSQLType(columnDesc.getDatatype()));
-            else if (columnDesc.getDatatype().equals(ADQLDataType.ADQL_TIMESTAMP))
-            {
-                Date date = (Date) value;
-                ps.setTimestamp(i, new Timestamp(date.getTime()));
-            }
-            else if (columnDesc.getDatatype().equals(ADQLDataType.ADQL_POINT))
-            {
-                Region r = (Region) value;
-                if (r instanceof Position)
-                {
-                    Position pos = (Position) r;
-                    Object o = getPointObject(pos);
-                    ps.setObject(i, o);
-                }
-                else
-                    throw new IllegalArgumentException("failed to parse " + value + " as an " + ADQLDataType.ADQL_POINT);
-            }
-            else if (columnDesc.getDatatype().equals(ADQLDataType.ADQL_REGION))
-            {
-                Region reg = (Region) value;
-                Object o = getRegionObject(reg);
-                ps.setObject(i, o);
-            }
-            else
-                ps.setObject(i, value, ADQLDataType.getSQLType(columnDesc.getDatatype()));
-            
-            i++;
-            
-            /*
-            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_SMALLINT))
-                ps.setShort(i + 1, Short.parseShort(value));
-            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_INTEGER))
-                ps.setInt(i + 1, Integer.parseInt(value));
-            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_BIGINT))
-                ps.setLong(i + 1, Long.parseLong(value));
-            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_REAL))
-                ps.setFloat(i + 1, Float.parseFloat(value));
-            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_DOUBLE))
-                ps.setDouble(i + 1, Double.parseDouble(value));
-            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_CHAR))
-                ps.setString(i + 1, value);
-            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_VARCHAR))
-                ps.setString(i + 1, value);
-            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_CLOB))
-                ps.setString(i + 1, value);
-            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_TIMESTAMP))
-            {
-                try
-                {
-                    Date date = dateFormat.parse(value);
-                    ps.setTimestamp(i + 1, new Timestamp(date.getTime()));
-                }
-                catch (ParseException e)
-                {
-                    throw new SQLException("failed to parse timestamp " + value, e);
-                }
-            }
-            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_POINT))
-            {
-                Region r = STC.parse(value);
-                if (r instanceof Position)
-                {
-                    Position pos = (Position) r;
-                    Object o = getPointObject(pos);
-                    ps.setObject(i+1, o);
-                }
-                else
-                    throw new IllegalArgumentException("failed to parse " + value + " as an " + ADQLDataType.ADQL_POINT);
-            }
-            else if (columnDesc.datatype.equals(ADQLDataType.ADQL_REGION))
-            {
-                Region reg = STC.parse(value);
-                Object o = getRegionObject(reg);
-                ps.setObject(i+1, o);
-            }
-            else
-                throw new SQLException("Unsupported ADQL data type " + columnDesc.datatype);
-            */
-        }
-    }
-
-    /**
-     * Convert the string representation of the specified ADQL POINT into an object.
-     *
-     * @param pos
-     * @throws SQLException
-     * @return an object suitable for use with PreparedStatement.setObject(int,Object)
-     */
-    protected Object getPointObject(Position pos)
-        throws SQLException
-    {
-        throw new UnsupportedOperationException("cannot convert ADQL POINT (STC-S Position) -> internal database type");
-    }
-
-    /**
-     * Convert the string representation of the specified ADQL POINT into an object.
-     *
-     * @param reg
-     * @throws SQLException
-     * @return an object suitable for use with PreparedStatement.setObject(int,Object)
-     */
-    protected Object getRegionObject(Region reg)
-        throws SQLException
-    {
-        throw new UnsupportedOperationException("cannot convert ADQL REGION (STC-S Region) -> internal database type");
-    }
-
 }

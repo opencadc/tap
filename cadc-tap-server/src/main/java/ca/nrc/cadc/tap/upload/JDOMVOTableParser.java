@@ -69,23 +69,22 @@
 
 package ca.nrc.cadc.tap.upload;
 
-import ca.nrc.cadc.dali.tables.TableData;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableField;
+import ca.nrc.cadc.dali.tables.votable.VOTableReader;
 import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.tap.UploadManager;
+import static ca.nrc.cadc.tap.UploadManager.SCHEMA;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.log4j.Logger;
-import org.jdom2.Element;
-import org.jdom2.Namespace;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.upload.datatype.ADQLDataType;
+import ca.nrc.cadc.tap.schema.TapSchemaUtil;
+import java.io.IOException;
 
 /**
  * Implements the VOTableParser interface using JDOM.
@@ -96,56 +95,49 @@ public class JDOMVOTableParser implements VOTableParser
 {
     private static final Logger log = Logger.getLogger(JDOMVOTableParser.class);
 
-    private Element root;
-    private Namespace namespace;
-    private boolean hasTableRows;
-    private Iterator<Element> tableRowIter;
-
+    protected UploadTable upload;
+    
     protected String tableName;
-    protected VOTableTable vtab;
+    protected VOTableTable votable;
 
-    private Map<String,String> schemaMap;
+    public JDOMVOTableParser() { }
 
-    /**
-     *
-     */
-    public JDOMVOTableParser(VOTableDocument doc, String tableName)
+    @Override
+    public void setUpload(UploadTable upload)
     {
-        this.tableName = tableName;
-        VOTableResource vr = doc.getResourceByType("results"); // first results table
-        this.vtab = vr.getTable();
+        this.upload = upload;
     }
 
-   
+    private void init()
+        throws IOException
+    {
+        if (votable == null)
+        {
+            VOTableReader r = new VOTableReader();
+            // TODO: wrap a ByteCountInputStream here to limit input data volume
+            VOTableDocument doc = r.read(upload.uri.toURL().openStream());
+            VOTableResource vr = doc.getResourceByType("results");
+            this.votable = vr.getTable();
+            
+            this.tableName = upload.tableName;
+            if (!tableName.toUpperCase().startsWith(SCHEMA))
+                tableName = SCHEMA + "." + tableName;
+        }
+    }
+    
     /**
      * Get a List that describes each VOTable column.
      *
+     * @throws java.io.IOException
      * @throws VOTableParserException if unable to parse the VOTable.
      * @return List of ColumnDesc describing the VOTable columns.
      */
     @Override
     public TableDesc getTableDesc()
-        throws VOTableParserException
+        throws IOException, VOTableParserException
     {
-        TableDesc tableDesc = new TableDesc(UploadManager.SCHEMA, tableName);
-        
-        if (vtab != null)
-        {
-            for (VOTableField f : vtab.getFields())
-            {
-                try { UploadUtil.isValidateIdentifier(f.getName()); }
-                catch(ADQLIdentifierException ex)
-                {
-                    throw new VOTableParserException("invalid ADQL identifier (column name): " + f.getName(), ex);
-                }
-                ColumnDesc columnDesc = new ColumnDesc(tableName, f.getName(),
-                    ADQLDataType.getDataType(f.getDatatype(), f.getArraysize(), f.isVariableSize(), f.xtype),
-                    f.getArraysize());
-                log.debug("ColumnDesc: " + f + " -> " + columnDesc);
-                
-                tableDesc.getColumnDescs().add(columnDesc);
-            }
-        }
+        init();
+        TableDesc tableDesc = TapSchemaUtil.createTableDesc(UploadManager.SCHEMA, tableName, votable);
         log.debug("table: " + tableDesc);
         return tableDesc;
     }
@@ -158,9 +150,10 @@ public class JDOMVOTableParser implements VOTableParser
     @Override
     public Iterator<List<Object>> iterator()
     {
-        if (vtab != null)
-            if (vtab.getTableData() != null)
-            return vtab.getTableData().iterator();
+        if (votable != null && votable.getTableData() != null)
+            return votable.getTableData().iterator();
+        
+        // return empty iterator
         return new ArrayList<List<Object>>().iterator();
     }
 }

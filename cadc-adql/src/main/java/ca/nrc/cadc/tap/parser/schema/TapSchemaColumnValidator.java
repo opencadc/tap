@@ -135,7 +135,8 @@ public class TapSchemaColumnValidator extends ReferenceNavigator
         VisitingPart visiting = selectNavigator.getVisitingPart();
         log.debug("visiting is:" + visiting);
         if (visiting.equals(VisitingPart.SELECT_ITEM) || visiting.equals(VisitingPart.FROM)
-                || visiting.equals(VisitingPart.GROUP_BY))
+                //|| visiting.equals(VisitingPart.GROUP_BY)
+                )
         {
             // cannot be by alias
             // possible forms: columnName, table.columnName, tableAilas.columnName, or schema.table.ColumnName

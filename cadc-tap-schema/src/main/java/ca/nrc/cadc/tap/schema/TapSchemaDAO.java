@@ -69,13 +69,18 @@
 
 package ca.nrc.cadc.tap.schema;
 
+import ca.nrc.cadc.db.DatabaseTransactionManager;
+import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.uws.Job;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -91,36 +96,40 @@ public class TapSchemaDAO
 {
     private static final Logger log = Logger.getLogger(TapSchemaDAO.class);
 
+    /**
+     * Integer representation of the TAP version (TAP 1.1 value is 11). This
+     * value is expected to be appended to the tap_schema table names so that
+     * two versions of the tap_schema tables can co-exist.
+     */
+    protected final int TAP_VERSION = 11;
+    
     // standard tap_schema table names
-    protected String schemasTableName = "tap_schema.schemas";
-    protected String tablesTableName = "tap_schema.tables";
-    protected String columnsTableName = "tap_schema.columns";
-    protected String keysTableName = "tap_schema.keys";
-    protected String keyColumnsTableName = "tap_schema.key_columns";
+    protected String schemasTableName = "tap_schema.schemas" + TAP_VERSION;
+    protected String tablesTableName = "tap_schema.tables" + TAP_VERSION;
+    protected String columnsTableName = "tap_schema.columns" + TAP_VERSION;
+    protected String keysTableName = "tap_schema.keys" + TAP_VERSION;
+    protected String keyColumnsTableName = "tap_schema.key_columns" + TAP_VERSION;
 
-    // SQL to select all rows from TAP_SCHEMA.schemas.
-    protected String SELECT_SCHEMAS_COLS = "schema_name, description, utype";
+    private String[] tsSchemaCols = new String[] { "description", "utype", "schema_index", "schema_name" };
     protected String orderSchemaClause = " ORDER BY schema_name";
 
-    // SQL to select all rows from TAP_SCHEMA.tables.
-    protected String SELECT_TABLES_COLS = "schema_name, table_name, description, utype";
-    protected String orderTablesClause = " ORDER BY schema_name,table_name";
+    private String[] tsTablesCols = new String[] { "table_type", "description", "utype", "table_index", "schema_name", "table_name" };
+    protected String orderTablesClause = " ORDER BY schema_name,table_index,table_name";
 
-    // SQL to select all rows from TAP_SCHEMA.colums.
-    protected String SELECT_COLUMNS_COLS = "table_name, column_name, description, utype, ucd, unit, datatype, arraysize, principal, indexed, std, id";
-    protected String orderColumnsClause = " ORDER BY table_name,column_name";
+    private String[] tsColumnsCols = new String[] { "description", "utype", "ucd", "unit", 
+        "datatype", "arraysize", "xtype", "principal", "indexed", "std", "id", "column_index", "table_name", "column_name" };
+    protected String orderColumnsClause = " ORDER BY table_name,column_index,column_name";
     
-    // SQL to select all rows from TAP_SCHEMA.keys.
-    protected String SELECT_KEYS_COLS = "key_id, from_table, target_table, description,utype";
+    private String[] tsKeysCols = new String[] { "key_id", "from_table", "target_table", "description,utype" };
     protected String orderKeysClause = " ORDER BY key_id,from_table,target_table";
 
-    // SQL to select all rows from TAP_SCHEMA.key_columns.
-    protected String SELECT_KEY_COLUMNS_COLS = "key_id, from_column, target_column";
+    private String[] tsKeyColumnsCols = new String[] { "key_id", "from_column", "target_column" };
     protected String orderKeyColumnsClause = " ORDER BY key_id, from_column, target_column";
 
     protected Job job;
     protected DataSource dataSource;
     private boolean ordered;
+    private boolean useIntegerForBoolean = true;
     
     // Indicates function return datatype matches argument datatype.
     public static final String ARGUMENT_DATATYPE = "ARGUMENT_DATATYPE";
@@ -154,23 +163,25 @@ public class TapSchemaDAO
         this.ordered = ordered;
     }
 
+    /** 
+     * Get the complete TapSchema.
+     * 
+     * @return complete TapSchema
+     */
     public TapSchema get()
     {
-        // depth 1 = schemas
-        // depth 2 = tables
-        // depth 3 = columns
-        // depth 4 = keys + functions
-        return get(null, MAX_DEPTH); // complete
+        // depth MIN = schemas and tables
+        // depth MAX = columns + keys + functions
+        return get(MAX_DEPTH);
     }
     
     /**
-     * Creates and returns a TapSchema object representing all of the data in TAP_SCHEMA.
+     * Creates and returns a TapSchema object representing some or all of the content in TAP_SCHEMA.
      * 
-     * @param tableName fully qualified table name
-     * @param depth
-     * @return TapSchema containing all of the data from TAP_SCHEMA.
+     * @param depth use MIN_DEPTH to get schame and table names only, MAX_DEPTH to get everything
+     * @return TapSchema containing some or all of the content
      */
-    public TapSchema get(String tableName, int depth)
+    public TapSchema get(int depth)
     {
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
 
@@ -182,7 +193,6 @@ public class TapSchemaDAO
         
         // TAP_SCHEMA.tables
         GetTablesStatement gts = new GetTablesStatement(tablesTableName);
-        gts.setTableName(tableName);
         if (ordered)
             gts.setOrderBy(orderTablesClause);
         List<TableDesc> tableDescs = jdbc.query(gts, new TableMapper());
@@ -194,7 +204,6 @@ public class TapSchemaDAO
         if (depth > MIN_DEPTH)
         {
             GetColumnsStatement gcs = new GetColumnsStatement(columnsTableName);
-            gcs.setTableName(tableName);
             if (ordered)
                 gcs.setOrderBy(orderColumnsClause);
             List<ColumnDesc> columnDescs = jdbc.query(gcs, new ColumnMapper());
@@ -204,15 +213,12 @@ public class TapSchemaDAO
         
             // List of TAP_SCHEMA.keys
             GetKeysStatement gks = new GetKeysStatement(keysTableName);
-            gks.setTableName(tableName);
             if (ordered)
                 gks.setOrderBy(orderKeysClause);
             List<KeyDesc> keyDescs = jdbc.query(gks, new KeyMapper());
 
             // TAP_SCHEMA.key_columns
             GetKeyColumnsStatement gkcs = new GetKeyColumnsStatement(keyColumnsTableName);
-            if (tableName != null)
-                gkcs.setKeyDescs(keyDescs); // get keys for tableName only
             if (ordered)
                 gkcs.setOrderBy(orderKeyColumnsClause);
             List<KeyColumnDesc> keyColumnDescs = jdbc.query(gkcs, new KeyColumnMapper());
@@ -229,7 +235,280 @@ public class TapSchemaDAO
         ret.getFunctionDescs().addAll(getFunctionDescs());
         return ret;
     }
+    
+    // gets table+columns+keys+key_columns
+    public TableDesc getTable(String tableName) {
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        
+        GetTablesStatement gts = new GetTablesStatement(tablesTableName);
+        gts.setTableName(tableName);
+        if (ordered)
+            gts.setOrderBy(orderTablesClause);
+        List<TableDesc> tableDescs = jdbc.query(gts, new TableMapper());
+        if (tableDescs.isEmpty()) {
+            return null;
+        }
+        TableDesc ret = tableDescs.get(0);
+        
+        // column metadata
+        GetColumnsStatement gcs = new GetColumnsStatement(columnsTableName);
+        gcs.setTableName(tableName);
+        if (ordered) {
+            gcs.setOrderBy(orderColumnsClause);
+        }
+        List<ColumnDesc> columnDescs = jdbc.query(gcs, new ColumnMapper());
+        ret.getColumnDescs().addAll(columnDescs);
+        
+        // foreign keys
+        GetKeysStatement gks = new GetKeysStatement(keysTableName);
+        gks.setTableName(tableName);
+        if (ordered) {
+            gks.setOrderBy(orderKeysClause);
+        }
+        List<KeyDesc> keyDescs = jdbc.query(gks, new KeyMapper());
 
+        // TAP_SCHEMA.key_columns
+        GetKeyColumnsStatement gkcs = new GetKeyColumnsStatement(keyColumnsTableName);
+        gkcs.setKeyDescs(keyDescs); // get keys for tableName only
+        if (ordered) {
+            gkcs.setOrderBy(orderKeyColumnsClause);
+        }
+        List<KeyColumnDesc> keyColumnDescs = jdbc.query(gkcs, new KeyColumnMapper());
+
+        addKeyColumnsToKeys(keyDescs, keyColumnDescs);
+        ret.getKeyDescs().addAll(keyDescs);
+        
+        log.debug("found: " + ret);
+        return ret;
+    }
+    
+    
+    // package access for intTest code only: shallow put of a schema
+    SchemaDesc getSchema(String schemaName) {
+        // List of TAP_SCHEMA.schemas
+        GetSchemasStatement gss = new GetSchemasStatement(schemasTableName);
+        if (ordered)
+            gss.setOrderBy(orderSchemaClause);
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        List<SchemaDesc> schemaDescs = jdbc.query(gss, new SchemaMapper());
+        for (SchemaDesc sd : schemaDescs) {
+            if (sd.getSchemaName().equals(schemaName)) {
+                return sd;
+            }
+        }
+        return null;
+    }
+    
+    /*
+    void put(SchemaDesc sd) {
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
+        try {
+            SchemaDesc cur = getSchema(sd.getSchemaName());
+            boolean update = (cur != null);
+            tm.startTransaction();
+            
+            PutSchemaStatement sps = new PutSchemaStatement(update);
+            log.debug("put: " + sd.getSchemaName());
+            sps.setSchema(sd);
+            jdbc.update(sps);
+            
+            log.debug("commit transaction");
+            tm.commitTransaction();
+            log.debug("commit transaction: OK");
+        } catch (UnsupportedOperationException rethrow) {
+            throw rethrow;
+        } catch (Exception ex) {
+            try {
+                log.error("PUT failed - rollback", ex);
+                tm.rollbackTransaction();
+                log.error("PUT failed - rollback: OK");
+            } catch (Exception oops) {
+                log.error("PUT failed - rollback : FAIL", oops);
+            }
+            // TODO: categorise failures better
+            throw new RuntimeException("failed to persist " + sd.getSchemaName(), ex);
+        } finally { 
+            if (tm.isOpen()) {
+                log.error("BUG: open transaction in finally - trying to rollback");
+                try {
+                    tm.rollbackTransaction();
+                    log.error("BUG: rollback in finally: OK");
+                } catch (Exception oops) {
+                    log.error("BUG: rollback in finally: FAIL", oops);
+                }
+                throw new RuntimeException("BUG: open transaction in finally");
+            }
+        }
+    }
+    */
+    
+    /**
+     * Insert or update a table and columns. This does not support add/remove/rename of columns
+     * in a table
+     * @param td 
+     */
+    public void put(TableDesc td) {
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
+        try {
+            TableDesc cur = getTable(td.getTableName());
+            boolean update = (cur != null);
+            if (update) {
+                // TODO: check assumption/limitation that all columns in td are also in cur
+                Set<String> curCols = new TreeSet<String>();
+                for (ColumnDesc cd : cur.getColumnDescs()) {
+                    log.debug("update: cur = " + cd.getColumnName());
+                    curCols.add(cd.getColumnName());
+                }
+                Set<String> tdCols = new TreeSet<String>();
+                for (ColumnDesc cd : td.getColumnDescs()) {
+                    log.debug("update: td = " + cd.getColumnName());
+                    tdCols.add(cd.getColumnName());
+                }
+                log.debug("update: " + curCols.size() + " vs " + tdCols.size());
+                if (curCols.size() != tdCols.size()
+                        || !curCols.containsAll(tdCols)
+                        || !tdCols.containsAll(curCols)) {
+                    throw new UnsupportedOperationException("cannot add/remove/rename columns");
+                }
+                
+                for (ColumnDesc cd : cur.getColumnDescs()) {
+                    ColumnDesc ncd = td.getColumn(cd.getColumnName());
+                    if (!cd.getDatatype().equals(ncd.getDatatype())) {
+                        throw new UnsupportedOperationException("cannot change column type: " + cd.getColumnName() 
+                            + " " + cd.getDatatype() + " -> " + ncd.getDatatype());
+                    }
+                }
+            }
+            SchemaDesc sd = getSchema(td.getSchemaName());
+            
+            tm.startTransaction();
+            
+            if (sd == null) {
+                sd = new SchemaDesc(td.getSchemaName());
+                PutSchemaStatement pss = new PutSchemaStatement(update);
+                log.debug("put missing schema: " + sd.getSchemaName());
+                pss.setSchema(sd);
+                jdbc.update(pss);
+            }
+            
+            PutTableStatement pts = new PutTableStatement(update);
+            log.debug("put: " + td.getTableName());
+            pts.setTable(td);
+            jdbc.update(pts);
+            
+            // add/remove columns not supported so udpate flag is same for the table and column(s)
+            PutColumnStatement pcs = new PutColumnStatement(update);
+            for (ColumnDesc cd : td.getColumnDescs()) {
+                log.debug("put: " + cd.getColumnName());
+                pcs.setColumn(cd);
+                jdbc.update(pcs);
+            }
+            
+            log.debug("commit transaction");
+            tm.commitTransaction();
+            log.debug("commit transaction: OK");
+        } catch (UnsupportedOperationException rethrow) {
+            throw rethrow;
+        } catch (Exception ex) {
+                try {
+                    log.error("PUT failed - rollback", ex);
+                    tm.rollbackTransaction();
+                    log.error("PUT failed - rollback: OK");
+                } catch (Exception oops) {
+                    log.error("PUT failed - rollback : FAIL", oops);
+                }
+                // TODO: categorise failures better
+                throw new RuntimeException("failed to persist " + td.getTableName(), ex);
+        } finally { 
+            if (tm.isOpen()) {
+                log.error("BUG: open transaction in finally - trying to rollback");
+                try {
+                    tm.rollbackTransaction();
+                    log.error("BUG: rollback in finally: OK");
+                } catch (Exception oops) {
+                    log.error("BUG: rollback in finally: FAIL", oops);
+                }
+                throw new RuntimeException("BUG: open transaction in finally");
+            }
+        }
+    }
+    
+    public void delete(String tableName) throws ResourceNotFoundException {
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
+        try {
+            TableDesc cur = getTable(tableName);
+            if (cur == null) {
+                throw new ResourceNotFoundException("not found: " + tableName);
+            }
+            
+            tm.startTransaction();
+            
+            // delete all columns
+            DeleteColumnsStatement dcs = new DeleteColumnsStatement();
+            log.debug("delete columns: " + cur.getTableName());
+            dcs.setTable(cur);
+            jdbc.update(dcs);
+
+            // delete table
+            DeleteTableStatement dts = new DeleteTableStatement();
+            log.debug("delete table: " + cur.getTableName());
+            dts.setTable(cur);
+            jdbc.update(dts);
+            
+            log.debug("commit transaction");
+            tm.commitTransaction();
+            log.debug("commit transaction: OK");
+        } catch (ResourceNotFoundException rethrow) {
+            throw rethrow;
+        } catch (Exception ex) {
+                try {
+                    log.error("DELETE failed - rollback", ex);
+                    tm.rollbackTransaction();
+                    log.error("DELETE failed - rollback: OK");
+                } catch (Exception oops) {
+                    log.error("DELETE failed - rollback : FAIL", oops);
+                }
+                // TODO: categorise failures better
+                throw new RuntimeException("failed to delete " + tableName, ex);
+        } finally { 
+            if (tm.isOpen()) {
+                log.error("BUG: open transaction in finally - trying to rollback");
+                try {
+                    tm.rollbackTransaction();
+                    log.error("BUG: rollback in finally: OK");
+                } catch (Exception oops) {
+                    log.error("BUG: rollback in finally: FAIL", oops);
+                }
+                throw new RuntimeException("BUG: open transaction in finally");
+            }
+        }
+    }
+
+    private String toCommaList(String[] strs, int numUpdateKeys) {
+        StringBuilder sb = new StringBuilder();
+        for (int i=0; i<strs.length - numUpdateKeys; i++) {
+            if (i > 0) {
+                sb.append(",");
+            }
+            sb.append(strs[i]);
+        }
+        return sb.toString();
+    }
+    
+    private String toParamList(String[] strs, int numUpdateKeys) {
+        StringBuilder sb = new StringBuilder();
+        for (int i=0; i<strs.length - numUpdateKeys; i++) {
+            if (i > 0) {
+                sb.append(",");
+            }
+            sb.append("?");
+        }
+        return sb.toString();
+    }
+    
     private class GetSchemasStatement implements PreparedStatementCreator
     {
         private String tap_schema_tab;
@@ -248,9 +527,9 @@ public class TapSchemaDAO
         public PreparedStatement createPreparedStatement(Connection conn) throws SQLException
         {
             StringBuilder sb = new StringBuilder();
-            sb.append("SELECT ").append(SELECT_SCHEMAS_COLS);
+            sb.append("SELECT ").append(toCommaList(tsSchemaCols, 0));
             sb.append(" FROM ").append(tap_schema_tab);
-            
+
             // customisation
             String tmp = appendWhere(tap_schema_tab, sb.toString());
             
@@ -291,7 +570,7 @@ public class TapSchemaDAO
         public PreparedStatement createPreparedStatement(Connection conn) throws SQLException
         {
             StringBuilder sb = new StringBuilder();
-            sb.append("SELECT ").append(SELECT_TABLES_COLS);
+            sb.append("SELECT ").append(toCommaList(tsTablesCols, 0));
             sb.append(" FROM ").append(tap_schema_tab);
             
             // customisation
@@ -307,7 +586,7 @@ public class TapSchemaDAO
                     sb.append(" WHERE ");
                 sb.append(" table_name = ?");
             }
-            else if (orderBy != null)
+            if (orderBy != null)
                 sb.append(orderBy);
             
             String sql = sb.toString();
@@ -345,7 +624,7 @@ public class TapSchemaDAO
         public PreparedStatement createPreparedStatement(Connection conn) throws SQLException
         {
             StringBuilder sb = new StringBuilder();
-            sb.append("SELECT ").append(SELECT_COLUMNS_COLS);
+            sb.append("SELECT ").append(toCommaList(tsColumnsCols, 0));
             sb.append(" FROM ").append(tap_schema_tab);
             
             // customisation
@@ -361,7 +640,7 @@ public class TapSchemaDAO
                     sb.append(" WHERE ");
                 sb.append(" table_name = ?");
             }
-            else if (orderBy != null)
+            if (orderBy != null)
                 sb.append(orderBy);
             
             String sql = sb.toString();
@@ -399,7 +678,7 @@ public class TapSchemaDAO
         public PreparedStatement createPreparedStatement(Connection conn) throws SQLException
         {
             StringBuilder sb = new StringBuilder();
-            sb.append("SELECT ").append(SELECT_KEYS_COLS);
+            sb.append("SELECT ").append(toCommaList(tsKeysCols, 0));
             sb.append(" FROM ").append(tap_schema_tab);
             
             // customisation
@@ -453,7 +732,7 @@ public class TapSchemaDAO
         public PreparedStatement createPreparedStatement(Connection conn) throws SQLException
         {
             StringBuilder sb = new StringBuilder();
-            sb.append("SELECT ").append(SELECT_KEY_COLUMNS_COLS);
+            sb.append("SELECT ").append(toCommaList(tsKeyColumnsCols, 0));
             sb.append(" FROM ").append(tap_schema_tab);
             
             // customisation
@@ -493,6 +772,233 @@ public class TapSchemaDAO
             return prep;
         }
     }
+    
+    private class PutSchemaStatement implements PreparedStatementCreator {
+        private SchemaDesc schema;
+        private final boolean update;
+        
+        PutSchemaStatement(boolean update) {
+            this.update = update;
+        }
+
+        public void setSchema(SchemaDesc schema) {
+            this.schema = schema;
+        }
+        
+        @Override
+        public PreparedStatement createPreparedStatement(Connection conn) throws SQLException {
+            StringBuilder sb = new StringBuilder();
+            if (update) {
+                sb.append("UPDATE ").append(schemasTableName);
+                sb.append(" SET (");
+                sb.append(toCommaList(tsSchemaCols, 1));
+                sb.append(") = (");
+                sb.append(toParamList(tsSchemaCols, 1));
+                sb.append(")");
+                sb.append(" WHERE schema_name=?");
+            } else {
+                sb.append("INSERT INTO ").append(schemasTableName);
+                sb.append(" (");
+                sb.append(toCommaList(tsSchemaCols, 0));
+                sb.append(") VALUES (");
+                sb.append(toParamList(tsSchemaCols, 0));
+                sb.append(")");
+            }
+            String sql = sb.toString();
+            log.debug(sql);
+            PreparedStatement ps = conn.prepareStatement(sql);
+            
+            // load values: description, utype, schema_index, schema_name
+            sb = new StringBuilder();
+            int col = 1;
+            safeSetString(sb, ps, col++, schema.description);
+            safeSetString(sb, ps, col++, schema.utype);
+            safeSetInteger(sb, ps, col++, schema.schema_index);
+            safeSetString(sb, ps, col++, schema.getSchemaName());
+            
+            return ps;
+        }
+    }
+    
+    private class PutTableStatement implements PreparedStatementCreator {
+        private TableDesc table;
+        private final boolean update;
+        
+        PutTableStatement(boolean update) {
+            this.update = update;
+        }
+        
+        public void setTable(TableDesc table) {
+            this.table = table;
+        }
+        
+        @Override
+        public PreparedStatement createPreparedStatement(Connection conn) throws SQLException {
+            StringBuilder sb = new StringBuilder();
+            if (update) {
+                sb.append("UPDATE ").append(tablesTableName);
+                sb.append(" SET (");
+                sb.append(toCommaList(tsTablesCols, 2));
+                sb.append(") = (");
+                sb.append(toParamList(tsTablesCols, 2));
+                sb.append(")");
+                sb.append(" WHERE schema_name=? AND table_name=?");
+            } else {
+                sb.append("INSERT INTO ").append(tablesTableName);
+                sb.append(" (");
+                sb.append(toCommaList(tsTablesCols, 0));
+                sb.append(") VALUES (");
+                sb.append(toParamList(tsTablesCols, 0));
+                sb.append(")");
+            }
+            String sql = sb.toString();
+            log.debug(sql);
+            PreparedStatement ps = conn.prepareStatement(sql);
+            
+            // load values: description, utype, schema_name, table_name
+            sb = new StringBuilder();
+            int col = 1;
+            safeSetString(sb, ps, col++, table.tableType.getValue());
+            safeSetString(sb, ps, col++, table.description);
+            safeSetString(sb, ps, col++, table.utype);
+            safeSetInteger(sb, ps, col++, table.tableIndex);
+            safeSetString(sb, ps, col++, table.getSchemaName());
+            safeSetString(sb, ps, col++, table.getTableName());
+            
+            return ps;
+        }
+    }
+    
+    private class PutColumnStatement implements PreparedStatementCreator {
+        private ColumnDesc column;
+        private boolean update;
+
+        public PutColumnStatement(boolean update) {
+            this.update = update;
+        }
+        
+        public void setColumn(ColumnDesc column) {
+            this.column = column;
+        }
+        
+        @Override
+        public PreparedStatement createPreparedStatement(Connection conn) throws SQLException {
+            StringBuilder sb = new StringBuilder();
+            if (update) {
+                sb.append("UPDATE ").append(columnsTableName);
+                sb.append(" SET (");
+                sb.append(toCommaList(tsColumnsCols, 2));
+                sb.append(") = (");
+                sb.append(toParamList(tsColumnsCols, 2));
+                sb.append(")");
+                sb.append(" WHERE table_name=? AND column_name=?");
+            } else {
+                sb.append("INSERT INTO ").append(columnsTableName);
+                sb.append(" (");
+                sb.append(toCommaList(tsColumnsCols, 0));
+                sb.append(") VALUES (");
+                sb.append(toParamList(tsColumnsCols, 0));
+                sb.append(")");
+            }
+            String sql = sb.toString();
+            log.debug("sql: " + sql);
+            PreparedStatement ps = conn.prepareStatement(sql);
+            
+            // description, utype, ucd, unit, datatype, arraysize, xtype, principal, indexed, std, id, 
+            // table_name, column_name
+            sb = new StringBuilder();
+            int col = 1;
+            safeSetString(sb, ps, col++, column.description);
+            safeSetString(sb, ps, col++, column.utype);
+            safeSetString(sb, ps, col++, column.ucd);
+            safeSetString(sb, ps, col++, column.unit);
+            safeSetString(sb, ps, col++, column.getDatatype().getDatatype());
+            safeSetString(sb, ps, col++, column.getDatatype().arraysize);
+            safeSetString(sb, ps, col++, column.getDatatype().xtype);
+            safeSetBoolean(sb, ps, col++, column.principal);
+            safeSetBoolean(sb, ps, col++, column.indexed);
+            safeSetBoolean(sb, ps, col++, column.std);
+            safeSetString(sb, ps, col++, column.id);
+            safeSetInteger(sb, ps, col++, column.column_index);
+            safeSetString(sb, ps, col++, column.getTableName());
+            safeSetString(sb, ps, col++, column.getColumnName());
+            log.debug("values: " + sb.toString());
+            
+            return ps;
+        }
+    }
+    
+    private class DeleteTableStatement implements PreparedStatementCreator {
+        private TableDesc table;
+        
+        public void setTable(TableDesc table) {
+            this.table = table;
+        }
+        
+        @Override
+        public PreparedStatement createPreparedStatement(Connection conn) throws SQLException {
+            StringBuilder sb = new StringBuilder();
+            sb.append("DELETE FROM ").append(tablesTableName);
+            sb.append(" WHERE table_name=?");
+            String sql = sb.toString();
+            log.debug(sql);
+            PreparedStatement ps = conn.prepareStatement(sql);
+            
+            sb = new StringBuilder();
+            int col = 1;
+            safeSetString(sb, ps, col++, table.getTableName());
+            log.debug("values: " + sb.toString());
+            
+            return ps;
+        }
+    }
+    
+    private class DeleteColumnsStatement implements PreparedStatementCreator {
+        private TableDesc table;
+        
+        public void setTable(TableDesc table) {
+            this.table = table;
+        }
+        
+        @Override
+        public PreparedStatement createPreparedStatement(Connection conn) throws SQLException {
+            StringBuilder sb = new StringBuilder();
+            sb.append("DELETE FROM ").append(columnsTableName);
+            sb.append(" WHERE table_name=?");
+            String sql = sb.toString();
+            log.debug(sql);
+            PreparedStatement ps = conn.prepareStatement(sql);
+            
+            sb = new StringBuilder();
+            int col = 1;
+            safeSetString(sb, ps, col++, table.getTableName());
+            log.debug("values: " + sb.toString());
+            
+            return ps;
+        }
+    }
+    
+    private class DeleteColumnStatement implements PreparedStatementCreator {
+        private ColumnDesc column;
+        
+        public void setColumn(ColumnDesc column) {
+            this.column = column;
+        }
+        
+        @Override
+        public PreparedStatement createPreparedStatement(Connection conn) throws SQLException {
+            StringBuilder sb = new StringBuilder();
+            sb.append("DELETE FROM ").append(columnsTableName);
+            sb.append(" WHERE table_name=? AND column_name=?");
+            String sql = sb.toString();
+            log.debug(sql);
+            PreparedStatement ps = conn.prepareStatement(sql);
+            
+            // load values
+            throw new UnsupportedOperationException();
+        }
+    }
+    
     
     /**
      * Append a where clause to the query that selects from the specified table.
@@ -610,55 +1116,55 @@ public class TapSchemaDAO
         List<FunctionDesc> functionDescs = new ArrayList<FunctionDesc>();
 
         // ADQL functions.
-        functionDescs.add(new FunctionDesc("AREA", "deg**2", "adql:DOUBLE"));
-        functionDescs.add(new FunctionDesc("BOX", "", "adql:REGION"));
-        functionDescs.add(new FunctionDesc("CENTROID", "", "adql:POINT"));
-        functionDescs.add(new FunctionDesc("CIRCLE", "", "adql:REGION"));
-        functionDescs.add(new FunctionDesc("CONTAINS", "", "adql:INTEGER"));
-        functionDescs.add(new FunctionDesc("COORD1", "deg", "adql:DOUBLE"));
-        functionDescs.add(new FunctionDesc("COORD2", "deg", "adql:DOUBLE"));
-        functionDescs.add(new FunctionDesc("COORDSYS", "", "adql:VARCHAR"));
-        functionDescs.add(new FunctionDesc("DISTANCE", "deg", "adql:DOUBLE"));
-        functionDescs.add(new FunctionDesc("INTERSECTS", "", "adql:INTEGER"));
-        functionDescs.add(new FunctionDesc("INTERVAL", "", "adql:DOUBLE"));
-        functionDescs.add(new FunctionDesc("POINT", "", "adql:POINT"));
-        functionDescs.add(new FunctionDesc("POLYGON", "", "adql:REGION"));
-        functionDescs.add(new FunctionDesc("REGION", "", "adql:REGION"));
+        functionDescs.add(new FunctionDesc("AREA", TapDataType.DOUBLE, "deg**2"));
+        //functionDescs.add(new FunctionDesc("BOX", new TapDataType("adql:REGION", null, null, null)));
+        functionDescs.add(new FunctionDesc("CENTROID", TapDataType.POINT));
+        functionDescs.add(new FunctionDesc("CIRCLE", TapDataType.CIRCLE));
+        functionDescs.add(new FunctionDesc("CONTAINS", TapDataType.INTEGER));
+        functionDescs.add(new FunctionDesc("COORD1", TapDataType.DOUBLE, "deg"));
+        functionDescs.add(new FunctionDesc("COORD2", TapDataType.DOUBLE, "deg"));
+        functionDescs.add(new FunctionDesc("COORDSYS", new TapDataType("char", "16*", null)));
+        functionDescs.add(new FunctionDesc("DISTANCE", TapDataType.DOUBLE, "deg"));
+        functionDescs.add(new FunctionDesc("INTERSECTS", TapDataType.INTEGER));
+        functionDescs.add(new FunctionDesc("INTERVAL", TapDataType.INTERVAL));
+        functionDescs.add(new FunctionDesc("POINT", TapDataType.POINT));
+        functionDescs.add(new FunctionDesc("POLYGON", TapDataType.POLYGON));
+        //functionDescs.add(new FunctionDesc("REGION", new TapDataType("adql:REGION", null, null, null)));
 
         // ADQL reserved keywords that are functions.
-        functionDescs.add(new FunctionDesc("ABS", ""));
-        functionDescs.add(new FunctionDesc("ACOS", "radians", "adql:DOUBLE"));
-        functionDescs.add(new FunctionDesc("ASIN", "radians", "adql:DOUBLE"));
-        functionDescs.add(new FunctionDesc("ATAN", "radians", "adql:DOUBLE"));
-        functionDescs.add(new FunctionDesc("ATAN2", "radians", "adql:DOUBLE"));
-        functionDescs.add(new FunctionDesc("CEILING", ""));
-        functionDescs.add(new FunctionDesc("COS", "radians", "adql:DOUBLE"));
-        functionDescs.add(new FunctionDesc("COT", "radians", "adql:DOUBLE"));
-        functionDescs.add(new FunctionDesc("DEGREES", "deg", "adql:DOUBLE"));
-        functionDescs.add(new FunctionDesc("EXP", "", "adql:DOUBLE"));
-        functionDescs.add(new FunctionDesc("FLOOR", ""));
-        functionDescs.add(new FunctionDesc("LN", "", "adql:DOUBLE"));
-        functionDescs.add(new FunctionDesc("LOG", "", "adql:DOUBLE"));
-        functionDescs.add(new FunctionDesc("LOG10", "", "adql:DOUBLE"));
-        functionDescs.add(new FunctionDesc("MOD", ""));
+        functionDescs.add(new FunctionDesc("ABS", TapDataType.FUNCTION_ARG));
+        functionDescs.add(new FunctionDesc("ACOS", TapDataType.DOUBLE, "radians"));
+        functionDescs.add(new FunctionDesc("ASIN", TapDataType.DOUBLE, "radians"));
+        functionDescs.add(new FunctionDesc("ATAN", TapDataType.DOUBLE, "radians"));
+        functionDescs.add(new FunctionDesc("ATAN2", TapDataType.DOUBLE, "radians"));
+        functionDescs.add(new FunctionDesc("CEILING", TapDataType.FUNCTION_ARG));
+        functionDescs.add(new FunctionDesc("COS", TapDataType.DOUBLE, "radians"));
+        functionDescs.add(new FunctionDesc("COT", TapDataType.DOUBLE, "radians"));
+        functionDescs.add(new FunctionDesc("DEGREES", TapDataType.DOUBLE, "deg"));
+        functionDescs.add(new FunctionDesc("EXP", TapDataType.DOUBLE));
+        functionDescs.add(new FunctionDesc("FLOOR", TapDataType.FUNCTION_ARG));
+        functionDescs.add(new FunctionDesc("LN", TapDataType.DOUBLE));
+        functionDescs.add(new FunctionDesc("LOG", TapDataType.DOUBLE));
+        functionDescs.add(new FunctionDesc("LOG10", TapDataType.DOUBLE));
+        functionDescs.add(new FunctionDesc("MOD", TapDataType.FUNCTION_ARG));
         /*
          * Part of the ADQL BNF, but currently not parseable pending bug
          * fix in the jsqlparser.
          *
          * functionDescs.add(new FunctionDesc("PI", "", "adql:DOUBLE"));
          */
-        functionDescs.add(new FunctionDesc("POWER", ""));
-        functionDescs.add(new FunctionDesc("RADIANS", "radians", "adql:DOUBLE"));
+        functionDescs.add(new FunctionDesc("POWER", TapDataType.FUNCTION_ARG));
+        functionDescs.add(new FunctionDesc("RADIANS", TapDataType.DOUBLE, "radians"));
         /*
          * Part of the ADQL BNF, but currently not parseable pending bug
          * fix in the jsqlparser.
          *
          * functionDescs.add(new FunctionDesc("RAND", "", "adql:DOUBLE"));
          */
-        functionDescs.add(new FunctionDesc("ROUND", ""));
-        functionDescs.add(new FunctionDesc("SIN", "radians", "adql:DOUBLE"));
-        functionDescs.add(new FunctionDesc("SQRT", ""));
-        functionDescs.add(new FunctionDesc("TAN", "radians", "adql:DOUBLE"));
+        functionDescs.add(new FunctionDesc("ROUND", TapDataType.FUNCTION_ARG));
+        functionDescs.add(new FunctionDesc("SIN", TapDataType.DOUBLE, "radians"));
+        functionDescs.add(new FunctionDesc("SQRT", TapDataType.FUNCTION_ARG));
+        functionDescs.add(new FunctionDesc("TAN", TapDataType.DOUBLE, "radians"));
         /*
          * Part of the ADQL BNF, but currently not parseable.
          *
@@ -666,24 +1172,24 @@ public class TapSchemaDAO
          */
 
         // SQL Aggregate functions.
-        functionDescs.add(new FunctionDesc("AVG", "", "adql:DOUBLE"));
-        functionDescs.add(new FunctionDesc("COUNT", "", "adql:BIGINT"));
-        functionDescs.add(new FunctionDesc("MAX", ""));
-        functionDescs.add(new FunctionDesc("MIN", ""));
-        functionDescs.add(new FunctionDesc("STDDEV", "", "adql:DOUBLE"));
-        functionDescs.add(new FunctionDesc("SUM", ""));
-        functionDescs.add(new FunctionDesc("VARIANCE", "", "adql:DOUBLE"));
+        functionDescs.add(new FunctionDesc("AVG", TapDataType.DOUBLE));
+        functionDescs.add(new FunctionDesc("COUNT", new TapDataType("long", null, null)));
+        functionDescs.add(new FunctionDesc("MAX", TapDataType.FUNCTION_ARG));
+        functionDescs.add(new FunctionDesc("MIN", TapDataType.FUNCTION_ARG));
+        functionDescs.add(new FunctionDesc("STDDEV", TapDataType.DOUBLE));
+        functionDescs.add(new FunctionDesc("SUM", TapDataType.FUNCTION_ARG));
+        functionDescs.add(new FunctionDesc("VARIANCE", TapDataType.DOUBLE));
         
         // SQL String functions.
 //        functionDescs.add(new FunctionDesc("BIT_LENGTH", "", "adql:INTEGER"));
 //        functionDescs.add(new FunctionDesc("CHARACTER_LENGTH", "", "adql:INTEGER"));
-//        functionDescs.add(new FunctionDesc("LOWER", "", "adql:VARCHAR"));
+        functionDescs.add(new FunctionDesc("LOWER", new TapDataType("char", "*", null)));
 //        functionDescs.add(new FunctionDesc("OCTET_LENGTH", "", "adql:INTEGER"));
 //        functionDescs.add(new FunctionDesc("OVERLAY", "", "adql:VARCHAR")); //SQL92???
 //        functionDescs.add(new FunctionDesc("POSITION", "", "adql:INTEGER"));
-//        functionDescs.add(new FunctionDesc("SUBSTRING", "", "adql:VARCHAR"));
-//        functionDescs.add(new FunctionDesc("TRIM", "", "adql:VARCHAR"));
-//        functionDescs.add(new FunctionDesc("UPPER", "", "adql:VARCHAR"));
+        functionDescs.add(new FunctionDesc("SUBSTRING", new TapDataType("char", "*", null)));
+//        functionDescs.add(new FunctionDesc("TRIM", new TapDataType("char", "*", null)));
+        functionDescs.add(new FunctionDesc("UPPER", new TapDataType("char", "*", null)));
 
         // SQL Date functions.
 //        functionDescs.add(new FunctionDesc("CURRENT_DATE", "", "adql:TIMESTAMP"));
@@ -694,15 +1200,6 @@ public class TapSchemaDAO
 //        functionDescs.add(new FunctionDesc("LOCAL_TIME", "", "adql:TIMESTAMP"));   //SQL92???
 //        functionDescs.add(new FunctionDesc("LOCAL_TIMESTAMP", "", "adql:TIMESTAMP"));  //SQL92???
 
-        
-
-//        functionDescs.add(new FunctionDesc("BETWEEN", ""));
-//        functionDescs.add(new FunctionDesc("CASE", ""));
-//        functionDescs.add(new FunctionDesc("CAST", ""));
-//        functionDescs.add(new FunctionDesc("COALESCE", ""));
-//        functionDescs.add(new FunctionDesc("CONVERT", ""));
-//        functionDescs.add(new FunctionDesc("TRANSLATE", ""));
-        
         return functionDescs;
     }
 
@@ -734,6 +1231,7 @@ public class TapSchemaDAO
             String tn = rs.getString("table_name");
             TableDesc tableDesc = new TableDesc(sn, tn);
             
+            tableDesc.tableType = TableDesc.TableType.toValue(rs.getString("table_type"));
             tableDesc.description = rs.getString("description");
             tableDesc.utype = rs.getString("utype");
             
@@ -751,15 +1249,13 @@ public class TapSchemaDAO
             String tn = rs.getString("table_name");
             String cn = rs.getString("column_name");      
             String dt = rs.getString("datatype");
+            String as = rs.getString("arraysize");
+            String xt = rs.getString("xtype");
             
-            // work around: some JDBC drivers convert NULL -> 0
-            Object o = rs.getObject("arraysize");
-            Integer as = null;
-            if (o != null && o instanceof Number)
-                as = new Integer( ((Number) o).intValue() );
+            log.debug("ColumnMapper: " + tn + "," + cn + "," + dt + "," + as + "," + xt);
             
-            log.debug("ColumnMapper: " + tn + "," + cn + "," + dt + "," + as);
-            ColumnDesc col = new ColumnDesc(tn, cn, dt, as);
+            TapDataType datatype = new TapDataType(dt, as, xt);
+            ColumnDesc col = new ColumnDesc(tn, cn, datatype);
             
             col.description = rs.getString("description");
             col.utype = rs.getString("utype");
@@ -817,4 +1313,56 @@ public class TapSchemaDAO
         }
     }
 
+    protected void safeSetString(StringBuilder sb, PreparedStatement ps, int col, String val)
+            throws SQLException {
+        if (val != null) {
+            ps.setString(col, val);
+        } else {
+            ps.setNull(col, Types.VARCHAR);
+        }
+        if (sb != null) {
+            sb.append(val);
+            sb.append(",");
+        }
+    }
+    
+    protected void safeSetInteger(StringBuilder sb, PreparedStatement ps, int col, Integer val)
+            throws SQLException {
+        if (val != null) {
+            ps.setLong(col, val);
+        } else {
+            ps.setNull(col, Types.INTEGER);
+        }
+        if (sb != null) {
+            sb.append(val);
+            sb.append(",");
+        }
+    }
+
+    protected void safeSetBoolean(StringBuilder sb, PreparedStatement ps, int col, Boolean val)
+            throws SQLException {
+        if (useIntegerForBoolean) {
+            Integer ival = null;
+            if (val != null) {
+                if (val.booleanValue()) {
+                    ival = new Integer(1);
+                } else {
+                    ival = new Integer(0);
+                }
+            }
+            safeSetInteger(sb, ps, col, ival);
+            return;
+        }
+
+        if (val != null) {
+            ps.setBoolean(col, val);
+        } else {
+            ps.setNull(col, Types.BOOLEAN);
+        }
+        if (sb != null) {
+            sb.append(val);
+            sb.append(",");
+        }
+    }
+    
 }

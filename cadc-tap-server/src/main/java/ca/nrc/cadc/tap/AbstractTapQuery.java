@@ -69,7 +69,6 @@
 
 package ca.nrc.cadc.tap;
 
-import ca.nrc.cadc.tap.schema.ParamDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.uws.Job;
@@ -94,30 +93,39 @@ public abstract class AbstractTapQuery implements TapQuery
         this.job = job;
     }
     
+    @Override
     public void setTapSchema(TapSchema tapSchema)
     {
         this.tapSchema = tapSchema;
     }
 
+    @Override
     public void setExtraTables(Map<String, TableDesc> extraTables)
     {
         this.extraTables = extraTables;
     }
 
+    @Override
     public void setMaxRowCount(Integer maxRowCount)
     {
         this.maxRowCount = maxRowCount;
     }
 
+    @Override
     public abstract String getSQL();
 
-    public abstract List<ParamDesc> getSelectList();
+    @Override
+    public abstract boolean isTapSchemaQuery();
+
+    @Override
+    public abstract List<TapSelectItem> getSelectList();
 
     /**
      * The default implementation returns null.
      * 
      * @return null
      */
+    @Override
     public String getInfo()
     {
         return null;

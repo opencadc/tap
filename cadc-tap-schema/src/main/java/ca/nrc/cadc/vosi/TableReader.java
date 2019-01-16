@@ -74,6 +74,7 @@ import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.KeyColumnDesc;
 import ca.nrc.cadc.tap.schema.KeyDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -129,6 +130,7 @@ public class TableReader extends TableSetParser
     {
         String tn = te.getChildTextTrim("name");
         TableDesc td = new TableDesc(schemaName, tn);
+        td.description = te.getChildTextTrim("description");
         List<Element> cols = te.getChildren("column");
         for (Element ce : cols)
         {
@@ -136,15 +138,33 @@ public class TableReader extends TableSetParser
             Element dte = ce.getChild("dataType");
             String dtt = dte.getAttributeValue("type", xsi);
             String dtv = dte.getTextTrim();
+            String xtype = dte.getAttributeValue("extendedType");
+            log.debug(cn + ": " + dtt + " " + dtv + " " + xtype);
+            String arraysize = null;
             if (TAP_TYPE.equals(dtt))
+            {
                 dtv = "adql:" + dtv;
+                String sz = dte.getAttributeValue("size");
+                if (sz != null)
+                    arraysize = sz;
+                if (dtv.startsWith("adql:VAR"))
+                {
+                    if (arraysize == null)
+                        arraysize = "*";
+                    else
+                        arraysize += "*";
+                }
+                else if (dtv.equalsIgnoreCase("adql:REGION"))
+                    arraysize = "*";
+            }
             else if (VOT_TYPE.equals(dtt))
-                dtv = "vot:" + dtv;
-            Integer arraysize = null;
-            String as = dte.getAttributeValue("size");
-            if (as != null)
-                arraysize = new Integer(as);
-            ColumnDesc cd = new ColumnDesc(tn, cn, dtv, arraysize);
+            {
+                arraysize = dte.getAttributeValue("arraysize");
+            }
+            
+            TapDataType tt = new TapDataType(dtv, arraysize, xtype);
+            ColumnDesc cd = new ColumnDesc(tn, cn, tt);
+            cd.description = ce.getChildTextTrim("description");
             td.getColumnDescs().add(cd);
         }
         

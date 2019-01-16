@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2011.                            (c) 2011.
+*  (c) 2018.                            (c) 2018.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,6 +69,7 @@
 
 package ca.nrc.cadc.tap;
 
+import ca.nrc.cadc.tap.db.DatabaseDataType;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
@@ -84,26 +85,37 @@ import javax.sql.DataSource;
  *
  * @author pdowler
  */
-public class DefaultUploadManager implements UploadManager
-{
-    public Map<String, TableDesc> upload(List<Parameter> paramList, String jobID)
-    {
-        List<String> uploads  = ParameterUtil.findParameterValues(UPLOAD, paramList );
-        if (uploads == null || uploads.isEmpty())
-            return new HashMap<String, TableDesc>();
+public class DefaultUploadManager implements UploadManager {
+    public Map<String, TableDesc> upload(List<Parameter> paramList, String jobID) {
+        List<String> uploads = ParameterUtil.findParameterValues(UPLOAD, paramList);
+        if (uploads == null || uploads.isEmpty()) {
+            return new HashMap<>();
+        }
         throw new UnsupportedOperationException("UPLOAD parameter not supported by this service");
     }
 
-    public void setDataSource(DataSource ds)
-    {
-        
+    @Override
+    public void setDataSource(DataSource ds) {
+
     }
 
-    public void setJob(Job job)
-    {
-        
+    /**
+     * Give database specific data type information.
+     *
+     * @param databaseDataType The DatabaseDataType implementation.
+     */
+    @Override
+    public void setDatabaseDataType(DatabaseDataType databaseDataType) {
+
     }
 
-    
+    @Override
+    public void setJob(Job job) {
 
+    }
+
+    @Override
+    public String getUploadSchema() {
+        return "TAP_UPLOAD";
+    }
 }

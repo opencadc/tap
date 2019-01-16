@@ -72,14 +72,29 @@ package ca.nrc.cadc.tap.writer.format;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import ca.nrc.cadc.dali.util.Format;
-
 /**
- * Extension of the format interface that allows for database
- * specific object extraction.
+ * Alternate format interface that allows for database
+ * specific object extraction. 
  */
-public interface ResultSetFormat extends Format<Object>
+public interface ResultSetFormat
 {
+    /**
+     * Extract a value object from the specified column of the result set.
+     * 
+     * @param resultSet
+     * @param columnIndex
+     * @return the value or null
+     * @throws SQLException 
+     */
     Object extract(ResultSet resultSet, int columnIndex)
         throws SQLException;
+    
+    /**
+     * Format a value. Implementations should delegate to an appropriate DALI
+     * formatter.
+     * 
+     * @param o
+     * @return String representation or zero-length string for null
+     */
+    String format(Object o);
 }

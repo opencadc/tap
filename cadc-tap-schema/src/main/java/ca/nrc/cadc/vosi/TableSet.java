@@ -75,6 +75,7 @@ import ca.nrc.cadc.tap.schema.KeyColumnDesc;
 import ca.nrc.cadc.tap.schema.KeyDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.xml.W3CConstants;
 import org.apache.log4j.Logger;
@@ -196,9 +197,8 @@ public class TableSet
         eleTable.setAttribute("type", "output");
 
         Element ele;
-        ele = new Element("name");
-        ele.setText(td.getTableName());
-        eleTable.addContent(ele);
+        addChild(eleTable, "name", td.getTableName());
+        addChild(eleTable, "description", td.description);
 
         if (td.getColumnDescs() != null) for (ColumnDesc cd : td.getColumnDescs())
         {
@@ -228,28 +228,32 @@ public class TableSet
         addChild(eleColumn, "ucd", cd.ucd);
         addChild(eleColumn, "utype", cd.utype);
 
-        String datatype = cd.getDatatype();
-        String[] parts = datatype.split(":");
-        if (isTapType(parts))
+        TapDataType tt = cd.getDatatype();
+        
+        String[] parts = tt.getDatatype().split(":");
+        // unprefixed datatype is a VOTable type by default
+        if (parts.length == 1 || isVOTableType(parts))
+        {
+            Element eleDt = addChild(eleColumn, "dataType", tt.getDatatype());
+            if (eleDt != null)
+            {
+                Attribute attType = new Attribute("type", vod.getPrefix() + ":VOTableType", xsi);
+                eleDt.setAttribute(attType);
+                if (tt.arraysize != null)
+                    eleDt.setAttribute("arraysize", tt.arraysize);
+                if (tt.xtype != null)
+                    eleDt.setAttribute("extendedType", tt.xtype);
+            }
+        }
+        else if (isTapType(parts)) // backwards compatibility for TAP-1.0
         {
             Element eleDt = addChild(eleColumn, "dataType", parts[1]);
             if (eleDt != null)
             {
                 Attribute attType = new Attribute("type", vod.getPrefix() + ":TAPType", xsi);
                 eleDt.setAttribute(attType);
-                if (cd.getArraysize() != null && cd.getArraysize() > 0)
-                    eleDt.setAttribute("size", cd.getArraysize().toString());
-            }
-        }
-        else if (isVOTableType(parts))
-        {
-            Element eleDt = addChild(eleColumn, "dataType", parts[1]);
-            if (eleDt != null)
-            {
-                Attribute attType = new Attribute("type", vod.getPrefix() + ":VOTableType", xsi);
-                eleDt.setAttribute(attType);
-                if (cd.getArraysize() != null && cd.getArraysize() > 0)
-                    eleDt.setAttribute("arraysize", cd.getArraysize().toString());
+                if (tt.arraysize != null && !tt.isVarSize()) // assume single digit
+                    eleDt.setAttribute("size", tt.arraysize);
             }
         }
         else // custom type
@@ -259,7 +263,6 @@ public class TableSet
         }
         if (cd.indexed)
             addChild(eleColumn, "flag", "indexed");
-        // TODO: flag=primary for primary keys? 
 
         return eleColumn;
     }
@@ -289,7 +292,6 @@ public class TableSet
     }
     private boolean isVOTableType(String[] parts)
     {
-
         if (parts.length == 2 && VOTABLE_PREFIX.equalsIgnoreCase(parts[0]))
             return true;
         return false;
