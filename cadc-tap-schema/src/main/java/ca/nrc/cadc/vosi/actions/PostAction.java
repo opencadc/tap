@@ -67,11 +67,13 @@
 
 package ca.nrc.cadc.vosi.actions;
 
+import java.net.URI;
+
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import java.net.URI;
-import org.apache.log4j.Logger;
 
 /**
  * Update table content by accepting data via the input stream.
@@ -134,5 +136,5 @@ public class PostAction extends TablesAction {
         // TODO: return a TableDescHandler so we can read docs and update tap_schema metadata
         return super.getInlineContentHandler();
     }
-
+    
 }

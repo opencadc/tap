@@ -94,9 +94,8 @@ public class TableLoaderTest {
             
             AsciiTableData tw = new AsciiTableData(
                 new ByteArrayInputStream(csvData.toString().getBytes()),
-                "text/csv",
-                orig);
-            tableLoader.load(tw.getTableDesc(), tw);
+                "text/csv");
+            tableLoader.load(orig, tw);
             
             String sql = "SELECT * from " + testTable;
             JdbcTemplate jdbc = new JdbcTemplate(dataSource);

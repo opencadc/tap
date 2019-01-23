@@ -92,11 +92,10 @@ import org.apache.log4j.Logger;
  * @author majorb
  *
  */
-public class AsciiTableData implements TableDataStream, Iterator<List<Object>> {
+public class AsciiTableData implements TableDataInputStream, Iterator<List<Object>> {
     
     private static final Logger log = Logger.getLogger(AsciiTableData.class);
     
-    private TableDesc tableDesc;
     private CsvReader reader;
     private List<String> columnNames;
     private Map<String, Format> columnFormats;
@@ -108,10 +107,9 @@ public class AsciiTableData implements TableDataStream, Iterator<List<Object>> {
      * 
      * @param in The data stream
      * @param contentType The content type of the data
-     * @param orig The original table description
      * @throws IOException If a data handling error occurs
      */
-    public AsciiTableData(InputStream in, String contentType, TableDesc orig) throws IOException {
+    public AsciiTableData(InputStream in, String contentType) throws IOException {
         char delimiter = ',';
         if (contentType.equals(TableContentHandler.CONTENT_TYPE_TSV)) {
             delimiter = '\t';
@@ -121,8 +119,9 @@ public class AsciiTableData implements TableDataStream, Iterator<List<Object>> {
             throw new IllegalArgumentException("No inline header and data.");
         }
         columnNames = Arrays.asList(reader.getHeaders());
-        tableDesc = createTableDesc(orig);
-        columnFormats = createColumnFormats();
+        if (columnNames.size() == 0) {
+            throw new IllegalArgumentException("No data columns.");
+        }
         hasNext = reader.readRecord();
     }
 
@@ -138,14 +137,6 @@ public class AsciiTableData implements TableDataStream, Iterator<List<Object>> {
     @Override
     public Iterator<List<Object>> iterator() {
         return this;
-    }
-    
-    /**
-     * Get the table description for the data stream.
-     * @return
-     */
-    public TableDesc getTableDesc() {
-        return tableDesc;
     }
 
     /**
@@ -193,24 +184,22 @@ public class AsciiTableData implements TableDataStream, Iterator<List<Object>> {
         throw new UnsupportedOperationException();
     }
     
-    
-    private TableDesc createTableDesc(TableDesc orig) {
-        if (columnNames.size() == 0) {
-            throw new IllegalArgumentException("No data columns.");
-        }
-        TableDesc tableDesc = new TableDesc(orig.getSchemaName(), orig.getTableName());
+    @Override
+    public TableDesc acceptTargetTableDesc(TableDesc target) {
+        TableDesc td = new TableDesc(target.getSchemaName(), target.getTableName());
         ColumnDesc colDesc = null;
         for (String col : columnNames) {
-            colDesc = orig.getColumn(col);
+            colDesc = target.getColumn(col);
             if (colDesc == null) {
                 throw new IllegalArgumentException("Unrecognized column name: " + col);
             }
-            tableDesc.getColumnDescs().add(colDesc);
-        }
-        return tableDesc;
+            td.getColumnDescs().add(colDesc);
+        }        
+        columnFormats = createColumnFormats(td);
+        return td;
     }
     
-    private Map<String, Format> createColumnFormats() {
+    private Map<String, Format> createColumnFormats(TableDesc tableDesc) {
         columnFormats = new HashMap<String, Format>(columnNames.size());
         for (String col : columnNames) {
             ColumnDesc colDesc = tableDesc.getColumn(col);

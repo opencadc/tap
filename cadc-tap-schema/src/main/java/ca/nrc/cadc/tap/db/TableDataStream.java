@@ -68,14 +68,17 @@
 package ca.nrc.cadc.tap.db;
 
 import ca.nrc.cadc.dali.tables.TableData;
+import ca.nrc.cadc.tap.schema.TableDesc;
 
 /**
  *
- * @author pdowler
+ * @author pdowler, majorb
  */
 public interface TableDataStream extends TableData {
+    
     /**
      * Safely close the stream.
      */
     public void close();
+    
 }
