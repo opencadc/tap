@@ -210,6 +210,11 @@ public class FitsTableData implements TableDataInputStream {
         public void close() throws IOException {
             // nothing to close
         }
+        
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
 
         @Override
         public boolean hasNext() {
