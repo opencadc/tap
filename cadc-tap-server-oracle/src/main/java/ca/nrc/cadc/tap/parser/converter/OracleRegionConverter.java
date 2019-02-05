@@ -84,8 +84,10 @@ import net.sf.jsqlparser.expression.operators.relational.MinorThan;
 import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
 import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
 import org.apache.log4j.Logger;
+import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.stc.Box;
 import ca.nrc.cadc.stc.Circle;
+import ca.nrc.cadc.stc.CoordPair;
 import ca.nrc.cadc.stc.Polygon;
 import ca.nrc.cadc.stc.Position;
 import ca.nrc.cadc.stc.STC;
@@ -178,7 +180,7 @@ public class OracleRegionConverter extends RegionFinder {
     protected Expression handleContains(Expression left, Expression right) {
         final Function containsFunction = new Function();
         final Expression tolerance = new DoubleValue("0.005");
-        final Expression containsMask = new StringValue("contains");
+        final Expression containsMask = new StringValue("'contains'");
         final ExpressionList parameters = new ExpressionList(Arrays.asList(left, containsMask, right, tolerance));
 
         containsFunction.setName("SDO_GEOM.RELATE");
@@ -280,9 +282,14 @@ public class OracleRegionConverter extends RegionFinder {
     @Override
     protected Expression handleBox(Function adqlFunction) {
         Box box = ParserUtil.convertToStcBox(adqlFunction);
-        Polygon polygon = Polygon.getPolygon(box);
-//        return new Spoly(polygon);
-        throw new UnsupportedOperationException("BOX");
+        Polygon stcPolygon = Polygon.getPolygon(box);
+        final ca.nrc.cadc.dali.Polygon daliPolygon = new ca.nrc.cadc.dali.Polygon();
+
+        for (final CoordPair pair : stcPolygon.getCoordPairs()) {
+            daliPolygon.getVertices().add(new Point(pair.getX(), pair.getY()));
+        }
+
+        return new OraclePolygon(daliPolygon);
     }
 
     @Override
