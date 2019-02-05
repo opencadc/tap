@@ -72,6 +72,8 @@ package ca.nrc.cadc.tap.parser.region.function;
 import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.expression.NullValue;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import ca.nrc.cadc.dali.Point;
 
@@ -80,98 +82,58 @@ import java.util.List;
 
 import org.junit.Test;
 
-import static org.junit.Assert.*;
-
 public class OraclePointTest extends AbstractFunctionTest {
     @Test
     @SuppressWarnings("unchecked")
     public void convertParameters() {
-        final OraclePoint testSubject = new OraclePoint(new DoubleValue("13.4"), new DoubleValue("700.49"));
-        testSubject.convertParameters();
-
+        final OraclePoint testSubject = new OraclePoint(new DoubleValue("13.4"), new DoubleValue("70.49"));
         final ExpressionList result = testSubject.getParameters();
         final List<Expression> resultExpressions = result.getExpressions();
         final List<Expression> expectedExpressions = new ArrayList<>();
 
-        final Function latFunc = new Function();
-        latFunc.setName(OraclePoint.ORACLE_RADIANS_FUNCTION_NAME);
-        final ExpressionList latParams = new ExpressionList();
-        final List<Expression> latExp = new ArrayList<>();
-        latExp.add(new DoubleValue("13.4"));
-        latParams.setExpressions(latExp);
-        latFunc.setParameters(latParams);
+        final Function pointFunction = new Function();
+        pointFunction.setName(OracleGeometricFunction.POINT_FUNCTION_NAME);
 
-        final Function longFunc = new Function();
-        longFunc.setName(OraclePoint.ORACLE_RADIANS_FUNCTION_NAME);
-        final ExpressionList longParams = new ExpressionList();
-        final List<Expression> longExp = new ArrayList<>();
-        longExp.add(new DoubleValue("700.49"));
-        longParams.setExpressions(longExp);
-        longFunc.setParameters(longParams);
+        final ExpressionList pointFunctionParameters = new ExpressionList(new ArrayList());
+        pointFunctionParameters.getExpressions().add(new DoubleValue("13.4"));
+        pointFunctionParameters.getExpressions().add(new DoubleValue("70.49"));
+        pointFunctionParameters.getExpressions().add(new NullValue());
 
-        expectedExpressions.add(latFunc);
-        expectedExpressions.add(longFunc);
+        pointFunction.setParameters(pointFunctionParameters);
 
-        assertEquals("Wrong size.", expectedExpressions.size(), resultExpressions.size());
-        final boolean[] truths = new boolean[expectedExpressions.size()];
+        expectedExpressions.add(new LongValue("" + OracleGeometricFunction.POINT_GEO_TYPE));
+        expectedExpressions.add(new NullValue());
+        expectedExpressions.add(pointFunction);
+        expectedExpressions.add(new NullValue());
+        expectedExpressions.add(new NullValue());
 
-        for (int i = 0; i < expectedExpressions.size(); i++) {
-            final Function nextFunction = (Function) expectedExpressions.get(i);
-            for (final Expression resultExpression : resultExpressions) {
-                final Function resultFunction = (Function) resultExpression;
-                if (functionsMatch(nextFunction, resultFunction)) {
-                    truths[i] = true;
-                    break;
-                }
-            }
-        }
-
-        assertArrayEquals("Wrong values.", new boolean[] {true, true}, truths);
+        assertResultExpressions(expectedExpressions, resultExpressions);
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void convertParametersFromPoint() {
         final OraclePoint testSubject = new OraclePoint(new Point(77.0D, 88.99D));
-        testSubject.convertParameters();
-
         final ExpressionList result = testSubject.getParameters();
         final List<Expression> resultExpressions = result.getExpressions();
         final List<Expression> expectedExpressions = new ArrayList<>();
 
-        final Function latFunc = new Function();
-        latFunc.setName(OraclePoint.ORACLE_RADIANS_FUNCTION_NAME);
-        final ExpressionList latParams = new ExpressionList();
-        final List<Expression> latExp = new ArrayList<>();
-        latExp.add(new DoubleValue("77.0"));
-        latParams.setExpressions(latExp);
-        latFunc.setParameters(latParams);
+        final Function pointFunction = new Function();
+        pointFunction.setName(OracleGeometricFunction.POINT_FUNCTION_NAME);
 
-        final Function longFunc = new Function();
-        longFunc.setName(OraclePoint.ORACLE_RADIANS_FUNCTION_NAME);
-        final ExpressionList longParams = new ExpressionList();
-        final List<Expression> longExp = new ArrayList<>();
-        longExp.add(new DoubleValue("88.99"));
-        longParams.setExpressions(longExp);
-        longFunc.setParameters(longParams);
+        final ExpressionList pointFunctionParameters = new ExpressionList(new ArrayList());
+        pointFunctionParameters.getExpressions().add(new DoubleValue("77.0"));
+        pointFunctionParameters.getExpressions().add(new DoubleValue("88.99"));
+        pointFunctionParameters.getExpressions().add(new NullValue());
 
-        expectedExpressions.add(latFunc);
-        expectedExpressions.add(longFunc);
+        pointFunction.setParameters(pointFunctionParameters);
 
-        assertEquals("Wrong size.", expectedExpressions.size(), resultExpressions.size());
-        final boolean[] truths = new boolean[expectedExpressions.size()];
+        expectedExpressions.add(new LongValue("" + OracleGeometricFunction.POINT_GEO_TYPE));
+        expectedExpressions.add(new NullValue());
+        expectedExpressions.add(pointFunction);
+        expectedExpressions.add(new NullValue());
+        expectedExpressions.add(new NullValue());
 
-        for (int i = 0; i < expectedExpressions.size(); i++) {
-            final Function nextFunction = (Function) expectedExpressions.get(i);
-            for (final Expression resultExpression : resultExpressions) {
-                final Function resultFunction = (Function) resultExpression;
-                if (functionsMatch(nextFunction, resultFunction)) {
-                    truths[i] = true;
-                    break;
-                }
-            }
-        }
-
-        assertArrayEquals("Wrong values.", new boolean[] {true, true}, truths);
+        assertResultExpressions(expectedExpressions, resultExpressions);
     }
 }

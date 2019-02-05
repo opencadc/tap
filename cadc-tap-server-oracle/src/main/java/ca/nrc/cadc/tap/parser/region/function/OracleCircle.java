@@ -71,25 +71,31 @@ package ca.nrc.cadc.tap.parser.region.function;
 
 import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.expression.LongValue;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import ca.nrc.cadc.dali.Circle;
 
-import java.util.ArrayList;
 import java.util.List;
 
 
-public class OracleCircle extends Function {
-    private Expression ra;
-    private Expression dec;
-    private Expression radius;
+public class OracleCircle extends OracleGeometricFunction {
+    private static final Expression[] ORACLE_ELEMENT_INFO = new Expression[] {
+        new LongValue("1"),
+        new LongValue("1003"),
+        new LongValue("4")
+    };   // Outer Polygon element
+    private final Expression ra;
+    private final Expression dec;
+    private final Expression radius;
 
-    public OracleCircle(Expression ra, Expression dec, Expression radius) {
+
+    public OracleCircle(final Expression ra, final Expression dec, final Expression radius) {
+        super(ORACLE_ELEMENT_INFO);
         this.ra = ra;
         this.dec = dec;
         this.radius = radius;
-        setName(OraclePoint.ORACLE_POINT_FUNCTION_NAME);
-        convertParameters();
+
+        processOrdinateParameters();
     }
 
     public OracleCircle(final Circle circle) {
@@ -98,29 +104,52 @@ public class OracleCircle extends Function {
              new DoubleValue(Double.toString(circle.getRadius())));
     }
 
-    protected void convertParameters() {
-        // Oracle point.
-        final OraclePoint oraclePoint = new OraclePoint(ra, dec);
+    /**
+     * Map this shape's values to ORACLE ORDINATE function parameters.  For Oracle CIRCLEs, we need to calculate three
+     * points along the circle's circumference.
+     *
+     * @param parameterList The ExpressionList to add parameters to.
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    void mapValues(final ExpressionList parameterList) {
+        // Oracle GEO CIRCLE
+        final List<Expression> expressions = parameterList.getExpressions();
 
-        final List<Expression> radiusExp = new ArrayList<>();
-        radiusExp.add(radius);
+        // First point (x - radius, y)
+        expressions.add(calculateXPointOne());
+        expressions.add(dec);
 
-        final ExpressionList radiusParams = new ExpressionList();
-        radiusParams.setExpressions(radiusExp);
+        // Second point (x, y + radius)
+        expressions.add(ra);
+        expressions.add(calculateYPointOne());
 
-        // Radius
-        final Function radiusFunc = new Function();
-        radiusFunc.setName(OraclePoint.ORACLE_RADIANS_FUNCTION_NAME);
-        radiusFunc.setParameters(radiusParams);
+        // Third point (x + radius, y)
+        expressions.add(calculateXPointTwo());
+        expressions.add(dec);
+    }
 
-        // Oracle CIRCLE
-        final List<Expression> expressions = new ArrayList<>();
-        expressions.add(oraclePoint);
-        expressions.add(radiusFunc);
+    Expression calculateXPointOne() {
+        return new DoubleValue(Double.toString(parseRA() - parseRadius()));
+    }
 
-        final ExpressionList parameters = new ExpressionList();
-        parameters.setExpressions(expressions);
+    Expression calculateYPointOne() {
+        return new DoubleValue(Double.toString(parseDec() + parseRadius()));
+    }
 
-        setParameters(parameters);
+    Expression calculateXPointTwo() {
+        return new DoubleValue(Double.toString(parseRA() + parseRadius()));
+    }
+
+    double parseRadius() {
+        return Double.parseDouble(radius.toString());
+    }
+
+    double parseRA() {
+        return Double.parseDouble(ra.toString());
+    }
+
+    double parseDec() {
+        return Double.parseDouble(dec.toString());
     }
 }

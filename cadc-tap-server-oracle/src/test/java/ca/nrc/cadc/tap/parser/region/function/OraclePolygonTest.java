@@ -71,53 +71,84 @@ package ca.nrc.cadc.tap.parser.region.function;
 
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.expression.DoubleValue;
+import net.sf.jsqlparser.expression.NullValue;
 import net.sf.jsqlparser.expression.LongValue;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import org.junit.Test;
+
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.Polygon;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
-abstract class AbstractFunctionTest {
-    boolean functionsMatch(final Function expectedFunction, final Function resultFunction) {
-        assert resultFunction.getParameters().getExpressions().size()
-            == expectedFunction.getParameters().getExpressions().size();
-        final Expression resultExp = (Expression) resultFunction.getParameters().getExpressions().get(0);
-        final Expression expectedExp = (Expression) expectedFunction.getParameters().getExpressions().get(0);
-
-        return resultFunction.getName().equals(expectedFunction.getName())
-            && resultExp.toString().equals(expectedExp.toString());
-    }
-
-    void assertResultExpressions(final List<Expression> expected, final List<Expression> results) {
-        assertEquals("Wrong size.", expected.size(), results.size());
-        for (int i = 0; i < expected.size(); i++) {
-            final Expression nextExpression = expected.get(i);
-            final Expression resultExpression = results.get(i);
-            if (nextExpression instanceof Function && resultExpression instanceof Function) {
-                final Function resultFunction = (Function) resultExpression;
-                assertTrue("Functions do not match.",
-                           functionsMatch((Function) nextExpression, resultFunction));
-            } else {
-                assertEquals("Expressions don't match.", resultExpression.toString(),
-                             nextExpression.toString());
-            }
-        }
-    }
-
+public class OraclePolygonTest extends AbstractFunctionTest {
+    @Test
     @SuppressWarnings("unchecked")
-    Function getElemInfoFunction(final String oracleType) {
-        final Function elemInfoFunction = new Function();
-        final ExpressionList elemInfoFunctionParams = new ExpressionList(new ArrayList());
-        elemInfoFunction.setName(OraclePolygon.ELEM_INFO_FUNCTION_NAME);
-        elemInfoFunction.setParameters(elemInfoFunctionParams);
-        elemInfoFunctionParams.getExpressions().addAll(
-            Arrays.asList(new LongValue("1"), new LongValue("" + OracleGeometricFunction.POLYGON_GEO_TYPE),
-                          new LongValue(oracleType)));
+    public void convertParameters() {
+        final List<Expression> expressionList = new ArrayList<>();
 
-        return elemInfoFunction;
+        expressionList.add(new DoubleValue("88.0"));
+        expressionList.add(new DoubleValue("188.0"));
+        expressionList.add(new DoubleValue("288.0"));
+        expressionList.add(new DoubleValue("388.0"));
+        expressionList.add(new DoubleValue("288.0"));
+        expressionList.add(new DoubleValue("28.0"));
+
+        final OraclePolygon testSubject = new OraclePolygon(expressionList);
+        final List<Expression> expectedExpressions = new ArrayList<>();
+        final List<Expression> resultExpressions = testSubject.getParameters().getExpressions();
+
+        final Function ordinateArrayFunction = new Function();
+        final ExpressionList ordinageArrayFunctionParams = new ExpressionList(new ArrayList());
+        ordinateArrayFunction.setName(OraclePolygon.ORDINATE_ARRAY_FUNCTION_NAME);
+        ordinageArrayFunctionParams.getExpressions().addAll(expressionList);
+        ordinateArrayFunction.setParameters(ordinageArrayFunctionParams);
+
+        expectedExpressions.add(new LongValue("2003"));
+        expectedExpressions.add(new NullValue());
+        expectedExpressions.add(new NullValue());
+        expectedExpressions.add(getElemInfoFunction("1"));
+        expectedExpressions.add(ordinateArrayFunction);
+
+        assertResultExpressions(expectedExpressions, resultExpressions);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void convertParametersFromPolygon() {
+        final Polygon polygon = new Polygon();
+        polygon.getVertices().add(new Point(44.0D, 89.8D));
+        polygon.getVertices().add(new Point(10.6D, 77.9D));
+        polygon.getVertices().add(new Point(20.0D, -0.8D));
+
+        final OraclePolygon testSubject = new OraclePolygon(polygon);
+        final List<Expression> expectedExpressions = new ArrayList<>();
+        final List<Expression> resultExpressions = testSubject.getParameters().getExpressions();
+
+        final Function ordinateArrayFunction = new Function();
+        final ExpressionList ordinageArrayFunctionParams = new ExpressionList(new ArrayList());
+        final List<Expression> expectedVertices = new ArrayList<>();
+
+        expectedVertices.add(new DoubleValue("44.0"));
+        expectedVertices.add(new DoubleValue("89.8"));
+        expectedVertices.add(new DoubleValue("10.6"));
+        expectedVertices.add(new DoubleValue("77.9"));
+        expectedVertices.add(new DoubleValue("20.0"));
+        expectedVertices.add(new DoubleValue("-0.8"));
+
+        ordinateArrayFunction.setName(OraclePolygon.ORDINATE_ARRAY_FUNCTION_NAME);
+        ordinageArrayFunctionParams.getExpressions().addAll(expectedVertices);
+        ordinateArrayFunction.setParameters(ordinageArrayFunctionParams);
+
+        expectedExpressions.add(new LongValue("2003"));
+        expectedExpressions.add(new NullValue());
+        expectedExpressions.add(new NullValue());
+        expectedExpressions.add(getElemInfoFunction("1"));
+        expectedExpressions.add(ordinateArrayFunction);
+
+        assertResultExpressions(expectedExpressions, resultExpressions);
     }
 }

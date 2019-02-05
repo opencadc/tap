@@ -70,6 +70,7 @@
 package ca.nrc.cadc.tap.parser.converter;
 
 import net.sf.jsqlparser.expression.BinaryExpression;
+import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.LongValue;
@@ -97,6 +98,7 @@ import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.region.function.OracleCircle;
 import ca.nrc.cadc.tap.parser.region.function.OraclePoint;
+import ca.nrc.cadc.tap.parser.region.function.OraclePolygon;
 
 import java.util.Arrays;
 import java.util.List;
@@ -147,8 +149,8 @@ public class OracleRegionConverter extends RegionFinder {
         Expression left = binaryExpression.getLeftExpression();
         Expression right = binaryExpression.getRightExpression();
 
-        Operator operator = null;
-        long value = 0;
+        final Operator operator;
+        final long value;
         if (isOperator(left) && ParserUtil.isBinaryValue(right)) {
             operator = (Operator) left;
             value = ((LongValue) right).getValue();
@@ -162,6 +164,7 @@ public class OracleRegionConverter extends RegionFinder {
         if (value == 0) {
             operator.negate();
         }
+
         return operator;
     }
 
@@ -173,7 +176,15 @@ public class OracleRegionConverter extends RegionFinder {
      */
     @Override
     protected Expression handleContains(Expression left, Expression right) {
-        return new Operator("<@", "!<@", left, right);
+        final Function containsFunction = new Function();
+        final Expression tolerance = new DoubleValue("0.005");
+        final Expression containsMask = new StringValue("contains");
+        final ExpressionList parameters = new ExpressionList(Arrays.asList(left, containsMask, right, tolerance));
+
+        containsFunction.setName("SDO_GEOM.RELATE");
+        containsFunction.setParameters(parameters);
+
+        return containsFunction;
     }
 
     /**
@@ -185,9 +196,10 @@ public class OracleRegionConverter extends RegionFinder {
     @Override
     protected Expression handleIntersects(Expression left, Expression right) {
         final Function intersectFunction = new Function();
-        final ExpressionList parameters = new ExpressionList(Arrays.asList(left, right));
+        final Expression tolerance = new DoubleValue("0.005");
+        final ExpressionList parameters = new ExpressionList(Arrays.asList(left, right, tolerance));
 
-        intersectFunction.setName("SDO_GEOM.SDO_INTERSECTS");
+        intersectFunction.setName("SDO_GEOM.SDO_INTERSECTION");
         intersectFunction.setParameters(parameters);
 
         return intersectFunction;
@@ -214,12 +226,10 @@ public class OracleRegionConverter extends RegionFinder {
      */
     @Override
     protected Expression handlePolygon(List<Expression> expressions) {
-//        return new Spoly(expressions);
-        throw new UnsupportedOperationException("POLYGON");
+        return new OraclePolygon(expressions);
     }
 
     protected Expression handleRangeS2D(Expression lon1, Expression lon2, Expression lat1, Expression lat2) {
-//        return new Sbox(lon1, lon2, lat1, lat2);
         throw new UnsupportedOperationException("RANGES2D");
     }
 

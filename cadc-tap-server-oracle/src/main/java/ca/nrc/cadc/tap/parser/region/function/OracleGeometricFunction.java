@@ -69,55 +69,109 @@
 
 package ca.nrc.cadc.tap.parser.region.function;
 
+import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.expression.NullValue;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+
+import ca.nrc.cadc.dali.Point;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+/**
+ * Abstract class for an Oracle Geometric Function using the SDO_GEOMETRY function.  This class supports a POINT or
+ * arbitrary POLYGON (i.e. CIRCLE, BOX, or POLYGON).
+ */
+abstract class OracleGeometricFunction extends Function {
+    private static final String ORACLE_GEOMETRY_FUNCTION_NAME = "SDO_GEOMETRY";
+    static final String ORDINATE_ARRAY_FUNCTION_NAME = "SDO_ORDINATE_ARRAY";
+    static final String ELEM_INFO_FUNCTION_NAME = "SDO_ELEM_INFO_ARRAY";
+    static final String POINT_FUNCTION_NAME = "SDO_POINT_TYPE";
+    static final long POINT_GEO_TYPE = 2001;
+    static final long POLYGON_GEO_TYPE = 2003;
 
-abstract class AbstractFunctionTest {
-    boolean functionsMatch(final Function expectedFunction, final Function resultFunction) {
-        assert resultFunction.getParameters().getExpressions().size()
-            == expectedFunction.getParameters().getExpressions().size();
-        final Expression resultExp = (Expression) resultFunction.getParameters().getExpressions().get(0);
-        final Expression expectedExp = (Expression) expectedFunction.getParameters().getExpressions().get(0);
+    private final List<Expression> elementInfoValues = new ArrayList<>();
 
-        return resultFunction.getName().equals(expectedFunction.getName())
-            && resultExp.toString().equals(expectedExp.toString());
-    }
 
-    void assertResultExpressions(final List<Expression> expected, final List<Expression> results) {
-        assertEquals("Wrong size.", expected.size(), results.size());
-        for (int i = 0; i < expected.size(); i++) {
-            final Expression nextExpression = expected.get(i);
-            final Expression resultExpression = results.get(i);
-            if (nextExpression instanceof Function && resultExpression instanceof Function) {
-                final Function resultFunction = (Function) resultExpression;
-                assertTrue("Functions do not match.",
-                           functionsMatch((Function) nextExpression, resultFunction));
-            } else {
-                assertEquals("Expressions don't match.", resultExpression.toString(),
-                             nextExpression.toString());
-            }
-        }
+    private OracleGeometricFunction(final List<Expression> elementInfoValues) {
+        this.elementInfoValues.addAll(elementInfoValues);
+
+        setName(ORACLE_GEOMETRY_FUNCTION_NAME);
+        setParameters(new ExpressionList(new ArrayList()));
     }
 
     @SuppressWarnings("unchecked")
-    Function getElemInfoFunction(final String oracleType) {
-        final Function elemInfoFunction = new Function();
-        final ExpressionList elemInfoFunctionParams = new ExpressionList(new ArrayList());
-        elemInfoFunction.setName(OraclePolygon.ELEM_INFO_FUNCTION_NAME);
-        elemInfoFunction.setParameters(elemInfoFunctionParams);
-        elemInfoFunctionParams.getExpressions().addAll(
-            Arrays.asList(new LongValue("1"), new LongValue("" + OracleGeometricFunction.POLYGON_GEO_TYPE),
-                          new LongValue(oracleType)));
+    OracleGeometricFunction(final Point point) {
+        this(Collections.EMPTY_LIST);
 
-        return elemInfoFunction;
+        addParameter(new LongValue(Long.toString(POINT_GEO_TYPE)));
+        addParameter(new NullValue());
+
+        final Function pointFunction = new Function();
+        pointFunction.setName(POINT_FUNCTION_NAME);
+
+        final ExpressionList parameters = new ExpressionList(new ArrayList());
+        parameters.getExpressions().add(new DoubleValue(Double.toString(point.getLongitude())));
+        parameters.getExpressions().add(new DoubleValue(Double.toString(point.getLatitude())));
+        parameters.getExpressions().add(new NullValue());
+
+        pointFunction.setParameters(parameters);
+
+        addParameter(pointFunction);
+        addParameter(new NullValue());
+        addParameter(new NullValue());
     }
+
+    OracleGeometricFunction(final Expression[] elementInfoValues) {
+        this(Arrays.asList(elementInfoValues));
+        addParameter(new LongValue(Long.toString(POLYGON_GEO_TYPE)));
+        addParameter(new NullValue());
+        addParameter(new NullValue());
+        addElemInfoFunction();
+    }
+
+    @SuppressWarnings("unchecked")
+    private void addElemInfoFunction() {
+        if (elementInfoValues.isEmpty()) {
+            addParameter(new NullValue());
+        } else {
+            final Function elemInfoFunction = new Function();
+            final ExpressionList elemInfoFunctionParameters = new ExpressionList(new ArrayList());
+            elemInfoFunctionParameters.getExpressions().addAll(elementInfoValues);
+            elemInfoFunction.setName(ELEM_INFO_FUNCTION_NAME);
+            elemInfoFunction.setParameters(elemInfoFunctionParameters);
+
+            addParameter(elemInfoFunction);
+        }
+    }
+
+    /**
+     * For Polygon shapes (i.e. non-point shapes), convert the values to be used as function parameters.  Point
+     * Functions can omit this call.
+     */
+    void processOrdinateParameters() {
+        final Function ordinateArrayFunction = new Function();
+        ordinateArrayFunction.setName(ORDINATE_ARRAY_FUNCTION_NAME);
+        final ExpressionList ordinateArrayFunctionParameters = new ExpressionList(new ArrayList());
+        mapValues(ordinateArrayFunctionParameters);
+        ordinateArrayFunction.setParameters(ordinateArrayFunctionParameters);
+        addParameter(ordinateArrayFunction);
+    }
+
+    @SuppressWarnings("unchecked")
+    void addParameter(final Expression expression) {
+        getParameters().getExpressions().add(expression);
+    }
+
+    /**
+     * Map this shape's values to ORACLE ORDINATE function parameters.
+     *
+     * @param parameterList The ExpressionList to add parameters to.
+     */
+    abstract void mapValues(final ExpressionList parameterList);
 }

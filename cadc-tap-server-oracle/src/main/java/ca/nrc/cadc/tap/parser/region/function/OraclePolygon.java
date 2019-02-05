@@ -69,55 +69,68 @@
 
 package ca.nrc.cadc.tap.parser.region.function;
 
+import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.LongValue;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.Polygon;
+
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
-abstract class AbstractFunctionTest {
-    boolean functionsMatch(final Function expectedFunction, final Function resultFunction) {
-        assert resultFunction.getParameters().getExpressions().size()
-            == expectedFunction.getParameters().getExpressions().size();
-        final Expression resultExp = (Expression) resultFunction.getParameters().getExpressions().get(0);
-        final Expression expectedExp = (Expression) expectedFunction.getParameters().getExpressions().get(0);
+public class OraclePolygon extends OracleGeometricFunction {
 
-        return resultFunction.getName().equals(expectedFunction.getName())
-            && resultExp.toString().equals(expectedExp.toString());
+    private static final Expression[] ORACLE_ELEMENT_INFO = new Expression[] {
+        new LongValue("1"),
+        new LongValue("1003"),
+        new LongValue("1")
+    };   // Outer Polygon element
+
+    private final List<Expression> vertices = new ArrayList<>();
+
+
+    private OraclePolygon() {
+        super(ORACLE_ELEMENT_INFO);
     }
 
-    void assertResultExpressions(final List<Expression> expected, final List<Expression> results) {
-        assertEquals("Wrong size.", expected.size(), results.size());
-        for (int i = 0; i < expected.size(); i++) {
-            final Expression nextExpression = expected.get(i);
-            final Expression resultExpression = results.get(i);
-            if (nextExpression instanceof Function && resultExpression instanceof Function) {
-                final Function resultFunction = (Function) resultExpression;
-                assertTrue("Functions do not match.",
-                           functionsMatch((Function) nextExpression, resultFunction));
+    public OraclePolygon(final List<Expression> verticeExpressions) {
+        this();
+        if (verticeExpressions != null) {
+            this.vertices.addAll(verticeExpressions);
+        }
+        processOrdinateParameters();
+    }
+
+    public OraclePolygon(final Polygon polygon) {
+        this();
+        for (final Point p : polygon.getVertices()) {
+            vertices.add(new DoubleValue(Double.toString(p.getLongitude())));
+            vertices.add(new DoubleValue(Double.toString(p.getLatitude())));
+        }
+        processOrdinateParameters();
+    }
+
+    /**
+     * Map this shape's values to ORACLE ORDINATE function parameters.
+     *
+     * @param parameterList The ExpressionList to add parameters to.
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    void mapValues(final ExpressionList parameterList) {
+        for (int i = 0; i < this.vertices.size(); i = i + 2) {
+            final Expression ra = this.vertices.get(i);
+            final Expression dec = this.vertices.get(i + 1);
+            if (!(ra instanceof DoubleValue || ra instanceof LongValue) ||
+                !(dec instanceof DoubleValue || dec instanceof LongValue)) {
+                throw new UnsupportedOperationException("Cannot use non-constant coordinates in Polygon.");
             } else {
-                assertEquals("Expressions don't match.", resultExpression.toString(),
-                             nextExpression.toString());
+                parameterList.getExpressions().add(ra);
+                parameterList.getExpressions().add(dec);
             }
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    Function getElemInfoFunction(final String oracleType) {
-        final Function elemInfoFunction = new Function();
-        final ExpressionList elemInfoFunctionParams = new ExpressionList(new ArrayList());
-        elemInfoFunction.setName(OraclePolygon.ELEM_INFO_FUNCTION_NAME);
-        elemInfoFunction.setParameters(elemInfoFunctionParams);
-        elemInfoFunctionParams.getExpressions().addAll(
-            Arrays.asList(new LongValue("1"), new LongValue("" + OracleGeometricFunction.POLYGON_GEO_TYPE),
-                          new LongValue(oracleType)));
-
-        return elemInfoFunction;
     }
 }
