@@ -78,23 +78,14 @@ import net.sf.jsqlparser.expression.NullValue;
 import net.sf.jsqlparser.expression.StringValue;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
-import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
-import net.sf.jsqlparser.expression.operators.relational.GreaterThanEquals;
-import net.sf.jsqlparser.expression.operators.relational.MinorThan;
-import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
 import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
 import org.apache.log4j.Logger;
 import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.stc.Box;
-import ca.nrc.cadc.stc.Circle;
 import ca.nrc.cadc.stc.CoordPair;
 import ca.nrc.cadc.stc.Polygon;
-import ca.nrc.cadc.stc.Position;
-import ca.nrc.cadc.stc.STC;
-import ca.nrc.cadc.stc.StcsParsingException;
 import ca.nrc.cadc.tap.parser.ParserUtil;
 import ca.nrc.cadc.tap.parser.RegionFinder;
-import ca.nrc.cadc.tap.parser.function.Operator;
 import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
 import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
@@ -107,6 +98,12 @@ import java.util.List;
 
 
 public class OracleRegionConverter extends RegionFinder {
+    private static final String RELATE_MASK_CONTAINS = "contains";
+    private static final String RELATE_CONTAINS_TRUE_VALUE = "CONTAINS";
+    private static final String RELATE_MASK_INTERSECTS = "anyinteract";
+    private static final String RELATE_INTERSECTS_TRUE_VALUE = "TRUE";
+    private static final String RELATE_FUNCTION_NAME = "SDO_GEOM.RELATE";
+    private static final String RELATE_DEFAULT_TOLERANCE = "0.005";
 
     private static final Logger LOGGER = Logger.getLogger(OracleRegionConverter.class);
 
@@ -116,8 +113,23 @@ public class OracleRegionConverter extends RegionFinder {
     }
 
     @Override
-    public Expression convertToImplementation(Function func) {
+    public Expression convertToImplementation(final Function func) {
         return super.convertToImplementation(func);
+    }
+
+    private String getRegionPredicateFunctionType(final Function function) {
+        final String containsMask = String.format("'%s'", RELATE_MASK_CONTAINS);
+        final String intersectsMask = String.format("'%s'", RELATE_MASK_INTERSECTS);
+        for (final Object e : function.getParameters().getExpressions()) {
+            if (e.toString().contains(containsMask)) {
+                return RELATE_MASK_CONTAINS;
+            } else if (e.toString().contains(intersectsMask)) {
+                return RELATE_MASK_INTERSECTS;
+            }
+        }
+
+        throw new UnsupportedOperationException(String.format("No such Region Predicate supported: %s",
+                                                              function.getName()));
     }
 
     /**
@@ -136,38 +148,100 @@ public class OracleRegionConverter extends RegionFinder {
      * Supported comparison operators are =, !=, &#60;, &#62;, &#60;=, &#62;=
      */
     @Override
-    protected Expression handleRegionPredicate(BinaryExpression binaryExpression) {
+    protected Expression handleRegionPredicate(final BinaryExpression binaryExpression) {
         LOGGER.debug("handleRegionPredicate(" + binaryExpression.getClass().getSimpleName() + "): " + binaryExpression);
 
         if (!(binaryExpression instanceof EqualsTo ||
-            binaryExpression instanceof NotEqualsTo ||
-            binaryExpression instanceof MinorThan ||
-            binaryExpression instanceof GreaterThan ||
-            binaryExpression instanceof MinorThanEquals ||
-            binaryExpression instanceof GreaterThanEquals)) {
-            return binaryExpression;
+            binaryExpression instanceof NotEqualsTo)) {
+            throw new UnsupportedOperationException("Use Equals (=) or NotEquals (!=) with region predicates.");
         }
 
-        Expression left = binaryExpression.getLeftExpression();
-        Expression right = binaryExpression.getRightExpression();
+        final Expression left = binaryExpression.getLeftExpression();
+        final Expression right = binaryExpression.getRightExpression();
 
-        final Operator operator;
+        final Function function;
+        final boolean replaceLeft;
         final long value;
-        if (isOperator(left) && ParserUtil.isBinaryValue(right)) {
-            operator = (Operator) left;
+        if (isFunction(left) && ParserUtil.isBinaryValue(right)) {
+            function = (Function) left;
             value = ((LongValue) right).getValue();
-        } else if (ParserUtil.isBinaryValue(left) && isOperator(right)) {
-            operator = (Operator) right;
+            replaceLeft = false;
+        } else if (ParserUtil.isBinaryValue(left) && isFunction(right)) {
+            function = (Function) right;
             value = ((LongValue) left).getValue();
+            replaceLeft = true;
         } else {
             return binaryExpression;
         }
 
-        if (value == 0) {
-            operator.negate();
-        }
+        // Should always be true, but just in case...
+        if (function.getName().equals(RELATE_FUNCTION_NAME)) {
+            final BinaryExpression returnExpression = (value == 0) ? new NotEqualsTo() : new EqualsTo();
 
-        return operator;
+            final String returnCompareExpressionValue =
+                getRegionPredicateFunctionType(function).equals(RELATE_MASK_CONTAINS) ? RELATE_CONTAINS_TRUE_VALUE :
+                    RELATE_INTERSECTS_TRUE_VALUE;
+            final Expression returnCompareExpression = new StringValue(String.format("'%s'",
+                                                                                     returnCompareExpressionValue));
+            if (replaceLeft) {
+                returnExpression.setRightExpression(right);
+                returnExpression.setLeftExpression(returnCompareExpression);
+            } else {
+                returnExpression.setRightExpression(returnCompareExpression);
+                returnExpression.setLeftExpression(left);
+            }
+            return returnExpression;
+        } else {
+            return binaryExpression;
+        }
+    }
+
+//    @Override
+//    protected Expression handleRegionPredicate(BinaryExpression binaryExpression) {
+//        LOGGER.debug("handleRegionPredicate(" + binaryExpression.getClass().getSimpleName() + "): " +
+//        binaryExpression);
+//
+//        if (!(binaryExpression instanceof EqualsTo ||
+//            binaryExpression instanceof NotEqualsTo ||
+//            binaryExpression instanceof MinorThan ||
+//            binaryExpression instanceof GreaterThan ||
+//            binaryExpression instanceof MinorThanEquals ||
+//            binaryExpression instanceof GreaterThanEquals)) {
+//            return binaryExpression;
+//        }
+//
+//        Expression left = binaryExpression.getLeftExpression();
+//        Expression right = binaryExpression.getRightExpression();
+//
+//        final Operator operator;
+//        final long value;
+//        if (isOperator(left) && ParserUtil.isBinaryValue(right)) {
+//            operator = (Operator) left;
+//            value = ((LongValue) right).getValue();
+//        } else if (ParserUtil.isBinaryValue(left) && isOperator(right)) {
+//            operator = (Operator) right;
+//            value = ((LongValue) left).getValue();
+//        } else {
+//            return binaryExpression;
+//        }
+//
+//        if (value == 0) {
+//            operator.negate();
+//        }
+//
+//        return operator;
+//    }
+
+    private Expression handleRelate(final Expression left, final Expression right, final String relationMask) {
+        final Function containsFunction = new Function();
+        final Expression tolerance = new DoubleValue(RELATE_DEFAULT_TOLERANCE);
+        final Expression containsMask = new StringValue(String.format("'%s'", relationMask));
+        final ExpressionList parameters = new ExpressionList(Arrays.asList(left, containsMask, right, tolerance));
+
+        containsFunction.setName(RELATE_FUNCTION_NAME);
+        containsFunction.setParameters(parameters);
+
+        return containsFunction;
     }
 
     /**
@@ -177,16 +251,8 @@ public class OracleRegionConverter extends RegionFinder {
      * returns a numeric value).
      */
     @Override
-    protected Expression handleContains(Expression left, Expression right) {
-        final Function containsFunction = new Function();
-        final Expression tolerance = new DoubleValue("0.005");
-        final Expression containsMask = new StringValue("'contains'");
-        final ExpressionList parameters = new ExpressionList(Arrays.asList(left, containsMask, right, tolerance));
-
-        containsFunction.setName("SDO_GEOM.RELATE");
-        containsFunction.setParameters(parameters);
-
-        return containsFunction;
+    protected Expression handleContains(final Expression left, final Expression right) {
+        return handleRelate(left, right, RELATE_MASK_CONTAINS);
     }
 
     /**
@@ -197,14 +263,7 @@ public class OracleRegionConverter extends RegionFinder {
      */
     @Override
     protected Expression handleIntersects(Expression left, Expression right) {
-        final Function intersectFunction = new Function();
-        final Expression tolerance = new DoubleValue("0.005");
-        final ExpressionList parameters = new ExpressionList(Arrays.asList(left, right, tolerance));
-
-        intersectFunction.setName("SDO_GEOM.SDO_INTERSECTION");
-        intersectFunction.setParameters(parameters);
-
-        return intersectFunction;
+        return handleRelate(left, right, RELATE_MASK_INTERSECTS);
     }
 
     /**
@@ -270,8 +329,8 @@ public class OracleRegionConverter extends RegionFinder {
         return new NullValue();
     }
 
-    protected boolean isOperator(Expression expression) {
-        return (expression instanceof Operator);
+    boolean isFunction(Expression expression) {
+        return (expression instanceof Function);
     }
 
     /**
@@ -293,51 +352,7 @@ public class OracleRegionConverter extends RegionFinder {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     protected Expression handleRegion(final Function adqlFunction) {
-        final List<Expression> params = adqlFunction.getParameters().getExpressions();
-        final StringValue strV = (StringValue) params.get(0);
-        final String regionParamStr = strV.getValue();
-        final String[] tokens = regionParamStr.split(" ");
-        final String fname = tokens[0].toUpperCase();
         return super.handleRegion(adqlFunction);
-//
-//        if (Box.NAME.equalsIgnoreCase(fname)) {
-//            Box box;
-//            try {
-//                box = (Box) STC.parse(regionParamStr);
-//            } catch (StcsParsingException e) {
-//                throw new IllegalArgumentException(e);
-//            }
-//            Polygon polygon = Polygon.getPolygon(box);
-////            return new Spoly(polygon);
-//        } else if (Polygon.NAME.equalsIgnoreCase(fname)) {
-//            Polygon polygon;
-//            try {
-//                polygon = (Polygon) STC.parse(regionParamStr);
-//            } catch (StcsParsingException e) {
-//                throw new IllegalArgumentException(e);
-//            }
-////            return new Spoly(polygon);
-//        } else if (Circle.NAME.equalsIgnoreCase(fname)) {
-//            Circle circle;
-//            try {
-//                circle = (Circle) STC.parse(regionParamStr);
-//            } catch (StcsParsingException e) {
-//                throw new IllegalArgumentException(e);
-//            }
-////            return new Scircle(circle);
-//        } else if (Position.NAME.equalsIgnoreCase(fname)) {
-//            Position position;
-//            try {
-//                position = (Position) STC.parse(regionParamStr);
-//            } catch (StcsParsingException e) {
-//                throw new IllegalArgumentException(e);
-//            }
-////            return new Spoint(position);
-//        } else {
-//            return super.handleRegion(adqlFunction);
-//        }
-
     }
 }
