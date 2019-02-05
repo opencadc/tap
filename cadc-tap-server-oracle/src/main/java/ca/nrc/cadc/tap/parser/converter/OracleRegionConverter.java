@@ -78,6 +78,10 @@ import net.sf.jsqlparser.expression.NullValue;
 import net.sf.jsqlparser.expression.StringValue;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
+import net.sf.jsqlparser.expression.operators.relational.GreaterThanEquals;
+import net.sf.jsqlparser.expression.operators.relational.MinorThan;
+import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
 import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
 import org.apache.log4j.Logger;
 import ca.nrc.cadc.dali.Point;
@@ -152,8 +156,12 @@ public class OracleRegionConverter extends RegionFinder {
         LOGGER.debug("handleRegionPredicate(" + binaryExpression.getClass().getSimpleName() + "): " + binaryExpression);
 
         if (!(binaryExpression instanceof EqualsTo ||
-            binaryExpression instanceof NotEqualsTo)) {
-            throw new UnsupportedOperationException("Use Equals (=) or NotEquals (!=) with region predicates.");
+            binaryExpression instanceof NotEqualsTo ||
+            binaryExpression instanceof MinorThan ||
+            binaryExpression instanceof GreaterThan ||
+            binaryExpression instanceof MinorThanEquals ||
+            binaryExpression instanceof GreaterThanEquals)) {
+            return binaryExpression;
         }
 
         final Expression left = binaryExpression.getLeftExpression();
@@ -176,6 +184,11 @@ public class OracleRegionConverter extends RegionFinder {
 
         // Should always be true, but just in case...
         if (function.getName().equals(RELATE_FUNCTION_NAME)) {
+            if (!(binaryExpression instanceof EqualsTo || binaryExpression instanceof NotEqualsTo)) {
+                throw new UnsupportedOperationException(
+                    "Use Equals (=) or NotEquals (!=) with CONTAINS and INTERSECTS.");
+            }
+
             final BinaryExpression returnExpression = (value == 0) ? new NotEqualsTo() : new EqualsTo();
 
             final String returnCompareExpressionValue =
