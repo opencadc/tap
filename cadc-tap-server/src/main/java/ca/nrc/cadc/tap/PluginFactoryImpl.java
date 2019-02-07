@@ -131,6 +131,28 @@ public class PluginFactoryImpl extends PluginFactory {
         }
     }
 
+    /**
+     * This value determines if an auto-commit (true) or manual (false) transaction is used to
+     * execute the main query. The default value is false because it seems like JDBC drivers 
+     * need that to use a cursor to control fetching batches of rows and auto-commit silently
+     * disabled that behaviour. The preferred value can be configured with:
+     * <code>ca.nrc.cadc.tap.QueryRunner.autoCommit=true|false</code>.
+     * 
+     * @return 
+     */
+    public boolean getAutoCommit() {
+        String name = QueryRunner.class.getName() + ".autoCommit";
+        String cval = config.getProperty(name);
+        if (cval == null) {
+            return false;
+        }
+        try {
+            return Boolean.getBoolean(cval);
+        } catch (Exception ex) {
+            throw new RuntimeException("CONFIG: invalid value for " + name + " in PluginFactory.properties: " + cval);
+        }
+    }
+    
     public TapQuery getTapQuery() {
         String lang = ParameterUtil.findParameterValue("LANG", job.getParameterList());
         if (lang == null || lang.length() == 0) {
