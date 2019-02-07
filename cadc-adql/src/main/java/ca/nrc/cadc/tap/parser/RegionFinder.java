@@ -120,6 +120,7 @@ public class RegionFinder extends FunctionFinder
     public static final String COORDSYS = "COORDSYS";
     public static final String COORD1 = "COORD1";
     public static final String COORD2 = "COORD2";
+    public static final String DISTANCE = "DISTANCE";
 
     private static Logger log = Logger.getLogger(RegionFinder.class);
 
@@ -182,6 +183,13 @@ public class RegionFinder extends FunctionFinder
         else if (COORDSYS.equalsIgnoreCase(fname))
         {
             implExpr = handleCoordSys(func);
+        }
+        else if (DISTANCE.equalsIgnoreCase(fname))
+        {
+            List<Expression> expressions = func.getParameters().getExpressions();
+            if (expressions.size() != 2)
+                throw new IllegalStateException("DISTANCE requires 2 expressions, found " + expressions.size());
+            implExpr = handleDistance(expressions.get(0), expressions.get(1));
         }
         else if (INTERSECTS.equalsIgnoreCase(fname))
         {
@@ -295,13 +303,13 @@ public class RegionFinder extends FunctionFinder
     }
 
     /**
-     * This method is called when a POINT geometry value is found.
+     * This method is called when a INTERVAL function is found.
      */
     protected Expression handleInterval(Expression lower, Expression upper)
     {
         throw new UnsupportedOperationException("INTERVAL not supported");
     }
-    
+
     /**
      * This method is called when a POINT geometry value is found.
      */
@@ -381,5 +389,14 @@ public class RegionFinder extends FunctionFinder
     protected Expression handleCoordSys(Function adqlFunction)
     {
         throw new UnsupportedOperationException("COORDSYS not supported");
+    }
+
+    /**
+     * This method is called when DISTANCE function is found.
+     *
+     */
+    protected Expression handleDistance(Expression left, Expression right)
+    {
+        throw new UnsupportedOperationException("DISTANCE not supported");
     }
 }
