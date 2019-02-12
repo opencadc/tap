@@ -77,6 +77,7 @@ import ca.nrc.cadc.dali.Polygon;
 import ca.nrc.cadc.dali.tables.TableData;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.tap.PluginFactory;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
@@ -121,6 +122,7 @@ public class TableLoader {
      */
     public void load(TableDesc destTable, TableDataStream data) { 
         
+        Profiler prof = new Profiler(TableLoader.class);
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         
@@ -135,6 +137,7 @@ public class TableLoader {
             while (!done) {
                 count = 0;
                 tm.startTransaction();
+                prof.checkpoint("start-transaction");
                 
                 while (count < batchSize && dataIterator.hasNext()) {
                     nextRow = dataIterator.next();
@@ -143,8 +146,10 @@ public class TableLoader {
                     count++;
                 }
                 log.debug("Inserting " + count + " rows in this batch.");
-            
+                prof.checkpoint("batch-of-inserts");
+                
                 tm.commitTransaction();
+                prof.checkpoint("commit-transaction");
                 totalInserts += count;
                 done = !dataIterator.hasNext();
             }
@@ -152,12 +157,14 @@ public class TableLoader {
         } catch (Throwable t) {
             try {
                 data.close();
+                prof.checkpoint("close-input");
             } catch (Exception ex) {
                 log.error("unexpected exception trying to close input stream", ex);
             }
             try {
                 if (tm.isOpen()) {
                     tm.rollbackTransaction();
+                    prof.checkpoint("rollback-transaction");
                 }
             } catch (Throwable t2) {
                 log.error("Unexpected: could not rollback transaction", t2);
@@ -176,6 +183,7 @@ public class TableLoader {
                 log.error("BUG: Transaction manager unexpectedly open, rolling back.");
                 try {
                     tm.rollbackTransaction();
+                    prof.checkpoint("rollback-transaction");
                 }
                 catch (Throwable t) {
                     log.error("Unexpected: could not rollback transaction", t);
