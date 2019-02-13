@@ -69,16 +69,10 @@
 
 package ca.nrc.cadc.tap;
 
-import ca.nrc.cadc.dali.Circle;
-import ca.nrc.cadc.dali.DoubleInterval;
-import ca.nrc.cadc.dali.Point;
-import ca.nrc.cadc.dali.Polygon;
 import ca.nrc.cadc.date.DateUtil;
-import ca.nrc.cadc.stc.Position;
-import ca.nrc.cadc.stc.Region;
-import ca.nrc.cadc.stc.StcsParsingException;
 import ca.nrc.cadc.tap.db.DatabaseDataType;
 import ca.nrc.cadc.tap.db.TableCreator;
+import ca.nrc.cadc.tap.db.TableDataInputStream;
 import ca.nrc.cadc.tap.db.TableDataStream;
 import ca.nrc.cadc.tap.db.TableLoader;
 import ca.nrc.cadc.tap.db.TapConstants;
@@ -92,15 +86,8 @@ import ca.nrc.cadc.tap.upload.VOTableParserException;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Timestamp;
-import java.sql.Types;
 import java.text.DateFormat;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -246,7 +233,7 @@ public class BasicUploadManager implements UploadManager
                 tc.createTable(tableDesc);
                 
                 TableLoader tld = new TableLoader(dataSource, 1000);
-                tld.load(tableDesc, new TableDataStream() {
+                tld.load(tableDesc, new TableDataInputStream() {
                     @Override
                     public void close() {
                         //no-op: fully read already
@@ -255,6 +242,11 @@ public class BasicUploadManager implements UploadManager
                     @Override
                     public Iterator<List<Object>> iterator() {
                         return parser.iterator();
+                    }
+
+                    @Override
+                    public TableDesc acceptTargetTableDesc(TableDesc td) {
+                        return td;
                     }
                 });
                 
