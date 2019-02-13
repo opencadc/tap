@@ -71,6 +71,7 @@ package ca.nrc.cadc.tap.schema;
 
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.uws.Job;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -238,6 +239,7 @@ public class TapSchemaDAO
     
     // gets table+columns+keys+key_columns
     public TableDesc getTable(String tableName) {
+        Profiler prof = new Profiler(TapSchemaDAO.class);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         
         GetTablesStatement gts = new GetTablesStatement(tablesTableName);
@@ -249,6 +251,7 @@ public class TapSchemaDAO
             return null;
         }
         TableDesc ret = tableDescs.get(0);
+        prof.checkpoint("get-table");
         
         // column metadata
         GetColumnsStatement gcs = new GetColumnsStatement(columnsTableName);
@@ -258,6 +261,7 @@ public class TapSchemaDAO
         }
         List<ColumnDesc> columnDescs = jdbc.query(gcs, new ColumnMapper());
         ret.getColumnDescs().addAll(columnDescs);
+        prof.checkpoint("get-columns");
         
         // foreign keys
         GetKeysStatement gks = new GetKeysStatement(keysTableName);
@@ -266,6 +270,7 @@ public class TapSchemaDAO
             gks.setOrderBy(orderKeysClause);
         }
         List<KeyDesc> keyDescs = jdbc.query(gks, new KeyMapper());
+        prof.checkpoint("get-keys");
 
         // TAP_SCHEMA.key_columns
         GetKeyColumnsStatement gkcs = new GetKeyColumnsStatement(keyColumnsTableName);
@@ -274,11 +279,13 @@ public class TapSchemaDAO
             gkcs.setOrderBy(orderKeyColumnsClause);
         }
         List<KeyColumnDesc> keyColumnDescs = jdbc.query(gkcs, new KeyColumnMapper());
+        prof.checkpoint("get-key-columns");
 
         addKeyColumnsToKeys(keyDescs, keyColumnDescs);
         ret.getKeyDescs().addAll(keyDescs);
         
         log.debug("found: " + ret);
+        prof.checkpoint("get-table-done");
         return ret;
     }
     
@@ -349,6 +356,7 @@ public class TapSchemaDAO
      * @param td 
      */
     public void put(TableDesc td) {
+        Profiler prof = new Profiler(TapSchemaDAO.class);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
         try {
@@ -384,6 +392,7 @@ public class TapSchemaDAO
             SchemaDesc sd = getSchema(td.getSchemaName());
             
             tm.startTransaction();
+            prof.checkpoint("start-transaction");
             
             if (sd == null) {
                 sd = new SchemaDesc(td.getSchemaName());
@@ -391,12 +400,14 @@ public class TapSchemaDAO
                 log.debug("put missing schema: " + sd.getSchemaName());
                 pss.setSchema(sd);
                 jdbc.update(pss);
+                prof.checkpoint("put-schema");
             }
             
             PutTableStatement pts = new PutTableStatement(update);
             log.debug("put: " + td.getTableName());
             pts.setTable(td);
             jdbc.update(pts);
+            prof.checkpoint("put-table");
             
             // add/remove columns not supported so udpate flag is same for the table and column(s)
             PutColumnStatement pcs = new PutColumnStatement(update);
@@ -405,9 +416,11 @@ public class TapSchemaDAO
                 pcs.setColumn(cd);
                 jdbc.update(pcs);
             }
+            prof.checkpoint("put-columns");
             
             log.debug("commit transaction");
             tm.commitTransaction();
+            prof.checkpoint("commit-transaction");
             log.debug("commit transaction: OK");
         } catch (UnsupportedOperationException rethrow) {
             throw rethrow;
@@ -415,6 +428,7 @@ public class TapSchemaDAO
                 try {
                     log.error("PUT failed - rollback", ex);
                     tm.rollbackTransaction();
+                    prof.checkpoint("rollback-transaction");
                     log.error("PUT failed - rollback: OK");
                 } catch (Exception oops) {
                     log.error("PUT failed - rollback : FAIL", oops);
@@ -426,6 +440,7 @@ public class TapSchemaDAO
                 log.error("BUG: open transaction in finally - trying to rollback");
                 try {
                     tm.rollbackTransaction();
+                    prof.checkpoint("rollback-transaction");
                     log.error("BUG: rollback in finally: OK");
                 } catch (Exception oops) {
                     log.error("BUG: rollback in finally: FAIL", oops);
@@ -436,6 +451,7 @@ public class TapSchemaDAO
     }
     
     public void delete(String tableName) throws ResourceNotFoundException {
+        Profiler prof = new Profiler(TapSchemaDAO.class);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
         try {
@@ -445,21 +461,25 @@ public class TapSchemaDAO
             }
             
             tm.startTransaction();
+            prof.checkpoint("start-transaction");
             
             // delete all columns
             DeleteColumnsStatement dcs = new DeleteColumnsStatement();
             log.debug("delete columns: " + cur.getTableName());
             dcs.setTable(cur);
             jdbc.update(dcs);
+            prof.checkpoint("delete-columns");
 
             // delete table
             DeleteTableStatement dts = new DeleteTableStatement();
             log.debug("delete table: " + cur.getTableName());
             dts.setTable(cur);
             jdbc.update(dts);
+            prof.checkpoint("delete-table");
             
             log.debug("commit transaction");
             tm.commitTransaction();
+            prof.checkpoint("commit-transaction");
             log.debug("commit transaction: OK");
         } catch (ResourceNotFoundException rethrow) {
             throw rethrow;
@@ -467,6 +487,7 @@ public class TapSchemaDAO
                 try {
                     log.error("DELETE failed - rollback", ex);
                     tm.rollbackTransaction();
+                    prof.checkpoint("rollback-transaction");
                     log.error("DELETE failed - rollback: OK");
                 } catch (Exception oops) {
                     log.error("DELETE failed - rollback : FAIL", oops);
@@ -478,6 +499,7 @@ public class TapSchemaDAO
                 log.error("BUG: open transaction in finally - trying to rollback");
                 try {
                     tm.rollbackTransaction();
+                    prof.checkpoint("rollback-transaction");
                     log.error("BUG: rollback in finally: OK");
                 } catch (Exception oops) {
                     log.error("BUG: rollback in finally: FAIL", oops);

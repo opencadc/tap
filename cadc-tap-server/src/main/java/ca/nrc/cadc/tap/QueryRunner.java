@@ -432,8 +432,8 @@ public class QueryRunner implements JobRunner
                 if (connection != null)
                 {
                     try {
-                        if (pfac.getAutoCommit()) {
-                            connection.setAutoCommit(false);
+                        if (!pfac.getAutoCommit()) {
+                            connection.setAutoCommit(true);
                         }
                     } catch (Throwable ignore) { }
                     try

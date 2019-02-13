@@ -97,6 +97,7 @@ public class TableCreatorTest {
 
     static {
         Log4jInit.setLevel("ca.nrc.cadc.tap.db", Level.INFO);
+        //Log4jInit.setLevel("ca.nrc.cadc.profiler", Level.INFO);
     }
     
     private DataSource dataSource;
@@ -145,6 +146,7 @@ public class TableCreatorTest {
             
             // cleanup
             tc.dropTable(testTable);
+            log.info("dropped table");
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);

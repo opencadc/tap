@@ -210,6 +210,10 @@ public class TableUpdateRunner implements JobRunner {
                 if (cd == null) {
                     throw new IllegalArgumentException("column not found: " + columnName + " in table " + tableName);
                 }
+                
+                if (cd.indexed) {
+                    throw new IllegalArgumentException("column is already indexed: " + columnName + " in table " + tableName);
+                }
 
                 DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
                 try {

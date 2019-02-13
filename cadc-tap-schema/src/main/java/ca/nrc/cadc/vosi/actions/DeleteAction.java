@@ -70,6 +70,7 @@ package ca.nrc.cadc.vosi.actions;
 
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.tap.db.TableCreator;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import javax.sql.DataSource;
@@ -97,24 +98,31 @@ public class DeleteAction extends TablesAction {
         
         checkTableWritePermission(tableName);
         
+        Profiler prof = new Profiler(DeleteAction.class);
         DataSource ds = getDataSource();
         DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
         try {
             tm.startTransaction();
+            prof.checkpoint("start-transaction");
+            
+            // set to null deletes
+            setTableOwner(tableName, null);
+            setReadWriteGroup(tableName, null);
+            prof.checkpoint(("delete-permissions"));
             
             // remove from tap_schema
             TapSchemaDAO ts = getTapSchemaDAO();
             ts.setDataSource(ds);
             ts.delete(tableName);
+            prof.checkpoint("delete-from-tap-schema");
             
             // drop table
             TableCreator tc = new TableCreator(ds);
             tc.dropTable(tableName);
-            
-            setTableOwner(tableName, null);
-            setReadWriteGroup(tableName, null);
+            prof.checkpoint("drop-table");
             
             tm.commitTransaction();
+            prof.checkpoint("commit-transaction");
         } catch (ResourceNotFoundException rethrow) { 
             tm.rollbackTransaction();
             throw rethrow;
@@ -122,6 +130,7 @@ public class DeleteAction extends TablesAction {
             try {
                 log.error("DELETE failed - rollback", ex);
                 tm.rollbackTransaction();
+                prof.checkpoint("rollback-transaction");
                 log.error("DELETE failed - rollback: OK");
             } catch (Exception oops) {
                 log.error("DELETE failed - rollback : FAIL", oops);
@@ -133,6 +142,7 @@ public class DeleteAction extends TablesAction {
                 log.error("BUG: open transaction in finally - trying to rollback");
                 try {
                     tm.rollbackTransaction();
+                    prof.checkpoint("rollback-transaction");
                     log.error("BUG: rollback in finally: OK");
                 } catch (Exception oops) {
                     log.error("BUG: rollback in finally: FAIL", oops);

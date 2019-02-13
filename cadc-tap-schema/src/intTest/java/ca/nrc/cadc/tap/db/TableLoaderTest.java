@@ -74,10 +74,13 @@ public class TableLoaderTest {
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c6", TapDataType.TIMESTAMP));
             
             TableCreator tc = new TableCreator(dataSource);
+            try {
+                tc.dropTable(testTable);
+            } catch (Exception ignore) {
+            }
+            log.info("createTable...");
             tc.createTable(orig);
-            log.info("createTable returned");
-            
-            TableLoader tableLoader = new TableLoader(dataSource, 3);
+            log.info("createTable... [OK]");
             
             StringBuilder csvData = new StringBuilder();
             csvData.append("c0, c6, c2\n");
@@ -92,10 +95,11 @@ public class TableLoaderTest {
             csvData.append("string8,2018-11-05T22:12:33.111,8\n");
             csvData.append("string9,2018-11-05T22:12:33.111,9\n");
             
-            AsciiTableData tw = new AsciiTableData(
-                new ByteArrayInputStream(csvData.toString().getBytes()),
-                "text/csv");
+            AsciiTableData tw = new AsciiTableData(new ByteArrayInputStream(csvData.toString().getBytes()), "text/csv");
+            TableLoader tableLoader = new TableLoader(dataSource, 3);
+            log.info("load...");
             tableLoader.load(orig, tw);
+            log.info("load... [OK]");
             
             String sql = "SELECT * from " + testTable;
             JdbcTemplate jdbc = new JdbcTemplate(dataSource);
