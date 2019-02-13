@@ -119,13 +119,14 @@ public class TableLoader {
      * @param destTable The table description
      * @param data The table data.
      */
-    public void load(TableDesc destTable, TableDataStream data) { 
+    public void load(TableDesc destTable, TableDataInputStream data) { 
+        TableDesc reorgTable = data.acceptTargetTableDesc(destTable);
         
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         
         // Loop over rows, start/commit txn every batchSize rows
-        String sql = generateInsertSQL(destTable); 
+        String sql = generateInsertSQL(reorgTable); 
         boolean done = false;
         Iterator<List<Object>> dataIterator = data.iterator();
         List<Object> nextRow = null;
@@ -167,9 +168,9 @@ public class TableLoader {
                 throw new IllegalArgumentException("Inserted " + totalInserts + " rows. " +
                     "Current batch failed with: " + t.getMessage() + " on line " + (totalInserts + count));
             }
-            log.error("Batch insert failure", t);
+            log.debug("Batch insert failure", t);
             throw new RuntimeException("Inserted " + totalInserts + " rows. " +
-                "Current batch of " + batchSize + " failed with: " + t.getMessage());
+                "Current batch of " + batchSize + " failed with: " + t.getMessage(), t);
             
         } finally {
             if (tm.isOpen()) {

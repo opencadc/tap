@@ -67,16 +67,12 @@
 
 package ca.nrc.cadc.vosi.actions;
 
-
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.tap.db.AsciiTableData;
 import ca.nrc.cadc.tap.db.TableDataInputStream;
 import ca.nrc.cadc.tap.db.TableLoader;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import java.io.IOException;
-import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
 /**
@@ -109,9 +105,8 @@ public class SyncLoadAction extends TablesAction {
         }
 
         TableDataInputStream tableData = (TableDataInputStream) syncInput.getContent(TableContentHandler.TABLE_DATA);
-        TableDesc resultTableDesc = tableData.acceptTargetTableDesc(targetTableDesc);
         TableLoader tl = new TableLoader(getDataSource(), BATCH_SIZE);
-        tl.load(resultTableDesc, tableData);
+        tl.load(targetTableDesc, tableData);
 
         String msg = "Inserted " + tl.getTotalInserts() + " rows to table " + tableName;
 

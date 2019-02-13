@@ -111,6 +111,7 @@ public class DeleteAction extends TablesAction {
             TableCreator tc = new TableCreator(ds);
             tc.dropTable(tableName);
             
+            // set to null deletes
             setTableOwner(tableName, null);
             setReadWriteGroup(tableName, null);
             

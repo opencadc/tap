@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2018.                            (c) 2018.
+*  (c) 2019.                            (c) 2019.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,13 +67,11 @@
 
 package ca.nrc.cadc.vosi.actions;
 
-import java.net.URI;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import java.net.URI;
+import org.apache.log4j.Logger;
 
 /**
  * Update table content by accepting data via the input stream.
@@ -101,7 +99,7 @@ public class PostAction extends TablesAction {
             log.debug("group read-write set request: " + grw);
             setGroup(name, grw);
         }
-        // TODO: handle tap_schema metadata update (part of PutAction)
+        // TODO: handle tap_schema metadata update (like PutAction)
     }
     
     private void setGroup(String name, String group) throws Exception {

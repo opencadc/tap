@@ -114,6 +114,22 @@ public class PutAction extends TablesAction {
         if (td != null) {
             throw new ResourceAlreadyExistsException("table " + tableName + " already exists");
         }
+        
+        // check that the table descrition does not specify any indexed columns since we
+        // have to force separate index creation
+        StringBuilder sb = new StringBuilder();
+        for (ColumnDesc cd : td.getColumnDescs()) {
+            if (cd.indexed) {
+                if (sb.length() > 0) {
+                    sb.append(", ");
+                }
+                sb.append(cd.getColumnName());
+            }
+        }
+        if (sb.length() > 0) {
+            throw new UnsupportedOperationException("cannot create table with indices -- found indexed=true for the following columns: "
+                    + sb.toString());
+        }
             
         DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
         try {
