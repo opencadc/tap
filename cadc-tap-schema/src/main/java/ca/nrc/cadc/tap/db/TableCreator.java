@@ -68,6 +68,7 @@
 package ca.nrc.cadc.tap.db;
 
 import ca.nrc.cadc.db.DatabaseTransactionManager;
+import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.tap.PluginFactory;
 import ca.nrc.cadc.tap.schema.ADQLIdentifierException;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
@@ -108,27 +109,32 @@ public class TableCreator {
         } catch (ADQLIdentifierException ex) {
             throw new IllegalArgumentException(ex.getMessage());
         }
-        
+        Profiler prof = new Profiler(TableCreator.class);
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         try {
             tm.startTransaction();
+            prof.checkpoint("start-transaction");
             
             String sql = generateCreate(table);
             
             log.debug("sql:\n" + sql);
             jdbc.execute(sql);
+            prof.checkpoint("create-table");
             
             // grant permissions
             sql = "GRANT select on " + table.getTableName() +  " to public";
             log.debug("sql:\n" + sql);
             jdbc.execute(sql);
+            prof.checkpoint("grant-permissions");
             
             tm.commitTransaction();
+            prof.checkpoint("commit-transaction");
         } catch (Exception ex) {
             try {
                 log.error("create table failed - rollback", ex);
                 tm.rollbackTransaction();
+                prof.checkpoint("rollback-transaction");
                 log.error("create table failed - rollback: OK");
             } catch (Exception oops) {
                 log.error("create table failed - rollback : FAIL", oops);
@@ -140,6 +146,7 @@ public class TableCreator {
                 log.error("BUG: open transaction in finally - trying to rollback");
                 try {
                     tm.rollbackTransaction();
+                    prof.checkpoint("rollback-transaction");
                     log.error("BUG: rollback in finally: OK");
                 } catch (Exception oops) {
                     log.error("BUG: rollback in finally: FAIL", oops);
@@ -156,23 +163,27 @@ public class TableCreator {
             throw new IllegalArgumentException("invalid table name: " + tableName, ex);
         }
         
+        Profiler prof = new Profiler(TableCreator.class);
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         try {
             tm.startTransaction();
+            prof.checkpoint("start-transaction");
             
             // IF EXISTS non-standard but easier than checking
             String sql = "DROP TABLE IF EXISTS " + tableName;
             
             log.debug("sql:\n" + sql);
             jdbc.execute(sql);
-            
+            prof.checkpoint("drop-table");
+
             tm.commitTransaction();
-        
+            prof.checkpoint("commit-transaction");
         } catch (Exception ex) {
             try {
                 log.error("drop table failed - rollback", ex);
                 tm.rollbackTransaction();
+                prof.checkpoint("rollback-transaction");
                 log.error("drop table failed - rollback: OK");
             } catch (Exception oops) {
                 log.error("drop table failed - rollback : FAIL", oops);
@@ -184,6 +195,7 @@ public class TableCreator {
                 log.error("BUG: open transaction in finally - trying to rollback");
                 try {
                     tm.rollbackTransaction();
+                    prof.checkpoint("rollback-transaction");
                     log.error("BUG: rollback in finally: OK");
                 } catch (Exception oops) {
                     log.error("BUG: rollback in finally: FAIL", oops);
@@ -207,19 +219,24 @@ public class TableCreator {
         
         String sql = generateCreateIndex(cd, unique);
         
+        Profiler prof = new Profiler(TableCreator.class);
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         try {
             tm.startTransaction();
+            prof.checkpoint("start-transaction");
             
             log.debug("sql:\n" + sql);
             jdbc.execute(sql);
+            prof.checkpoint("create-index");
             
             tm.commitTransaction();
+            prof.checkpoint("commit-transaction");
         } catch (Exception ex) {
             try {
                 log.error("create index failed - rollback", ex);
                 tm.rollbackTransaction();
+                prof.checkpoint("rollback-transaction");
                 log.error("create index failed - rollback: OK");
             } catch (Exception oops) {
                 log.error("create index failed - rollback : FAIL", oops);
@@ -233,6 +250,7 @@ public class TableCreator {
                 log.error("BUG: open transaction in finally - trying to rollback");
                 try {
                     tm.rollbackTransaction();
+                    prof.checkpoint("rollback-transaction");
                     log.error("BUG: rollback in finally: OK");
                 } catch (Exception oops) {
                     log.error("BUG: rollback in finally: FAIL", oops);
