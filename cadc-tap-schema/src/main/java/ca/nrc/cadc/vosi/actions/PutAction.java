@@ -70,13 +70,12 @@ package ca.nrc.cadc.vosi.actions;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.net.ResourceAlreadyExistsException;
+import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
 import ca.nrc.cadc.tap.db.TableCreator;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import java.util.List;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
@@ -107,18 +106,10 @@ public class PutAction extends TablesAction {
             throw new IllegalArgumentException("no input table");
         }
         
-        DataSource ds = getDataSource();
-        TapSchemaDAO ts = getTapSchemaDAO();
-        ts.setDataSource(ds);
-        TableDesc td = ts.getTable(tableName);
-        if (td != null) {
-            throw new ResourceAlreadyExistsException("table " + tableName + " already exists");
-        }
-        
-        // check that the table descrition does not specify any indexed columns since we
+        // check that the table description does not specify any indexed columns since we
         // have to force separate index creation
         StringBuilder sb = new StringBuilder();
-        for (ColumnDesc cd : td.getColumnDescs()) {
+        for (ColumnDesc cd : inputTable.getColumnDescs()) {
             if (cd.indexed) {
                 if (sb.length() > 0) {
                     sb.append(", ");
@@ -131,25 +122,40 @@ public class PutAction extends TablesAction {
                     + sb.toString());
         }
             
+        DataSource ds = getDataSource();
+        TapSchemaDAO ts = getTapSchemaDAO();
+        ts.setDataSource(ds);
+        TableDesc td = ts.getTable(tableName);
+        if (td != null) {
+            throw new ResourceAlreadyExistsException("table " + tableName + " already exists");
+        }
+        
+        Profiler prof = new Profiler(PutAction.class);
         DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
         try {
             tm.startTransaction();
-
+            prof.checkpoint("start-transaction");
+            
             // create table
             TableCreator tc = new TableCreator(ds);
             tc.createTable(inputTable);
+            prof.checkpoint("create-table");
             
             // add to tap_schema
             ts.put(inputTable);
+            prof.checkpoint("insert-into-tap-schema");
             
             // set owner
             setTableOwner(tableName, AuthenticationUtil.getCurrentSubject());
+            prof.checkpoint("set-owner");
             
             tm.commitTransaction();
+            prof.checkpoint("commit-transaction");
         } catch (Exception ex) {
             try {
                 log.error("PUT failed - rollback", ex);
                 tm.rollbackTransaction();
+                prof.checkpoint("rollback-transaction");
                 log.error("PUT failed - rollback: OK");
             } catch (Exception oops) {
                 log.error("PUT failed - rollback : FAIL", oops);
@@ -161,6 +167,7 @@ public class PutAction extends TablesAction {
                 log.error("BUG: open transaction in finally - trying to rollback");
                 try {
                     tm.rollbackTransaction();
+                    prof.checkpoint("rollback-transaction");
                     log.error("BUG: rollback in finally: OK");
                 } catch (Exception oops) {
                     log.error("BUG: rollback in finally: FAIL", oops);

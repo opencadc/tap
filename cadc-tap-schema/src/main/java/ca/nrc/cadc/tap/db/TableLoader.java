@@ -67,16 +67,13 @@
 
 package ca.nrc.cadc.tap.db;
 
-
 import ca.nrc.cadc.dali.Circle;
 import ca.nrc.cadc.dali.DoubleInterval;
 import ca.nrc.cadc.dali.Interval;
 import ca.nrc.cadc.dali.LongInterval;
 import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.dali.Polygon;
-import ca.nrc.cadc.dali.tables.TableData;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
-import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.tap.PluginFactory;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
