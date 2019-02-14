@@ -67,12 +67,7 @@
 
 package ca.nrc.cadc.vosi.actions;
 
-import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.tap.db.TableDataInputStream;
-import ca.nrc.cadc.tap.db.TableLoader;
-import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import org.apache.log4j.Logger;
 
 /**
@@ -83,8 +78,6 @@ import org.apache.log4j.Logger;
 public class SyncLoadAction extends TablesAction {
     private static final Logger log = Logger.getLogger(SyncLoadAction.class);
 
-    private static final int BATCH_SIZE = 1000;
-    
     public SyncLoadAction() { 
     }
     
@@ -92,23 +85,9 @@ public class SyncLoadAction extends TablesAction {
     public void doAction() throws Exception {
         String tableName = getTableName();
         log.debug("POST: " + tableName);
-        if (tableName == null) {
-            throw new IllegalArgumentException("Missing table name in path");
-        }
-    
-        checkTableWritePermission(tableName);
-
-        TapSchemaDAO ts = getTapSchemaDAO();
-        TableDesc targetTableDesc = ts.getTable(tableName);
-        if (targetTableDesc == null) {
-            throw new ResourceNotFoundException("Table not found: " + tableName);
-        }
-
-        TableDataInputStream tableData = (TableDataInputStream) syncInput.getContent(TableContentHandler.TABLE_DATA);
-        TableLoader tl = new TableLoader(getDataSource(), BATCH_SIZE);
-        tl.load(targetTableDesc, tableData);
-
-        String msg = "Inserted " + tl.getTotalInserts() + " rows to table " + tableName;
+        
+        // all the work happens in the TableContentHandler
+        String msg = (String) syncInput.getContent(TableContentHandler.MSG);
 
         syncOutput.setCode(200);
         syncOutput.getOutputStream().write(msg.getBytes("UTF-8"));
@@ -116,6 +95,6 @@ public class SyncLoadAction extends TablesAction {
 
     @Override
     protected InlineContentHandler getInlineContentHandler() {
-        return new TableContentHandler();
+        return new TableContentHandler(this);
     }
 }
