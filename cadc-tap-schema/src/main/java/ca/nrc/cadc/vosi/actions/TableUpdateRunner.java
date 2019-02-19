@@ -218,14 +218,22 @@ public class TableUpdateRunner implements JobRunner {
                 DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
                 try {
                     tm.startTransaction();
-
+                    
                     // create index
                     TableCreator tc = new TableCreator(ds);
                     tc.createIndex(cd, unique);
+                    
+                    // createIndex can take consierable time so our view of the column metadata could be out of date
 
+                    // write lock row in tap_schema.columns
+                    ts.put(cd);
+                    
+                    // get current values in case another thread has updated it
+                    cd = ts.getColumn(tableName, columnName);
+                    
                     // update tap_schema
                     cd.indexed = true;
-                    ts.put(td);
+                    ts.put(cd);
 
                     tm.commitTransaction();
                 } catch (Exception ex) {
@@ -251,7 +259,7 @@ public class TableUpdateRunner implements JobRunner {
                     if (ex instanceof IllegalArgumentException) {
                         throw ex;
                     }
-                    throw new RuntimeException("failed to update table " + tableName, ex);
+                    throw new RuntimeException("failed to update table " + tableName + " reason: " + ex.getMessage(), ex);
                 } finally {
                     if (tm.isOpen()) {
                         log.error("BUG: open transaction in finally - trying to rollback");

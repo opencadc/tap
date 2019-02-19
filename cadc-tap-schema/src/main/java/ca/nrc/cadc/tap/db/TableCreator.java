@@ -68,6 +68,7 @@
 package ca.nrc.cadc.tap.db;
 
 import ca.nrc.cadc.db.DatabaseTransactionManager;
+import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.tap.PluginFactory;
 import ca.nrc.cadc.tap.schema.ADQLIdentifierException;
@@ -156,7 +157,14 @@ public class TableCreator {
         }
     }
     
-    public void dropTable(String tableName) {
+    /**
+     * Drop a table. This is implemented as a TRUNCATE followed by a DROP so that
+     * space is immediately reclaimed and usable for other content.
+     * 
+     * @param tableName
+     * @throws ResourceNotFoundException if the table does not exist
+     */
+    public void dropTable(String tableName) throws ResourceNotFoundException {
         try {
             TapSchemaUtil.checkValidTableName(tableName);
         } catch (ADQLIdentifierException ex) {
@@ -170,25 +178,43 @@ public class TableCreator {
             tm.startTransaction();
             prof.checkpoint("start-transaction");
             
-            // IF EXISTS non-standard but easier than checking
-            String sql = "DROP TABLE IF EXISTS " + tableName;
+            // truncate before drop so space can be reclaimed immediately
+            String truncate = "TRUNCATE TABLE " + tableName;
+            log.debug("sql:\n" + truncate);
+            jdbc.execute(truncate);
+            prof.checkpoint("truncate-table");
             
-            log.debug("sql:\n" + sql);
-            jdbc.execute(sql);
+            String drop = "DROP TABLE " + tableName;
+            log.debug("sql:\n" + drop);
+            jdbc.execute(drop);
             prof.checkpoint("drop-table");
 
             tm.commitTransaction();
             prof.checkpoint("commit-transaction");
         } catch (Exception ex) {
-            try {
-                log.error("drop table failed - rollback", ex);
-                tm.rollbackTransaction();
-                prof.checkpoint("rollback-transaction");
-                log.error("drop table failed - rollback: OK");
-            } catch (Exception oops) {
-                log.error("drop table failed - rollback : FAIL", oops);
-            }
             // TODO: categorise failures better
+            if (ex.getMessage().contains("does not exist")) {
+                // handled: log at debug level
+                try {
+                    log.debug("drop table failed - rollback", ex);
+                    tm.rollbackTransaction();
+                    prof.checkpoint("rollback-transaction");
+                    log.debug("drop table failed - rollback: OK");
+                } catch (Exception oops) {
+                    log.error("drop table failed - rollback : FAIL", oops);
+                }
+                throw new ResourceNotFoundException("not found: " + tableName);
+            } else {
+                // unexpected: log at error level
+                try {
+                    log.error("drop table failed - rollback", ex);
+                    tm.rollbackTransaction();
+                    prof.checkpoint("rollback-transaction");
+                    log.error("drop table failed - rollback: OK");
+                } catch (Exception oops) {
+                    log.error("drop table failed - rollback : FAIL", oops);
+                }
+            }
             throw new RuntimeException("failed to drop table " + tableName, ex);
         } finally { 
             if (tm.isOpen()) {

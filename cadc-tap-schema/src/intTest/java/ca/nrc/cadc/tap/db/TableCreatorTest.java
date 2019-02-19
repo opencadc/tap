@@ -122,7 +122,11 @@ public class TableCreatorTest {
             String testTable = TEST_SCHEMA + ".testCreateTable";
             // cleanup
             TableCreator tc = new TableCreator(dataSource);
-            tc.dropTable(testTable);
+            try {
+                tc.dropTable(testTable);
+            } catch (Exception ignore) {
+                log.debug("cleanup-before-test failed");
+            }
             
             TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
@@ -159,7 +163,11 @@ public class TableCreatorTest {
             String testTable = TEST_SCHEMA + ".testCreateIndex";
             // cleanup
             TableCreator tc = new TableCreator(dataSource);
-            tc.dropTable(testTable);
+            try {
+                tc.dropTable(testTable);
+            } catch (Exception ignore) {
+                log.debug("cleanup-before-test failed");
+            }
             
             TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
@@ -193,7 +201,11 @@ public class TableCreatorTest {
             String testTable = TEST_SCHEMA + ".testCreateUniqueIndex";
             // cleanup
             TableCreator tc = new TableCreator(dataSource);
-            tc.dropTable(testTable);
+            try {
+                tc.dropTable(testTable);
+            } catch (Exception ignore) {
+                log.debug("cleanup-before-test failed");
+            }
             
             TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
             orig.tableType = TableDesc.TableType.TABLE;

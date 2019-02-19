@@ -68,7 +68,10 @@
 package ca.nrc.cadc.vosi.actions;
 
 import ca.nrc.cadc.ac.GroupURI;
+import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.InlineContentHandler;
+import ca.nrc.cadc.tap.schema.SchemaDesc;
+import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import java.net.URI;
 import org.apache.log4j.Logger;
@@ -103,26 +106,35 @@ public class PostAction extends TablesAction {
     }
     
     private void setGroup(String name, String group) throws Exception {
-        
-        TapSchemaDAO ts = getTapSchemaDAO();
-        // assume 'name' is the schema, unless there's a table
-        if (ts.getTable(name) != null) {
-            log.debug("checking table permission");
-            checkTableWritePermission(name);
-        } else {
-            log.debug("checking schema permission");
-            checkSchemaWritePermission(name);
-        }
-        
         URI groupURI = null;
         if (group != null && group.trim().length() > 0) {
             // validate the group
             try {
                 groupURI = new GroupURI(group).getURI();
             } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException(
-                    "Failed to set group write permissions: " + e.getMessage());
+                throw new IllegalArgumentException("invalid group URI: " + e.getMessage());
             }
+        }
+        
+        TapSchemaDAO ts = getTapSchemaDAO();
+        Object target = null;
+        if (Util.isTableName(name)) {
+            log.debug("checking table permission");
+            checkTableWritePermission(name);
+            log.debug("checking table existence");
+            target = ts.getTable(name, true);
+        } else if (Util.isSchemaName(name)) {
+            log.debug("checking schema permission");
+            checkSchemaWritePermission(name);
+            log.debug("checking schema existence");
+            target = ts.getSchema(name, true);
+            
+        } else {
+            throw new IllegalArgumentException("invalid table name: " + name + " (expected: <schema>.<table>)");
+        }
+        
+        if (target == null) {
+            throw new ResourceNotFoundException("not found: " + name);
         }
         
         setReadWriteGroup(name, groupURI);
