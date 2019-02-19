@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2009.                            (c) 2009.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -518,7 +518,7 @@ public class TapSchemaDAO
             log.debug("put: " + cd.getColumnName());
             pcs.setColumn(cd);
             jdbc.update(pcs);
-            prof.checkpoint("put-columns");
+            prof.checkpoint("put-column");
             
             tm.commitTransaction();
             prof.checkpoint("commit-transaction");

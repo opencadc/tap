@@ -133,10 +133,10 @@ public class TableCreator {
             prof.checkpoint("commit-transaction");
         } catch (Exception ex) {
             try {
-                log.debug("create table failed - rollback", ex);
+                log.error("create table failed - rollback", ex);
                 tm.rollbackTransaction();
                 prof.checkpoint("rollback-transaction");
-                log.debug("create table failed - rollback: OK");
+                log.error("create table failed - rollback: OK");
             } catch (Exception oops) {
                 log.error("create table failed - rollback : FAIL", oops);
             }
@@ -157,6 +157,13 @@ public class TableCreator {
         }
     }
     
+    /**
+     * Drop a table. This is implemented as a TRUNCATE followed by a DROP so that
+     * space is immediately reclaimed and usable for other content.
+     * 
+     * @param tableName
+     * @throws ResourceNotFoundException if the table does not exist
+     */
     public void dropTable(String tableName) throws ResourceNotFoundException {
         try {
             TapSchemaUtil.checkValidTableName(tableName);
@@ -185,17 +192,28 @@ public class TableCreator {
             tm.commitTransaction();
             prof.checkpoint("commit-transaction");
         } catch (Exception ex) {
-            try {
-                log.debug("drop table failed - rollback", ex);
-                tm.rollbackTransaction();
-                prof.checkpoint("rollback-transaction");
-                log.debug("drop table failed - rollback: OK");
-            } catch (Exception oops) {
-                log.error("drop table failed - rollback : FAIL", oops);
-            }
             // TODO: categorise failures better
             if (ex.getMessage().contains("does not exist")) {
+                // handled: log at debug level
+                try {
+                    log.debug("drop table failed - rollback", ex);
+                    tm.rollbackTransaction();
+                    prof.checkpoint("rollback-transaction");
+                    log.debug("drop table failed - rollback: OK");
+                } catch (Exception oops) {
+                    log.error("drop table failed - rollback : FAIL", oops);
+                }
                 throw new ResourceNotFoundException("not found: " + tableName);
+            } else {
+                // unexpected: log at error level
+                try {
+                    log.error("drop table failed - rollback", ex);
+                    tm.rollbackTransaction();
+                    prof.checkpoint("rollback-transaction");
+                    log.error("drop table failed - rollback: OK");
+                } catch (Exception oops) {
+                    log.error("drop table failed - rollback : FAIL", oops);
+                }
             }
             throw new RuntimeException("failed to drop table " + tableName, ex);
         } finally { 
@@ -242,10 +260,10 @@ public class TableCreator {
             prof.checkpoint("commit-transaction");
         } catch (Exception ex) {
             try {
-                log.debug("create index failed - rollback", ex);
+                log.error("create index failed - rollback", ex);
                 tm.rollbackTransaction();
                 prof.checkpoint("rollback-transaction");
-                log.debug("create index failed - rollback: OK");
+                log.error("create index failed - rollback: OK");
             } catch (Exception oops) {
                 log.error("create index failed - rollback : FAIL", oops);
             }
