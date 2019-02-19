@@ -68,6 +68,7 @@
 package ca.nrc.cadc.tap.db;
 
 import ca.nrc.cadc.db.DatabaseTransactionManager;
+import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.tap.PluginFactory;
 import ca.nrc.cadc.tap.schema.ADQLIdentifierException;
@@ -132,10 +133,10 @@ public class TableCreator {
             prof.checkpoint("commit-transaction");
         } catch (Exception ex) {
             try {
-                log.error("create table failed - rollback", ex);
+                log.debug("create table failed - rollback", ex);
                 tm.rollbackTransaction();
                 prof.checkpoint("rollback-transaction");
-                log.error("create table failed - rollback: OK");
+                log.debug("create table failed - rollback: OK");
             } catch (Exception oops) {
                 log.error("create table failed - rollback : FAIL", oops);
             }
@@ -156,7 +157,7 @@ public class TableCreator {
         }
     }
     
-    public void dropTable(String tableName) {
+    public void dropTable(String tableName) throws ResourceNotFoundException {
         try {
             TapSchemaUtil.checkValidTableName(tableName);
         } catch (ADQLIdentifierException ex) {
@@ -170,25 +171,32 @@ public class TableCreator {
             tm.startTransaction();
             prof.checkpoint("start-transaction");
             
-            // IF EXISTS non-standard but easier than checking
-            String sql = "DROP TABLE IF EXISTS " + tableName;
+            // truncate before drop so space can be reclaimed immediately
+            String truncate = "TRUNCATE TABLE " + tableName;
+            log.debug("sql:\n" + truncate);
+            jdbc.execute(truncate);
+            prof.checkpoint("truncate-table");
             
-            log.debug("sql:\n" + sql);
-            jdbc.execute(sql);
+            String drop = "DROP TABLE " + tableName;
+            log.debug("sql:\n" + drop);
+            jdbc.execute(drop);
             prof.checkpoint("drop-table");
 
             tm.commitTransaction();
             prof.checkpoint("commit-transaction");
         } catch (Exception ex) {
             try {
-                log.error("drop table failed - rollback", ex);
+                log.debug("drop table failed - rollback", ex);
                 tm.rollbackTransaction();
                 prof.checkpoint("rollback-transaction");
-                log.error("drop table failed - rollback: OK");
+                log.debug("drop table failed - rollback: OK");
             } catch (Exception oops) {
                 log.error("drop table failed - rollback : FAIL", oops);
             }
             // TODO: categorise failures better
+            if (ex.getMessage().contains("does not exist")) {
+                throw new ResourceNotFoundException("not found: " + tableName);
+            }
             throw new RuntimeException("failed to drop table " + tableName, ex);
         } finally { 
             if (tm.isOpen()) {
@@ -234,10 +242,10 @@ public class TableCreator {
             prof.checkpoint("commit-transaction");
         } catch (Exception ex) {
             try {
-                log.error("create index failed - rollback", ex);
+                log.debug("create index failed - rollback", ex);
                 tm.rollbackTransaction();
                 prof.checkpoint("rollback-transaction");
-                log.error("create index failed - rollback: OK");
+                log.debug("create index failed - rollback: OK");
             } catch (Exception oops) {
                 log.error("create index failed - rollback : FAIL", oops);
             }

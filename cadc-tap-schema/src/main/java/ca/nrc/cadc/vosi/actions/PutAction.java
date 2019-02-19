@@ -96,7 +96,7 @@ public class PutAction extends TablesAction {
     @Override
     public void doAction() throws Exception {
         String tableName = getTableName();
-        String schemaName = getSchemaFromTable(tableName);
+        String schemaName = Util.getSchemaFromTable(tableName);
         log.debug("PUT: " + tableName);
         
         checkSchemaWritePermission(schemaName);

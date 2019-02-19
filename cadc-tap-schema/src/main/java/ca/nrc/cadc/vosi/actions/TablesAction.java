@@ -123,10 +123,6 @@ public abstract class TablesAction extends RestAction {
         return dao;
     }
     
-    String getSchemaFromTable(String table) {
-        return Util.getSchemaFromTable(table);
-    }
-    
     Subject getOwner(String name) {
         return Util.getOwner(getDataSource(), name);
     }

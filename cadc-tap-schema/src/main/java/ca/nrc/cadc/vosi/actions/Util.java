@@ -100,6 +100,16 @@ class Util {
     private Util() { 
     }
     
+    static boolean isSchemaName(String name) {
+        String[] st = name.split("[.]");
+        return (st.length == 1);
+    }
+    
+    static boolean isTableName(String name) {
+        String[] st = name.split("[.]");
+        return (st.length == 2);
+    }
+    
     static String getSchemaFromTable(String tableName) {
         String[] st = tableName.split("[.]");
         if (st.length == 2) {
