@@ -34,72 +34,14 @@
 
 package ca.nrc.cadc.tap.upload.datatype;
 
-import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
-import ca.nrc.cadc.tap.schema.ColumnDesc;
-import ca.nrc.cadc.tap.schema.TapDataType;
-import java.sql.Types;
+import ca.nrc.cadc.tap.oracle.OracleDataTypeMapper;
+
 
 /**
- * 
- * @author pdowler
+ * @author jenkinsd
  */
-public class OracleDataType extends BasicDataTypeMapper {
-    // HACK: arbitrary sensible limit.  Maximum is 4000 for Oracle.
-    private static final String DEFAULT_VARCHAR2_QUANTIFIER = "(3072)";
-
-
+public class OracleDataType extends OracleDataTypeMapper {
     public OracleDataType() {
-        // override mapping in super class
-        dataTypes.put(TapDataType.INTEGER, new TypePair("INT", Types.INTEGER));
-        dataTypes.put(TapDataType.CLOB, new TypePair("CHAR", Types.INTEGER));
-    }
-
-    
-/*
-    @Override
-    public String getDataType(final ColumnDesc columnDesc) {
-        final StringBuilder columnDataType = new StringBuilder();
-        final TapDataType tapDataType = columnDesc.getDatatype();
-        columnDataType.append(dataTypes.get(tapDataType).str);
-
-        if (tapDataType.isVarSize()) {
-            columnDataType.append("(");
-            columnDataType.append(DEFAULT_VARCHAR2_QUANTIFIER);
-            columnDataType.append(")");
-        } else if (isInteger(tapDataType.arraysize)) {
-            columnDataType.append("(");
-            columnDataType.append(parseInteger(tapDataType.arraysize));
-            columnDataType.append(")");
-        }
-
-        return columnDataType.toString();
-    }
-
-    private boolean isInteger(final String input) {
-        try {
-            Integer.parseInt(input);
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
-        }
-    }
-
-    private int parseInteger(final String input) {
-        try {
-            return Integer.parseInt(input);
-        } catch (NumberFormatException e) {
-            return new Double(Double.NaN).intValue();
-        }
-    }
-*/
-
-    @Override
-    protected String getVarCharType() {
-        return "VARCHAR2";
-    }
-
-    @Override
-    protected String getDefaultCharlimit() {
-        return DEFAULT_VARCHAR2_QUANTIFIER;
+        super();
     }
 }
