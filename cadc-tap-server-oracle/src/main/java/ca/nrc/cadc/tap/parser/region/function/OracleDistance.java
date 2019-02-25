@@ -69,39 +69,40 @@
 
 package ca.nrc.cadc.tap.parser.region.function;
 
+import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
-import ca.nrc.cadc.dali.Point;
+
+import java.util.ArrayList;
+import java.util.List;
 
 
-public class OraclePoint extends OracleGeometricFunction {
-    private boolean isOperand;
+public class OracleDistance extends Function {
+    static final String ORACLE_FUNCTION_NAME = "SDO_GEOM.SDO_DISTANCE";
+    private final Expression objectOne;
+    private final Expression objectTwo;
+    private final String tolerance;
 
 
-    public OraclePoint(final Point point) {
-        super(point);
+    public OracleDistance(final Expression objectOne, final Expression objectTwo, final String tolerance) {
+        this.objectOne = objectOne;
+        this.objectTwo = objectTwo;
+        this.tolerance = tolerance;
+
+        setName(ORACLE_FUNCTION_NAME);
+        setParameters(new ExpressionList(new ArrayList()));
+
+        mapValues();
     }
 
-    public OraclePoint(Expression ra, Expression dec) {
-        this(new Point(Double.parseDouble(ra.toString()), Double.parseDouble(dec.toString())));
-    }
+    @SuppressWarnings("unchecked")
+    private void mapValues() {
+        final ExpressionList parameters = getParameters();
+        final List<Expression> expressionList = parameters.getExpressions();
 
-    public void setOperand(boolean isOperand) {
-        this.isOperand = isOperand;
-    }
-
-    public boolean isOperand() {
-        return isOperand;
-    }
-
-
-    /**
-     * Map this shape's values to ORACLE ORDINATE function parameters.
-     *
-     * @param parameterList The ExpressionList to add parameters to.
-     */
-    @Override
-    void mapValues(final ExpressionList parameterList) {
-        // Do nothing.
+        expressionList.add(objectOne);
+        expressionList.add(objectTwo);
+        expressionList.add(new DoubleValue(tolerance));
     }
 }

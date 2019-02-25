@@ -172,4 +172,24 @@ public class OracleRegionConverterTest {
                                 "(2001, NULL, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005) <> 'TRUE'",
                             resultFunctionSource);
     }
+
+    @Test
+    public void handleDistance() {
+        final OracleRegionConverter oracleRegionConverter = new OracleRegionConverter(new ExpressionNavigator(),
+                                                                                      new ReferenceNavigator(),
+                                                                                      new FromItemNavigator());
+
+        final Expression left = new OracleCircle(new Circle(new Point(88.0D, 12.0D), 0.8D));
+        final Expression right = new OraclePoint(new Point(16.8D, 33.4D));
+        final Expression distanceFunction = oracleRegionConverter.handleDistance(left, right);
+
+        assert distanceFunction instanceof Function;
+
+        Assert.assertEquals("Wrong SQL DISTANCE output.",
+                            "SDO_GEOM.SDO_DISTANCE(SDO_GEOMETRY(2003, NULL, NULL, " +
+                                "SDO_ELEM_INFO_ARRAY(1, 1003, 4), " +
+                                "SDO_ORDINATE_ARRAY(87.2, 12.0, 88.0, 12.8, 88.8, 12.0)), " +
+                                "SDO_GEOMETRY(2001, NULL, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005)",
+                            distanceFunction.toString());
+    }
 }

@@ -69,39 +69,35 @@
 
 package ca.nrc.cadc.tap.parser.region.function;
 
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+
+import ca.nrc.cadc.dali.Circle;
 import ca.nrc.cadc.dali.Point;
 
+import net.sf.jsqlparser.expression.DoubleValue;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import org.junit.Test;
 
-public class OraclePoint extends OracleGeometricFunction {
-    private boolean isOperand;
-
-
-    public OraclePoint(final Point point) {
-        super(point);
-    }
-
-    public OraclePoint(Expression ra, Expression dec) {
-        this(new Point(Double.parseDouble(ra.toString()), Double.parseDouble(dec.toString())));
-    }
-
-    public void setOperand(boolean isOperand) {
-        this.isOperand = isOperand;
-    }
-
-    public boolean isOperand() {
-        return isOperand;
-    }
+import java.util.ArrayList;
+import java.util.List;
 
 
-    /**
-     * Map this shape's values to ORACLE ORDINATE function parameters.
-     *
-     * @param parameterList The ExpressionList to add parameters to.
-     */
-    @Override
-    void mapValues(final ExpressionList parameterList) {
-        // Do nothing.
+public class OracleDistanceTest extends AbstractFunctionTest {
+    @Test
+    @SuppressWarnings("unchecked")
+    public void convertParameters() {
+        final OraclePoint oraclePointLeft = new OraclePoint(new Point(22.8D, 44.9D));
+        final OracleCircle oracleCircleRight = new OracleCircle(new Circle(new Point(13.0D, 14.6D), 0.4D));
+        final OracleDistance testSubject = new OracleDistance(oraclePointLeft, oracleCircleRight, "0.06");
+
+        final ExpressionList result = testSubject.getParameters();
+        final List<Expression> resultExpressions = result.getExpressions();
+        final List<Expression> expectedExpressions = new ArrayList<>();
+
+        expectedExpressions.add(oraclePointLeft);
+        expectedExpressions.add(oracleCircleRight);
+        expectedExpressions.add(new DoubleValue("0.06"));
+
+        assertResultExpressions(expectedExpressions, resultExpressions);
     }
 }
