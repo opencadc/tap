@@ -107,7 +107,6 @@ public class TapAsyncQueryTest extends AsyncUWSTest {
             }
         }
         Assert.assertNotNull("found result", r);
-        Assert.assertEquals("http", r.getURI().getScheme());
 
         try {
             URL resultURL = r.getURI().toURL();

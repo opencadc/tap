@@ -109,7 +109,6 @@ public class TapAsyncErrorTest extends AsyncUWSTest {
         }
 
         Assert.assertNotNull(errorURL);
-        Assert.assertEquals("http", errorURL.getProtocol());
 
         try {
             log.info(result.name + ": error " + errorURL);

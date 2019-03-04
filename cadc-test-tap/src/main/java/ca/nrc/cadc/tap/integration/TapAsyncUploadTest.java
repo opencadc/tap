@@ -69,7 +69,6 @@ public class TapAsyncUploadTest extends AbstractUWSTest2 {
             Assert.assertEquals(tableName, parts[0]);
             URI uri = new URI(parts[1]);
             Assert.assertNotNull(uri);
-            Assert.assertEquals("http", uri.getScheme());
 
             URL tmpURL = uri.toURL();  // tmp storage of inline upload
 
