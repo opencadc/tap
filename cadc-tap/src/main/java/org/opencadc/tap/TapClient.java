@@ -67,7 +67,6 @@
 
 package org.opencadc.tap;
 
-
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.reg.Standards;
@@ -102,9 +101,9 @@ public class TapClient {
      * Generate a usable async endpoint URL. This method only considers the specified
      * authentication method when performing the lookup of the base URL.
      * 
-     * @param am
+     * @param am authentication method
      * @return async URL
-     * @throws ResourceNotFoundException 
+     * @throws ResourceNotFoundException if base URL matching specified auth not found
      */
     public URL getAsyncURL(AuthMethod am) throws ResourceNotFoundException {
         URL base = reg.getServiceURL(resourceID, Standards.TAP_10, am);
@@ -122,9 +121,9 @@ public class TapClient {
      * Generate a usable sync endpoint URL. This method only considers the specified
      * authentication method when performing the lookup of the base URL.
      * 
-     * @param am
+     * @param am authentication method
      * @return sync URL
-     * @throws ResourceNotFoundException 
+     * @throws ResourceNotFoundException if base URL matching specified auth not found
      */
     public URL getSyncURL(AuthMethod am) throws ResourceNotFoundException {
         URL base = reg.getServiceURL(resourceID, Standards.TAP_10, am);
