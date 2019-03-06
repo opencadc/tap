@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2019.                            (c) 2019.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,37 +62,89 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
-*
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.upload.datatype;
+package ca.nrc.cadc.vosi.actions;
 
-import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.ac.GroupURI;
+import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.rest.InlineContentHandler;
+import ca.nrc.cadc.tap.schema.SchemaDesc;
+import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import java.net.URI;
+import org.apache.log4j.Logger;
 
 /**
- * Interface to convert ADQL data types to a database
- * specific data types.
- *
- * @author jburke
+ * Update table content by accepting data via the input stream.
+ * 
+ * @author pdowler
  */
-public interface DatabaseDataType
-{
-    /**
-     * Get the database type for the specified column. This is used in create
-     * table statements.
-     *
-     * @param columnDesc ADQL description of the column
-     * @return database specific data type
-     */
-    String getDataType(ColumnDesc columnDesc);
+public class PostAction extends TablesAction {
+    
+    private static final Logger log = Logger.getLogger(PostAction.class);
+    
+    public PostAction() {
+    }
 
-    /**
-     * Get the column type as a java.sql.Types constant.
-     * 
-     * @param columnDesc
-     * @return one of the java.sql.Types values
-     */
-    Integer getType(ColumnDesc columnDesc);
+    @Override
+    public void doAction() throws Exception {
+        String name = getTableName();
+        log.debug("POST: " + name);
+        if (name == null) {
+            throw new IllegalArgumentException("Missing table name in path.");
+        }
+        
+        // see if this is a group-write permission set call
+        if (syncInput.getParameterNames().contains("grw")) {
+            String grw = syncInput.getParameter("grw");
+            log.debug("group read-write set request: " + grw);
+            setGroup(name, grw);
+        }
+        // TODO: handle tap_schema metadata update (like PutAction)
+    }
+    
+    private void setGroup(String name, String group) throws Exception {
+        URI groupURI = null;
+        if (group != null && group.trim().length() > 0) {
+            // validate the group
+            try {
+                groupURI = new GroupURI(group).getURI();
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("invalid group URI: " + e.getMessage());
+            }
+        }
+        
+        TapSchemaDAO ts = getTapSchemaDAO();
+        Object target = null;
+        if (Util.isTableName(name)) {
+            log.debug("checking table permission");
+            checkTableWritePermission(name);
+            log.debug("checking table existence");
+            target = ts.getTable(name, true);
+        } else if (Util.isSchemaName(name)) {
+            log.debug("checking schema permission");
+            checkSchemaWritePermission(name);
+            log.debug("checking schema existence");
+            target = ts.getSchema(name, true);
+            
+        } else {
+            throw new IllegalArgumentException("invalid table name: " + name + " (expected: <schema>.<table>)");
+        }
+        
+        if (target == null) {
+            throw new ResourceNotFoundException("not found: " + name);
+        }
+        
+        setReadWriteGroup(name, groupURI);
+        syncOutput.setCode(200);
+    }
+    
+    @Override
+    protected InlineContentHandler getInlineContentHandler() {
+        // TODO: return a TableDescHandler so we can read docs and update tap_schema metadata
+        return super.getInlineContentHandler();
+    }
+    
 }

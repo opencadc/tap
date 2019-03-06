@@ -97,6 +97,7 @@ public class TestUtil
             {
                 String tn = "table" + t;
                 TableDesc td = new TableDesc(sn, tn);
+                td.description = "this is " + tn;
                 
                 for (int c=0; c<numColumns; c++)
                 {
@@ -127,17 +128,20 @@ public class TestUtil
                 String cn = "c_interval";
                 
                 ColumnDesc ci = new ColumnDesc(tn, cn, new TapDataType("double", "2", "interval"));
+                ci.description = "interval column";
                 td.getColumnDescs().add(ci);
 
                 cn = "c_polygon";
                 if (tapVersion == 10)
                 {
                     ColumnDesc cp = new ColumnDesc(tn, cn, new TapDataType("adql:REGION", "*", null));
+                    cp.description = "region column";
                     td.getColumnDescs().add(cp);
                 }
                 else
                 {
                     ColumnDesc cp = new ColumnDesc(tn, cn, new TapDataType("double", "*", "polygon"));
+                    cp.description = "polygon column";
                     td.getColumnDescs().add(cp);
                 }
                 sd.getTableDescs().add(td);

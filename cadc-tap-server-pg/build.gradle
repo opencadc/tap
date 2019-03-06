@@ -2,7 +2,7 @@ plugins {
     id "java"
     id "maven"
     id 'maven-publish'
-    id 'com.jfrog.bintray' version '1.8.0'
+    id 'com.jfrog.bintray' version '1.8.4'
 }
 
 repositories {
@@ -12,11 +12,12 @@ repositories {
 
 sourceCompatibility = 1.7
 group = 'org.opencadc'
-version = '1.0.1'
+version = '1.0.3'
 
 dependencies {
     compile 'org.opencadc:cadc-dali-pg:[0.1,)'
-    compile 'org.opencadc:cadc-tap-server:[1.1.5, )'
+    compile 'org.opencadc:cadc-tap-schema:[1.1.6, )'
+    compile 'org.opencadc:cadc-tap-server:[1.1.7, )'
 
     testCompile 'junit:junit:4.+'
     testCompile 'org.opencadc:cadc-util:1.+'

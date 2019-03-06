@@ -70,6 +70,7 @@
 package ca.nrc.cadc.tap;
 
 import ca.nrc.cadc.log.WebServiceLogInfo;
+import ca.nrc.cadc.rest.SyncOutput;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
@@ -82,7 +83,6 @@ import ca.nrc.cadc.uws.Parameter;
 import ca.nrc.cadc.uws.Result;
 import ca.nrc.cadc.uws.server.JobRunner;
 import ca.nrc.cadc.uws.server.JobUpdater;
-import ca.nrc.cadc.uws.server.SyncOutput;
 import ca.nrc.cadc.uws.util.JobLogInfo;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
@@ -178,17 +178,10 @@ public class QueryRunner implements JobRunner
         log.info(logInfo.end());
     }
 
-    /**
-     * Factory method to create the PluginFactory. The default implementation
-     * can be configured using a properties file, but if the application requires
-     * integration with some other configuration system then this method could be
-     * overridden to create a custom subclass of PluginFactory.
-     * 
-     * @return 
-     */
-    protected PluginFactory getPluginFactory()
+    
+    protected PluginFactoryImpl getPluginFactory()
     {
-        return new PluginFactory(job);
+        return new PluginFactoryImpl(job);
     }
     
     /**
@@ -220,7 +213,7 @@ public class QueryRunner implements JobRunner
     }
     
     /**
-     * Get the DataSOurce to be used to insert uploaded tables into the database. 
+     * Get the DataSource to be used to insert uploaded tables into the database. 
      * By default, this uses JNDI to find an app-server supplied DataSource named 
      * <code>jdbc/tapuploadadm</code>.
      * 
@@ -247,7 +240,7 @@ public class QueryRunner implements JobRunner
         log.debug("run: " + job.getID());
         List<Parameter> paramList = job.getParameterList();
         log.debug("job " + job.getID() + ": " + paramList.size() + " parameters");
-        PluginFactory pfac = getPluginFactory();
+        PluginFactoryImpl pfac = getPluginFactory();
         log.debug("loaded: " + pfac);
 
         ResultStore rs = null;
@@ -370,10 +363,10 @@ public class QueryRunner implements JobRunner
                     t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
                     diagnostics.add(new Result("diag", URI.create("jndi:connect:"+dt)));
 
-                    // manually control transaction, make fetch size (client batch size) small,
+                    // make fetch size (client batch size) small,
                     // and restrict to forward only so that client memory usage is minimal since
                     // we are only interested in reading the ResultSet once
-                    connection.setAutoCommit(false);
+                    connection.setAutoCommit(pfac.getAutoCommit());
                     pstmt = connection.prepareStatement(sql);
                     pstmt.setFetchSize(1000);
                     pstmt.setFetchDirection(ResultSet.FETCH_FORWARD);
@@ -438,11 +431,11 @@ public class QueryRunner implements JobRunner
             {
                 if (connection != null)
                 {
-                    try
-                    {
-                        connection.setAutoCommit(true);
-                    }
-                    catch(Throwable ignore) { }
+                    try {
+                        if (!pfac.getAutoCommit()) {
+                            connection.setAutoCommit(true);
+                        }
+                    } catch (Throwable ignore) { }
                     try
                     {
                         resultSet.close();
@@ -517,7 +510,7 @@ public class QueryRunner implements JobRunner
                 String filename = "error_" + job.getID() + "." + ewriter.getExtension();
                 if (syncOutput != null)
                 {
-                    syncOutput.setResponseCode(errorCode);
+                    syncOutput.setCode(errorCode);
                     syncOutput.setHeader("Content-Type", ewriter.getErrorContentType());
                     syncOutput.setHeader("Content-Length", Integer.toString(emsg.length()));
                     String disp = "inline; filename=\""+filename+"\"";

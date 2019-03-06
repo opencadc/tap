@@ -67,7 +67,7 @@
 
 package ca.nrc.cadc.tap.schema;
 
-
+import ca.nrc.cadc.db.version.InitDatabase;
 import java.net.URL;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
@@ -76,7 +76,7 @@ import org.apache.log4j.Logger;
  *
  * @author pdowler
  */
-public class InitDatabaseTS extends ca.nrc.cadc.db.version.InitDatabase {
+public class InitDatabaseTS extends InitDatabase {
     private static final Logger log = Logger.getLogger(InitDatabaseTS.class);
 
     public static final String MODEL_NAME = "TAP_SCHEMA";
@@ -85,6 +85,7 @@ public class InitDatabaseTS extends ca.nrc.cadc.db.version.InitDatabase {
 
     static String[] CREATE_SQL = new String[] {
         "tap_schema.ModelVersion.sql",
+        "tap_schema.KeyValue.sql",
         "tap_schema11.sql",
         "tap_schema_self11.sql",
         "tap_schema.permissions.sql"

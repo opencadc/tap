@@ -127,7 +127,7 @@ public class PluginFactoryTest
             job.getParameterList().clear();
             job.getParameterList().add(new Parameter("LANG", "ADQL"));
             
-            PluginFactory pf = new PluginFactory(job);
+            PluginFactoryImpl pf = new PluginFactoryImpl(job);
             
             try
             {

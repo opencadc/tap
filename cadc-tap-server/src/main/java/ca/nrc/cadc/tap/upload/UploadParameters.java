@@ -69,6 +69,8 @@
 package ca.nrc.cadc.tap.upload;
 
 import ca.nrc.cadc.tap.UploadManager;
+import ca.nrc.cadc.tap.schema.ADQLIdentifierException;
+import ca.nrc.cadc.tap.schema.TapSchemaUtil;
 import ca.nrc.cadc.util.StringUtil;
 import ca.nrc.cadc.uws.Parameter;
 import java.net.URI;
@@ -184,7 +186,7 @@ public class UploadParameters
         
         try
         {
-            UploadUtil.isValidateIdentifier(tableName);
+            TapSchemaUtil.checkValidIdentifier(tableName);
         }
         catch (ADQLIdentifierException e)
         {

@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2011.                            (c) 2011.
+*  (c) 2018.                            (c) 2018.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,86 +62,96 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
-*
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.schema;
+package ca.nrc.cadc.tap;
 
 
-import ca.nrc.cadc.db.ConnectionConfig;
-import ca.nrc.cadc.db.DBConfig;
-import ca.nrc.cadc.db.DBUtil;
-import ca.nrc.cadc.util.Log4jInit;
-import javax.sql.DataSource;
-import org.apache.log4j.Level;
+import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
+import ca.nrc.cadc.tap.db.DatabaseDataType;
+import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import ca.nrc.cadc.vosi.actions.DataSourceProvider;
+import java.net.URL;
+import java.util.Properties;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Test;
 
 /**
  *
  * @author pdowler
  */
-public class TapSchemaDAOTest 
-{
-    private static final Logger log = Logger.getLogger(TapSchemaDAOTest.class);
+public class PluginFactory {
+    private static final Logger log = Logger.getLogger(PluginFactory.class);
 
-    public TapSchemaDAOTest() { }
+    private static final String CONFIG = PluginFactory.class.getSimpleName() + ".properties";
     
-    static DataSource dataSource;
+    protected final Properties config;
     
-    static
-    {
-        Log4jInit.setLevel("ca.nrc.cadc.tap.schema", Level.INFO);
-        
-        // create a datasource and register with JNDI
-        try
-        {
-            DBConfig conf = new DBConfig();
-            ConnectionConfig cc = conf.getConnectionConfig("TAP_SCHEMA_TEST", "cadctest");
-            dataSource = DBUtil.getDataSource(cc);
-            log.info("configured data source: " + cc.getServer() + "," + cc.getDatabase() + "," + cc.getDriver() + "," + cc.getURL());
-        }
-        catch(Exception ex)
-        {
-            log.error("setup failed", ex);
-            throw new IllegalStateException("failed to create DataSource", ex);
+    public PluginFactory() { 
+        this.config = new Properties();
+        URL url = null;
+        try {
+
+            url = PluginFactory.class.getClassLoader().getResource(CONFIG);
+            if (url != null) {
+                config.load(url.openStream());
+            }
+        } catch (Exception ex) {
+            throw new RuntimeException("failed to read " + CONFIG + " from " + url, ex);
         }
     }
     
-    @Test
-    public void testReadTapSchemaSelf()
-    {
-        try
-        {
-            TapSchemaDAO dao = new TapSchemaDAO();
-            dao.setDataSource(dataSource);
-            TapSchema ts = dao.get();
-            boolean foundTS = false;
-            for (SchemaDesc sd : ts.getSchemaDescs())
-            {
-                if ( sd.getSchemaName().equalsIgnoreCase("TAP_SCHEMA"))
-                {
-                    foundTS = true;
-                    TableDesc ts_schemas = sd.getTable("TAP_SCHEMA.schemas");
-                    Assert.assertNotNull("found tap_schema.schemas", ts_schemas);
-                    
-                    TableDesc ts_tables = sd.getTable("TAP_SCHEMA.tables");
-                    Assert.assertNotNull("found tap_schema.tables", ts_tables);
-                    
-                    TableDesc ts_columns = sd.getTable("TAP_SCHEMA.columns");
-                    Assert.assertNotNull("found tap_schema.columns", ts_columns);
-                }
+    public DatabaseDataType getDatabaseDataType() {
+        final DatabaseDataType ret;
+        final String name = DatabaseDataType.class.getName();
+        final String cname = config.getProperty(name);
+        if (cname == null) {
+            ret = new BasicDataTypeMapper();
+        } else {
+            try {
+                Class c = Class.forName(cname);
+                ret = (DatabaseDataType) c.newInstance();
+            } catch (Throwable ex) {
+                throw new RuntimeException("config error: failed to create DatabaseDataType " + cname, ex);
+
             }
-            
-            Assert.assertTrue("found tap_schema", foundTS);
         }
-        catch(Exception unexpected)
-        {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " +  unexpected);
+
+        return ret;
+    }
+
+    public DataSourceProvider getDataSourceProvider() {
+        final DataSourceProvider ret;
+        String name = DataSourceProvider.class.getName();
+        String cname = config.getProperty(name);
+        if (cname == null) {
+            ret=  new DataSourceProvider();
+        } else {
+            try {
+                Class c = Class.forName(cname);
+                ret = (DataSourceProvider) c.newInstance();
+            }
+            catch (Throwable ex) {
+                throw new RuntimeException("config error: failed to create DataSourceProvider " + cname, ex);
+            }
         }
+        return ret;
+    }
+
+    public TapSchemaDAO getTapSchemaDAO() {
+        final TapSchemaDAO ret;
+        String name = TapSchemaDAO.class.getName();
+        String cname = config.getProperty(name);
+        if (cname == null) {
+            ret = new TapSchemaDAO();
+        } else {
+            try {
+                Class c = Class.forName(cname);
+                ret = (TapSchemaDAO) c.newInstance();
+            } catch (Throwable ex) {
+                throw new RuntimeException("config error: failed to create TapSchemaDAO " + cname, ex);
+            }
+        }
+        return ret;
     }
 }

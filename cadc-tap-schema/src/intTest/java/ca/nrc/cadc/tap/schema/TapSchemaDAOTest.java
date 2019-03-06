@@ -94,6 +94,7 @@ public class TapSchemaDAOTest {
     }
 
     private DataSource dataSource;
+    private final String TEST_SCHEMA = "intTest";
 
     public TapSchemaDAOTest() {
         // create a datasource and register with JNDI
@@ -106,6 +107,12 @@ public class TapSchemaDAOTest {
             // init creates the tap_schema tables and populates with self-describing content
             InitDatabaseTS init = new InitDatabaseTS(dataSource, "cadctest", "tap_schema");
             init.doInit();
+            
+            // add test schema so other test content will satisfy FK constraints
+            //TapSchemaDAO dao = new TapSchemaDAO();
+            //dao.setDataSource(dataSource);
+            //SchemaDesc sd = new SchemaDesc(TEST_SCHEMA);
+            //dao.put(sd);
         } catch (Exception ex) {
             log.error("setup failed", ex);
             throw new IllegalStateException("failed to create DataSource", ex);
@@ -145,7 +152,7 @@ public class TapSchemaDAOTest {
         try {
             TapSchemaDAO dao = new TapSchemaDAO();
             dao.setDataSource(dataSource);
-            TableDesc td = dao.get("tap_schema.tables");
+            TableDesc td = dao.getTable("tap_schema.tables");
             Assert.assertNotNull(td);
             Assert.assertEquals("tap_schema.tables", td.getTableName());
             Assert.assertTrue("has columns", !td.getColumnDescs().isEmpty());
@@ -161,37 +168,38 @@ public class TapSchemaDAOTest {
         try {
             TapSchemaDAO dao = new TapSchemaDAO();
             dao.setDataSource(dataSource);
-
+            String testTable = TEST_SCHEMA + ".round_trip";
+            
             try {
-                dao.delete("test.round_trip");
+                dao.delete(testTable);
             } catch (ResourceNotFoundException ex) {
                 log.debug("table did not exist at setup: " + ex);
             }
 
-            TableDesc td = dao.get("test.round_trip");
+            TableDesc td = dao.getTable(testTable);
             Assert.assertNull("initial setup", td);
 
-            TableDesc orig = new TableDesc("test", "test.round_trip");
+            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
-            orig.getColumnDescs().add(new ColumnDesc("test.round_trip", "c0", TapDataType.STRING));
-            orig.getColumnDescs().add(new ColumnDesc("test.round_trip", "c1", TapDataType.SHORT));
-            orig.getColumnDescs().add(new ColumnDesc("test.round_trip", "c2", TapDataType.INTEGER));
-            orig.getColumnDescs().add(new ColumnDesc("test.round_trip", "c3", TapDataType.LONG));
-            orig.getColumnDescs().add(new ColumnDesc("test.round_trip", "c4", TapDataType.FLOAT));
-            orig.getColumnDescs().add(new ColumnDesc("test.round_trip", "c5", TapDataType.DOUBLE));
-            orig.getColumnDescs().add(new ColumnDesc("test.round_trip", "c6", TapDataType.TIMESTAMP));
-            orig.getColumnDescs().add(new ColumnDesc("test.round_trip", "c7", TapDataType.INTERVAL));
-            orig.getColumnDescs().add(new ColumnDesc("test.round_trip", "c8", TapDataType.POINT));
-            orig.getColumnDescs().add(new ColumnDesc("test.round_trip", "c9", TapDataType.CIRCLE));
-            orig.getColumnDescs().add(new ColumnDesc("test.round_trip", "c10", TapDataType.POLYGON));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c1", TapDataType.SHORT));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c2", TapDataType.INTEGER));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c3", TapDataType.LONG));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c4", TapDataType.FLOAT));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c5", TapDataType.DOUBLE));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c6", TapDataType.TIMESTAMP));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c7", TapDataType.INTERVAL));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c8", TapDataType.POINT));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c9", TapDataType.CIRCLE));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c10", TapDataType.POLYGON));
 
             dao.put(orig);
-            td = dao.get("test.round_trip");
+            td = dao.getTable(testTable);
             Assert.assertNotNull("created table", td);
             Assert.assertEquals("num columns", orig.getColumnDescs().size(), td.getColumnDescs().size());
 
             dao.delete(td.getTableName());
-            td = dao.get("test.round_trip");
+            td = dao.getTable(testTable);
             Assert.assertNull("delete confirmed", td);
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
@@ -204,22 +212,23 @@ public class TapSchemaDAOTest {
         try {
             TapSchemaDAO dao = new TapSchemaDAO();
             dao.setDataSource(dataSource);
-
+            String testTable = TEST_SCHEMA + ".round_trip";
+            
             try {
-                dao.delete("test.round_trip");
+                dao.delete(testTable);
             } catch (ResourceNotFoundException ex) {
                 log.debug("table did not exist at setup: " + ex);
             }
 
-            TableDesc td = dao.get("test.round_trip");
+            TableDesc td = dao.getTable(testTable);
             Assert.assertNull("initial setup", td);
 
-            TableDesc orig = new TableDesc("test", "test.round_trip");
+            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
-            orig.getColumnDescs().add(new ColumnDesc("test.round_trip", "c0", TapDataType.STRING));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
             
             dao.put(orig);
-            td = dao.get("test.round_trip");
+            td = dao.getTable(testTable);
             Assert.assertNotNull("created table", td);
             Assert.assertEquals("num columns", orig.getColumnDescs().size(), td.getColumnDescs().size());
             ColumnDesc ecd = td.getColumn("c0");
@@ -229,7 +238,7 @@ public class TapSchemaDAOTest {
             ecd.unit = "m";
             dao.put(td);
             
-            td = dao.get("test.round_trip");
+            td = dao.getTable(testTable);
             Assert.assertNotNull("modified table", td);
             Assert.assertEquals("num columns", orig.getColumnDescs().size(), td.getColumnDescs().size());
             ColumnDesc acd = td.getColumn("c0");
@@ -237,7 +246,7 @@ public class TapSchemaDAOTest {
             Assert.assertEquals("modified unit", ecd.unit, acd.unit);
             
             dao.delete(td.getTableName());
-            td = dao.get("test.round_trip");
+            td = dao.getTable(testTable);
             Assert.assertNull("delete confirmed", td);
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
@@ -251,25 +260,26 @@ public class TapSchemaDAOTest {
             TapSchemaDAO dao = new TapSchemaDAO();
             dao.setDataSource(dataSource);
             
+            String testTable = TEST_SCHEMA + ".round_trip";
             try {
-                dao.delete("test.round_trip");
+                dao.delete(testTable);
             } catch (ResourceNotFoundException ex) {
                 log.debug("table did not exist at setup: " + ex);
             }
 
-            TableDesc td = dao.get("test.round_trip");
+            TableDesc td = dao.getTable(testTable);
             Assert.assertNull("initial setup", td);
 
-            TableDesc orig = new TableDesc("test", "test.round_trip");
+            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
-            orig.getColumnDescs().add(new ColumnDesc("test.round_trip", "c0", TapDataType.STRING));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
             
             // add column
             dao.put(orig);
-            td = dao.get("test.round_trip");
+            td = dao.getTable(testTable);
             Assert.assertNotNull("created table", td);
             Assert.assertEquals("num columns", orig.getColumnDescs().size(), td.getColumnDescs().size());
-            td.getColumnDescs().add(new ColumnDesc("test.round_trip", "c1", TapDataType.SHORT));
+            td.getColumnDescs().add(new ColumnDesc(testTable, "c1", TapDataType.SHORT));
             try {
                 dao.put(td);
                 Assert.fail("add column succeeded - expected IllegalArgumentException");
@@ -279,7 +289,7 @@ public class TapSchemaDAOTest {
             
             // rename column
             td.getColumnDescs().clear();
-            td.getColumnDescs().add(new ColumnDesc("test.round_trip", "d0", TapDataType.STRING));
+            td.getColumnDescs().add(new ColumnDesc(testTable, "d0", TapDataType.STRING));
             try {
                 dao.put(td);
                 Assert.fail("rename column succeeded - expected IllegalArgumentException");
@@ -289,7 +299,7 @@ public class TapSchemaDAOTest {
             
             // change column datatype
             td.getColumnDescs().clear();
-            td.getColumnDescs().add(new ColumnDesc("test.round_trip", "c0", TapDataType.INTEGER));
+            td.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.INTEGER));
             try {
                 dao.put(td);
                 Assert.fail("change column datatype succeeded - expected IllegalArgumentException");

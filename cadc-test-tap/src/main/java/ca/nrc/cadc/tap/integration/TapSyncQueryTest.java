@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2011.                            (c) 2011.
+*  (c) 2019.                            (c) 2019.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,7 +69,6 @@
 
 package ca.nrc.cadc.tap.integration;
 
-import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.conformance.uws2.JobResultWrapper;
 import ca.nrc.cadc.conformance.uws2.SyncUWSTest;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
@@ -87,7 +86,7 @@ public class TapSyncQueryTest extends SyncUWSTest {
     private static final Logger log = Logger.getLogger(TapSyncQueryTest.class);
 
     public TapSyncQueryTest(URI resourceID) {
-        super(resourceID, Standards.TAP_10, Standards.INTERFACE_UWS_SYNC);
+        super(resourceID, Standards.TAP_10, Standards.INTERFACE_PARAM_HTTP, "sync");
     }
 
     @Override

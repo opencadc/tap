@@ -70,18 +70,12 @@
 package ca.nrc.cadc.tap;
 
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import ca.nrc.cadc.tap.upload.datatype.BasicDataTypeMapper;
-import ca.nrc.cadc.tap.upload.datatype.DatabaseDataType;
 import ca.nrc.cadc.tap.writer.format.DefaultFormatFactory;
 import ca.nrc.cadc.tap.writer.format.FormatFactory;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.ParameterUtil;
-
-import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
-
 import org.apache.log4j.Logger;
 
 
@@ -96,16 +90,15 @@ import org.apache.log4j.Logger;
  *
  * @author pdowler
  */
-public class PluginFactory {
-    private static final Logger log = Logger.getLogger(PluginFactory.class);
-
-    private static final String CONFIG = PluginFactory.class.getSimpleName() + ".properties";
+public class PluginFactoryImpl extends PluginFactory {
+    private static final Logger log = Logger.getLogger(PluginFactoryImpl.class);
 
     private Job job;
-    private Properties config;
+    
     private Map<String, Class> langBindings = new HashMap<>();
 
-    public PluginFactory(Job job) {
+    public PluginFactoryImpl(Job job) {
+        super();
         this.job = job;
         init();
     }
@@ -118,21 +111,9 @@ public class PluginFactory {
 
     private void init() {
         // default config
-        Class c;
-
-        this.config = new Properties();
-        URL url = null;
-        try {
-
-            url = PluginFactory.class.getClassLoader().getResource(CONFIG);
-            if (url != null) {
-                config.load(url.openStream());
-            }
-        } catch (Exception ex) {
-            throw new RuntimeException("failed to read " + CONFIG + " from " + url, ex);
-        }
-
+        
         // configured LANG bindings
+        Class c;
         String langStr = config.getProperty(TapQuery.class.getName() + ".langValues");
         if (langStr != null) {
             String langs[] = langStr.split(" ");
@@ -150,6 +131,28 @@ public class PluginFactory {
         }
     }
 
+    /**
+     * This value determines if an auto-commit (true) or manual (false) transaction is used to
+     * execute the main query. The default value is false because it seems like JDBC drivers 
+     * need that to use a cursor to control fetching batches of rows and auto-commit silently
+     * disabled that behaviour. The preferred value can be configured with:
+     * <code>ca.nrc.cadc.tap.QueryRunner.autoCommit=true|false</code>.
+     * 
+     * @return 
+     */
+    public boolean getAutoCommit() {
+        String name = QueryRunner.class.getName() + ".autoCommit";
+        String cval = config.getProperty(name);
+        if (cval == null) {
+            return false;
+        }
+        try {
+            return Boolean.getBoolean(cval);
+        } catch (Exception ex) {
+            throw new RuntimeException("CONFIG: invalid value for " + name + " in PluginFactory.properties: " + cval);
+        }
+    }
+    
     public TapQuery getTapQuery() {
         String lang = ParameterUtil.findParameterValue("LANG", job.getParameterList());
         if (lang == null || lang.length() == 0) {
@@ -268,44 +271,6 @@ public class PluginFactory {
         return ret;
     }
 
-    public DatabaseDataType getDatabaseDataType() {
-        final DatabaseDataType ret;
-        final String name = DatabaseDataType.class.getName();
-        final String cname = config.getProperty(name);
-        if (cname == null) {
-            ret = new BasicDataTypeMapper();
-        } else {
-            try {
-                Class c = Class.forName(cname);
-                ret = (DatabaseDataType) c.newInstance();
-            } catch (Throwable ex) {
-                throw new RuntimeException("config error: failed to create DatabaseDataType " + cname, ex);
-
-            }
-        }
-
-        return ret;
-    }
-
-
-    public TapSchemaDAO getTapSchemaDAO() {
-        final TapSchemaDAO ret;
-        String name = TapSchemaDAO.class.getName();
-        String cname = config.getProperty(name);
-        if (cname == null) {
-            ret = new TapSchemaDAO();
-        } else {
-            try {
-                Class c = Class.forName(cname);
-                ret = (TapSchemaDAO) c.newInstance();
-            } catch (Throwable ex) {
-                throw new RuntimeException("config error: failed to create TapSchemaDAO " + cname, ex);
-            }
-        }
-        ret.setJob(job);
-        return ret;
-    }
-
     public ResultStore getResultStore() {
         String name = ResultStore.class.getName();
         String cname = config.getProperty(name);
@@ -318,5 +283,12 @@ public class PluginFactory {
         } catch (Throwable ex) {
             throw new RuntimeException("config error: failed to create ResultStore " + cname, ex);
         }
+    }
+
+    @Override
+    public TapSchemaDAO getTapSchemaDAO() {
+        TapSchemaDAO ret = super.getTapSchemaDAO();
+        ret.setJob(job);
+        return ret;
     }
 }

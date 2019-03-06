@@ -76,7 +76,7 @@ package ca.nrc.cadc.tap.schema;
  */
 public class ColumnDesc
 {
-    private final String tableName;
+    private String tableName;
     private final String columnName;
     private final TapDataType datatype;
     
@@ -105,6 +105,10 @@ public class ColumnDesc
         this.tableName = tableName;
         this.columnName = columnName;
         this.datatype = datatype;
+    }
+
+    public void setTableName(String tableName) {
+        this.tableName = tableName;
     }
 
     public String getTableName()

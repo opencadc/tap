@@ -72,9 +72,8 @@ package ca.nrc.cadc.tap.upload.datatype;
 
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
-
-import org.junit.Test;
 import static org.junit.Assert.*;
+import org.junit.Test;
 
 
 public class OracleDataTypeTest {
@@ -92,10 +91,7 @@ public class OracleDataTypeTest {
     @Test
     public void getSizeDataType() {
         final OracleDataType testSubject = new OracleDataType();
-        final TapDataType tapDataType = new TapDataType("char", "256", "clob");
-
-        // Reuse the CLOB version.
-        testSubject.dataTypes.put(tapDataType, testSubject.dataTypes.get(TapDataType.CLOB));
+        final TapDataType tapDataType = new TapDataType("char", "256*", null);
 
         final ColumnDesc columnDesc = new ColumnDesc("mytable", "mycolumn", tapDataType);
         final String dataType = testSubject.getDataType(columnDesc);

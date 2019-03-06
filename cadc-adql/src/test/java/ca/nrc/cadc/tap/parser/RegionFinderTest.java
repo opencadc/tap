@@ -172,7 +172,8 @@ public class RegionFinderTest
     {
         String query = "select COORDSYS(a), COORD1(a), COORD2(a) from someTable as a"
             + " where 0 = CONTAINS(POINT('ICRS GEOCENTER', 25.0, -19.5), someRegionColumn) "
-            + "    and INTERSECTS(a.someShape, CIRCLE('ICRS', 12, 34, 5))=1 ";
+            + "    and INTERSECTS(a.someShape, CIRCLE('ICRS', 12, 34, 5))=1 "
+            + "    and DISTANCE(a.someShape, POINT('ICRS', 12, 34)) < 1 ";
         try
         {
             doit(query);

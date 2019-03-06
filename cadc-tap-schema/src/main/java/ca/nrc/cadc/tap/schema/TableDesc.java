@@ -78,14 +78,14 @@ import java.util.List;
  */
 public class TableDesc
 {
-    private final String schemaName;
-    private final String tableName;
+    private String schemaName;
+    private String tableName;
     private final List<ColumnDesc> columnDescs = new ArrayList<ColumnDesc>();
     private final List<KeyDesc> keyDescs = new ArrayList<KeyDesc>();
     
     public String description;
     public String utype;
-    public Integer table_index;
+    public Integer tableIndex;
     public TableType tableType = TableType.TABLE;
     
     public enum TableType {
@@ -120,9 +120,17 @@ public class TableDesc
         this.tableName = tableName;
     }
 
+    public void setSchemaName(String schemaName) {
+        this.schemaName = schemaName;
+    }
+
     public String getSchemaName()
     {
         return schemaName;
+    }
+
+    public void setTableName(String tableName) {
+        this.tableName = tableName;
     }
 
     public String getTableName()
