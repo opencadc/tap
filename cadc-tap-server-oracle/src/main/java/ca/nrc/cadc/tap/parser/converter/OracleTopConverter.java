@@ -86,6 +86,7 @@ import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
 
 public class OracleTopConverter extends SelectNavigator {
     private static final Logger LOGGER = Logger.getLogger(OracleTopConverter.class);
+    public static final String ORACLE_ROWNUM_KEYWORD = "ROWNUM";
 
     public OracleTopConverter(final ExpressionNavigator en, final ReferenceNavigator rn, final FromItemNavigator fn) {
         super(en, rn, fn);
@@ -101,7 +102,7 @@ public class OracleTopConverter extends SelectNavigator {
             LOGGER.debug("TOP: " + rowCount);
 
             final MinorThanEquals rowNumClause = new MinorThanEquals();
-            rowNumClause.setLeftExpression(new KeywordExpression("ROWNUM"));
+            rowNumClause.setLeftExpression(new KeywordExpression(ORACLE_ROWNUM_KEYWORD));
             rowNumClause.setRightExpression(new LongValue(Long.toString(rowCount)));
 
             final Expression whereClause = plainSelect.getWhere();
