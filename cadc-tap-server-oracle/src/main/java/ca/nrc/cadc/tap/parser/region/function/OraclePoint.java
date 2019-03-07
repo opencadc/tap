@@ -75,8 +75,6 @@ import ca.nrc.cadc.dali.Point;
 
 
 public class OraclePoint extends OracleGeometricFunction {
-    final static String ORACLE_RADIANS_FUNCTION_NAME = "RADIANS";
-
     private boolean isOperand;
 
 

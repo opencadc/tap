@@ -94,6 +94,7 @@ import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
 import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.region.function.OracleCircle;
+import ca.nrc.cadc.tap.parser.region.function.OracleDistance;
 import ca.nrc.cadc.tap.parser.region.function.OraclePoint;
 import ca.nrc.cadc.tap.parser.region.function.OraclePolygon;
 
@@ -209,41 +210,16 @@ public class OracleRegionConverter extends RegionFinder {
         }
     }
 
-//    @Override
-//    protected Expression handleRegionPredicate(BinaryExpression binaryExpression) {
-//        LOGGER.debug("handleRegionPredicate(" + binaryExpression.getClass().getSimpleName() + "): " +
-//        binaryExpression);
-//
-//        if (!(binaryExpression instanceof EqualsTo ||
-//            binaryExpression instanceof NotEqualsTo ||
-//            binaryExpression instanceof MinorThan ||
-//            binaryExpression instanceof GreaterThan ||
-//            binaryExpression instanceof MinorThanEquals ||
-//            binaryExpression instanceof GreaterThanEquals)) {
-//            return binaryExpression;
-//        }
-//
-//        Expression left = binaryExpression.getLeftExpression();
-//        Expression right = binaryExpression.getRightExpression();
-//
-//        final Operator operator;
-//        final long value;
-//        if (isOperator(left) && ParserUtil.isBinaryValue(right)) {
-//            operator = (Operator) left;
-//            value = ((LongValue) right).getValue();
-//        } else if (ParserUtil.isBinaryValue(left) && isOperator(right)) {
-//            operator = (Operator) right;
-//            value = ((LongValue) left).getValue();
-//        } else {
-//            return binaryExpression;
-//        }
-//
-//        if (value == 0) {
-//            operator.negate();
-//        }
-//
-//        return operator;
-//    }
+    /**
+     * This method is called when DISTANCE function is found.
+     *
+     * @param left      Left side of clause.
+     * @param right     Right side of clause.
+     */
+    @Override
+    protected Expression handleDistance(final Expression left, final Expression right) {
+        return new OracleDistance(left, right, RELATE_DEFAULT_TOLERANCE);
+    }
 
     private Expression handleRelate(final Expression left, final Expression right, final String relationMask) {
         final Function containsFunction = new Function();

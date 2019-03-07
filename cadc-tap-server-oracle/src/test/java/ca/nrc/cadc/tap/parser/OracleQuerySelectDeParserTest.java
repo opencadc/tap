@@ -67,33 +67,65 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.oracle;
+package ca.nrc.cadc.tap.parser;
 
-import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
-import ca.nrc.cadc.tap.schema.TapDataType;
+import net.sf.jsqlparser.expression.ExpressionVisitor;
+import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
+import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.schema.Table;
+import net.sf.jsqlparser.statement.select.PlainSelect;
 
-import java.sql.Types;
+import net.sf.jsqlparser.statement.select.SelectExpressionItem;
+import net.sf.jsqlparser.statement.select.SelectItem;
+import net.sf.jsqlparser.statement.select.Top;
+import org.junit.Test;
+import org.junit.Assert;
 
-public class OracleDataTypeMapper extends BasicDataTypeMapper {
-    // HACK: arbitrary sensible limit.  Maximum is 4000 for Oracle.
-    private static final String DEFAULT_VARCHAR2_QUANTIFIER = "(3072)";
+import ca.nrc.cadc.tap.expression.OracleExpressionDeParser;
+
+import java.util.ArrayList;
+import java.util.List;
 
 
-    public OracleDataTypeMapper() {
-        dataTypes.put(TapDataType.POINT, new TypePair("POINT", null));
-        dataTypes.put(TapDataType.CIRCLE, new TypePair("CIRCLE", null));
-        dataTypes.put(TapDataType.POLYGON, new TypePair("POLYGON", null));
-        dataTypes.put(TapDataType.INTEGER, new TypePair("INT", Types.INTEGER));
-        dataTypes.put(TapDataType.CLOB, new TypePair("CHAR", Types.INTEGER));
-    }
+public class OracleQuerySelectDeParserTest {
 
-    @Override
-    protected String getVarCharType() {
-        return "VARCHAR2";
-    }
+    @Test
+    public void visitPlainSelect() {
+        final StringBuffer buffer = new StringBuffer();
+        final ExpressionVisitor expressionVisitor = new OracleExpressionDeParser(null, buffer);
+        final OracleQuerySelectDeParser testSubject = new OracleQuerySelectDeParser(expressionVisitor, buffer);
+        final PlainSelect plainSelect = new PlainSelect();
+        final Table table = new Table(null, "t");
+        final Top top = new Top();
+        top.setRowCount(88);
 
-    @Override
-    protected String getDefaultCharlimit() {
-        return DEFAULT_VARCHAR2_QUANTIFIER;
+        final List<SelectItem> selectItemList = new ArrayList<>();
+
+        final SelectExpressionItem itemX = new SelectExpressionItem();
+        itemX.setExpression(new Column(table, "x"));
+        selectItemList.add(itemX);
+
+        final SelectExpressionItem itemY = new SelectExpressionItem();
+        itemY.setExpression(new Column(table, "y"));
+        selectItemList.add(itemY);
+
+        final EqualsTo whereClause = new EqualsTo();
+        final Function left = new Function();
+        left.setName("f");
+        final LongValue right = new LongValue("5");
+        whereClause.setLeftExpression(left);
+        whereClause.setRightExpression(right);
+
+        plainSelect.setSelectItems(selectItemList);
+        plainSelect.setFromItem(table);
+        plainSelect.setTop(top);
+        plainSelect.setWhere(whereClause);
+        testSubject.visit(plainSelect);
+
+        Assert.assertEquals("Wrong query output",
+                            "SELECT t.x, t.y FROM (SELECT t.x, t.y FROM t WHERE f() = 5) WHERE ROWNUM <= 88",
+                            buffer.toString());
     }
 }

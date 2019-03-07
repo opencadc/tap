@@ -67,33 +67,82 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.oracle;
+package ca.nrc.cadc.tap.parser;
 
-import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
-import ca.nrc.cadc.tap.schema.TapDataType;
+import net.sf.jsqlparser.expression.ExpressionVisitor;
+import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.SelectExpressionItem;
+import net.sf.jsqlparser.statement.select.SelectItem;
+import net.sf.jsqlparser.statement.select.SubSelect;
+import net.sf.jsqlparser.statement.select.Top;
 
-import java.sql.Types;
+import ca.nrc.cadc.tap.expression.OracleColumnAliasSelectItem;
+import ca.nrc.cadc.tap.expression.OracleTopExpression;
 
-public class OracleDataTypeMapper extends BasicDataTypeMapper {
-    // HACK: arbitrary sensible limit.  Maximum is 4000 for Oracle.
-    private static final String DEFAULT_VARCHAR2_QUANTIFIER = "(3072)";
+import java.util.ArrayList;
+import java.util.List;
 
+public class OracleQuerySelectDeParser extends QuerySelectDeParser {
+    public OracleQuerySelectDeParser() {
+    }
 
-    public OracleDataTypeMapper() {
-        dataTypes.put(TapDataType.POINT, new TypePair("POINT", null));
-        dataTypes.put(TapDataType.CIRCLE, new TypePair("CIRCLE", null));
-        dataTypes.put(TapDataType.POLYGON, new TypePair("POLYGON", null));
-        dataTypes.put(TapDataType.INTEGER, new TypePair("INT", Types.INTEGER));
-        dataTypes.put(TapDataType.CLOB, new TypePair("CHAR", Types.INTEGER));
+    public OracleQuerySelectDeParser(ExpressionVisitor expressionVisitor, StringBuffer buffer) {
+        super(expressionVisitor, buffer);
+    }
+
+    /**
+     * Oracle requires some finesse.  We need to wrap the outer query in a SELECT FROM (PROVIDED QUERY) to support the
+     * ROWNUM (ADQL TOP translation).
+     *
+     * @param plainSelect The plain SELECT to visit.
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public void visit(final PlainSelect plainSelect) {
+        final Top top = plainSelect.getTop();
+
+        if (top == null) {
+            super.visit(plainSelect);
+        } else {
+            // Remove the top as we will be adding it to the outer SELECT.
+            plainSelect.setTop(null);
+
+            final List<SelectItem> selectItemList = plainSelect.getSelectItems();
+            final PlainSelect outerPlainSelect = new PlainSelect();
+
+            final SubSelect subSelect = new SubSelect();
+            subSelect.setSelectBody(plainSelect);
+
+            final OracleTopExpression topWhereClause = new OracleTopExpression();
+            topWhereClause.setRightExpression(new LongValue(Long.toString(top.getRowCount())));
+
+            final List<SelectItem> outerSelectItems = new ArrayList<>();
+            for (final SelectItem selectItem : selectItemList) {
+                if (selectItem instanceof SelectExpressionItem) {
+                    final OracleColumnAliasSelectItem ocasi =
+                        new OracleColumnAliasSelectItem((SelectExpressionItem) selectItem);
+
+                    outerSelectItems.add(ocasi);
+                } else {
+                    outerSelectItems.add(selectItem);
+                }
+            }
+
+            outerPlainSelect.setSelectItems(outerSelectItems);
+            outerPlainSelect.setFromItem(subSelect);
+            outerPlainSelect.setWhere(topWhereClause);
+
+            super.visit(outerPlainSelect);
+        }
     }
 
     @Override
-    protected String getVarCharType() {
-        return "VARCHAR2";
-    }
-
-    @Override
-    protected String getDefaultCharlimit() {
-        return DEFAULT_VARCHAR2_QUANTIFIER;
+    public void visit(SelectExpressionItem selectExpressionItem) {
+        if (selectExpressionItem instanceof OracleColumnAliasSelectItem) {
+            getBuffer().append(selectExpressionItem.toString());
+        } else {
+            super.visit(selectExpressionItem);
+        }
     }
 }

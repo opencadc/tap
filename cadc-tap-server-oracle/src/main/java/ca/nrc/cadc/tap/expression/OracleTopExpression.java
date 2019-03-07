@@ -67,33 +67,22 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.oracle;
+package ca.nrc.cadc.tap.expression;
 
-import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
-import ca.nrc.cadc.tap.schema.TapDataType;
-
-import java.sql.Types;
-
-public class OracleDataTypeMapper extends BasicDataTypeMapper {
-    // HACK: arbitrary sensible limit.  Maximum is 4000 for Oracle.
-    private static final String DEFAULT_VARCHAR2_QUANTIFIER = "(3072)";
+import net.sf.jsqlparser.expression.ExpressionVisitor;
+import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
+import ca.nrc.cadc.tap.parser.converter.OracleTopConverter;
 
 
-    public OracleDataTypeMapper() {
-        dataTypes.put(TapDataType.POINT, new TypePair("POINT", null));
-        dataTypes.put(TapDataType.CIRCLE, new TypePair("CIRCLE", null));
-        dataTypes.put(TapDataType.POLYGON, new TypePair("POLYGON", null));
-        dataTypes.put(TapDataType.INTEGER, new TypePair("INT", Types.INTEGER));
-        dataTypes.put(TapDataType.CLOB, new TypePair("CHAR", Types.INTEGER));
+public class OracleTopExpression extends MinorThanEquals {
+    public OracleTopExpression() {
+        setLeftExpression(new KeywordExpression(OracleTopConverter.ORACLE_ROWNUM_KEYWORD));
     }
 
     @Override
-    protected String getVarCharType() {
-        return "VARCHAR2";
-    }
-
-    @Override
-    protected String getDefaultCharlimit() {
-        return DEFAULT_VARCHAR2_QUANTIFIER;
+    public void accept(ExpressionVisitor expressionVisitor) {
+        if (expressionVisitor instanceof OracleExpressionDeParser) {
+            expressionVisitor.visit(this);
+        }
     }
 }

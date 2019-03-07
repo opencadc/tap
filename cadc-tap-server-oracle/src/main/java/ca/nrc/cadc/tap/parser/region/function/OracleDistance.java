@@ -67,33 +67,42 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.oracle;
+package ca.nrc.cadc.tap.parser.region.function;
 
-import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
-import ca.nrc.cadc.tap.schema.TapDataType;
+import net.sf.jsqlparser.expression.DoubleValue;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 
-import java.sql.Types;
-
-public class OracleDataTypeMapper extends BasicDataTypeMapper {
-    // HACK: arbitrary sensible limit.  Maximum is 4000 for Oracle.
-    private static final String DEFAULT_VARCHAR2_QUANTIFIER = "(3072)";
+import java.util.ArrayList;
+import java.util.List;
 
 
-    public OracleDataTypeMapper() {
-        dataTypes.put(TapDataType.POINT, new TypePair("POINT", null));
-        dataTypes.put(TapDataType.CIRCLE, new TypePair("CIRCLE", null));
-        dataTypes.put(TapDataType.POLYGON, new TypePair("POLYGON", null));
-        dataTypes.put(TapDataType.INTEGER, new TypePair("INT", Types.INTEGER));
-        dataTypes.put(TapDataType.CLOB, new TypePair("CHAR", Types.INTEGER));
+public class OracleDistance extends Function {
+    static final String ORACLE_FUNCTION_NAME = "SDO_GEOM.SDO_DISTANCE";
+    private final Expression objectOne;
+    private final Expression objectTwo;
+    private final String tolerance;
+
+
+    public OracleDistance(final Expression objectOne, final Expression objectTwo, final String tolerance) {
+        this.objectOne = objectOne;
+        this.objectTwo = objectTwo;
+        this.tolerance = tolerance;
+
+        setName(ORACLE_FUNCTION_NAME);
+        setParameters(new ExpressionList(new ArrayList()));
+
+        mapValues();
     }
 
-    @Override
-    protected String getVarCharType() {
-        return "VARCHAR2";
-    }
+    @SuppressWarnings("unchecked")
+    private void mapValues() {
+        final ExpressionList parameters = getParameters();
+        final List<Expression> expressionList = parameters.getExpressions();
 
-    @Override
-    protected String getDefaultCharlimit() {
-        return DEFAULT_VARCHAR2_QUANTIFIER;
+        expressionList.add(objectOne);
+        expressionList.add(objectTwo);
+        expressionList.add(new DoubleValue(tolerance));
     }
 }

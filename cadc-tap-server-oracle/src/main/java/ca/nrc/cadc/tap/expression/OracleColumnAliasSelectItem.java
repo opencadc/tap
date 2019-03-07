@@ -67,33 +67,27 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.oracle;
+package ca.nrc.cadc.tap.expression;
 
-import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
-import ca.nrc.cadc.tap.schema.TapDataType;
-
-import java.sql.Types;
-
-public class OracleDataTypeMapper extends BasicDataTypeMapper {
-    // HACK: arbitrary sensible limit.  Maximum is 4000 for Oracle.
-    private static final String DEFAULT_VARCHAR2_QUANTIFIER = "(3072)";
+import net.sf.jsqlparser.statement.select.SelectExpressionItem;
+import net.sf.jsqlparser.statement.select.SelectItemVisitor;
 
 
-    public OracleDataTypeMapper() {
-        dataTypes.put(TapDataType.POINT, new TypePair("POINT", null));
-        dataTypes.put(TapDataType.CIRCLE, new TypePair("CIRCLE", null));
-        dataTypes.put(TapDataType.POLYGON, new TypePair("POLYGON", null));
-        dataTypes.put(TapDataType.INTEGER, new TypePair("INT", Types.INTEGER));
-        dataTypes.put(TapDataType.CLOB, new TypePair("CHAR", Types.INTEGER));
+public class OracleColumnAliasSelectItem extends SelectExpressionItem {
+    public OracleColumnAliasSelectItem(final SelectExpressionItem selectExpressionItem) {
+        super();
+        setExpression(selectExpressionItem.getExpression());
+        setAlias(selectExpressionItem.getAlias());
     }
 
     @Override
-    protected String getVarCharType() {
-        return "VARCHAR2";
+    public void accept(SelectItemVisitor selectItemVisitor) {
+        selectItemVisitor.visit(this);
     }
 
     @Override
-    protected String getDefaultCharlimit() {
-        return DEFAULT_VARCHAR2_QUANTIFIER;
+    public String toString() {
+        final String alias = getAlias();
+        return (alias == null) ? getExpression() + "" : alias;
     }
 }

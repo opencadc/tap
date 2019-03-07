@@ -67,33 +67,37 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.oracle;
-
-import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
-import ca.nrc.cadc.tap.schema.TapDataType;
-
-import java.sql.Types;
-
-public class OracleDataTypeMapper extends BasicDataTypeMapper {
-    // HACK: arbitrary sensible limit.  Maximum is 4000 for Oracle.
-    private static final String DEFAULT_VARCHAR2_QUANTIFIER = "(3072)";
+package ca.nrc.cadc.tap.parser.region.function;
 
 
-    public OracleDataTypeMapper() {
-        dataTypes.put(TapDataType.POINT, new TypePair("POINT", null));
-        dataTypes.put(TapDataType.CIRCLE, new TypePair("CIRCLE", null));
-        dataTypes.put(TapDataType.POLYGON, new TypePair("POLYGON", null));
-        dataTypes.put(TapDataType.INTEGER, new TypePair("INT", Types.INTEGER));
-        dataTypes.put(TapDataType.CLOB, new TypePair("CHAR", Types.INTEGER));
-    }
+import ca.nrc.cadc.dali.Circle;
+import ca.nrc.cadc.dali.Point;
 
-    @Override
-    protected String getVarCharType() {
-        return "VARCHAR2";
-    }
+import net.sf.jsqlparser.expression.DoubleValue;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import org.junit.Test;
 
-    @Override
-    protected String getDefaultCharlimit() {
-        return DEFAULT_VARCHAR2_QUANTIFIER;
+import java.util.ArrayList;
+import java.util.List;
+
+
+public class OracleDistanceTest extends AbstractFunctionTest {
+    @Test
+    @SuppressWarnings("unchecked")
+    public void convertParameters() {
+        final OraclePoint oraclePointLeft = new OraclePoint(new Point(22.8D, 44.9D));
+        final OracleCircle oracleCircleRight = new OracleCircle(new Circle(new Point(13.0D, 14.6D), 0.4D));
+        final OracleDistance testSubject = new OracleDistance(oraclePointLeft, oracleCircleRight, "0.06");
+
+        final ExpressionList result = testSubject.getParameters();
+        final List<Expression> resultExpressions = result.getExpressions();
+        final List<Expression> expectedExpressions = new ArrayList<>();
+
+        expectedExpressions.add(oraclePointLeft);
+        expectedExpressions.add(oracleCircleRight);
+        expectedExpressions.add(new DoubleValue("0.06"));
+
+        assertResultExpressions(expectedExpressions, resultExpressions);
     }
 }
