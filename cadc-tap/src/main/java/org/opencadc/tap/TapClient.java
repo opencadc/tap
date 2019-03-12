@@ -62,67 +62,78 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
-*
 ************************************************************************
- */
+*/
 
-package ca.nrc.cadc.tap.integration;
+package org.opencadc.tap;
 
-import ca.nrc.cadc.conformance.uws2.AsyncUWSTest;
-import ca.nrc.cadc.conformance.uws2.JobResultWrapper;
-import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
+import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.reg.Standards;
-import ca.nrc.cadc.uws.ExecutionPhase;
-import ca.nrc.cadc.uws.Result;
+import ca.nrc.cadc.reg.client.RegistryClient;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
 
 /**
- *
+ * Basic client for Table Access Protocol (TAP).
+ * 
  * @author pdowler
  */
-public class TapAsyncQueryTest extends AsyncUWSTest {
+public class TapClient {
+    private static final Logger log = Logger.getLogger(TapClient.class);
 
-    private static final Logger log = Logger.getLogger(TapAsyncQueryTest.class);
-
-    private static final long TIMEOUT = 60 * 1000L;
-
-    public TapAsyncQueryTest(URI resourceID) {
-        super(resourceID, Standards.TAP_10, Standards.INTERFACE_PARAM_HTTP, TIMEOUT, "async");
+    private final URI resourceID;
+    private final RegistryClient reg;
+    
+    /**
+     * Constructor.
+     * 
+     * @param resourceID unique identifier for the TAP service
+     */
+    public TapClient(URI resourceID) {
+        this.resourceID = resourceID;
+        this.reg = new RegistryClient();
     }
-
-    @Override
-    protected void validateResponse(JobResultWrapper result) {
-        Assert.assertEquals(ExecutionPhase.COMPLETED, result.job.getExecutionPhase());
-
-        //Result r = result.job.getResultsList().get(0);
-        Result r = null;
-        for (Result jr : result.job.getResultsList()) {
-            if ("result".equals(jr.getName())) {
-                r = jr;
-                break;
-            }
+    
+    /**
+     * Generate a usable async endpoint URL. This method only considers the specified
+     * authentication method when performing the lookup of the base URL.
+     * 
+     * @param am authentication method
+     * @return async URL
+     * @throws ResourceNotFoundException if base URL matching specified auth not found
+     */
+    public URL getAsyncURL(AuthMethod am) throws ResourceNotFoundException {
+        URL base = reg.getServiceURL(resourceID, Standards.TAP_10, am);
+        if (base == null) {
+            throw new ResourceNotFoundException("not found: " + resourceID + " with " + am.getValue());
         }
-        Assert.assertNotNull("found result", r);
-
         try {
-            URL resultURL = r.getURI().toURL();
-
-            log.info(result.name + ": result " + resultURL);
-            VOTableDocument vot = VOTableHandler.getVOTable(resultURL);
-
-            String queryStatus = VOTableHandler.getQueryStatus(vot);
-            Assert.assertNotNull("QUERY_STATUS", queryStatus);
-            Assert.assertEquals("OK", queryStatus);
-
-            // TODO: validate content?
-        } catch (Exception unexpected) {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
+            return new URL(base.toExternalForm() + "/async");
+        } catch (MalformedURLException ex) {
+            throw new RuntimeException("FAIL: appending /async to " + base + " gave invalid URL", ex);
         }
     }
-
+    
+    /**
+     * Generate a usable sync endpoint URL. This method only considers the specified
+     * authentication method when performing the lookup of the base URL.
+     * 
+     * @param am authentication method
+     * @return sync URL
+     * @throws ResourceNotFoundException if base URL matching specified auth not found
+     */
+    public URL getSyncURL(AuthMethod am) throws ResourceNotFoundException {
+        URL base = reg.getServiceURL(resourceID, Standards.TAP_10, am);
+        if (base == null) {
+            throw new ResourceNotFoundException("not found: " + resourceID + " with " + am.getValue());
+        }
+        try {
+            return new URL(base.toExternalForm() + "/sync");
+        } catch (MalformedURLException ex) {
+            throw new RuntimeException("FAIL: appending /async to " + base + " gave invalid URL", ex);
+        }
+    }
 }
