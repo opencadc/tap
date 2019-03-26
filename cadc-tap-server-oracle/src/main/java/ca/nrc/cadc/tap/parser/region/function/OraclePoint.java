@@ -74,7 +74,6 @@ import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import ca.nrc.cadc.dali.Point;
 
-import java.util.Arrays;
 
 
 public class OraclePoint extends OracleGeometricFunction {
