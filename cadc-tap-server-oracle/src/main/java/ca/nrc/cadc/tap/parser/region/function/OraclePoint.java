@@ -69,9 +69,12 @@
 
 package ca.nrc.cadc.tap.parser.region.function;
 
+import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import ca.nrc.cadc.dali.Point;
+
+import java.util.Arrays;
 
 
 public class OraclePoint extends OracleGeometricFunction {
@@ -79,11 +82,12 @@ public class OraclePoint extends OracleGeometricFunction {
 
 
     public OraclePoint(final Point point) {
-        super(point);
+        super(new DoubleValue(Double.toString(point.getLongitude())),
+              new DoubleValue(Double.toString(point.getLatitude())));
     }
 
     public OraclePoint(Expression ra, Expression dec) {
-        this(new Point(Double.parseDouble(ra.toString()), Double.parseDouble(dec.toString())));
+        super(ra, dec);
     }
 
     public void setOperand(boolean isOperand) {
