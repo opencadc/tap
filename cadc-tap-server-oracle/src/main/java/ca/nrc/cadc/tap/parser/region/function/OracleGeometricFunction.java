@@ -98,7 +98,7 @@ abstract class OracleGeometricFunction extends Function {
     private final List<Expression> elementInfoValues = new ArrayList<>();
 
 
-    private OracleGeometricFunction(final List<Expression> elementInfoValues) {
+    OracleGeometricFunction(final List<Expression> elementInfoValues) {
         this.elementInfoValues.addAll(elementInfoValues);
 
         setName(ORACLE_GEOMETRY_FUNCTION_NAME);
@@ -106,7 +106,7 @@ abstract class OracleGeometricFunction extends Function {
     }
 
     @SuppressWarnings("unchecked")
-    OracleGeometricFunction(final Point point) {
+    OracleGeometricFunction(Expression ra, Expression dec) {
         this(Collections.EMPTY_LIST);
 
         addParameter(new LongValue(Long.toString(POINT_GEO_TYPE)));
@@ -116,8 +116,8 @@ abstract class OracleGeometricFunction extends Function {
         pointFunction.setName(POINT_FUNCTION_NAME);
 
         final ExpressionList parameters = new ExpressionList(new ArrayList());
-        parameters.getExpressions().add(new DoubleValue(Double.toString(point.getLongitude())));
-        parameters.getExpressions().add(new DoubleValue(Double.toString(point.getLatitude())));
+        parameters.getExpressions().add(ra);
+        parameters.getExpressions().add(dec);
         parameters.getExpressions().add(new NullValue());
 
         pointFunction.setParameters(parameters);
