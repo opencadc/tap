@@ -169,6 +169,7 @@ public class TapDataType
     public static final TapDataType FUNCTION_ARG = new TapDataType("function-arg", null, null);
     
     // VOTable primitive types
+    public static final TapDataType BOOLEAN = new TapDataType("boolean");
     public static final TapDataType SHORT = new TapDataType("short");
     public static final TapDataType INTEGER = new TapDataType("int");
     public static final TapDataType LONG = new TapDataType("long");

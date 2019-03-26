@@ -137,6 +137,7 @@ public class TableCreatorTest {
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c4", TapDataType.FLOAT));
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c5", TapDataType.DOUBLE));
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c6", TapDataType.TIMESTAMP));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c7", TapDataType.BOOLEAN));
             
             tc.createTable(orig);
             log.info("createTable returned");

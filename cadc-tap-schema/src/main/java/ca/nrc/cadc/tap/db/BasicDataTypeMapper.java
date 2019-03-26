@@ -120,6 +120,7 @@ public class BasicDataTypeMapper implements DatabaseDataType {
 
     public BasicDataTypeMapper() {
         // votable type -> db type
+        dataTypes.put(TapDataType.BOOLEAN, new TypePair("BOOLEAN", Types.BOOLEAN));
         dataTypes.put(TapDataType.SHORT, new TypePair("SMALLINT", Types.SMALLINT));
         dataTypes.put(TapDataType.INTEGER, new TypePair("INTEGER", Types.INTEGER));
         dataTypes.put(TapDataType.LONG, new TypePair("BIGINT", Types.BIGINT));
