@@ -103,11 +103,12 @@ import java.util.List;
 
 
 public class OracleRegionConverter extends RegionFinder {
-    private static final String RELATE_MASK_CONTAINS = "contains";
-    private static final String RELATE_CONTAINS_TRUE_VALUE = "CONTAINS";
+
+    private static final String TRUE_VALUE = "TRUE";
     private static final String RELATE_MASK_INTERSECTS = "anyinteract";
-    private static final String RELATE_INTERSECTS_TRUE_VALUE = "TRUE";
     private static final String RELATE_FUNCTION_NAME = "SDO_GEOM.RELATE";
+    private static final String CONTAINS_FUNCTION_NAME = "SDO_CONTAINS";
+    private static final String ANYINTERACT_FUNCTION_NAME = "SDO_ANYINTERACT";
     private static final String RELATE_DEFAULT_TOLERANCE = "0.005";
 
     private static final Logger LOGGER = Logger.getLogger(OracleRegionConverter.class);
@@ -120,21 +121,6 @@ public class OracleRegionConverter extends RegionFinder {
     @Override
     public Expression convertToImplementation(final Function func) {
         return super.convertToImplementation(func);
-    }
-
-    private String getRegionPredicateFunctionType(final Function function) {
-        final String containsMask = String.format("'%s'", RELATE_MASK_CONTAINS);
-        final String intersectsMask = String.format("'%s'", RELATE_MASK_INTERSECTS);
-        for (final Object e : function.getParameters().getExpressions()) {
-            if (e.toString().contains(containsMask)) {
-                return RELATE_MASK_CONTAINS;
-            } else if (e.toString().contains(intersectsMask)) {
-                return RELATE_MASK_INTERSECTS;
-            }
-        }
-
-        throw new UnsupportedOperationException(String.format("No such Region Predicate supported: %s",
-                                                              function.getName()));
     }
 
     /**
@@ -157,11 +143,11 @@ public class OracleRegionConverter extends RegionFinder {
         LOGGER.debug("handleRegionPredicate(" + binaryExpression.getClass().getSimpleName() + "): " + binaryExpression);
 
         if (!(binaryExpression instanceof EqualsTo ||
-            binaryExpression instanceof NotEqualsTo ||
-            binaryExpression instanceof MinorThan ||
-            binaryExpression instanceof GreaterThan ||
-            binaryExpression instanceof MinorThanEquals ||
-            binaryExpression instanceof GreaterThanEquals)) {
+                binaryExpression instanceof NotEqualsTo ||
+                binaryExpression instanceof MinorThan ||
+                binaryExpression instanceof GreaterThan ||
+                binaryExpression instanceof MinorThanEquals ||
+                binaryExpression instanceof GreaterThanEquals)) {
             return binaryExpression;
         }
 
@@ -184,19 +170,15 @@ public class OracleRegionConverter extends RegionFinder {
         }
 
         // Should always be true, but just in case...
-        if (function.getName().equals(RELATE_FUNCTION_NAME)) {
+        if (function.getName().equals(RELATE_FUNCTION_NAME) || function.getName().equals(CONTAINS_FUNCTION_NAME)
+                || function.getName().equals(ANYINTERACT_FUNCTION_NAME)) {
             if (!(binaryExpression instanceof EqualsTo || binaryExpression instanceof NotEqualsTo)) {
                 throw new UnsupportedOperationException(
-                    "Use Equals (=) or NotEquals (!=) with CONTAINS and INTERSECTS.");
+                        "Use Equals (=) or NotEquals (!=) with CONTAINS and INTERSECTS.");
             }
 
             final BinaryExpression returnExpression = (value == 0) ? new NotEqualsTo() : new EqualsTo();
-
-            final String returnCompareExpressionValue =
-                getRegionPredicateFunctionType(function).equals(RELATE_MASK_CONTAINS) ? RELATE_CONTAINS_TRUE_VALUE :
-                    RELATE_INTERSECTS_TRUE_VALUE;
-            final Expression returnCompareExpression = new StringValue(String.format("'%s'",
-                                                                                     returnCompareExpressionValue));
+            final Expression returnCompareExpression = new StringValue(String.format("'%s'", TRUE_VALUE));
             if (replaceLeft) {
                 returnExpression.setRightExpression(right);
                 returnExpression.setLeftExpression(returnCompareExpression);
@@ -213,8 +195,8 @@ public class OracleRegionConverter extends RegionFinder {
     /**
      * This method is called when DISTANCE function is found.
      *
-     * @param left      Left side of clause.
-     * @param right     Right side of clause.
+     * @param left  Left side of clause.
+     * @param right Right side of clause.
      */
     @Override
     protected Expression handleDistance(final Expression left, final Expression right) {
@@ -241,7 +223,13 @@ public class OracleRegionConverter extends RegionFinder {
      */
     @Override
     protected Expression handleContains(final Expression left, final Expression right) {
-        return handleRelate(left, right, RELATE_MASK_CONTAINS);
+        final Function containsFunction = new Function();
+        final ExpressionList parameters = new ExpressionList(Arrays.asList(left, right));
+
+        containsFunction.setName(CONTAINS_FUNCTION_NAME);
+        containsFunction.setParameters(parameters);
+
+        return containsFunction;
     }
 
     /**
@@ -252,7 +240,13 @@ public class OracleRegionConverter extends RegionFinder {
      */
     @Override
     protected Expression handleIntersects(Expression left, Expression right) {
-        return handleRelate(left, right, RELATE_MASK_INTERSECTS);
+        final Function containsFunction = new Function();
+        final ExpressionList parameters = new ExpressionList(Arrays.asList(left, right));
+
+        containsFunction.setName(ANYINTERACT_FUNCTION_NAME);
+        containsFunction.setParameters(parameters);
+
+        return containsFunction;
     }
 
     /**

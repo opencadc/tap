@@ -81,6 +81,7 @@ import ca.nrc.cadc.tap.parser.region.function.OracleCircle;
 import ca.nrc.cadc.tap.parser.region.function.OraclePoint;
 
 import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.expression.StringValue;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
 import net.sf.jsqlparser.schema.Column;
@@ -107,9 +108,9 @@ public class OracleRegionConverterTest {
 
         final String resultFunctionSource = resultFunction.toString();
         Assert.assertEquals("Wrong output.",
-                            "SDO_GEOM.RELATE(SDO_GEOMETRY(2003, NULL, NULL, SDO_ELEM_INFO_ARRAY(1, 1003, 4), " +
-                                "SDO_ORDINATE_ARRAY(87.2, 12.0, 88.0, 12.8, 88.8, 12.0)), 'contains', SDO_GEOMETRY" +
-                                "(2001, NULL, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005)",
+                            "SDO_CONTAINS(SDO_GEOMETRY(2003, NULL, NULL, SDO_ELEM_INFO_ARRAY(1, 1003, 4), " +
+                                "SDO_ORDINATE_ARRAY(87.2, 12.0, 88.0, 12.8, 88.8, 12.0)), SDO_GEOMETRY" +
+                                "(2001, NULL, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL))",
                             resultFunctionSource);
     }
 
@@ -128,7 +129,7 @@ public class OracleRegionConverterTest {
         final BinaryExpression equals = new EqualsTo();
 
         equals.setLeftExpression(containsFunction);
-        equals.setRightExpression(new LongValue("1"));
+        equals.setRightExpression(new StringValue("\"TRUE\""));
 
         final Expression result = oracleRegionConverter.handleRegionPredicate(equals);
 
@@ -138,9 +139,9 @@ public class OracleRegionConverterTest {
 
         final String resultFunctionSource = equalsFunction.toString();
         Assert.assertEquals("Wrong output.",
-                            "SDO_GEOM.RELATE(SDO_GEOMETRY(2003, NULL, NULL, SDO_ELEM_INFO_ARRAY(1, 1003, 4), " +
-                                "SDO_ORDINATE_ARRAY(87.2, 12.0, 88.0, 12.8, 88.8, 12.0)), 'contains', SDO_GEOMETRY" +
-                                "(2001, NULL, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005) = 'CONTAINS'",
+                            "SDO_CONTAINS(SDO_GEOMETRY(2003, NULL, NULL, SDO_ELEM_INFO_ARRAY(1, 1003, 4), " +
+                                "SDO_ORDINATE_ARRAY(87.2, 12.0, 88.0, 12.8, 88.8, 12.0)), SDO_GEOMETRY" +
+                                "(2001, NULL, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL)) = 'TRUE'",
                             resultFunctionSource);
     }
 
@@ -190,9 +191,9 @@ public class OracleRegionConverterTest {
 
         final String resultFunctionSource = equalsFunction.toString();
         Assert.assertEquals("Wrong output.",
-                            "SDO_GEOM.RELATE(SDO_GEOMETRY(2003, NULL, NULL, SDO_ELEM_INFO_ARRAY(1, 1003, 4), " +
-                                "SDO_ORDINATE_ARRAY(87.2, 12.0, 88.0, 12.8, 88.8, 12.0)), 'anyinteract', SDO_GEOMETRY" +
-                                "(2001, NULL, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005) <> 'TRUE'",
+                            "SDO_ANYINTERACT(SDO_GEOMETRY(2003, NULL, NULL, SDO_ELEM_INFO_ARRAY(1, 1003, 4), " +
+                                "SDO_ORDINATE_ARRAY(87.2, 12.0, 88.0, 12.8, 88.8, 12.0)), SDO_GEOMETRY" +
+                                "(2001, NULL, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL)) <> 'TRUE'",
                             resultFunctionSource);
     }
 
