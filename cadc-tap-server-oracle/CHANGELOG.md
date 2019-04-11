@@ -1,6 +1,6 @@
-# cadc-tap-server-oracle 1.2.0
+# cadc-tap-server-oracle
 
-## 2019.04.11 - 1.1.4 (Released)
+## 2019.04.11 - 1.2.0 (Released)
 
 
   * Added requirement for Oracle Spatial Indexes.
