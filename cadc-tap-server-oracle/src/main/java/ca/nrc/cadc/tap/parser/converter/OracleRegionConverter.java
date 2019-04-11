@@ -70,7 +70,6 @@
 package ca.nrc.cadc.tap.parser.converter;
 
 import net.sf.jsqlparser.expression.BinaryExpression;
-import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.LongValue;
@@ -105,7 +104,6 @@ import java.util.List;
 public class OracleRegionConverter extends RegionFinder {
 
     private static final String TRUE_VALUE = "TRUE";
-    private static final String RELATE_MASK_INTERSECTS = "anyinteract";
     private static final String RELATE_FUNCTION_NAME = "SDO_GEOM.RELATE";
     private static final String CONTAINS_FUNCTION_NAME = "SDO_CONTAINS";
     private static final String ANYINTERACT_FUNCTION_NAME = "SDO_ANYINTERACT";
@@ -203,18 +201,6 @@ public class OracleRegionConverter extends RegionFinder {
         return new OracleDistance(left, right, RELATE_DEFAULT_TOLERANCE);
     }
 
-    private Expression handleRelate(final Expression left, final Expression right, final String relationMask) {
-        final Function containsFunction = new Function();
-        final Expression tolerance = new DoubleValue(RELATE_DEFAULT_TOLERANCE);
-        final Expression containsMask = new StringValue(String.format("'%s'", relationMask));
-        final ExpressionList parameters = new ExpressionList(Arrays.asList(left, containsMask, right, tolerance));
-
-        containsFunction.setName(RELATE_FUNCTION_NAME);
-        containsFunction.setParameters(parameters);
-
-        return containsFunction;
-    }
-
     /**
      * This method is called when a CONTAINS is found outside of a predicate.
      * This could occur if the query had CONTAINS(...) in the select list or as
@@ -273,16 +259,11 @@ public class OracleRegionConverter extends RegionFinder {
         return new OraclePolygon(expressions);
     }
 
-    protected Expression handleRangeS2D(Expression lon1, Expression lon2, Expression lat1, Expression lat2) {
-        throw new UnsupportedOperationException("RANGES2D");
-    }
-
     /**
      * This method is called when the CENTROID function is found.
      */
     @Override
     protected Expression handleCentroid(Function adqlFunction) {
-//        return new Center(adqlFunction);
         throw new UnsupportedOperationException("CENTROID");
     }
 
@@ -291,7 +272,6 @@ public class OracleRegionConverter extends RegionFinder {
      */
     @Override
     protected Expression handleCoord1(Function adqlFunction) {
-//        return new Longitude(adqlFunction);
         throw new UnsupportedOperationException("COORD1");
     }
 
@@ -300,7 +280,6 @@ public class OracleRegionConverter extends RegionFinder {
      */
     @Override
     protected Expression handleCoord2(Function adqlFunction) {
-//        return new Lat(adqlFunction);
         throw new UnsupportedOperationException("COORD2");
     }
 
