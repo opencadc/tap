@@ -70,6 +70,7 @@
 package ca.nrc.cadc.tap.parser.converter;
 
 import net.sf.jsqlparser.expression.BinaryExpression;
+import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.LongValue;
@@ -82,6 +83,7 @@ import net.sf.jsqlparser.expression.operators.relational.GreaterThanEquals;
 import net.sf.jsqlparser.expression.operators.relational.MinorThan;
 import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
 import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
+import net.sf.jsqlparser.schema.Column;
 import org.apache.log4j.Logger;
 import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.stc.Box;
@@ -106,7 +108,10 @@ public class OracleRegionConverter extends RegionFinder {
     private static final String TRUE_VALUE = "TRUE";
     private static final String RELATE_FUNCTION_NAME = "SDO_GEOM.RELATE";
     private static final String CONTAINS_FUNCTION_NAME = "SDO_CONTAINS";
+    private static final String CONTAINS_RELATE_MASK = "contains";
+    private static final String CONTAINS_TRUE_VALUE = CONTAINS_RELATE_MASK.toUpperCase();
     private static final String ANYINTERACT_FUNCTION_NAME = "SDO_ANYINTERACT";
+    private static final String ANYINTERACT_RELATE_MASK = "anyinteract";
     private static final String RELATE_DEFAULT_TOLERANCE = "0.005";
 
     private static final Logger LOGGER = Logger.getLogger(OracleRegionConverter.class);
@@ -120,6 +125,22 @@ public class OracleRegionConverter extends RegionFinder {
     public Expression convertToImplementation(final Function func) {
         return super.convertToImplementation(func);
     }
+
+    private String getRegionPredicateFunctionType(final Function function) {
+        final String containsMask = String.format("'%s'", CONTAINS_RELATE_MASK);
+        final String intersectsMask = String.format("'%s'", ANYINTERACT_RELATE_MASK);
+        for (final Object e : function.getParameters().getExpressions()) {
+            if (e.toString().contains(containsMask)) {
+                return CONTAINS_RELATE_MASK;
+            } else if (e.toString().contains(intersectsMask)) {
+                return ANYINTERACT_RELATE_MASK;
+            }
+        }
+
+        throw new UnsupportedOperationException(String.format("No such Region Predicate supported: %s",
+                                                              function.getName()));
+    }
+
 
     /**
      * This method is called when a REGION PREDICATE function is one of the arguments in a binary expression,
@@ -176,7 +197,17 @@ public class OracleRegionConverter extends RegionFinder {
             }
 
             final BinaryExpression returnExpression = (value == 0) ? new NotEqualsTo() : new EqualsTo();
-            final Expression returnCompareExpression = new StringValue(String.format("'%s'", TRUE_VALUE));
+            final Expression returnCompareExpression;
+
+            if (function.getName().equals(RELATE_FUNCTION_NAME)) {
+                final String maskType = getRegionPredicateFunctionType(function);
+                returnCompareExpression = new StringValue(
+                        String.format("'%s'", maskType.equals(CONTAINS_RELATE_MASK)
+                                ? CONTAINS_TRUE_VALUE : TRUE_VALUE));
+            } else {
+                returnCompareExpression = new StringValue(String.format("'%s'", TRUE_VALUE));
+            }
+
             if (replaceLeft) {
                 returnExpression.setRightExpression(right);
                 returnExpression.setLeftExpression(returnCompareExpression);
@@ -189,6 +220,19 @@ public class OracleRegionConverter extends RegionFinder {
             return binaryExpression;
         }
     }
+
+    private Expression handleRelate(final Expression left, final Expression right, final String relationMask) {
+        final Function relateFunction = new Function();
+        final Expression tolerance = new DoubleValue(RELATE_DEFAULT_TOLERANCE);
+        final Expression maskStringValue = new StringValue(String.format("'%s'", relationMask));
+        final ExpressionList parameters = new ExpressionList(Arrays.asList(right, maskStringValue, left, tolerance));
+
+        relateFunction.setName(RELATE_FUNCTION_NAME);
+        relateFunction.setParameters(parameters);
+
+        return relateFunction;
+    }
+
 
     /**
      * This method is called when DISTANCE function is found.
@@ -206,11 +250,20 @@ public class OracleRegionConverter extends RegionFinder {
      * This could occur if the query had CONTAINS(...) in the select list or as
      * part of an arithmetic expression or aggregate function (since CONTAINS
      * returns a numeric value).
+     * In Oracle, we need to switch the arguments.
      */
     @Override
     protected Expression handleContains(final Expression left, final Expression right) {
+        if (right instanceof Column) {
+            return handleContains(left, (Column) right);
+        } else {
+            return handleRelate(left, right, CONTAINS_RELATE_MASK);
+        }
+    }
+
+    private Expression handleContains(final Expression left, final Column right) {
         final Function containsFunction = new Function();
-        final ExpressionList parameters = new ExpressionList(Arrays.asList(left, right));
+        final ExpressionList parameters = new ExpressionList(Arrays.asList(right, left));
 
         containsFunction.setName(CONTAINS_FUNCTION_NAME);
         containsFunction.setParameters(parameters);
@@ -226,8 +279,16 @@ public class OracleRegionConverter extends RegionFinder {
      */
     @Override
     protected Expression handleIntersects(Expression left, Expression right) {
+        if (right instanceof Column) {
+            return handleIntersects(left, (Column) right);
+        } else {
+            return handleRelate(left, right, ANYINTERACT_RELATE_MASK);
+        }
+    }
+
+    private Expression handleIntersects(final Expression left, final Column right) {
         final Function containsFunction = new Function();
-        final ExpressionList parameters = new ExpressionList(Arrays.asList(left, right));
+        final ExpressionList parameters = new ExpressionList(Arrays.asList(right, left));
 
         containsFunction.setName(ANYINTERACT_FUNCTION_NAME);
         containsFunction.setParameters(parameters);

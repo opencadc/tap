@@ -91,6 +91,7 @@ import org.junit.Assert;
 
 
 public class OracleRegionConverterTest {
+
     @Test
     public void handleContains() {
 
@@ -98,8 +99,8 @@ public class OracleRegionConverterTest {
                                                                                       new ReferenceNavigator(),
                                                                                       new FromItemNavigator());
 
-        final Expression left = new OracleCircle(new Circle(new Point(88.0D, 12.0D), 0.8D));
-        final Expression right = new OraclePoint(new Point(16.8D, 33.4D));
+        final Expression left = new OraclePoint(new Point(16.8D, 33.4D));
+        final Expression right = new OracleCircle(new Circle(new Point(88.0D, 12.0D), 0.8D));
         final Expression result = oracleRegionConverter.handleContains(left, right);
 
         assert result instanceof Function;
@@ -108,9 +109,9 @@ public class OracleRegionConverterTest {
 
         final String resultFunctionSource = resultFunction.toString();
         Assert.assertEquals("Wrong output.",
-                            "SDO_CONTAINS(SDO_GEOMETRY(2003, NULL, NULL, SDO_ELEM_INFO_ARRAY(1, 1003, 4), " +
-                                "SDO_ORDINATE_ARRAY(87.2, 12.0, 88.0, 12.8, 88.8, 12.0)), SDO_GEOMETRY" +
-                                "(2001, NULL, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL))",
+                            "SDO_GEOM.RELATE(SDO_GEOMETRY(2003, NULL, NULL, SDO_ELEM_INFO_ARRAY(1, 1003, 4), " +
+                                    "SDO_ORDINATE_ARRAY(87.2, 12.0, 88.0, 12.8, 88.8, 12.0)), 'contains', " +
+                                    "SDO_GEOMETRY(2001, NULL, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005)",
                             resultFunctionSource);
     }
 
@@ -120,8 +121,8 @@ public class OracleRegionConverterTest {
                                                                                       new ReferenceNavigator(),
                                                                                       new FromItemNavigator());
 
-        final Expression left = new OracleCircle(new Circle(new Point(88.0D, 12.0D), 0.8D));
-        final Expression right = new OraclePoint(new Point(16.8D, 33.4D));
+        final Expression left = new OraclePoint(new Point(16.8D, 33.4D));
+        final Expression right = new OracleCircle(new Circle(new Point(88.0D, 12.0D), 0.8D));
         final Expression containsFunction = oracleRegionConverter.handleContains(left, right);
 
         assert containsFunction instanceof Function;
@@ -129,7 +130,7 @@ public class OracleRegionConverterTest {
         final BinaryExpression equals = new EqualsTo();
 
         equals.setLeftExpression(containsFunction);
-        equals.setRightExpression(new StringValue("\"TRUE\""));
+        equals.setRightExpression(new LongValue("1"));
 
         final Expression result = oracleRegionConverter.handleRegionPredicate(equals);
 
@@ -139,10 +140,29 @@ public class OracleRegionConverterTest {
 
         final String resultFunctionSource = equalsFunction.toString();
         Assert.assertEquals("Wrong output.",
-                            "SDO_CONTAINS(SDO_GEOMETRY(2003, NULL, NULL, SDO_ELEM_INFO_ARRAY(1, 1003, 4), " +
-                                "SDO_ORDINATE_ARRAY(87.2, 12.0, 88.0, 12.8, 88.8, 12.0)), SDO_GEOMETRY" +
-                                "(2001, NULL, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL)) = 'TRUE'",
+                            "SDO_GEOM.RELATE(SDO_GEOMETRY(2003, NULL, NULL, SDO_ELEM_INFO_ARRAY(1, 1003, 4), " +
+                                    "SDO_ORDINATE_ARRAY(87.2, 12.0, 88.0, 12.8, 88.8, 12.0)), 'contains', " +
+                                    "SDO_GEOMETRY" +
+                                    "(2001, NULL, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005) = 'CONTAINS'",
                             resultFunctionSource);
+    }
+
+    @Test
+    public void handleColumnReferenceContains() {
+        final OracleRegionConverter oracleRegionConverter = new OracleRegionConverter(new ExpressionNavigator(),
+                                                                                      new ReferenceNavigator(),
+                                                                                      new FromItemNavigator());
+
+        final Expression left = new OraclePoint(new Point(88.0D, 12.0D));
+        final Expression right = new Column(new Table(), "s_region");
+        final Expression distanceFunction = oracleRegionConverter.handleContains(left, right);
+
+        assert distanceFunction instanceof Function;
+
+        Assert.assertEquals("Wrong SQL DISTANCE output.",
+                            "SDO_CONTAINS(s_region, " +
+                                    "SDO_GEOMETRY(2001, NULL, SDO_POINT_TYPE(88.0, 12.0, NULL), NULL, NULL))",
+                            distanceFunction.toString());
     }
 
     @Test
@@ -151,18 +171,17 @@ public class OracleRegionConverterTest {
                                                                                       new ReferenceNavigator(),
                                                                                       new FromItemNavigator());
 
-        final Expression left = new OracleCircle(new Circle(new Point(88.0D, 12.0D), 0.8D));
-        final Expression right = new OraclePoint(new Column(new Table(), "ra"),
-                                                 new Column(new Table(), "dec"));
+        final Expression left = new OraclePoint(new Column(new Table(), "ra"),
+                                                new Column(new Table(), "dec"));
+        final Expression right = new OracleCircle(new Circle(new Point(88.0D, 12.0D), 0.8D));
         final Expression distanceFunction = oracleRegionConverter.handleDistance(left, right);
 
         assert distanceFunction instanceof Function;
 
         Assert.assertEquals("Wrong SQL DISTANCE output.",
-                            "SDO_GEOM.SDO_DISTANCE(SDO_GEOMETRY(2003, NULL, NULL, " +
-                                "SDO_ELEM_INFO_ARRAY(1, 1003, 4), " +
-                                "SDO_ORDINATE_ARRAY(87.2, 12.0, 88.0, 12.8, 88.8, 12.0)), " +
-                                "SDO_GEOMETRY(2001, NULL, SDO_POINT_TYPE(ra, dec, NULL), NULL, NULL), 0.005)",
+                            "SDO_GEOM.SDO_DISTANCE(SDO_GEOMETRY(2001, NULL, SDO_POINT_TYPE(ra, dec, NULL), NULL, " +
+                                    "NULL), SDO_GEOMETRY(2003, NULL, NULL, SDO_ELEM_INFO_ARRAY(1, 1003, 4), " +
+                                    "SDO_ORDINATE_ARRAY(87.2, 12.0, 88.0, 12.8, 88.8, 12.0)), 0.005)",
                             distanceFunction.toString());
     }
 
@@ -172,8 +191,8 @@ public class OracleRegionConverterTest {
                                                                                       new ReferenceNavigator(),
                                                                                       new FromItemNavigator());
 
-        final Expression left = new OracleCircle(new Circle(new Point(88.0D, 12.0D), 0.8D));
-        final Expression right = new OraclePoint(new Point(16.8D, 33.4D));
+        final Expression left = new OraclePoint(new Point(16.8D, 33.4D));
+        final Expression right = new OracleCircle(new Circle(new Point(88.0D, 12.0D), 0.8D));
         final Expression intersectsFunction = oracleRegionConverter.handleIntersects(left, right);
 
         assert intersectsFunction instanceof Function;
@@ -191,9 +210,41 @@ public class OracleRegionConverterTest {
 
         final String resultFunctionSource = equalsFunction.toString();
         Assert.assertEquals("Wrong output.",
-                            "SDO_ANYINTERACT(SDO_GEOMETRY(2003, NULL, NULL, SDO_ELEM_INFO_ARRAY(1, 1003, 4), " +
-                                "SDO_ORDINATE_ARRAY(87.2, 12.0, 88.0, 12.8, 88.8, 12.0)), SDO_GEOMETRY" +
-                                "(2001, NULL, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL)) <> 'TRUE'",
+                            "SDO_GEOM.RELATE(SDO_GEOMETRY(2003, NULL, NULL, SDO_ELEM_INFO_ARRAY(1, 1003, 4), " +
+                                    "SDO_ORDINATE_ARRAY(87.2, 12.0, 88.0, 12.8, 88.8, 12.0)), " +
+                                    "'anyinteract', " +
+                                    "SDO_GEOMETRY(2001, NULL, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005) " +
+                                    "<> 'TRUE'",
+                            resultFunctionSource);
+    }
+
+    @Test
+    public void handleColumnReferenceIntersects() {
+        final OracleRegionConverter oracleRegionConverter = new OracleRegionConverter(new ExpressionNavigator(),
+                                                                                      new ReferenceNavigator(),
+                                                                                      new FromItemNavigator());
+
+        final Expression left = new OraclePoint(new Point(88.0D, 12.0D));
+        final Expression right = new Column(new Table("ora", "table"), "shape");
+        final Expression intersectsFunction = oracleRegionConverter.handleIntersects(left, right);
+
+        assert intersectsFunction instanceof Function;
+
+        final BinaryExpression equals = new EqualsTo();
+
+        equals.setLeftExpression(intersectsFunction);
+        equals.setRightExpression(new LongValue("0"));
+
+        final Expression result = oracleRegionConverter.handleRegionPredicate(equals);
+
+        assert result instanceof NotEqualsTo;
+
+        final NotEqualsTo equalsFunction = (NotEqualsTo) result;
+
+        final String resultFunctionSource = equalsFunction.toString();
+        Assert.assertEquals("Wrong output.",
+                            "SDO_ANYINTERACT(ora.table.shape, " +
+                                    "SDO_GEOMETRY(2001, NULL, SDO_POINT_TYPE(88.0, 12.0, NULL), NULL, NULL)) <> 'TRUE'",
                             resultFunctionSource);
     }
 
@@ -211,9 +262,9 @@ public class OracleRegionConverterTest {
 
         Assert.assertEquals("Wrong SQL DISTANCE output.",
                             "SDO_GEOM.SDO_DISTANCE(SDO_GEOMETRY(2003, NULL, NULL, " +
-                                "SDO_ELEM_INFO_ARRAY(1, 1003, 4), " +
-                                "SDO_ORDINATE_ARRAY(87.2, 12.0, 88.0, 12.8, 88.8, 12.0)), " +
-                                "SDO_GEOMETRY(2001, NULL, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005)",
+                                    "SDO_ELEM_INFO_ARRAY(1, 1003, 4), " +
+                                    "SDO_ORDINATE_ARRAY(87.2, 12.0, 88.0, 12.8, 88.8, 12.0)), " +
+                                    "SDO_GEOMETRY(2001, NULL, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005)",
                             distanceFunction.toString());
     }
 }
