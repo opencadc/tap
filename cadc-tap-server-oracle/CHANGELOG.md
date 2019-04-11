@@ -1,4 +1,4 @@
-# cadc-tap-server-oracle 1.1.4
+# cadc-tap-server-oracle 1.2.0
 
 ## 2019.04.11 - 1.1.4 (Released)
 

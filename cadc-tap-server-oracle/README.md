@@ -1,4 +1,4 @@
-# cadc-tap-server-oracle 1.1.4
+# cadc-tap-server-oracle 1.2.0
 
 Offers Oracle support to handle datatype conversions in ADQL.
 
