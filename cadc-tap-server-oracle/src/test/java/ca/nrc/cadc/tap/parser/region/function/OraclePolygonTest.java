@@ -74,6 +74,7 @@ import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.NullValue;
 import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.expression.StringValue;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import org.junit.Test;
 
@@ -90,6 +91,7 @@ public class OraclePolygonTest extends AbstractFunctionTest {
     public void convertParameters() {
         final List<Expression> expressionList = new ArrayList<>();
 
+        expressionList.add(new StringValue("\"ICRS\""));
         expressionList.add(new DoubleValue("88.0"));
         expressionList.add(new DoubleValue("188.0"));
         expressionList.add(new DoubleValue("288.0"));
@@ -102,10 +104,10 @@ public class OraclePolygonTest extends AbstractFunctionTest {
         final List<Expression> resultExpressions = testSubject.getParameters().getExpressions();
 
         final Function ordinateArrayFunction = new Function();
-        final ExpressionList ordinageArrayFunctionParams = new ExpressionList(new ArrayList());
+        final ExpressionList ordinateArrayFunctionParams = new ExpressionList(new ArrayList());
         ordinateArrayFunction.setName(OraclePolygon.ORDINATE_ARRAY_FUNCTION_NAME);
-        ordinageArrayFunctionParams.getExpressions().addAll(expressionList);
-        ordinateArrayFunction.setParameters(ordinageArrayFunctionParams);
+        ordinateArrayFunctionParams.getExpressions().addAll(expressionList.subList(1, expressionList.size()));
+        ordinateArrayFunction.setParameters(ordinateArrayFunctionParams);
 
         expectedExpressions.add(new LongValue("2003"));
         expectedExpressions.add(new NullValue());

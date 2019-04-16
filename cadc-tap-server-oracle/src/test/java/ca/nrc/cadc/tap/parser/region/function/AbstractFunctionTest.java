@@ -81,15 +81,17 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+
 abstract class AbstractFunctionTest {
-    boolean functionsMatch(final Function expectedFunction, final Function resultFunction) {
-        assert resultFunction.getParameters().getExpressions().size()
-            == expectedFunction.getParameters().getExpressions().size();
+
+    void assertFunctionsMatch(final Function expectedFunction, final Function resultFunction) {
         final Expression resultExp = (Expression) resultFunction.getParameters().getExpressions().get(0);
         final Expression expectedExp = (Expression) expectedFunction.getParameters().getExpressions().get(0);
 
-        return resultFunction.getName().equals(expectedFunction.getName())
-            && resultExp.toString().equals(expectedExp.toString());
+        assertEquals("Wrong function names.", expectedFunction.getName(), resultFunction.getName());
+        assertEquals("Wrong toString output.", expectedExp.toString(), resultExp.toString());
+        assertEquals("Wrong expression size.", expectedFunction.getParameters().getExpressions().size(),
+                     resultFunction.getParameters().getExpressions().size());
     }
 
     void assertResultExpressions(final List<Expression> expected, final List<Expression> results) {
@@ -99,8 +101,7 @@ abstract class AbstractFunctionTest {
             final Expression resultExpression = results.get(i);
             if (nextExpression instanceof Function && resultExpression instanceof Function) {
                 final Function resultFunction = (Function) resultExpression;
-                assertTrue("Functions do not match.",
-                           functionsMatch((Function) nextExpression, resultFunction));
+                assertFunctionsMatch((Function) nextExpression, resultFunction);
             } else {
                 assertEquals("Expressions don't match.", resultExpression.toString(),
                              nextExpression.toString());
@@ -115,8 +116,8 @@ abstract class AbstractFunctionTest {
         elemInfoFunction.setName(OraclePolygon.ELEM_INFO_FUNCTION_NAME);
         elemInfoFunction.setParameters(elemInfoFunctionParams);
         elemInfoFunctionParams.getExpressions().addAll(
-            Arrays.asList(new LongValue("1"), new LongValue("" + OracleGeometricFunction.POLYGON_GEO_TYPE),
-                          new LongValue(oracleType)));
+                Arrays.asList(new LongValue("1"), new LongValue("" + OracleGeometricFunction.POLYGON_GEO_TYPE),
+                              new LongValue(oracleType)));
 
         return elemInfoFunction;
     }

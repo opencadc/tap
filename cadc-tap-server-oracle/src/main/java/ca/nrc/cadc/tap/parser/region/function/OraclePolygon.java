@@ -72,10 +72,12 @@ package ca.nrc.cadc.tap.parser.region.function;
 import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.expression.StringValue;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 
 import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.dali.Polygon;
+import ca.nrc.cadc.tap.parser.RegionFinder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -84,9 +86,9 @@ import java.util.List;
 public class OraclePolygon extends OracleGeometricFunction {
 
     private static final Expression[] ORACLE_ELEMENT_INFO = new Expression[] {
-        new LongValue("1"),
-        new LongValue("1003"),
-        new LongValue("1")
+            new LongValue("1"),
+            new LongValue("1003"),
+            new LongValue("1")
     };   // Outer Polygon element
 
     private final List<Expression> vertices = new ArrayList<>();
@@ -106,6 +108,7 @@ public class OraclePolygon extends OracleGeometricFunction {
 
     public OraclePolygon(final Polygon polygon) {
         this();
+        vertices.add(new StringValue(RegionFinder.ICRS));
         for (final Point p : polygon.getVertices()) {
             vertices.add(new DoubleValue(Double.toString(p.getLongitude())));
             vertices.add(new DoubleValue(Double.toString(p.getLatitude())));
@@ -119,18 +122,24 @@ public class OraclePolygon extends OracleGeometricFunction {
      * @param parameterList The ExpressionList to add parameters to.
      */
     @Override
-    @SuppressWarnings("unchecked")
     void mapValues(final ExpressionList parameterList) {
-        for (int i = 0; i < this.vertices.size(); i = i + 2) {
+        // Start at 1 since the first item will be the coordinate system.
+        for (int i = 1; i < this.vertices.size(); i = i + 2) {
             final Expression ra = this.vertices.get(i);
             final Expression dec = this.vertices.get(i + 1);
-            if (!(ra instanceof DoubleValue || ra instanceof LongValue) ||
-                !(dec instanceof DoubleValue || dec instanceof LongValue)) {
-                throw new UnsupportedOperationException("Cannot use non-constant coordinates in Polygon.");
-            } else {
-                parameterList.getExpressions().add(ra);
-                parameterList.getExpressions().add(dec);
-            }
+            addNumericExpression(ra, parameterList);
+            addNumericExpression(dec, parameterList);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    void addNumericExpression(final Expression expression, final ExpressionList parameterList) {
+        if (!(expression instanceof DoubleValue) && !(expression instanceof LongValue)) {
+            throw new UnsupportedOperationException(
+                    String.format("Cannot use non-constant coordinates in Polygon.  Expected Double or Long but found" +
+                                          " '%s'", expression.toString()));
+        } else {
+            parameterList.getExpressions().add(expression);
         }
     }
 }
