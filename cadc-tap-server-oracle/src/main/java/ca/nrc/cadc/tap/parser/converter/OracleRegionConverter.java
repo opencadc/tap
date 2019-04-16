@@ -94,6 +94,7 @@ import ca.nrc.cadc.tap.parser.RegionFinder;
 import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
 import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
+import ca.nrc.cadc.tap.parser.region.function.OracleBox;
 import ca.nrc.cadc.tap.parser.region.function.OracleCircle;
 import ca.nrc.cadc.tap.parser.region.function.OracleDistance;
 import ca.nrc.cadc.tap.parser.region.function.OraclePoint;
@@ -114,6 +115,9 @@ public class OracleRegionConverter extends RegionFinder {
     private static final String ANYINTERACT_RELATE_MASK = "anyinteract";
     private static final String RELATE_DEFAULT_TOLERANCE = "0.005";
 
+    // Prototype coordinate range function using Oracle's SDO_GEOM package.
+    public static final String RANGE_S2D = "RANGE_S2D";
+
     private static final Logger LOGGER = Logger.getLogger(OracleRegionConverter.class);
 
     public OracleRegionConverter(final ExpressionNavigator en, final ReferenceNavigator rn,
@@ -122,8 +126,26 @@ public class OracleRegionConverter extends RegionFinder {
     }
 
     @Override
-    public Expression convertToImplementation(final Function func) {
-        return super.convertToImplementation(func);
+    @SuppressWarnings("unchecked")
+    public Expression convertToImplementation(Function func) {
+        final Expression implExpr = super.convertToImplementation(func);
+
+        if ((implExpr == func) && RANGE_S2D.equalsIgnoreCase(func.getName())) // not handled
+        {
+            final ExpressionList exprList = func.getParameters();
+            if (exprList == null) {
+                throw new IllegalArgumentException("RANGE_S2D requires long1, long2, lat1, lat2");
+            } else {
+                final List<Expression> expressions = exprList.getExpressions();
+                if (expressions.size() != 4) {
+                    throw new IllegalArgumentException("RANGE_S2D requires long1, long2, lat1, lat2");
+                }
+                return handleRangeS2D(expressions.get(0), expressions.get(1), expressions.get(2),
+                                      expressions.get(3));
+            }
+        } else {
+            return implExpr;
+        }
     }
 
     private String getRegionPredicateFunctionType(final Function function) {
@@ -318,6 +340,11 @@ public class OracleRegionConverter extends RegionFinder {
     @Override
     protected Expression handlePolygon(List<Expression> expressions) {
         return new OraclePolygon(expressions);
+    }
+
+    protected Expression handleRangeS2D(final Expression lon1, final Expression lon2, final Expression lat1,
+                                        final Expression lat2) {
+        return new OracleBox(lon1, lon2, lat1, lat2);
     }
 
     /**
