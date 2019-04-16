@@ -69,8 +69,11 @@
 
 package ca.nrc.cadc.tap.parser;
 
+import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.ExpressionVisitor;
 import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.SelectExpressionItem;
 import net.sf.jsqlparser.statement.select.SelectItem;
@@ -83,7 +86,9 @@ import ca.nrc.cadc.tap.expression.OracleTopExpression;
 import java.util.ArrayList;
 import java.util.List;
 
+
 public class OracleQuerySelectDeParser extends QuerySelectDeParser {
+
     public OracleQuerySelectDeParser() {
     }
 
@@ -120,10 +125,19 @@ public class OracleQuerySelectDeParser extends QuerySelectDeParser {
             final List<SelectItem> outerSelectItems = new ArrayList<>();
             for (final SelectItem selectItem : selectItemList) {
                 if (selectItem instanceof SelectExpressionItem) {
-                    final OracleColumnAliasSelectItem ocasi =
-                        new OracleColumnAliasSelectItem((SelectExpressionItem) selectItem);
+                    final SelectExpressionItem selectExpressionItem = (SelectExpressionItem) selectItem;
+                    final Expression selectExpression = selectExpressionItem.getExpression();
+                    final SelectExpressionItem outerSelectItem;
 
-                    outerSelectItems.add(ocasi);
+                    if (selectExpression instanceof Column) {
+                        final Column outerColumn = new Column(new Table(), ((Column) selectExpression).getColumnName());
+                        outerSelectItem = new SelectExpressionItem();
+                        outerSelectItem.setExpression(outerColumn);
+                    } else {
+                        outerSelectItem = selectExpressionItem;
+                    }
+
+                    outerSelectItems.add(new OracleColumnAliasSelectItem(outerSelectItem));
                 } else {
                     outerSelectItems.add(selectItem);
                 }
