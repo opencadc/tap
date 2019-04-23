@@ -71,12 +71,13 @@ package ca.nrc.cadc.tap.expression;
 
 import net.sf.jsqlparser.expression.ExpressionVisitor;
 import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
-import ca.nrc.cadc.tap.parser.converter.OracleTopConverter;
 
 
 public class OracleTopExpression extends MinorThanEquals {
+    private static final String ORACLE_ROWNUM_KEYWORD = "ROWNUM";
+
     public OracleTopExpression() {
-        setLeftExpression(new KeywordExpression(OracleTopConverter.ORACLE_ROWNUM_KEYWORD));
+        setLeftExpression(new KeywordExpression(OracleTopExpression.ORACLE_ROWNUM_KEYWORD));
     }
 
     @Override

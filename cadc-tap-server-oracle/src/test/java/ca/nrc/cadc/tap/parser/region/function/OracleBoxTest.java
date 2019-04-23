@@ -4,7 +4,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2018.                            (c) 2018.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,52 +67,47 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.parser.converter;
+package ca.nrc.cadc.tap.parser.region.function;
 
-
+import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.LongValue;
-import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
-import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
-import net.sf.jsqlparser.statement.select.PlainSelect;
-import net.sf.jsqlparser.statement.select.Top;
-import org.apache.log4j.Logger;
-import ca.nrc.cadc.tap.expression.KeywordExpression;
-import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
-import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
-import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
-import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
+import net.sf.jsqlparser.expression.NullValue;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 
-public class OracleTopConverter extends SelectNavigator {
-    private static final Logger LOGGER = Logger.getLogger(OracleTopConverter.class);
-    public static final String ORACLE_ROWNUM_KEYWORD = "ROWNUM";
+public class OracleBoxTest extends AbstractFunctionTest {
+    @Test
+    @SuppressWarnings("unchecked")
+    public void convertParameters() {
+        final OracleBox testSubject = new OracleBox(new DoubleValue("1"), new DoubleValue("13"), new DoubleValue("44"),
+                                                    new DoubleValue("88"));
 
-    public OracleTopConverter(final ExpressionNavigator en, final ReferenceNavigator rn, final FromItemNavigator fn) {
-        super(en, rn, fn);
-    }
+        final ExpressionList result = testSubject.getParameters();
+        final List<Expression> resultExpressions = result.getExpressions();
+        final List<Expression> expectedExpressions = new ArrayList<>();
 
-    @Override
-    public void visit(final PlainSelect plainSelect) {
-        enterPlainSelect(plainSelect);
+        final Function expectedOrdinateArrayFunction = new Function();
+        final ExpressionList expectedOrdinateArrayFunctionParams = new ExpressionList(new ArrayList());
+        expectedOrdinateArrayFunction.setName(OraclePolygon.ORDINATE_ARRAY_FUNCTION_NAME);
+        expectedOrdinateArrayFunctionParams.getExpressions().addAll(Arrays.asList(new DoubleValue("1"),
+                                                                                  new DoubleValue("13"),
+                                                                                  new DoubleValue("44"),
+                                                                                  new DoubleValue("88")));
+        expectedOrdinateArrayFunction.setParameters(expectedOrdinateArrayFunctionParams);
 
-        final Top top = plainSelect.getTop();
-        if (top != null) {
-            final long rowCount = top.getRowCount();
-            LOGGER.debug("TOP: " + rowCount);
+        expectedExpressions.add(new LongValue("" + OracleGeometricFunction.POLYGON_GEO_TYPE));
+        expectedExpressions.add(new NullValue());
+        expectedExpressions.add(new NullValue());
+        expectedExpressions.add(getElemInfoFunction("3"));
+        expectedExpressions.add(expectedOrdinateArrayFunction);
 
-            final MinorThanEquals rowNumClause = new MinorThanEquals();
-            rowNumClause.setLeftExpression(new KeywordExpression(ORACLE_ROWNUM_KEYWORD));
-            rowNumClause.setRightExpression(new LongValue(Long.toString(rowCount)));
-
-            final Expression whereClause = plainSelect.getWhere();
-            final Expression andExpression = whereClause == null ? rowNumClause : new AndExpression(whereClause,
-                                                                                                    rowNumClause);
-
-            plainSelect.setWhere(andExpression);
-            plainSelect.setTop(null);
-        }
-
-        leavePlainSelect();
+        assertResultExpressions(expectedExpressions, resultExpressions);
     }
 }

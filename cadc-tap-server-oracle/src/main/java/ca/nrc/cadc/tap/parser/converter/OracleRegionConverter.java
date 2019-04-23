@@ -83,6 +83,7 @@ import net.sf.jsqlparser.expression.operators.relational.GreaterThanEquals;
 import net.sf.jsqlparser.expression.operators.relational.MinorThan;
 import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
 import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
+import net.sf.jsqlparser.schema.Column;
 import org.apache.log4j.Logger;
 import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.stc.Box;
@@ -93,6 +94,7 @@ import ca.nrc.cadc.tap.parser.RegionFinder;
 import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
 import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
+import ca.nrc.cadc.tap.parser.region.function.OracleBox;
 import ca.nrc.cadc.tap.parser.region.function.OracleCircle;
 import ca.nrc.cadc.tap.parser.region.function.OracleDistance;
 import ca.nrc.cadc.tap.parser.region.function.OraclePoint;
@@ -103,12 +105,18 @@ import java.util.List;
 
 
 public class OracleRegionConverter extends RegionFinder {
-    private static final String RELATE_MASK_CONTAINS = "contains";
-    private static final String RELATE_CONTAINS_TRUE_VALUE = "CONTAINS";
-    private static final String RELATE_MASK_INTERSECTS = "anyinteract";
-    private static final String RELATE_INTERSECTS_TRUE_VALUE = "TRUE";
+
+    private static final String TRUE_VALUE = "TRUE";
     private static final String RELATE_FUNCTION_NAME = "SDO_GEOM.RELATE";
+    private static final String CONTAINS_FUNCTION_NAME = "SDO_CONTAINS";
+    private static final String CONTAINS_RELATE_MASK = "contains";
+    private static final String CONTAINS_TRUE_VALUE = CONTAINS_RELATE_MASK.toUpperCase();
+    private static final String ANYINTERACT_FUNCTION_NAME = "SDO_ANYINTERACT";
+    private static final String ANYINTERACT_RELATE_MASK = "anyinteract";
     private static final String RELATE_DEFAULT_TOLERANCE = "0.005";
+
+    // Prototype coordinate range function using Oracle's SDO_GEOM package.
+    public static final String RANGE_S2D = "RANGE_S2D";
 
     private static final Logger LOGGER = Logger.getLogger(OracleRegionConverter.class);
 
@@ -118,24 +126,43 @@ public class OracleRegionConverter extends RegionFinder {
     }
 
     @Override
-    public Expression convertToImplementation(final Function func) {
-        return super.convertToImplementation(func);
+    @SuppressWarnings("unchecked")
+    public Expression convertToImplementation(Function func) {
+        final Expression implExpr = super.convertToImplementation(func);
+
+        if ((implExpr == func) && RANGE_S2D.equalsIgnoreCase(func.getName())) // not handled
+        {
+            final ExpressionList exprList = func.getParameters();
+            if (exprList == null) {
+                throw new IllegalArgumentException("RANGE_S2D requires long1, long2, lat1, lat2");
+            } else {
+                final List<Expression> expressions = exprList.getExpressions();
+                if (expressions.size() != 4) {
+                    throw new IllegalArgumentException("RANGE_S2D requires long1, long2, lat1, lat2");
+                }
+                return handleRangeS2D(expressions.get(0), expressions.get(1), expressions.get(2),
+                                      expressions.get(3));
+            }
+        } else {
+            return implExpr;
+        }
     }
 
     private String getRegionPredicateFunctionType(final Function function) {
-        final String containsMask = String.format("'%s'", RELATE_MASK_CONTAINS);
-        final String intersectsMask = String.format("'%s'", RELATE_MASK_INTERSECTS);
+        final String containsMask = String.format("'%s'", CONTAINS_RELATE_MASK);
+        final String intersectsMask = String.format("'%s'", ANYINTERACT_RELATE_MASK);
         for (final Object e : function.getParameters().getExpressions()) {
             if (e.toString().contains(containsMask)) {
-                return RELATE_MASK_CONTAINS;
+                return CONTAINS_RELATE_MASK;
             } else if (e.toString().contains(intersectsMask)) {
-                return RELATE_MASK_INTERSECTS;
+                return ANYINTERACT_RELATE_MASK;
             }
         }
 
         throw new UnsupportedOperationException(String.format("No such Region Predicate supported: %s",
                                                               function.getName()));
     }
+
 
     /**
      * This method is called when a REGION PREDICATE function is one of the arguments in a binary expression,
@@ -157,11 +184,11 @@ public class OracleRegionConverter extends RegionFinder {
         LOGGER.debug("handleRegionPredicate(" + binaryExpression.getClass().getSimpleName() + "): " + binaryExpression);
 
         if (!(binaryExpression instanceof EqualsTo ||
-            binaryExpression instanceof NotEqualsTo ||
-            binaryExpression instanceof MinorThan ||
-            binaryExpression instanceof GreaterThan ||
-            binaryExpression instanceof MinorThanEquals ||
-            binaryExpression instanceof GreaterThanEquals)) {
+                binaryExpression instanceof NotEqualsTo ||
+                binaryExpression instanceof MinorThan ||
+                binaryExpression instanceof GreaterThan ||
+                binaryExpression instanceof MinorThanEquals ||
+                binaryExpression instanceof GreaterThanEquals)) {
             return binaryExpression;
         }
 
@@ -184,19 +211,25 @@ public class OracleRegionConverter extends RegionFinder {
         }
 
         // Should always be true, but just in case...
-        if (function.getName().equals(RELATE_FUNCTION_NAME)) {
+        if (function.getName().equals(RELATE_FUNCTION_NAME) || function.getName().equals(CONTAINS_FUNCTION_NAME)
+                || function.getName().equals(ANYINTERACT_FUNCTION_NAME)) {
             if (!(binaryExpression instanceof EqualsTo || binaryExpression instanceof NotEqualsTo)) {
                 throw new UnsupportedOperationException(
-                    "Use Equals (=) or NotEquals (!=) with CONTAINS and INTERSECTS.");
+                        "Use Equals (=) or NotEquals (!=) with CONTAINS and INTERSECTS.");
             }
 
             final BinaryExpression returnExpression = (value == 0) ? new NotEqualsTo() : new EqualsTo();
+            final Expression returnCompareExpression;
 
-            final String returnCompareExpressionValue =
-                getRegionPredicateFunctionType(function).equals(RELATE_MASK_CONTAINS) ? RELATE_CONTAINS_TRUE_VALUE :
-                    RELATE_INTERSECTS_TRUE_VALUE;
-            final Expression returnCompareExpression = new StringValue(String.format("'%s'",
-                                                                                     returnCompareExpressionValue));
+            if (function.getName().equals(RELATE_FUNCTION_NAME)) {
+                final String maskType = getRegionPredicateFunctionType(function);
+                returnCompareExpression = new StringValue(
+                        String.format("'%s'", maskType.equals(CONTAINS_RELATE_MASK)
+                                ? CONTAINS_TRUE_VALUE : TRUE_VALUE));
+            } else {
+                returnCompareExpression = new StringValue(String.format("'%s'", TRUE_VALUE));
+            }
+
             if (replaceLeft) {
                 returnExpression.setRightExpression(right);
                 returnExpression.setLeftExpression(returnCompareExpression);
@@ -210,27 +243,28 @@ public class OracleRegionConverter extends RegionFinder {
         }
     }
 
+    private Expression handleRelate(final Expression left, final Expression right, final String relationMask) {
+        final Function relateFunction = new Function();
+        final Expression tolerance = new DoubleValue(RELATE_DEFAULT_TOLERANCE);
+        final Expression maskStringValue = new StringValue(String.format("'%s'", relationMask));
+        final ExpressionList parameters = new ExpressionList(Arrays.asList(right, maskStringValue, left, tolerance));
+
+        relateFunction.setName(RELATE_FUNCTION_NAME);
+        relateFunction.setParameters(parameters);
+
+        return relateFunction;
+    }
+
+
     /**
      * This method is called when DISTANCE function is found.
      *
-     * @param left      Left side of clause.
-     * @param right     Right side of clause.
+     * @param left  Left side of clause.
+     * @param right Right side of clause.
      */
     @Override
     protected Expression handleDistance(final Expression left, final Expression right) {
         return new OracleDistance(left, right, RELATE_DEFAULT_TOLERANCE);
-    }
-
-    private Expression handleRelate(final Expression left, final Expression right, final String relationMask) {
-        final Function containsFunction = new Function();
-        final Expression tolerance = new DoubleValue(RELATE_DEFAULT_TOLERANCE);
-        final Expression containsMask = new StringValue(String.format("'%s'", relationMask));
-        final ExpressionList parameters = new ExpressionList(Arrays.asList(left, containsMask, right, tolerance));
-
-        containsFunction.setName(RELATE_FUNCTION_NAME);
-        containsFunction.setParameters(parameters);
-
-        return containsFunction;
     }
 
     /**
@@ -238,10 +272,25 @@ public class OracleRegionConverter extends RegionFinder {
      * This could occur if the query had CONTAINS(...) in the select list or as
      * part of an arithmetic expression or aggregate function (since CONTAINS
      * returns a numeric value).
+     * In Oracle, we need to switch the arguments.
      */
     @Override
     protected Expression handleContains(final Expression left, final Expression right) {
-        return handleRelate(left, right, RELATE_MASK_CONTAINS);
+        if (right instanceof Column) {
+            return handleContains(left, (Column) right);
+        } else {
+            return handleRelate(left, right, CONTAINS_RELATE_MASK);
+        }
+    }
+
+    private Expression handleContains(final Expression left, final Column right) {
+        final Function containsFunction = new Function();
+        final ExpressionList parameters = new ExpressionList(Arrays.asList(right, left));
+
+        containsFunction.setName(CONTAINS_FUNCTION_NAME);
+        containsFunction.setParameters(parameters);
+
+        return containsFunction;
     }
 
     /**
@@ -252,7 +301,21 @@ public class OracleRegionConverter extends RegionFinder {
      */
     @Override
     protected Expression handleIntersects(Expression left, Expression right) {
-        return handleRelate(left, right, RELATE_MASK_INTERSECTS);
+        if (right instanceof Column) {
+            return handleIntersects(left, (Column) right);
+        } else {
+            return handleRelate(left, right, ANYINTERACT_RELATE_MASK);
+        }
+    }
+
+    private Expression handleIntersects(final Expression left, final Column right) {
+        final Function containsFunction = new Function();
+        final ExpressionList parameters = new ExpressionList(Arrays.asList(right, left));
+
+        containsFunction.setName(ANYINTERACT_FUNCTION_NAME);
+        containsFunction.setParameters(parameters);
+
+        return containsFunction;
     }
 
     /**
@@ -279,8 +342,9 @@ public class OracleRegionConverter extends RegionFinder {
         return new OraclePolygon(expressions);
     }
 
-    protected Expression handleRangeS2D(Expression lon1, Expression lon2, Expression lat1, Expression lat2) {
-        throw new UnsupportedOperationException("RANGES2D");
+    protected Expression handleRangeS2D(final Expression lon1, final Expression lon2, final Expression lat1,
+                                        final Expression lat2) {
+        return new OracleBox(lon1, lon2, lat1, lat2);
     }
 
     /**
@@ -288,7 +352,6 @@ public class OracleRegionConverter extends RegionFinder {
      */
     @Override
     protected Expression handleCentroid(Function adqlFunction) {
-//        return new Center(adqlFunction);
         throw new UnsupportedOperationException("CENTROID");
     }
 
@@ -297,7 +360,6 @@ public class OracleRegionConverter extends RegionFinder {
      */
     @Override
     protected Expression handleCoord1(Function adqlFunction) {
-//        return new Longitude(adqlFunction);
         throw new UnsupportedOperationException("COORD1");
     }
 
@@ -306,7 +368,6 @@ public class OracleRegionConverter extends RegionFinder {
      */
     @Override
     protected Expression handleCoord2(Function adqlFunction) {
-//        return new Lat(adqlFunction);
         throw new UnsupportedOperationException("COORD2");
     }
 

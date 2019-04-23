@@ -125,7 +125,7 @@ public class OracleQuerySelectDeParserTest {
         testSubject.visit(plainSelect);
 
         Assert.assertEquals("Wrong query output",
-                            "SELECT t.x, t.y FROM (SELECT t.x, t.y FROM t WHERE f() = 5) WHERE ROWNUM <= 88",
+                            "SELECT x, y FROM (SELECT t.x, t.y FROM t WHERE f() = 5) WHERE ROWNUM <= 88",
                             buffer.toString());
     }
 }

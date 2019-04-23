@@ -4,7 +4,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2018.                            (c) 2018.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,68 +67,50 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.parser.converter;
+package ca.nrc.cadc.tap.parser.region.function;
 
 import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.StringValue;
-import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
-import net.sf.jsqlparser.schema.Column;
-import net.sf.jsqlparser.schema.Table;
-import net.sf.jsqlparser.statement.select.PlainSelect;
-import net.sf.jsqlparser.statement.select.SelectExpressionItem;
-import net.sf.jsqlparser.statement.select.Top;
-
-import ca.nrc.cadc.tap.parser.function.Concatenate;
-import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
-import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
-import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import org.junit.Test;
-import static org.junit.Assert.*;
+import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 
 
-public class OracleTopConverterTest {
-    @Test
-    public void visitWithQuery() {
-        final OracleTopConverter testSubject =
-            new OracleTopConverter(new ExpressionNavigator(), new ReferenceNavigator(), new FromItemNavigator());
+public class OracleBox extends OracleGeometricFunction {
 
-        final Table table = new Table("schema", "table");
-        final Column columnA = new Column(table, "A");
-        final Column columnB = new Column(table, "B");
-        final Column columnC = new Column(table, "C");
+    private static final Expression[] ORACLE_ELEMENT_INFO = new Expression[] {
+            new LongValue("1"),
+            new LongValue("1003"),
+            new LongValue("3")
+    };   // Outer Rectangle element
 
-        final List<Expression> expressions = new ArrayList<>();
-        expressions.add(columnA);
-        expressions.add(columnB);
-        expressions.add(columnC);
+    private final Expression lon1;
+    private final Expression lon2;
+    private final Expression lat1;
+    private final Expression lat2;
 
-        final Concatenate concatenate = new Concatenate("||", expressions, "/");
-        final SelectExpressionItem expressionItem = new SelectExpressionItem();
-        expressionItem.setExpression(concatenate);
+    public OracleBox(final Expression lon1, final Expression lon2, final Expression lat1, final Expression lat2) {
+        super(ORACLE_ELEMENT_INFO);
+        this.lon1 = lon1;
+        this.lon2 = lon2;
+        this.lat1 = lat1;
+        this.lat2 = lat2;
 
-        final List<SelectExpressionItem> selectItems = new ArrayList<>();
-        selectItems.add(expressionItem);
+        processOrdinateParameters();
+    }
 
-        final PlainSelect plainSelect = new PlainSelect();
-        plainSelect.setSelectItems(selectItems);
+    /**
+     * Map this shape's values to ORACLE ORDINATE function parameters.
+     *
+     * @param parameterList The ExpressionList to add parameters to.
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    void mapValues(final ExpressionList parameterList) {
+        // Lower left point.
+        parameterList.getExpressions().add(lon1);
+        parameterList.getExpressions().add(lat1);
 
-        final EqualsTo equalsTo = new EqualsTo();
-        equalsTo.setLeftExpression(columnA);
-        equalsTo.setRightExpression(new StringValue("\"VALUE\""));
-
-        plainSelect.setWhere(equalsTo);
-
-        final Top top = new Top();
-        top.setRowCount(88);
-        plainSelect.setTop(top);
-
-        testSubject.visit(plainSelect);
-
-        assertEquals("Wrong where clause.", "schema.table.A = 'VALUE' AND ROWNUM <= 88",
-                     plainSelect.getWhere().toString());
+        // Upper right point.
+        parameterList.getExpressions().add(lon2);
+        parameterList.getExpressions().add(lat2);
     }
 }
