@@ -178,7 +178,7 @@ public class SqlQuery extends AbstractTapQuery
         }
         catch (JSQLParserException e)
         {
-            throw new IllegalArgumentException("failed to parse SQL", e);
+            throw new IllegalArgumentException("SQL parse error: " + e.getMessage(), e);
         }
 
         // run all the navigators
