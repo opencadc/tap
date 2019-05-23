@@ -67,12 +67,18 @@
 
 package ca.nrc.cadc.vosi.actions;
 
+import ca.nrc.cadc.ac.GroupURI;
+import ca.nrc.cadc.ac.client.GMSClient;
+import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.tap.PluginFactory;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import static ca.nrc.cadc.vosi.actions.Util.getOwner;
 import java.net.URI;
+import java.security.AccessControlException;
+import java.security.Principal;
 import javax.security.auth.Subject;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
@@ -127,12 +133,80 @@ public abstract class TablesAction extends RestAction {
         return Util.getOwner(getDataSource(), name);
     }
     
+    void setReadOnlyGroup(String name, URI group) {
+        throw new UnsupportedOperationException();
+    }
+    
     void setReadWriteGroup(String name, URI group) {
         Util.setReadWriteGroup(getDataSource(), name, group);
     }
     
+    // schema owner can drop
+    // table owner can drop
+    // no group permissions used
+    void checkDropTablePermission(String tableName) {
+        String schemaName = Util.getSchemaFromTable(tableName);
+        
+        Subject sowner = getOwner(schemaName);
+        if (sowner == null) {
+            // not listed : no one has permission
+            throw new AccessControlException("permission denied");
+        }
+        Subject towner = getOwner(tableName);
+        if (towner == null) {
+            // not listed : no one has permission
+            throw new AccessControlException("permission denied");
+        }
+        
+        Subject cur = AuthenticationUtil.getCurrentSubject();
+        for (Principal cp : cur.getPrincipals()) {
+            for (Principal op : sowner.getPrincipals()) {
+                if (AuthenticationUtil.equals(op, cp)) {
+                    super.logInfo.setMessage("drop allowed: schema owner");
+                    return;
+                }
+            }
+            for (Principal op : towner.getPrincipals()) {
+                if (AuthenticationUtil.equals(op, cp)) {
+                    super.logInfo.setMessage("drop allowed: table owner");
+                    return;
+                }
+            }
+        }
+        
+        throw new AccessControlException("permission denied");
+    }
+    
     void checkSchemaWritePermission(String schemaName) {
-        Util.checkSchemaWritePermission(getDataSource(), schemaName);
+        DataSource ds = getDataSource();
+        Subject owner = Util.getOwner(ds, schemaName);
+        if (owner == null) {
+            // not listed : no one has permission
+            throw new AccessControlException("permission denied");
+        }
+        
+        Subject cur = AuthenticationUtil.getCurrentSubject();
+        for (Principal cp : cur.getPrincipals()) {
+            for (Principal op : owner.getPrincipals()) {
+                if (AuthenticationUtil.equals(op, cp)) {
+                    return;
+                }
+            }
+        }
+        
+        // check group write on schema
+        URI rwSchemaGroup = Util.getReadWriteGroup(ds, schemaName);
+        if (rwSchemaGroup != null) {
+            GroupURI groupURI = new GroupURI(rwSchemaGroup);
+            URI serviceID = groupURI.getServiceID();
+            GMSClient gmsClient = new GMSClient(serviceID);
+            if (Util.isMember(gmsClient, rwSchemaGroup)) {
+                log.debug("user has schema level (" + schemaName + ") group access via " + rwSchemaGroup);
+                return;
+            }
+        }
+        
+        throw new AccessControlException("permission denied");
     }
     
     void checkTableWritePermission(String tableName) throws ResourceNotFoundException {
@@ -140,6 +214,6 @@ public abstract class TablesAction extends RestAction {
     }
     
     void setTableOwner(String tableName, Subject s) {
-        Util.setTableOwner(getDataSource(), tableName, s);
+        Util.setOwner(getDataSource(), tableName, s);
     }
 }

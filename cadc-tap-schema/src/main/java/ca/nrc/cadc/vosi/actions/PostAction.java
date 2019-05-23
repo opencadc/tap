@@ -70,8 +70,6 @@ package ca.nrc.cadc.vosi.actions;
 import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.tap.schema.SchemaDesc;
-import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import java.net.URI;
 import org.apache.log4j.Logger;

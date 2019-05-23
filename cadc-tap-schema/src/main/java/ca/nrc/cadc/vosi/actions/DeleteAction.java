@@ -96,7 +96,7 @@ public class DeleteAction extends TablesAction {
             throw new IllegalArgumentException("Missing table name in path.");
         }
         
-        checkTableWritePermission(tableName);
+        checkDropTablePermission(tableName);
         
         Profiler prof = new Profiler(DeleteAction.class);
         DataSource ds = getDataSource();
@@ -147,7 +147,6 @@ public class DeleteAction extends TablesAction {
                 } catch (Exception oops) {
                     log.error("BUG: rollback in finally: FAIL", oops);
                 }
-                throw new RuntimeException("BUG: open transaction in finally");
             }
         }
         
