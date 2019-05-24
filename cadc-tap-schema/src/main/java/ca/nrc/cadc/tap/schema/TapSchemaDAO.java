@@ -357,13 +357,11 @@ public class TapSchemaDAO
         throw new RuntimeException("BUG: found " + columnDescs.size() + " columns matching " + tableName + " " + columnName);
     }
 
-    /*
-    // low priority use cases
-    void put(SchemaDesc sd) {
+    public void put(SchemaDesc sd) {
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
         try {
-            SchemaDesc cur = getSchema(sd.getSchemaName());
+            SchemaDesc cur = getSchema(sd.getSchemaName(), true);
             boolean update = (cur != null);
             tm.startTransaction();
             
@@ -400,7 +398,6 @@ public class TapSchemaDAO
             }
         }
     }
-    */
     
     /**
      * Insert or update a table and columns. This does not support add/remove/rename of columns

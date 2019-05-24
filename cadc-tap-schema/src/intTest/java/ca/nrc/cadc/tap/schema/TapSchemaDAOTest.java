@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2011.                            (c) 2011.
+*  (c) 2019.                            (c) 2019.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -109,10 +109,10 @@ public class TapSchemaDAOTest {
             init.doInit();
             
             // add test schema so other test content will satisfy FK constraints
-            //TapSchemaDAO dao = new TapSchemaDAO();
-            //dao.setDataSource(dataSource);
-            //SchemaDesc sd = new SchemaDesc(TEST_SCHEMA);
-            //dao.put(sd);
+            TapSchemaDAO dao = new TapSchemaDAO();
+            dao.setDataSource(dataSource);
+            SchemaDesc sd = new SchemaDesc(TEST_SCHEMA);
+            dao.put(sd);
         } catch (Exception ex) {
             log.error("setup failed", ex);
             throw new IllegalStateException("failed to create DataSource", ex);
@@ -255,12 +255,12 @@ public class TapSchemaDAOTest {
     }
     
     @Test
-    public void testInvalidUpdateTable() {
+    public void testUpdateTableAddColumn() {
         try {
             TapSchemaDAO dao = new TapSchemaDAO();
             dao.setDataSource(dataSource);
             
-            String testTable = TEST_SCHEMA + ".round_trip";
+            String testTable = TEST_SCHEMA + ".testUpdateTableAddColumn";
             try {
                 dao.delete(testTable);
             } catch (ResourceNotFoundException ex) {
@@ -274,9 +274,10 @@ public class TapSchemaDAOTest {
             orig.tableType = TableDesc.TableType.TABLE;
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
             
-            // add column
             dao.put(orig);
             td = dao.getTable(testTable);
+            
+            // add column
             Assert.assertNotNull("created table", td);
             Assert.assertEquals("num columns", orig.getColumnDescs().size(), td.getColumnDescs().size());
             td.getColumnDescs().add(new ColumnDesc(testTable, "c1", TapDataType.SHORT));
@@ -286,6 +287,34 @@ public class TapSchemaDAOTest {
             } catch (UnsupportedOperationException expected) {
                 log.info("caught expected exception: " + expected);
             }
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+    
+    @Test
+    public void testUpdateTableRenameColumn() {
+        try {
+            TapSchemaDAO dao = new TapSchemaDAO();
+            dao.setDataSource(dataSource);
+            
+            String testTable = TEST_SCHEMA + ".testUpdateTableRenameColumn";
+            try {
+                dao.delete(testTable);
+            } catch (ResourceNotFoundException ex) {
+                log.debug("table did not exist at setup: " + ex);
+            }
+
+            TableDesc td = dao.getTable(testTable);
+            Assert.assertNull("initial setup", td);
+
+            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            orig.tableType = TableDesc.TableType.TABLE;
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
+            
+            dao.put(orig);
+            td = dao.getTable(testTable);
             
             // rename column
             td.getColumnDescs().clear();
@@ -296,6 +325,34 @@ public class TapSchemaDAOTest {
             } catch (UnsupportedOperationException expected) {
                 log.info("caught expected exception: " + expected);
             }
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+    
+    @Test
+    public void testUpdateTableChangeColumnDatatype() {
+        try {
+            TapSchemaDAO dao = new TapSchemaDAO();
+            dao.setDataSource(dataSource);
+            
+            String testTable = TEST_SCHEMA + ".testUpdateTableChangeColumnDatatype";
+            try {
+                dao.delete(testTable);
+            } catch (ResourceNotFoundException ex) {
+                log.debug("table did not exist at setup: " + ex);
+            }
+
+            TableDesc td = dao.getTable(testTable);
+            Assert.assertNull("initial setup", td);
+
+            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            orig.tableType = TableDesc.TableType.TABLE;
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
+            
+            dao.put(orig);
+            td = dao.getTable(testTable);
             
             // change column datatype
             td.getColumnDescs().clear();
@@ -306,10 +363,10 @@ public class TapSchemaDAOTest {
             } catch (UnsupportedOperationException expected) {
                 log.info("caught expected exception: " + expected);
             }
-
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
         }
     }
+    
 }
