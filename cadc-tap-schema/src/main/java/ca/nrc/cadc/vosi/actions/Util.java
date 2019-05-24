@@ -118,37 +118,6 @@ class Util {
         throw new IllegalArgumentException("invalid table name: " + tableName + " (expected: <schema>.<table>)");
     }
     
-    static void checkSchemaWritePermission(DataSource ds, String schemaName) {
-        Subject owner = getOwner(ds, schemaName);
-        if (owner == null) {
-            // not listed : no one has permission
-            throw new AccessControlException("permission denied");
-        }
-        
-        Subject cur = AuthenticationUtil.getCurrentSubject();
-        for (Principal cp : cur.getPrincipals()) {
-            for (Principal op : owner.getPrincipals()) {
-                if (AuthenticationUtil.equals(op, cp)) {
-                    return;
-                }
-            }
-        }
-        
-        // check group write on schema
-        URI rwSchemaGroup = getReadWriteGroup(ds, schemaName);
-        if (rwSchemaGroup != null) {
-            GroupURI groupURI = new GroupURI(rwSchemaGroup);
-            URI serviceID = groupURI.getServiceID();
-            GMSClient gmsClient = new GMSClient(serviceID);
-            if (isMember(gmsClient, rwSchemaGroup)) {
-                log.debug("user has schema level (" + schemaName + ") group access via " + rwSchemaGroup);
-                return;
-            }
-        }
-        
-        throw new AccessControlException("permission denied");
-    }
-    
     static void checkTableWritePermission(DataSource ds, String tableName) throws ResourceNotFoundException {
         Subject owner = getOwner(ds, tableName);
         if (owner == null) {
@@ -205,7 +174,8 @@ class Util {
         throw new AccessControlException("permission denied");
     }
     
-    static void setTableOwner(DataSource ds, String tableName, Subject s) {
+    // intent is that this is a tablename (from PutAction)
+    static void setOwner(DataSource ds, String tableName, Subject owner) {
         IdentityManager im = AuthenticationUtil.getIdentityManager();
         if (im == null) {
             throw new RuntimeException("CONFIG: no IdentityManager implementation available");
@@ -214,11 +184,11 @@ class Util {
         
         KeyValueDAO dao = new KeyValueDAO(ds, null, "tap_schema");
         
-        if (s == null) {
+        if (owner == null) {
             dao.delete(kv.getName());
             log.debug("setOwner: " + kv.getName() + " deleted");
         } else {
-            kv.value = im.toOwner(s).toString();
+            kv.value = im.toOwner(owner).toString();
             dao.put(kv);
             log.debug("setOwner: " + kv.getName() + " = " + kv.value);
         }
@@ -283,7 +253,7 @@ class Util {
         }
     }
     
-    private static boolean isMember(GMSClient gmsClient, URI grantingGroup) throws AccessControlException {
+    static boolean isMember(GMSClient gmsClient, URI grantingGroup) throws AccessControlException {
         try {
             if (CredUtil.checkCredentials()) {
                 List<Group> groups = gmsClient.getMemberships(Role.MEMBER);
