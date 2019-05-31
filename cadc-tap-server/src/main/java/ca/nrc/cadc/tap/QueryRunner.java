@@ -366,6 +366,7 @@ public class QueryRunner implements JobRunner
                     // make fetch size (client batch size) small,
                     // and restrict to forward only so that client memory usage is minimal since
                     // we are only interested in reading the ResultSet once
+                    connection.setAutoCommit(pfac.getAutoCommit());
                     pstmt = connection.prepareStatement(sql);
                     pstmt.setFetchSize(1000);
                     pstmt.setFetchDirection(ResultSet.FETCH_FORWARD);
@@ -430,6 +431,11 @@ public class QueryRunner implements JobRunner
             {
                 if (connection != null)
                 {
+                    try {
+                        if (!pfac.getAutoCommit()) {
+                            connection.setAutoCommit(true);
+                        }
+                    } catch (Throwable ignore) { }
                     try
                     {
                         resultSet.close();
@@ -504,7 +510,7 @@ public class QueryRunner implements JobRunner
                 String filename = "error_" + job.getID() + "." + ewriter.getExtension();
                 if (syncOutput != null)
                 {
-                    syncOutput.setResponseCode(errorCode);
+                    syncOutput.setCode(errorCode);
                     syncOutput.setHeader("Content-Type", ewriter.getErrorContentType());
                     syncOutput.setHeader("Content-Length", Integer.toString(emsg.length()));
                     String disp = "inline; filename=\""+filename+"\"";

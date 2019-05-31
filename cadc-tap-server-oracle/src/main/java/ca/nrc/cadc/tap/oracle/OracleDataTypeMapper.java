@@ -4,7 +4,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2018.                            (c) 2018.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,51 +67,33 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.parser.converter;
+package ca.nrc.cadc.tap.oracle;
+
+import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
+import ca.nrc.cadc.tap.schema.TapDataType;
+
+import java.sql.Types;
+
+public class OracleDataTypeMapper extends BasicDataTypeMapper {
+    // HACK: arbitrary sensible limit.  Maximum is 4000 for Oracle.
+    private static final String DEFAULT_VARCHAR2_QUANTIFIER = "(3072)";
 
 
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.LongValue;
-import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
-import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
-import net.sf.jsqlparser.statement.select.PlainSelect;
-import net.sf.jsqlparser.statement.select.Top;
-import org.apache.log4j.Logger;
-import ca.nrc.cadc.tap.expression.KeywordExpression;
-import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
-import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
-import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
-import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
-
-
-public class OracleTopConverter extends SelectNavigator {
-    private static final Logger LOGGER = Logger.getLogger(OracleTopConverter.class);
-
-    public OracleTopConverter(final ExpressionNavigator en, final ReferenceNavigator rn, final FromItemNavigator fn) {
-        super(en, rn, fn);
+    public OracleDataTypeMapper() {
+        dataTypes.put(TapDataType.POINT, new TypePair("POINT", null));
+        dataTypes.put(TapDataType.CIRCLE, new TypePair("CIRCLE", null));
+        dataTypes.put(TapDataType.POLYGON, new TypePair("POLYGON", null));
+        dataTypes.put(TapDataType.INTEGER, new TypePair("INT", Types.INTEGER));
+        dataTypes.put(TapDataType.CLOB, new TypePair("CHAR", Types.INTEGER));
     }
 
     @Override
-    public void visit(final PlainSelect plainSelect) {
-        enterPlainSelect(plainSelect);
+    protected String getVarCharType() {
+        return "VARCHAR2";
+    }
 
-        final Top top = plainSelect.getTop();
-        if (top != null) {
-            final long rowCount = top.getRowCount();
-            LOGGER.debug("TOP: " + rowCount);
-
-            final MinorThanEquals rowNumClause = new MinorThanEquals();
-            rowNumClause.setLeftExpression(new KeywordExpression("ROWNUM"));
-            rowNumClause.setRightExpression(new LongValue(Long.toString(rowCount)));
-
-            final Expression whereClause = plainSelect.getWhere();
-            final Expression andExpression = whereClause == null ? rowNumClause : new AndExpression(whereClause,
-                                                                                                    rowNumClause);
-
-            plainSelect.setWhere(andExpression);
-            plainSelect.setTop(null);
-        }
-
-        leavePlainSelect();
+    @Override
+    protected String getDefaultCharlimit() {
+        return DEFAULT_VARCHAR2_QUANTIFIER;
     }
 }

@@ -67,16 +67,14 @@
 
 package ca.nrc.cadc.tap.db;
 
-
 import ca.nrc.cadc.dali.Circle;
 import ca.nrc.cadc.dali.DoubleInterval;
 import ca.nrc.cadc.dali.Interval;
 import ca.nrc.cadc.dali.LongInterval;
 import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.dali.Polygon;
-import ca.nrc.cadc.dali.tables.TableData;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
-import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.tap.PluginFactory;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
@@ -119,13 +117,15 @@ public class TableLoader {
      * @param destTable The table description
      * @param data The table data.
      */
-    public void load(TableDesc destTable, TableDataStream data) { 
+    public void load(TableDesc destTable, TableDataInputStream data) { 
+        TableDesc reorgTable = data.acceptTargetTableDesc(destTable);
         
+        Profiler prof = new Profiler(TableLoader.class);
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         
         // Loop over rows, start/commit txn every batchSize rows
-        String sql = generateInsertSQL(destTable); 
+        String sql = generateInsertSQL(reorgTable); 
         boolean done = false;
         Iterator<List<Object>> dataIterator = data.iterator();
         List<Object> nextRow = null;
@@ -135,6 +135,7 @@ public class TableLoader {
             while (!done) {
                 count = 0;
                 tm.startTransaction();
+                prof.checkpoint("start-transaction");
                 
                 while (count < batchSize && dataIterator.hasNext()) {
                     nextRow = dataIterator.next();
@@ -143,8 +144,10 @@ public class TableLoader {
                     count++;
                 }
                 log.debug("Inserting " + count + " rows in this batch.");
-            
+                prof.checkpoint("batch-of-inserts");
+                
                 tm.commitTransaction();
+                prof.checkpoint("commit-transaction");
                 totalInserts += count;
                 done = !dataIterator.hasNext();
             }
@@ -152,12 +155,14 @@ public class TableLoader {
         } catch (Throwable t) {
             try {
                 data.close();
+                prof.checkpoint("close-input");
             } catch (Exception ex) {
                 log.error("unexpected exception trying to close input stream", ex);
             }
             try {
                 if (tm.isOpen()) {
                     tm.rollbackTransaction();
+                    prof.checkpoint("rollback-transaction");
                 }
             } catch (Throwable t2) {
                 log.error("Unexpected: could not rollback transaction", t2);
@@ -167,15 +172,16 @@ public class TableLoader {
                 throw new IllegalArgumentException("Inserted " + totalInserts + " rows. " +
                     "Current batch failed with: " + t.getMessage() + " on line " + (totalInserts + count));
             }
-            log.error("Batch insert failure", t);
+            log.debug("Batch insert failure", t);
             throw new RuntimeException("Inserted " + totalInserts + " rows. " +
-                "Current batch of " + batchSize + " failed with: " + t.getMessage());
+                "Current batch of " + batchSize + " failed with: " + t.getMessage(), t);
             
         } finally {
             if (tm.isOpen()) {
                 log.error("BUG: Transaction manager unexpectedly open, rolling back.");
                 try {
                     tm.rollbackTransaction();
+                    prof.checkpoint("rollback-transaction");
                 }
                 catch (Throwable t) {
                     log.error("Unexpected: could not rollback transaction", t);

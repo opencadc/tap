@@ -74,9 +74,9 @@ import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaUtil;
 import ca.nrc.cadc.vosi.actions.TableContentHandler;
-import com.csvreader.CsvReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -84,6 +84,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
 import org.apache.log4j.Logger;
 
 /**
@@ -92,60 +95,66 @@ import org.apache.log4j.Logger;
  * @author majorb
  *
  */
-public class AsciiTableData implements TableDataStream, Iterator<List<Object>> {
+public class AsciiTableData implements TableDataInputStream, Iterator<List<Object>> {
     
     private static final Logger log = Logger.getLogger(AsciiTableData.class);
     
-    private TableDesc tableDesc;
-    private CsvReader reader;
+    private final CSVParser reader;
+    private final Iterator<CSVRecord> rowIterator;
     private List<String> columnNames;
-    private Map<String, Format> columnFormats;
-    private boolean hasNext;
-    private FormatFactory formatFactory = new FormatFactory();
+    private List<Format> columnFormats;
     
     /**
      * Constructor.
      * 
      * @param in The data stream
      * @param contentType The content type of the data
-     * @param orig The original table description
      * @throws IOException If a data handling error occurs
      */
-    public AsciiTableData(InputStream in, String contentType, TableDesc orig) throws IOException {
+    public AsciiTableData(InputStream in, String contentType) throws IOException {
         char delimiter = ',';
         if (contentType.equals(TableContentHandler.CONTENT_TYPE_TSV)) {
             delimiter = '\t';
         }
-        reader = new CsvReader(in, delimiter, Charset.defaultCharset());
-        if (!reader.readHeaders()) {
-            throw new IllegalArgumentException("No inline header and data.");
+        InputStreamReader ir = new InputStreamReader(in);
+        
+        if (TableContentHandler.CONTENT_TYPE_TSV.equals(contentType)) {
+            this.reader = new CSVParser(ir, CSVFormat.TDF.withFirstRecordAsHeader());
+        } else if (TableContentHandler.CONTENT_TYPE_CSV.equals(contentType)) {
+            this.reader = new CSVParser(ir, CSVFormat.DEFAULT.withFirstRecordAsHeader());
+        } else {
+            throw new UnsupportedOperationException("contentType: " + contentType);
         }
-        columnNames = Arrays.asList(reader.getHeaders());
-        tableDesc = createTableDesc(orig);
-        columnFormats = createColumnFormats();
-        hasNext = reader.readRecord();
+        
+        this.rowIterator = reader.iterator();
+        Map<String,Integer> header = reader.getHeaderMap();
+        columnNames = new ArrayList<String>(header.size());
+        for (String s : header.keySet()) {
+            columnNames.add(s.trim());
+            log.debug("found column: " + s);
+        }
+        if (columnNames.isEmpty()) {
+            throw new IllegalArgumentException("No data columns.");
+        }
     }
 
     public void close() {
         if (reader != null) {
-            reader.close();
+            try {
+                reader.close();
+            } catch (IOException ex) {
+                log.debug("failed to close CSVParser", ex);
+            }
         }
     }
     
     /**
      * Return the data iterator.
+     * @return 
      */
     @Override
     public Iterator<List<Object>> iterator() {
         return this;
-    }
-    
-    /**
-     * Get the table description for the data stream.
-     * @return
-     */
-    public TableDesc getTableDesc() {
-        return tableDesc;
     }
 
     /**
@@ -153,7 +162,7 @@ public class AsciiTableData implements TableDataStream, Iterator<List<Object>> {
      */
     @Override
     public boolean hasNext() {
-        return hasNext;
+        return rowIterator.hasNext();
     }
 
     /**
@@ -161,30 +170,29 @@ public class AsciiTableData implements TableDataStream, Iterator<List<Object>> {
      */
     @Override
     public List<Object> next() {
-        if (!hasNext) {
+        if (!hasNext()) {
             throw new IllegalStateException("No more data to read.");
         }
-        if (reader.getColumnCount() != columnNames.size()) {
-            throw new IllegalArgumentException("wrong number of columns (" +
-                reader.getColumnCount() + ") expected " + columnNames.size());
+        
+        CSVRecord rec = rowIterator.next();
+        if (rec.size() != columnNames.size()) {
+            throw new IllegalArgumentException("wrong number of columns (" 
+                    + rec.size() + ") expected " + columnNames.size());
         }
         try {
             List<Object> row = new ArrayList<Object>(columnNames.size());
             String cell = null;
             Object value = null;
             Format format = null;
-            for (String col : columnNames) {
-                cell = reader.get(col);
-                format = columnFormats.get(col);
+            for (int i = 0; i < rec.size(); i++) {
+                cell = rec.get(i);
+                format = columnFormats.get(i);
                 value = format.parse(cell);
                 row.add(value);
             }
-            hasNext = reader.readRecord();
             return row;
         } catch (NumberFormatException ex) {
             throw new IllegalArgumentException("invalid number: " + ex.getMessage());
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to read data stream.", e);
         }
     }
 
@@ -193,32 +201,30 @@ public class AsciiTableData implements TableDataStream, Iterator<List<Object>> {
         throw new UnsupportedOperationException();
     }
     
-    
-    private TableDesc createTableDesc(TableDesc orig) {
-        if (columnNames.size() == 0) {
-            throw new IllegalArgumentException("No data columns.");
-        }
-        TableDesc tableDesc = new TableDesc(orig.getSchemaName(), orig.getTableName());
+    @Override
+    public TableDesc acceptTargetTableDesc(TableDesc target) {
+        TableDesc td = new TableDesc(target.getSchemaName(), target.getTableName());
         ColumnDesc colDesc = null;
         for (String col : columnNames) {
-            colDesc = orig.getColumn(col);
+            colDesc = target.getColumn(col);
             if (colDesc == null) {
                 throw new IllegalArgumentException("Unrecognized column name: " + col);
             }
-            tableDesc.getColumnDescs().add(colDesc);
-        }
-        return tableDesc;
+            td.getColumnDescs().add(colDesc);
+        }        
+        createColumnFormats(td);
+        return td;
     }
     
-    private Map<String, Format> createColumnFormats() {
-        columnFormats = new HashMap<String, Format>(columnNames.size());
+    private void createColumnFormats(TableDesc tableDesc) {
+        FormatFactory formatFactory = new FormatFactory();
+        this.columnFormats = new ArrayList<Format>(columnNames.size());
         for (String col : columnNames) {
             ColumnDesc colDesc = tableDesc.getColumn(col);
             VOTableField voTableField = TapSchemaUtil.convert(colDesc);
             Format format = formatFactory.getFormat(voTableField);
-            columnFormats.put(col, format);
+            columnFormats.add(format);
         }
-        return columnFormats;
     }
 
 }

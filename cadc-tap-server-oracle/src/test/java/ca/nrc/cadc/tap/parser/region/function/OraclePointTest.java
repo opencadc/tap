@@ -4,7 +4,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2018.                            (c) 2018.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,68 +67,73 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.parser.converter;
+package ca.nrc.cadc.tap.parser.region.function;
 
+import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.StringValue;
-import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
-import net.sf.jsqlparser.schema.Column;
-import net.sf.jsqlparser.schema.Table;
-import net.sf.jsqlparser.statement.select.PlainSelect;
-import net.sf.jsqlparser.statement.select.SelectExpressionItem;
-import net.sf.jsqlparser.statement.select.Top;
-
-import ca.nrc.cadc.tap.parser.function.Concatenate;
-import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
-import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
-import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
+import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.expression.NullValue;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import ca.nrc.cadc.dali.Point;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Test;
-import static org.junit.Assert.*;
 
-
-public class OracleTopConverterTest {
+public class OraclePointTest extends AbstractFunctionTest {
     @Test
-    public void visitWithQuery() {
-        final OracleTopConverter testSubject =
-            new OracleTopConverter(new ExpressionNavigator(), new ReferenceNavigator(), new FromItemNavigator());
+    @SuppressWarnings("unchecked")
+    public void convertParameters() {
+        final OraclePoint testSubject = new OraclePoint(new DoubleValue("13.4"), new DoubleValue("70.49"));
+        final ExpressionList result = testSubject.getParameters();
+        final List<Expression> resultExpressions = result.getExpressions();
+        final List<Expression> expectedExpressions = new ArrayList<>();
 
-        final Table table = new Table("schema", "table");
-        final Column columnA = new Column(table, "A");
-        final Column columnB = new Column(table, "B");
-        final Column columnC = new Column(table, "C");
+        final Function pointFunction = new Function();
+        pointFunction.setName(OracleGeometricFunction.POINT_FUNCTION_NAME);
 
-        final List<Expression> expressions = new ArrayList<>();
-        expressions.add(columnA);
-        expressions.add(columnB);
-        expressions.add(columnC);
+        final ExpressionList pointFunctionParameters = new ExpressionList(new ArrayList());
+        pointFunctionParameters.getExpressions().add(new DoubleValue("13.4"));
+        pointFunctionParameters.getExpressions().add(new DoubleValue("70.49"));
+        pointFunctionParameters.getExpressions().add(new NullValue());
 
-        final Concatenate concatenate = new Concatenate("||", expressions, "/");
-        final SelectExpressionItem expressionItem = new SelectExpressionItem();
-        expressionItem.setExpression(concatenate);
+        pointFunction.setParameters(pointFunctionParameters);
 
-        final List<SelectExpressionItem> selectItems = new ArrayList<>();
-        selectItems.add(expressionItem);
+        expectedExpressions.add(new LongValue("" + OracleGeometricFunction.POINT_GEO_TYPE));
+        expectedExpressions.add(new NullValue());
+        expectedExpressions.add(pointFunction);
+        expectedExpressions.add(new NullValue());
+        expectedExpressions.add(new NullValue());
 
-        final PlainSelect plainSelect = new PlainSelect();
-        plainSelect.setSelectItems(selectItems);
+        assertResultExpressions(expectedExpressions, resultExpressions);
+    }
 
-        final EqualsTo equalsTo = new EqualsTo();
-        equalsTo.setLeftExpression(columnA);
-        equalsTo.setRightExpression(new StringValue("\"VALUE\""));
+    @Test
+    @SuppressWarnings("unchecked")
+    public void convertParametersFromPoint() {
+        final OraclePoint testSubject = new OraclePoint(new Point(77.0D, 88.99D));
+        final ExpressionList result = testSubject.getParameters();
+        final List<Expression> resultExpressions = result.getExpressions();
+        final List<Expression> expectedExpressions = new ArrayList<>();
 
-        plainSelect.setWhere(equalsTo);
+        final Function pointFunction = new Function();
+        pointFunction.setName(OracleGeometricFunction.POINT_FUNCTION_NAME);
 
-        final Top top = new Top();
-        top.setRowCount(88);
-        plainSelect.setTop(top);
+        final ExpressionList pointFunctionParameters = new ExpressionList(new ArrayList());
+        pointFunctionParameters.getExpressions().add(new DoubleValue("77.0"));
+        pointFunctionParameters.getExpressions().add(new DoubleValue("88.99"));
+        pointFunctionParameters.getExpressions().add(new NullValue());
 
-        testSubject.visit(plainSelect);
+        pointFunction.setParameters(pointFunctionParameters);
 
-        assertEquals("Wrong where clause.", "schema.table.A = 'VALUE' AND ROWNUM <= 88",
-                     plainSelect.getWhere().toString());
+        expectedExpressions.add(new LongValue("" + OracleGeometricFunction.POINT_GEO_TYPE));
+        expectedExpressions.add(new NullValue());
+        expectedExpressions.add(pointFunction);
+        expectedExpressions.add(new NullValue());
+        expectedExpressions.add(new NullValue());
+
+        assertResultExpressions(expectedExpressions, resultExpressions);
     }
 }

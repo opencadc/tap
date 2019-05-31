@@ -67,48 +67,76 @@
 
 package ca.nrc.cadc.vosi.actions;
 
-import java.io.IOException;
-import java.io.InputStream;
-
-import org.apache.log4j.Logger;
-
-import ca.nrc.cadc.dali.tables.TableData;
+import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.InlineContentException;
 import ca.nrc.cadc.rest.InlineContentHandler;
+import ca.nrc.cadc.tap.db.AsciiTableData;
+import ca.nrc.cadc.tap.db.FitsTableData;
+import ca.nrc.cadc.tap.db.TableDataInputStream;
+import ca.nrc.cadc.tap.db.TableLoader;
+import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import java.io.IOException;
+import java.io.InputStream;
+import org.apache.log4j.Logger;
 
 public class TableContentHandler implements InlineContentHandler {
     
     private static final Logger log = Logger.getLogger(TableContentHandler.class);
     
-    public static final String TABLE_CONTENT = "tableContent";
+    public static final String MSG = "message";
     public static final String CONTENT_TYPE_CSV = "text/csv";
     public static final String CONTENT_TYPE_TSV = "text/tab-separated-values";
+    public static final String CONTENT_TYPE_FITS = "application/fits";
     
-    static class ContentRef {
-        String contentType;
-        InputStream istream;
-
-        public ContentRef(String contentType, InputStream istream) {
-            this.contentType = contentType;
-            this.istream = istream;
-        }
+    private static final int BATCH_SIZE = 1000;
+    
+    SyncLoadAction parent;
+    
+    TableContentHandler(SyncLoadAction parent) {
+        this.parent = parent;
     }
-    
+
     @Override
     public Content accept(String name, String contentType, InputStream inputStream)
-            throws InlineContentException, IOException {
-        
-        log.debug("Content-Type: " + contentType);
-        if (contentType == null) {
-            throw new IllegalArgumentException("Table ContentType required.");
+            throws InlineContentException, IOException, ResourceNotFoundException {
+        String tableName = parent.getTableName();
+        if (tableName == null) {
+            throw new IllegalArgumentException("Missing table name in path");
         }
-        if (!contentType.equals(CONTENT_TYPE_CSV) && !contentType.equals(CONTENT_TYPE_TSV)) {
+
+        parent.checkTableWritePermission(tableName);
+
+        TapSchemaDAO ts = parent.getTapSchemaDAO();
+        TableDesc targetTableDesc = ts.getTable(tableName);
+        if (targetTableDesc == null) {
+            throw new ResourceNotFoundException("Table not found: " + tableName);
+        }
+
+        log.debug("Content-Type: " + contentType);
+        TableDataInputStream tableData = null;
+        if (contentType == null) {
+            throw new IllegalArgumentException("Table Content-Type is requried.");
+        }
+        if (contentType.equals(CONTENT_TYPE_CSV) || contentType.equals(CONTENT_TYPE_TSV)) {
+            tableData = new AsciiTableData(inputStream, contentType);
+        }
+        if (contentType.equals(CONTENT_TYPE_FITS)) {
+            tableData = new FitsTableData(inputStream);
+        }
+        if (tableData == null) {       
             throw new IllegalArgumentException("Unsupported table ContentType: " + contentType);
         }
         
+        TableLoader tl = new TableLoader(parent.getDataSource(), BATCH_SIZE);
+        tl.load(targetTableDesc, tableData);
+
+        String msg = "Inserted " + tl.getTotalInserts() + " rows to table " + tableName;
+    
         InlineContentHandler.Content content = new InlineContentHandler.Content();
-        content.name = TABLE_CONTENT;
-        content.value = new ContentRef(contentType, inputStream);
+        content.name = MSG;
+        content.value = msg;
+        
         return content;
     }
 }

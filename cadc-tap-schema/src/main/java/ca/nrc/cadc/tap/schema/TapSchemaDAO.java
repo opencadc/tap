@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2009.                            (c) 2009.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -71,6 +71,7 @@ package ca.nrc.cadc.tap.schema;
 
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.uws.Job;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -236,19 +237,66 @@ public class TapSchemaDAO
         return ret;
     }
     
-    // gets table+columns+keys+key_columns
+    /**
+     * Get schema description (shallow).
+     * 
+     * @param schemaName
+     * @return 
+     */
+    public SchemaDesc getSchema(String schemaName, boolean shallow) {
+        if (!shallow) {
+            throw new UnsupportedOperationException("getSchema(shallow=false) not implemented");
+        }
+        
+        GetSchemasStatement gss = new GetSchemasStatement(schemasTableName);
+        gss.setSchemaName(schemaName);
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        List<SchemaDesc> schemaDescs = jdbc.query(gss, new SchemaMapper());
+        if (schemaDescs.isEmpty()) {
+            return null;
+        }
+        if (schemaDescs.size() == 1) {
+            return schemaDescs.get(0);
+        }
+        throw new RuntimeException("BUG: found " + schemaDescs.size() + " schema matching " + schemaName);
+    }
+    
+    /**
+     * Get table description (complete).
+     * 
+     * @param tableName
+     * @return table description or null if not found
+     */
     public TableDesc getTable(String tableName) {
+        return getTable(tableName, false);
+    }
+    
+    /**
+     * Get table description. 
+     * 
+     * @param tableName
+     * @param shallow true to only the table metadata
+     * @return 
+     */
+    public TableDesc getTable(String tableName, boolean shallow) {
+        final Profiler prof = new Profiler(TapSchemaDAO.class);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         
         GetTablesStatement gts = new GetTablesStatement(tablesTableName);
         gts.setTableName(tableName);
-        if (ordered)
+        if (ordered) {
             gts.setOrderBy(orderTablesClause);
+        }
         List<TableDesc> tableDescs = jdbc.query(gts, new TableMapper());
         if (tableDescs.isEmpty()) {
             return null;
         }
         TableDesc ret = tableDescs.get(0);
+        prof.checkpoint("get-table");
+        
+        if (shallow) {
+            return ret;
+        }
         
         // column metadata
         GetColumnsStatement gcs = new GetColumnsStatement(columnsTableName);
@@ -258,6 +306,7 @@ public class TapSchemaDAO
         }
         List<ColumnDesc> columnDescs = jdbc.query(gcs, new ColumnMapper());
         ret.getColumnDescs().addAll(columnDescs);
+        prof.checkpoint("get-columns");
         
         // foreign keys
         GetKeysStatement gks = new GetKeysStatement(keysTableName);
@@ -266,6 +315,7 @@ public class TapSchemaDAO
             gks.setOrderBy(orderKeysClause);
         }
         List<KeyDesc> keyDescs = jdbc.query(gks, new KeyMapper());
+        prof.checkpoint("get-keys");
 
         // TAP_SCHEMA.key_columns
         GetKeyColumnsStatement gkcs = new GetKeyColumnsStatement(keyColumnsTableName);
@@ -274,37 +324,44 @@ public class TapSchemaDAO
             gkcs.setOrderBy(orderKeyColumnsClause);
         }
         List<KeyColumnDesc> keyColumnDescs = jdbc.query(gkcs, new KeyColumnMapper());
+        prof.checkpoint("get-key-columns");
 
         addKeyColumnsToKeys(keyDescs, keyColumnDescs);
         ret.getKeyDescs().addAll(keyDescs);
         
         log.debug("found: " + ret);
+        prof.checkpoint("get-table-done");
         return ret;
     }
     
-    
-    // package access for intTest code only: shallow put of a schema
-    SchemaDesc getSchema(String schemaName) {
-        // List of TAP_SCHEMA.schemas
-        GetSchemasStatement gss = new GetSchemasStatement(schemasTableName);
-        if (ordered)
-            gss.setOrderBy(orderSchemaClause);
+    /**
+     * Get a column description.
+     * 
+     * @param tableName
+     * @param columnName
+     * @return 
+     */
+    public ColumnDesc getColumn(String tableName, String columnName) {
+        GetColumnsStatement gcs = new GetColumnsStatement(columnsTableName);
+        gcs.setTableName(tableName);
+        gcs.setColumnName(columnName);
+        
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
-        List<SchemaDesc> schemaDescs = jdbc.query(gss, new SchemaMapper());
-        for (SchemaDesc sd : schemaDescs) {
-            if (sd.getSchemaName().equals(schemaName)) {
-                return sd;
-            }
+        List<ColumnDesc> columnDescs = jdbc.query(gcs, new ColumnMapper());
+        if (columnDescs.isEmpty()) {
+            return null;
         }
-        return null;
+        if (columnDescs.size() == 1) {
+            return columnDescs.get(0);
+        }
+        throw new RuntimeException("BUG: found " + columnDescs.size() + " columns matching " + tableName + " " + columnName);
     }
-    
-    /*
-    void put(SchemaDesc sd) {
+
+    public void put(SchemaDesc sd) {
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
         try {
-            SchemaDesc cur = getSchema(sd.getSchemaName());
+            SchemaDesc cur = getSchema(sd.getSchemaName(), true);
             boolean update = (cur != null);
             tm.startTransaction();
             
@@ -341,7 +398,6 @@ public class TapSchemaDAO
             }
         }
     }
-    */
     
     /**
      * Insert or update a table and columns. This does not support add/remove/rename of columns
@@ -349,6 +405,7 @@ public class TapSchemaDAO
      * @param td 
      */
     public void put(TableDesc td) {
+        final Profiler prof = new Profiler(TapSchemaDAO.class);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
         try {
@@ -381,22 +438,15 @@ public class TapSchemaDAO
                     }
                 }
             }
-            SchemaDesc sd = getSchema(td.getSchemaName());
             
             tm.startTransaction();
-            
-            if (sd == null) {
-                sd = new SchemaDesc(td.getSchemaName());
-                PutSchemaStatement pss = new PutSchemaStatement(update);
-                log.debug("put missing schema: " + sd.getSchemaName());
-                pss.setSchema(sd);
-                jdbc.update(pss);
-            }
+            prof.checkpoint("start-transaction");
             
             PutTableStatement pts = new PutTableStatement(update);
             log.debug("put: " + td.getTableName());
             pts.setTable(td);
             jdbc.update(pts);
+            prof.checkpoint("put-table");
             
             // add/remove columns not supported so udpate flag is same for the table and column(s)
             PutColumnStatement pcs = new PutColumnStatement(update);
@@ -405,27 +455,31 @@ public class TapSchemaDAO
                 pcs.setColumn(cd);
                 jdbc.update(pcs);
             }
+            prof.checkpoint("put-columns");
             
             log.debug("commit transaction");
             tm.commitTransaction();
+            prof.checkpoint("commit-transaction");
             log.debug("commit transaction: OK");
         } catch (UnsupportedOperationException rethrow) {
             throw rethrow;
         } catch (Exception ex) {
-                try {
-                    log.error("PUT failed - rollback", ex);
-                    tm.rollbackTransaction();
-                    log.error("PUT failed - rollback: OK");
-                } catch (Exception oops) {
-                    log.error("PUT failed - rollback : FAIL", oops);
-                }
-                // TODO: categorise failures better
-                throw new RuntimeException("failed to persist " + td.getTableName(), ex);
+            try {
+                log.error("PUT failed - rollback", ex);
+                tm.rollbackTransaction();
+                prof.checkpoint("rollback-transaction");
+                log.error("PUT failed - rollback: OK");
+            } catch (Exception oops) {
+                log.error("PUT failed - rollback : FAIL", oops);
+            }
+            // TODO: categorise failures better
+            throw new RuntimeException("failed to persist " + td.getTableName(), ex);
         } finally { 
             if (tm.isOpen()) {
                 log.error("BUG: open transaction in finally - trying to rollback");
                 try {
                     tm.rollbackTransaction();
+                    prof.checkpoint("rollback-transaction");
                     log.error("BUG: rollback in finally: OK");
                 } catch (Exception oops) {
                     log.error("BUG: rollback in finally: FAIL", oops);
@@ -435,7 +489,72 @@ public class TapSchemaDAO
         }
     }
     
+    public void put(ColumnDesc cd) {
+        final Profiler prof = new Profiler(TapSchemaDAO.class);
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
+        try {
+            TableDesc ctab = getTable(cd.getTableName());
+            if (ctab == null) {
+                // can only update an existing table
+                throw new ResourceNotFoundException("not found: table " + cd.getTableName());
+            }
+            
+            ColumnDesc col = ctab.getColumn(cd.getColumnName());
+            if (col == null) {
+                // can only update an existing column
+                throw new ResourceNotFoundException("not found: table " + cd.getTableName() + " column " + cd.getColumnName());
+            }
+            
+            tm.startTransaction();
+            prof.checkpoint("start-transaction");
+            
+            
+            // update single column
+            PutColumnStatement pcs = new PutColumnStatement(true);
+            log.debug("put: " + cd.getColumnName());
+            pcs.setColumn(cd);
+            jdbc.update(pcs);
+            prof.checkpoint("put-column");
+            
+            tm.commitTransaction();
+            prof.checkpoint("commit-transaction");
+        } catch (UnsupportedOperationException rethrow) {
+            throw rethrow;
+        } catch (Exception ex) {
+            try {
+                log.error("PUT failed - rollback", ex);
+                tm.rollbackTransaction();
+                prof.checkpoint("rollback-transaction");
+                log.error("PUT failed - rollback: OK");
+            } catch (Exception oops) {
+                log.error("PUT failed - rollback : FAIL", oops);
+            }
+            // TODO: categorise failures better
+            throw new RuntimeException("failed to persist " + cd.getColumnName(), ex);
+        } finally { 
+            if (tm.isOpen()) {
+                log.error("BUG: open transaction in finally - trying to rollback");
+                try {
+                    tm.rollbackTransaction();
+                    prof.checkpoint("rollback-transaction");
+                    log.error("BUG: rollback in finally: OK");
+                } catch (Exception oops) {
+                    log.error("BUG: rollback in finally: FAIL", oops);
+                }
+                throw new RuntimeException("BUG: open transaction in finally");
+            }
+        }
+    }
+    
+    /**
+     * Delete a table. This also deletes columns and keys associated with the table.
+     * 
+     * @param tableName
+     * @throws ResourceNotFoundException 
+     */
     public void delete(String tableName) throws ResourceNotFoundException {
+        final Profiler prof = new Profiler(TapSchemaDAO.class);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
         try {
@@ -445,21 +564,25 @@ public class TapSchemaDAO
             }
             
             tm.startTransaction();
+            prof.checkpoint("start-transaction");
             
             // delete all columns
             DeleteColumnsStatement dcs = new DeleteColumnsStatement();
             log.debug("delete columns: " + cur.getTableName());
             dcs.setTable(cur);
             jdbc.update(dcs);
+            prof.checkpoint("delete-columns");
 
             // delete table
             DeleteTableStatement dts = new DeleteTableStatement();
             log.debug("delete table: " + cur.getTableName());
             dts.setTable(cur);
             jdbc.update(dts);
+            prof.checkpoint("delete-table");
             
             log.debug("commit transaction");
             tm.commitTransaction();
+            prof.checkpoint("commit-transaction");
             log.debug("commit transaction: OK");
         } catch (ResourceNotFoundException rethrow) {
             throw rethrow;
@@ -467,6 +590,7 @@ public class TapSchemaDAO
                 try {
                     log.error("DELETE failed - rollback", ex);
                     tm.rollbackTransaction();
+                    prof.checkpoint("rollback-transaction");
                     log.error("DELETE failed - rollback: OK");
                 } catch (Exception oops) {
                     log.error("DELETE failed - rollback : FAIL", oops);
@@ -478,6 +602,7 @@ public class TapSchemaDAO
                 log.error("BUG: open transaction in finally - trying to rollback");
                 try {
                     tm.rollbackTransaction();
+                    prof.checkpoint("rollback-transaction");
                     log.error("BUG: rollback in finally: OK");
                 } catch (Exception oops) {
                     log.error("BUG: rollback in finally: FAIL", oops);
@@ -512,6 +637,7 @@ public class TapSchemaDAO
     private class GetSchemasStatement implements PreparedStatementCreator
     {
         private String tap_schema_tab;
+        private String schemaName;
         private String orderBy;
 
         public GetSchemasStatement(String tap_schema_tab)
@@ -519,11 +645,16 @@ public class TapSchemaDAO
             this.tap_schema_tab = tap_schema_tab;
         }
 
+        public void setSchemaName(String schemaName) {
+            this.schemaName = schemaName;
+        }
+
         public void setOrderBy(String orderBy)
         {
             this.orderBy = orderBy;
         }
         
+        @Override
         public PreparedStatement createPreparedStatement(Connection conn) throws SQLException
         {
             StringBuilder sb = new StringBuilder();
@@ -535,6 +666,13 @@ public class TapSchemaDAO
             
             sb = new StringBuilder();
             sb.append(tmp);
+            if (schemaName != null) {
+                if (tmp.toLowerCase().contains("where"))
+                    sb.append(" AND ");
+                else
+                    sb.append(" WHERE ");
+                sb.append(" schema_name = ?");
+            }
             if (orderBy != null)
                 sb.append(orderBy);
             
@@ -542,6 +680,9 @@ public class TapSchemaDAO
             log.debug(sql);
 
             PreparedStatement prep = conn.prepareStatement(sql);
+            if (schemaName != null) {
+                prep.setString(1, schemaName);
+            }
             return prep;
         }
     }
@@ -594,8 +735,9 @@ public class TapSchemaDAO
             log.debug("values: " + tableName);
             
             PreparedStatement prep = conn.prepareStatement(sql);
-            if (tableName != null)
+            if (tableName != null) {
                 prep.setString(1, tableName);
+            }
             return prep;
         }
     }
@@ -604,6 +746,7 @@ public class TapSchemaDAO
     {
         private String tap_schema_tab;
         private String tableName;
+        private String columnName;
         private String orderBy;
 
         public GetColumnsStatement(String tap_schema_tab)
@@ -614,6 +757,10 @@ public class TapSchemaDAO
         public void setTableName(String tableName)
         {
             this.tableName = tableName;
+        }
+        
+        public void setColumnName(String columnName) {
+            this.columnName = columnName;
         }
 
         public void setOrderBy(String orderBy)
@@ -632,24 +779,32 @@ public class TapSchemaDAO
             
             sb = new StringBuilder();
             sb.append(tmp);
-            if (tableName != null)
-            {
-                if (tmp.toLowerCase().contains("where"))
+            if (tableName != null) {
+                if (tmp.toLowerCase().contains("where")) {
                     sb.append(" AND ");
-                else
+                } else {
                     sb.append(" WHERE ");
+                }
                 sb.append(" table_name = ?");
+                if (columnName != null) {
+                    sb.append(" AND column_name = ?");
+                }
             }
-            if (orderBy != null)
+            if (orderBy != null) {
                 sb.append(orderBy);
+            }
             
             String sql = sb.toString();
             log.debug(sql);
-            log.debug("values: " + tableName);
+            log.debug("values: " + tableName + "," + columnName);
             
             PreparedStatement prep = conn.prepareStatement(sql);
-            if (tableName != null)
+            if (tableName != null) {
                 prep.setString(1, tableName);
+                if (columnName != null) {
+                    prep.setString(2, columnName);
+                }
+            }
             return prep;
         }
     }

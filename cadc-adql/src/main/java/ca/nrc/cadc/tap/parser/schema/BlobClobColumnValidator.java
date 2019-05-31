@@ -91,8 +91,11 @@ import ca.nrc.cadc.tap.schema.TapSchema;
  */
 public class BlobClobColumnValidator extends TapSchemaColumnValidator
 {
-    public static final String BLOB = "adql:BLOB";
-    public static final String CLOB = "adql:CLOB";
+    public static final String BLOB_COMPAT = "adql:BLOB";
+    public static final String CLOB_COMPAT = "adql:CLOB";
+    
+    public static final String BLOB = "blob";
+    public static final String CLOB = "clob";
 
     protected static Logger log = Logger.getLogger(BlobClobColumnValidator.class);
 
@@ -154,12 +157,12 @@ public class BlobClobColumnValidator extends TapSchemaColumnValidator
             if (columnDesc != null)
             {
                 TapDataType tt = columnDesc.getDatatype();
-                if (BLOB.equalsIgnoreCase(tt.xtype))
+                if (BLOB.equalsIgnoreCase(tt.xtype) || BLOB_COMPAT.equals(tt.xtype))
                     throw new IllegalArgumentException("The column [" + column
-                            + "] of BLOB type cannot be used in place other than select item.");
-                else if (CLOB.equalsIgnoreCase(tt.xtype))
+                            + "] of type BLOB can only be used in the select list");
+                else if (CLOB.equalsIgnoreCase(tt.xtype) || CLOB_COMPAT.equals(tt.xtype))
                     throw new IllegalArgumentException("The column [" + column
-                            + "] of CLOB type cannot be used in place other than select item.");
+                            + "] of type CLOB can only be used in the select list");
             }
             else
             {

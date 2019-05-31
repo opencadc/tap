@@ -97,6 +97,7 @@ public class TableCreatorTest {
 
     static {
         Log4jInit.setLevel("ca.nrc.cadc.tap.db", Level.INFO);
+        //Log4jInit.setLevel("ca.nrc.cadc.profiler", Level.INFO);
     }
     
     private DataSource dataSource;
@@ -121,7 +122,11 @@ public class TableCreatorTest {
             String testTable = TEST_SCHEMA + ".testCreateTable";
             // cleanup
             TableCreator tc = new TableCreator(dataSource);
-            tc.dropTable(testTable);
+            try {
+                tc.dropTable(testTable);
+            } catch (Exception ignore) {
+                log.debug("cleanup-before-test failed");
+            }
             
             TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
@@ -132,6 +137,7 @@ public class TableCreatorTest {
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c4", TapDataType.FLOAT));
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c5", TapDataType.DOUBLE));
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c6", TapDataType.TIMESTAMP));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c7", TapDataType.BOOLEAN));
             
             tc.createTable(orig);
             log.info("createTable returned");
@@ -145,6 +151,7 @@ public class TableCreatorTest {
             
             // cleanup
             tc.dropTable(testTable);
+            log.info("dropped table");
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -157,7 +164,11 @@ public class TableCreatorTest {
             String testTable = TEST_SCHEMA + ".testCreateIndex";
             // cleanup
             TableCreator tc = new TableCreator(dataSource);
-            tc.dropTable(testTable);
+            try {
+                tc.dropTable(testTable);
+            } catch (Exception ignore) {
+                log.debug("cleanup-before-test failed");
+            }
             
             TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
@@ -191,7 +202,11 @@ public class TableCreatorTest {
             String testTable = TEST_SCHEMA + ".testCreateUniqueIndex";
             // cleanup
             TableCreator tc = new TableCreator(dataSource);
-            tc.dropTable(testTable);
+            try {
+                tc.dropTable(testTable);
+            } catch (Exception ignore) {
+                log.debug("cleanup-before-test failed");
+            }
             
             TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
             orig.tableType = TableDesc.TableType.TABLE;

@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2011.                            (c) 2011.
+*  (c) 2019.                            (c) 2019.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -91,7 +91,7 @@ public class TapAsyncErrorTest extends AsyncUWSTest {
     private static final long TIMEOUT = 60 * 1000L;
 
     public TapAsyncErrorTest(URI resourceID) {
-        super(resourceID, Standards.TAP_10, Standards.INTERFACE_UWS_ASYNC, TIMEOUT);
+        super(resourceID, Standards.TAP_10, Standards.INTERFACE_PARAM_HTTP, TIMEOUT, "async");
     }
 
     @Override
@@ -109,7 +109,6 @@ public class TapAsyncErrorTest extends AsyncUWSTest {
         }
 
         Assert.assertNotNull(errorURL);
-        Assert.assertEquals("http", errorURL.getProtocol());
 
         try {
             log.info(result.name + ": error " + errorURL);

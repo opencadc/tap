@@ -196,8 +196,12 @@ public class AdqlQuery extends AbstractTapQuery
         }
         catch (JSQLParserException e)
         {
-            log.debug("parse failed", e);
-            throw new IllegalArgumentException(e);
+            log.debug("parse syntax exception", e);
+            Throwable cause = e;
+            while (cause.getCause() != null) {
+                cause = cause.getCause();
+            }
+            throw new IllegalArgumentException("ADQL syntax error: " + cause.getMessage());
         }
 
         // if maxRows has been set, update top
