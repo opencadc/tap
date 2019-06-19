@@ -67,7 +67,7 @@
 
 package ca.nrc.cadc.vosi.actions;
 
-import ca.nrc.cadc.ac.GroupURI;
+import ca.nrc.cadc.gms.GroupURI;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
