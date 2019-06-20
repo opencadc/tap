@@ -69,10 +69,18 @@
 
 package ca.nrc.cadc.tap.schema;
 
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
+import ca.nrc.cadc.gms.GMSClient;
+import ca.nrc.cadc.gms.Group;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.profiler.Profiler;
+import ca.nrc.cadc.reg.Standards;
+import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.uws.Job;
+
+import java.net.URI;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -82,6 +90,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+
+import javax.security.auth.Subject;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -126,6 +136,13 @@ public class TapSchemaDAO
 
     private String[] tsKeyColumnsCols = new String[] { "key_id", "from_column", "target_column" };
     protected String orderKeyColumnsClause = " ORDER BY key_id, from_column, target_column";
+    
+    // access control columns are present in the tables schema, tables, and columns,
+    // but are not exposed as tap schema columns
+    protected String ownerCol = "owner";
+    protected String publicCol = "public";
+    protected String readGroupCol = "readGroup";
+    protected String readWriteGroupCol = "readWriteGroup";
 
     protected Job job;
     protected DataSource dataSource;
@@ -185,15 +202,17 @@ public class TapSchemaDAO
     public TapSchema get(int depth)
     {
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        
+        AccessControlSQL acSQL = getAccessControlSQL();
 
         // List of TAP_SCHEMA.schemas
-        GetSchemasStatement gss = new GetSchemasStatement(schemasTableName);
+        GetSchemasStatement gss = new GetSchemasStatement(schemasTableName, acSQL);
         if (ordered)
             gss.setOrderBy(orderSchemaClause);
         List<SchemaDesc> schemaDescs = jdbc.query(gss, new SchemaMapper());
         
         // TAP_SCHEMA.tables
-        GetTablesStatement gts = new GetTablesStatement(tablesTableName);
+        GetTablesStatement gts = new GetTablesStatement(tablesTableName, acSQL);
         if (ordered)
             gts.setOrderBy(orderTablesClause);
         List<TableDesc> tableDescs = jdbc.query(gts, new TableMapper());
@@ -204,7 +223,7 @@ public class TapSchemaDAO
         // TAP_SCHEMA.columns
         if (depth > MIN_DEPTH)
         {
-            GetColumnsStatement gcs = new GetColumnsStatement(columnsTableName);
+            GetColumnsStatement gcs = new GetColumnsStatement(columnsTableName, acSQL);
             if (ordered)
                 gcs.setOrderBy(orderColumnsClause);
             List<ColumnDesc> columnDescs = jdbc.query(gcs, new ColumnMapper());
@@ -248,7 +267,9 @@ public class TapSchemaDAO
             throw new UnsupportedOperationException("getSchema(shallow=false) not implemented");
         }
         
-        GetSchemasStatement gss = new GetSchemasStatement(schemasTableName);
+        AccessControlSQL acSQL = getAccessControlSQL();
+        
+        GetSchemasStatement gss = new GetSchemasStatement(schemasTableName, acSQL);
         gss.setSchemaName(schemaName);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         List<SchemaDesc> schemaDescs = jdbc.query(gss, new SchemaMapper());
@@ -282,7 +303,9 @@ public class TapSchemaDAO
         final Profiler prof = new Profiler(TapSchemaDAO.class);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         
-        GetTablesStatement gts = new GetTablesStatement(tablesTableName);
+        AccessControlSQL acSQL = getAccessControlSQL();
+        
+        GetTablesStatement gts = new GetTablesStatement(tablesTableName, acSQL);
         gts.setTableName(tableName);
         if (ordered) {
             gts.setOrderBy(orderTablesClause);
@@ -299,7 +322,7 @@ public class TapSchemaDAO
         }
         
         // column metadata
-        GetColumnsStatement gcs = new GetColumnsStatement(columnsTableName);
+        GetColumnsStatement gcs = new GetColumnsStatement(columnsTableName, acSQL);
         gcs.setTableName(tableName);
         if (ordered) {
             gcs.setOrderBy(orderColumnsClause);
@@ -342,7 +365,9 @@ public class TapSchemaDAO
      * @return 
      */
     public ColumnDesc getColumn(String tableName, String columnName) {
-        GetColumnsStatement gcs = new GetColumnsStatement(columnsTableName);
+        
+        AccessControlSQL acSQL = getAccessControlSQL();
+        GetColumnsStatement gcs = new GetColumnsStatement(columnsTableName, acSQL);
         gcs.setTableName(tableName);
         gcs.setColumnName(columnName);
         
@@ -639,10 +664,12 @@ public class TapSchemaDAO
         private String tap_schema_tab;
         private String schemaName;
         private String orderBy;
+        private AccessControlSQL acSQL;
 
-        public GetSchemasStatement(String tap_schema_tab)
+        public GetSchemasStatement(String tap_schema_tab, AccessControlSQL acSQL)
         {
             this.tap_schema_tab = tap_schema_tab;
+            this.acSQL = acSQL;
         }
 
         public void setSchemaName(String schemaName) {
@@ -660,28 +687,31 @@ public class TapSchemaDAO
             StringBuilder sb = new StringBuilder();
             sb.append("SELECT ").append(toCommaList(tsSchemaCols, 0));
             sb.append(" FROM ").append(tap_schema_tab);
-
-            // customisation
-            String tmp = appendWhere(tap_schema_tab, sb.toString());
+            sb.append(" WHERE ");
             
-            sb = new StringBuilder();
-            sb.append(tmp);
+            sb.append(acSQL.sql);
+            
             if (schemaName != null) {
-                if (tmp.toLowerCase().contains("where"))
-                    sb.append(" AND ");
-                else
-                    sb.append(" WHERE ");
-                sb.append(" schema_name = ?");
+                sb.append(" AND schema_name = ?");
             }
-            if (orderBy != null)
+            if (orderBy != null) {
                 sb.append(orderBy);
+            }
             
             String sql = sb.toString();
             log.debug(sql);
 
             PreparedStatement prep = conn.prepareStatement(sql);
+            int paramIndex = 1;
+            prep.setInt(paramIndex++, acSQL.publicValue);
+            if (acSQL.ownerValue != null) {
+                prep.setString(paramIndex++, acSQL.ownerValue);
+                for (String grp : acSQL.groupValues) {
+                    prep.setString(paramIndex++, grp);
+                }
+            }
             if (schemaName != null) {
-                prep.setString(1, schemaName);
+                prep.setString(paramIndex++, schemaName);
             }
             return prep;
         }
@@ -692,10 +722,12 @@ public class TapSchemaDAO
         private String tap_schema_tab;
         private String tableName;
         private String orderBy;
+        private AccessControlSQL acSQL;
 
-        public GetTablesStatement(String tap_schema_tab)
+        public GetTablesStatement(String tap_schema_tab, AccessControlSQL acSQL)
         {
             this.tap_schema_tab = tap_schema_tab;
+            this.acSQL = acSQL;
         }
 
         public void setTableName(String tableName)
@@ -713,30 +745,31 @@ public class TapSchemaDAO
             StringBuilder sb = new StringBuilder();
             sb.append("SELECT ").append(toCommaList(tsTablesCols, 0));
             sb.append(" FROM ").append(tap_schema_tab);
+            sb.append(" WHERE ");
             
-            // customisation
-            String tmp = appendWhere(tap_schema_tab, sb.toString());
+            sb.append(acSQL.sql);
             
-            sb = new StringBuilder();
-            sb.append(tmp);
-            if (tableName != null)
-            {
-                if (tmp.toLowerCase().contains("where"))
-                    sb.append(" AND ");
-                else
-                    sb.append(" WHERE ");
-                sb.append(" table_name = ?");
+            if (tableName != null) {
+                sb.append(" AND table_name = ?");
             }
-            if (orderBy != null)
+            if (orderBy != null) {
                 sb.append(orderBy);
+            }
             
             String sql = sb.toString();
             log.debug(sql);
-            log.debug("values: " + tableName);
-            
+
             PreparedStatement prep = conn.prepareStatement(sql);
+            int paramIndex = 1;
+            prep.setInt(paramIndex++, acSQL.publicValue);
+            if (acSQL.ownerValue != null) {
+                prep.setString(paramIndex++, acSQL.ownerValue);
+                for (String grp : acSQL.groupValues) {
+                    prep.setString(paramIndex++, grp);
+                }
+            }
             if (tableName != null) {
-                prep.setString(1, tableName);
+                prep.setString(paramIndex++, tableName);
             }
             return prep;
         }
@@ -748,10 +781,12 @@ public class TapSchemaDAO
         private String tableName;
         private String columnName;
         private String orderBy;
+        private AccessControlSQL acSQL;
 
-        public GetColumnsStatement(String tap_schema_tab)
+        public GetColumnsStatement(String tap_schema_tab, AccessControlSQL acSQL)
         {
             this.tap_schema_tab = tap_schema_tab;
+            this.acSQL = acSQL;
         }
 
         public void setTableName(String tableName)
@@ -773,19 +808,12 @@ public class TapSchemaDAO
             StringBuilder sb = new StringBuilder();
             sb.append("SELECT ").append(toCommaList(tsColumnsCols, 0));
             sb.append(" FROM ").append(tap_schema_tab);
+            sb.append(" WHERE ");
             
-            // customisation
-            String tmp = appendWhere(tap_schema_tab, sb.toString());
+            sb.append(acSQL.sql);
             
-            sb = new StringBuilder();
-            sb.append(tmp);
             if (tableName != null) {
-                if (tmp.toLowerCase().contains("where")) {
-                    sb.append(" AND ");
-                } else {
-                    sb.append(" WHERE ");
-                }
-                sb.append(" table_name = ?");
+                sb.append(" AND table_name = ?");
                 if (columnName != null) {
                     sb.append(" AND column_name = ?");
                 }
@@ -796,13 +824,20 @@ public class TapSchemaDAO
             
             String sql = sb.toString();
             log.debug(sql);
-            log.debug("values: " + tableName + "," + columnName);
-            
+
             PreparedStatement prep = conn.prepareStatement(sql);
+            int paramIndex = 1;
+            prep.setInt(paramIndex++, acSQL.publicValue);
+            if (acSQL.ownerValue != null) {
+                prep.setString(paramIndex++, acSQL.ownerValue);
+                for (String grp : acSQL.groupValues) {
+                    prep.setString(paramIndex++, grp);
+                }
+            }
             if (tableName != null) {
-                prep.setString(1, tableName);
+                prep.setString(paramIndex++, tableName);
                 if (columnName != null) {
-                    prep.setString(2, columnName);
+                    prep.setString(paramIndex++,  columnName);
                 }
             }
             return prep;
@@ -835,30 +870,19 @@ public class TapSchemaDAO
             StringBuilder sb = new StringBuilder();
             sb.append("SELECT ").append(toCommaList(tsKeysCols, 0));
             sb.append(" FROM ").append(tap_schema_tab);
-            
-            // customisation
-            String tmp = appendWhere(tap_schema_tab, sb.toString());
-            
-            sb = new StringBuilder();
-            sb.append(tmp);
-            if (tableName != null)
-            {
-                if (tmp.toLowerCase().contains("where"))
-                    sb.append(" AND ");
-                else
-                    sb.append(" WHERE ");
-                sb.append(" from_table = ?");
-            }
-            else if (orderBy != null)
+            if (tableName != null) {
+                sb.append("WHERE from_table = ?");
+            } else if (orderBy != null) {
                 sb.append(orderBy);
+            }
             
             String sql = sb.toString();
             log.debug(sql);
-            log.debug("values: " + tableName);
             
             PreparedStatement prep = conn.prepareStatement(sql);
-            if (tableName != null)
+            if (tableName != null) {
                 prep.setString(1, tableName);
+            }
             return prep;
         }
     }
@@ -889,37 +913,25 @@ public class TapSchemaDAO
             StringBuilder sb = new StringBuilder();
             sb.append("SELECT ").append(toCommaList(tsKeyColumnsCols, 0));
             sb.append(" FROM ").append(tap_schema_tab);
-            
-            // customisation
-            String tmp = appendWhere(tap_schema_tab, sb.toString());
-            
-            sb = new StringBuilder();
-            sb.append(tmp);
-            if (keyDescs != null && !keyDescs.isEmpty())
-            {
-                if (tmp.toLowerCase().contains("where"))
-                    sb.append(" AND ");
-                else
-                    sb.append(" WHERE ");
-                sb.append("key_id IN (");
-                for (KeyDesc kd : keyDescs)
-                {
+
+            if (keyDescs != null && !keyDescs.isEmpty()) {
+                sb.append(" WHERE key_id IN (");
+                for (int i=0; i<keyDescs.size(); i++) {
                     sb.append("?,");
                 }
                 sb.setCharAt(sb.length() - 1, ')'); // replace last | with closed bracket
             }
-            else if (orderBy != null)
+            else if (orderBy != null) {
                 sb.append(orderBy);
+            }
             
             String sql = sb.toString();
             log.debug(sql);
             
             PreparedStatement prep = conn.prepareStatement(sql);
-            if (keyDescs != null && !keyDescs.isEmpty())
-            {
+            if (keyDescs != null && !keyDescs.isEmpty()) {
                 int col = 1;
-                for (KeyDesc kd : keyDescs)
-                {
+                for (KeyDesc kd : keyDescs) {
                     log.debug("values: " + kd.getKeyID());
                     prep.setString(col++, kd.getKeyID());
                 }
@@ -1154,22 +1166,62 @@ public class TapSchemaDAO
         }
     }
     
-    
-    /**
-     * Append a where clause to the query that selects from the specified table.
-     * The default implementation does nothing (returns in the provided SQL as-is).
-     * 
-     * 
-     * If you want to implement some additional conditions, such as having private records
-     * only visible to certain authenticated and authorized users, you can append some
-     * conditions (or re-write the query as long as the select-list is not altered) here.
-     * 
-     * @param sql
-     * @return modified SQL
-     */
-    protected String appendWhere(String tapSchemaTablename, String sql)
-    {
-        return sql;
+    private AccessControlSQL getAccessControlSQL() {
+        
+        AccessControlSQL acSQL = new AccessControlSQL();
+        
+        IdentityManager identityManager = AuthenticationUtil.getIdentityManager();
+        log.debug("IdentityManager: " + identityManager);
+        
+        StringBuilder sb = new StringBuilder();
+        Subject curSub = AuthenticationUtil.getCurrentSubject();
+        boolean anon = curSub != null && curSub.getPrincipals() != null && curSub.getPrincipals().size() > 0;
+        
+        // add public checks
+        sb.append("( " + ownerCol + " is null or " + publicCol + " is null or " + publicCol + " = ?");
+        
+        if (!anon && identityManager != null) {
+            // add owner check
+            sb.append(" or " + ownerCol + " = ? ");
+            acSQL.ownerValue = identityManager.toOwnerString(curSub);
+            
+            LocalAuthority loc = new LocalAuthority();
+            URI gmsURI = loc.getServiceURI(Standards.GMS_GROUPS_01.toString());
+            GMSClient gmsClient = GMSClient.getGMSClient(gmsURI);
+            log.debug("GMSClient: " + gmsClient);
+            
+            if (gmsClient != null) {
+                List<Group> memberships = gmsClient.getMemberships();
+                if (memberships.size() > 0) {
+                    // add group checks
+                    sb.append(" or " + readGroupCol + " in ( ");
+                    for (int i=0; i<memberships.size(); i++) {
+                        sb.append("?, ");
+                    }
+                    sb.setLength(sb.length() - 2);
+                    sb.append(" )");
+                    
+                    sb.append(" or " + readWriteGroupCol + " in ( ");
+                    for (int i=0; i<memberships.size(); i++) {
+                        sb.append("?, ");
+                    }
+                    sb.setLength(sb.length() - 2);
+                    sb.append(" )");
+                    
+                    for (Group next : memberships) {
+                        acSQL.groupValues.add(next.getID().toString());
+                    }
+                    for (Group next : memberships) {
+                        acSQL.groupValues.add(next.getID().toString());
+                    }
+                }
+            }
+        }
+        
+        sb.append(" )");
+        
+        acSQL.sql = sb.toString();
+        return acSQL;
     }
 
     /**
@@ -1466,6 +1518,18 @@ public class TapSchemaDAO
 
             return keyColumnDesc;
         }
+    }
+    
+    /**
+     * Data holder for access control SQL and values.
+     */
+    private static final class AccessControlSQL
+    {
+        public String sql = null;
+        
+        public int publicValue = 1;
+        public String ownerValue = null;
+        public List<String> groupValues = new ArrayList<String>();
     }
 
     protected void safeSetString(StringBuilder sb, PreparedStatement ps, int col, String val)
