@@ -68,18 +68,14 @@
 package ca.nrc.cadc.vosi.actions;
 
 
-import ca.nrc.cadc.ac.Role;
-import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.cred.client.CredUtil;
 import ca.nrc.cadc.db.version.KeyValue;
 import ca.nrc.cadc.db.version.KeyValueDAO;
-import ca.nrc.cadc.gms.GMSClient;
-import ca.nrc.cadc.gms.Group;
+import ca.nrc.cadc.gms.GroupClient;
 import ca.nrc.cadc.gms.GroupURI;
 import ca.nrc.cadc.net.ResourceNotFoundException;
-import java.io.IOException;
 import java.net.URI;
 import java.security.AccessControlException;
 import java.security.Principal;
@@ -140,7 +136,7 @@ class Util {
         }
         
         // not owner: do group write permission check
-        GMSClient gmsClient = null;
+        GroupClient gmsClient = null;
         GroupURI groupURI = null;
         URI serviceID = null;
         
@@ -150,7 +146,7 @@ class Util {
         if (rwSchemaGroup != null) {
             groupURI = new GroupURI(rwSchemaGroup);
             serviceID = groupURI.getServiceID();
-            gmsClient = GMSClient.getGMSClient(serviceID);
+            gmsClient = GroupClient.getGroupClient(serviceID);
             if (isMember(gmsClient, rwSchemaGroup)) {
                 log.debug("user has schema level (" + schemaName + ") group access via " + rwSchemaGroup);
                 return;
@@ -163,7 +159,7 @@ class Util {
             groupURI = new GroupURI(rwTableGroup);
             // if the service id is different, reinstantiate the GMSClient
             if (gmsClient == null || !groupURI.getServiceID().equals(serviceID)) {
-                gmsClient = GMSClient.getGMSClient(groupURI.getServiceID());
+                gmsClient = GroupClient.getGroupClient(groupURI.getServiceID());
             }
             if (isMember(gmsClient, rwTableGroup)) {
                 log.debug("user has table level (" + tableName + ") group access via " + rwTableGroup);
@@ -253,12 +249,12 @@ class Util {
         }
     }
     
-    static boolean isMember(GMSClient gmsClient, URI grantingGroup) throws AccessControlException {
+    static boolean isMember(GroupClient groupClient, URI grantingGroup) throws AccessControlException {
         try {
             if (CredUtil.checkCredentials()) {
-                List<Group> groups = gmsClient.getMemberships();
-                for (Group group : groups) {
-                    if (group.getID().getURI().equals(grantingGroup)) {
+                List<GroupURI> groups = groupClient.getMemberships();
+                for (GroupURI group : groups) {
+                    if (group.getURI().equals(grantingGroup)) {
                         log.debug("group match: " + grantingGroup);
                         return true;
                     }

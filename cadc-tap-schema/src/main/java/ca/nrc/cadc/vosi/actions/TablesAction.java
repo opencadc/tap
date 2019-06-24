@@ -68,14 +68,13 @@
 package ca.nrc.cadc.vosi.actions;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.gms.GMSClient;
+import ca.nrc.cadc.gms.GroupClient;
 import ca.nrc.cadc.gms.GroupURI;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.tap.PluginFactory;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import static ca.nrc.cadc.vosi.actions.Util.getOwner;
 import java.net.URI;
 import java.security.AccessControlException;
 import java.security.Principal;
@@ -199,7 +198,7 @@ public abstract class TablesAction extends RestAction {
         if (rwSchemaGroup != null) {
             GroupURI groupURI = new GroupURI(rwSchemaGroup);
             URI serviceID = groupURI.getServiceID();
-            GMSClient gmsClient = GMSClient.getGMSClient(serviceID);
+            GroupClient gmsClient = GroupClient.getGroupClient(serviceID);
             if (Util.isMember(gmsClient, rwSchemaGroup)) {
                 log.debug("user has schema level (" + schemaName + ") group access via " + rwSchemaGroup);
                 return;

@@ -86,8 +86,8 @@ import org.apache.log4j.Logger;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.cred.client.CredUtil;
-import ca.nrc.cadc.gms.GMSClient;
-import ca.nrc.cadc.gms.Group;
+import ca.nrc.cadc.gms.GroupClient;
+import ca.nrc.cadc.gms.GroupURI;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.tap.parser.ParserUtil;
@@ -145,7 +145,7 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
         ASSET_TABLES.put("tap_schema.columns", new AssetTable("column_name", "owner", "public", "readGroup", "readWriteGroup"));
     }
 
-    private GMSClient gmsClient;
+    private GroupClient gmsClient;
     private IdentityManager identityManager;
 
     public TapSchemaReadAccessConverter(IdentityManager identityManager) {
@@ -154,7 +154,7 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
     }
 
     // testing support
-    public void setGMSClient(GMSClient gmsClient) {
+    public void setGroupClient(GroupClient gmsClient) {
         this.gmsClient = gmsClient;
     }
 
@@ -334,22 +334,22 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
         return s != null && s.getPrincipals() != null && s.getPrincipals().size() > 0;
     }
 
-    private List<String> getGroupIDs(GMSClient gmsClient) throws AccessControlException {
+    private List<String> getGroupIDs(GroupClient gmsClient) throws AccessControlException {
         try {
             List<String> groupIDs = new ArrayList<String>();
 
             try {
                 if (ensureCredentials()) {
-                    GMSClient gms = gmsClient;
+                    GroupClient gms = gmsClient;
                     if (gms == null) {
                         log.debug("Constructing new GMS Client");
                         LocalAuthority loc = new LocalAuthority();
                         URI gmsURI = loc.getServiceURI(Standards.GMS_GROUPS_01.toString());
-                        gms = GMSClient.getGMSClient(gmsURI);
+                        gms = GroupClient.getGroupClient(gmsURI);
                     }
-                    List<Group> groups = gms.getMemberships();
-                    for (Group group : groups) {
-                        groupIDs.add(group.getID().toString());
+                    List<GroupURI> groups = gms.getMemberships();
+                    for (GroupURI group : groups) {
+                        groupIDs.add(group.toString());
                     }
                 }
             } catch (CertificateException ex) {

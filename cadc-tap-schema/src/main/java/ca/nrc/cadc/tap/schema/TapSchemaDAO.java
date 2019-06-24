@@ -72,8 +72,8 @@ package ca.nrc.cadc.tap.schema;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
-import ca.nrc.cadc.gms.GMSClient;
-import ca.nrc.cadc.gms.Group;
+import ca.nrc.cadc.gms.GroupClient;
+import ca.nrc.cadc.gms.GroupURI;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.reg.Standards;
@@ -1187,11 +1187,11 @@ public class TapSchemaDAO
             
             LocalAuthority loc = new LocalAuthority();
             URI gmsURI = loc.getServiceURI(Standards.GMS_GROUPS_01.toString());
-            GMSClient gmsClient = GMSClient.getGMSClient(gmsURI);
+            GroupClient gmsClient = GroupClient.getGroupClient(gmsURI);
             log.debug("GMSClient: " + gmsClient);
             
             if (gmsClient != null) {
-                List<Group> memberships = gmsClient.getMemberships();
+                List<GroupURI> memberships = gmsClient.getMemberships();
                 if (memberships.size() > 0) {
                     // add group checks
                     sb.append(" or " + readGroupCol + " in ( ");
@@ -1208,11 +1208,11 @@ public class TapSchemaDAO
                     sb.setLength(sb.length() - 2);
                     sb.append(" )");
                     
-                    for (Group next : memberships) {
-                        acSQL.groupValues.add(next.getID().toString());
+                    for (GroupURI next : memberships) {
+                        acSQL.groupValues.add(next.toString());
                     }
-                    for (Group next : memberships) {
-                        acSQL.groupValues.add(next.getID().toString());
+                    for (GroupURI next : memberships) {
+                        acSQL.groupValues.add(next.toString());
                     }
                 }
             }

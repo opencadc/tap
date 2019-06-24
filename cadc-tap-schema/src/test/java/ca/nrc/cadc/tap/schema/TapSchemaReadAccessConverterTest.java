@@ -86,11 +86,11 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.gms.GMSClient;
-import ca.nrc.cadc.gms.Group;
+import ca.nrc.cadc.gms.GroupClient;
 import ca.nrc.cadc.gms.GroupURI;
 import ca.nrc.cadc.tap.AdqlQuery;
 import ca.nrc.cadc.tap.TapQuery;
@@ -148,10 +148,10 @@ public class TapSchemaReadAccessConverterTest {
     static long userIDWithGroups = 1L;
     static long userIDWithNoGroups = 2L;
     
-    static Group group1 = new Group(new GroupURI("ivo://cadc.nrc.ca/gms?666"));
-    static Group group2 = new Group(new GroupURI("ivo://cadc.nrc.ca/gms?777"));
+    static GroupURI group1 = new GroupURI("ivo://cadc.nrc.ca/gms?666");
+    static GroupURI group2 = new GroupURI("ivo://cadc.nrc.ca/gms?777");
     
-    static String groupInExpr = "in ('" + group1.getID().toString() + "', '" + group2.getID().toString() + "')";
+    static String groupInExpr = "in ('" + group1.toString() + "', '" + group2.toString() + "')";
 
     static NumericPrincipal userWithGroups;
     static NumericPrincipal userWithNoGroups;
@@ -494,7 +494,7 @@ public class TapSchemaReadAccessConverterTest {
         protected void init() {
             // no super.init() on purpose so we only have one navigator in list
             TapSchemaReadAccessConverter rac = new TestTapSchemaReadAccessConverter(new TestIdentityManager());
-            rac.setGMSClient(new TestGMSClient());
+            rac.setGroupClient(new TestGMSClient());
             super.navigatorList.add(rac);
         }
     }
@@ -531,13 +531,13 @@ public class TapSchemaReadAccessConverterTest {
         
     }
 
-    static class TestGMSClient implements GMSClient {
+    static class TestGMSClient implements GroupClient {
 
         @Override
-        public List<Group> getMemberships() {
+        public List<GroupURI> getMemberships() {
             Subject cur = AuthenticationUtil.getCurrentSubject();
 
-            List<Group> memberships = new ArrayList<Group>();
+            List<GroupURI> memberships = new ArrayList<GroupURI>();
             log.info("Current subject: " + cur);
             log.info("Subject with groups: " + subjectWithGroups);
             if (cur == subjectWithGroups) {
@@ -549,7 +549,7 @@ public class TapSchemaReadAccessConverterTest {
         }
 
         @Override
-        public boolean isMember(Group g) {
+        public boolean isMember(GroupURI g) {
             // not used
             return false;
         }
