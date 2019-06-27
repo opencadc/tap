@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2014.                            (c) 2014.
+*  (c) 2019.                            (c) 2019.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,20 +69,20 @@
 
 package ca.nrc.cadc.sample;
 
+import ca.nrc.cadc.vosi.AvailabilityPlugin;
 import ca.nrc.cadc.vosi.AvailabilityStatus;
-import ca.nrc.cadc.vosi.WebService;
 import ca.nrc.cadc.vosi.avail.CheckDataSource;
 import ca.nrc.cadc.vosi.avail.CheckException;
 import org.apache.log4j.Logger;
 
 
 /**
- * Sample WebService implementation for VOSI-availability. The class name for this class
+ * Sample AvailabilityPlugin implementation for VOSI-availability. The class name for this class
  * is used to configure the VOSI-availability servlet in the web.xml file.
  * 
  * @author pdowler
  */
-public class SampleWebService implements WebService
+public class SampleWebService implements AvailabilityPlugin
 {
     private static final Logger log = Logger.getLogger(SampleWebService.class);
     
@@ -93,6 +93,16 @@ public class SampleWebService implements WebService
     public SampleWebService()
     {
         
+    }
+
+    @Override
+    public void setAppName(String appName) {
+        //no op
+    }
+
+    @Override
+    public boolean heartbeat() {
+        return true;
     }
     
     public AvailabilityStatus getStatus()
