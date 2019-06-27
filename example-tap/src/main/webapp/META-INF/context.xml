@@ -3,27 +3,48 @@
 
     <WatchedResource>WEB-INF/web.xml</WatchedResource>
 
-    <!-- Configure TAP query DataSource
-         The "global" is a data source defined in the app server (eg within server.xml for tomcat);
-         this can be set to whatever named data source you want to use to execute TAP queries.
-
-         The "name" is used within the QueryRunner to find this data source via JNDI Lookup and 
-         must be "jdbc/tapuser".
-    -->
-    <ResourceLink name="jdbc/tapuser"
-        global="jdbc/example-tapuser"
-        type="javax.sql.DataSource" />
-
-    <!-- Configure TAP upload DataSource
-         If you want to support TAP_UPLOAD, you need to supply a data source with permission to
-         create tables and it must be named "jdbc/tapuploadadm" here. This is optional and only
-         needed if you configure an UploadManager (the default is to not support upload).
-    -->
-
+    <!-- connection pool for tap service owner: use for InitDatabaseTS to create/maintain
+        tap_schema tables -->
     <!--
-    <ResourceLink name="jdbc/tapuploadadm"
-        global="jdbc/postgresql-tapuploadadm"
-        type="javax.sql.DataSource" />
+    <Resource name="jdbc/tapadm"
+        auth="Container"
+        type="javax.sql.DataSource"
+        factory="org.apache.tomcat.jdbc.pool.DataSourceFactory" closeMethod="close"
+        minEvictableIdleTimeMillis="60000" timeBetweenEvictionRunsMillis="30000"
+        maxWait="20000"
+        initialSize="0"  minIdle="0" maxIdle="${example.tapadm.maxActive}" maxActive="${example.tapadm.maxActive}" 
+        username="${example.tapadm.username}" password="${example.tapadm.password}"
+        driverClassName="org.postgresql.Driver" url="${example.tapadm.url}"
+        removeAbandoned="false"
+        testWhileIdle="true" testOnBorrow="true" validationQuery="select 123" />
     -->
 
+    <!-- connection pool for create/modify jobs via DatabaseJobPersistence implementation -->    
+    <!--
+    <Resource name="jdbc/uws"
+        auth="Container"
+        type="javax.sql.DataSource"
+        factory="org.apache.tomcat.jdbc.pool.DataSourceFactory" closeMethod="close"
+        minEvictableIdleTimeMillis="60000" timeBetweenEvictionRunsMillis="30000"
+        maxWait="20000"
+        initialSize="0" minIdle="0" maxIdle="${example.uws.maxActive}" maxActive="${example.uws.maxActive}"
+        username="${example.uws.username}" password="${example.uws.password}"
+        driverClassName="org.postgresql.Driver" url="${example.uws.url}"
+        removeAbandoned="false"
+        testOnBorrow="true" validationQuery="select 123" />
+    -->
+
+    <!-- connection pool for executing TAP queries, including create/load of tables in tap_upload -->
+    <Resource name="jdbc/tapuser"
+        auth="Container"
+        type="javax.sql.DataSource"
+        factory="org.apache.tomcat.jdbc.pool.DataSourceFactory" closeMethod="close"
+        minEvictableIdleTimeMillis="60000" timeBetweenEvictionRunsMillis="30000"
+        maxWait="20000"
+        initialSize="0" minIdle="0" maxIdle="${example.tapuser.maxActive}" maxActive="${example.tapuser.maxActive}"
+        username="${example.tapuser.username}" password="${example.tapuser.password}"
+        driverClassName="org.postgresql.Driver" url="${example.tapuser.url}"
+        removeAbandoned="false"
+        testOnBorrow="true" validationQuery="select 123" />
+    
 </Context>

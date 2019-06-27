@@ -96,12 +96,15 @@ public class SampleWebService implements AvailabilityPlugin
     }
 
     @Override
-    public void setAppName(String appName) {
-        //no op
+    public void setAppName(String string) {
+        //no-op
     }
 
     @Override
     public boolean heartbeat() {
+        // currently no-op: the most that makes sense here is to maybe 
+        // borrow and return a connection from the tapuser connection pool 
+        // see: context.xml
         return true;
     }
     
