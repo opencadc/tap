@@ -87,12 +87,12 @@ import ca.nrc.cadc.tap.schema.TapSchemaDAO;
  */
 public class PostPermissionsAction extends TablesAction {
     
-    private static final String TAP_PERMISSIONS_CONTENT = "tapPermissions";
+    static final String TAP_PERMISSIONS_CONTENT = "tapPermissions";
     
-    PostPermissionsInlineContentHandler postPermissionsInlineContentHandler;
+    PermissionsInlineContentHandler postPermissionsInlineContentHandler;
     
     public PostPermissionsAction() {
-        postPermissionsInlineContentHandler = new PostPermissionsInlineContentHandler();
+        postPermissionsInlineContentHandler = new PermissionsInlineContentHandler();
     }
     
     @Override
@@ -130,7 +130,7 @@ public class PostPermissionsAction extends TablesAction {
         return postPermissionsInlineContentHandler;
     }
     
-    public class PostPermissionsInlineContentHandler implements InlineContentHandler {
+    public class PermissionsInlineContentHandler implements InlineContentHandler {
 
         @Override
         public Content accept(String name, String contentType, InputStream inputStream)
@@ -166,7 +166,13 @@ public class PostPermissionsAction extends TablesAction {
                     }
                 } else if (parts[0].equalsIgnoreCase(PUBLIC_KEY) && isPublic == null) {
                     if (!emptyValue) {
-                        isPublic = Boolean.parseBoolean(parts[1]);
+                        if (parts[1].equalsIgnoreCase("true")) {
+                            isPublic = true;
+                        } else if (parts[1].equalsIgnoreCase("false")) {
+                            isPublic = false;
+                        } else {
+                            throw new IllegalArgumentException("bad public value: " + parts[1]);
+                        }
                     }
                 } else if (parts[0].equalsIgnoreCase(RGROUP_KEY) && readGroup == null) {
                     if (emptyValue) {
