@@ -70,10 +70,14 @@ package ca.nrc.cadc.vosi.actions;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.gms.GroupClient;
 import ca.nrc.cadc.gms.GroupURI;
+import ca.nrc.cadc.log.WebServiceLogInfo;
 import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.reg.Standards;
+import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.tap.PluginFactory;
+import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import java.net.URI;
 import java.security.AccessControlException;
@@ -89,7 +93,11 @@ import org.apache.log4j.Logger;
 public abstract class TablesAction extends RestAction {
     private static final Logger log = Logger.getLogger(TablesAction.class);
 
-    
+    protected static final String PERMS_CONTENTTYPE = "text/plain";
+    protected static final String OWNER_KEY = "owner";
+    protected static final String PUBLIC_KEY = "public";
+    protected static final String RGROUP_KEY = "r-group";
+    protected static final String RWGROUP_KEY = "rw-group";
     
     public TablesAction() { 
     }
@@ -128,91 +136,205 @@ public abstract class TablesAction extends RestAction {
         return dao;
     }
     
-    Subject getOwner(String name) {
-        return Util.getOwner(getDataSource(), name);
-    }
-    
-    void setReadOnlyGroup(String name, URI group) {
-        throw new UnsupportedOperationException();
-    }
-    
-    void setReadWriteGroup(String name, URI group) {
-        Util.setReadWriteGroup(getDataSource(), name, group);
-    }
-    
     // schema owner can drop
     // table owner can drop
     // no group permissions used
-    void checkDropTablePermission(String tableName) {
+    void checkDropTablePermission(TapSchemaDAO dao, String tableName)
+            throws AccessControlException, ResourceNotFoundException {
+        
         String schemaName = Util.getSchemaFromTable(tableName);
-        
-        Subject sowner = getOwner(schemaName);
-        if (sowner == null) {
-            // not listed : no one has permission
-            throw new AccessControlException("permission denied");
+        TapPermissions schemaPermissions = dao.getSchemaPermissions(schemaName);
+        TapPermissions tablePermissions = dao.getTablePermissions(tableName);
+        if (schemaPermissions == null) {
+            throw new ResourceNotFoundException("schema not found: " + schemaName);
         }
-        Subject towner = getOwner(tableName);
-        if (towner == null) {
-            // not listed : no one has permission
-            throw new AccessControlException("permission denied");
+        if (tablePermissions == null) {
+            throw new ResourceNotFoundException("table not found: " + tableName);
         }
-        
-        Subject cur = AuthenticationUtil.getCurrentSubject();
-        for (Principal cp : cur.getPrincipals()) {
-            for (Principal op : sowner.getPrincipals()) {
-                if (AuthenticationUtil.equals(op, cp)) {
-                    super.logInfo.setMessage("drop allowed: schema owner");
-                    return;
-                }
-            }
-            for (Principal op : towner.getPrincipals()) {
-                if (AuthenticationUtil.equals(op, cp)) {
-                    super.logInfo.setMessage("drop allowed: table owner");
-                    return;
-                }
-            }
+        if (Util.isOwner(schemaPermissions)) {
+            super.logInfo.setMessage("drop table allowed: schema owner");
+            return;
         }
-        
+        if (Util.isOwner(tablePermissions)) {
+            super.logInfo.setMessage("drop table allowed: table owner");
+            return;
+        }
         throw new AccessControlException("permission denied");
     }
     
-    void checkSchemaWritePermission(String schemaName) {
-        DataSource ds = getDataSource();
-        Subject owner = Util.getOwner(ds, schemaName);
-        if (owner == null) {
-            // not listed : no one has permission
-            throw new AccessControlException("permission denied");
-        }
+    // schema owner can view schema permissions 
+    TapPermissions checkViewSchemaPermissions(TapSchemaDAO dao, String schemaName)
+            throws AccessControlException, ResourceNotFoundException {
         
-        Subject cur = AuthenticationUtil.getCurrentSubject();
-        for (Principal cp : cur.getPrincipals()) {
-            for (Principal op : owner.getPrincipals()) {
-                if (AuthenticationUtil.equals(op, cp)) {
-                    return;
-                }
-            }
+        TapPermissions schemaPermissions = dao.getSchemaPermissions(schemaName);
+        if (schemaPermissions == null) {
+            throw new ResourceNotFoundException("schema not found: " + schemaName);
         }
-        
-        // check group write on schema
-        URI rwSchemaGroup = Util.getReadWriteGroup(ds, schemaName);
-        if (rwSchemaGroup != null) {
-            GroupURI groupURI = new GroupURI(rwSchemaGroup);
-            URI serviceID = groupURI.getServiceID();
-            GroupClient gmsClient = GroupClient.getGroupClient(serviceID);
-            if (Util.isMember(gmsClient, rwSchemaGroup)) {
-                log.debug("user has schema level (" + schemaName + ") group access via " + rwSchemaGroup);
-                return;
-            }
+        if (Util.isOwner(schemaPermissions)) {
+            super.logInfo.setMessage("view schema permissions allowed: schema owner");
+            return schemaPermissions;
         }
-        
         throw new AccessControlException("permission denied");
     }
     
-    void checkTableWritePermission(String tableName) throws ResourceNotFoundException {
-        Util.checkTableWritePermission(getDataSource(), tableName);
+    // schema owner can modify schema permissions 
+    void checkModifySchemaPermissions(TapSchemaDAO dao, String schemaName)
+            throws AccessControlException, ResourceNotFoundException {
+        
+        TapPermissions schemaPermissions = dao.getSchemaPermissions(schemaName);
+        if (schemaPermissions == null) {
+            throw new ResourceNotFoundException("schema not found: " + schemaName);
+        }
+        if (Util.isOwner(schemaPermissions)) {
+            super.logInfo.setMessage("modify schema permissions allowed: schema owner");
+            return;
+        }
+        throw new AccessControlException("permission denied");
     }
     
-    void setTableOwner(String tableName, Subject s) {
-        Util.setOwner(getDataSource(), tableName, s);
+    // schema owner and table owner can view table permissions 
+    TapPermissions checkViewTablePermissions(TapSchemaDAO dao, String tableName)
+            throws AccessControlException, ResourceNotFoundException {
+        
+        String schemaName = Util.getSchemaFromTable(tableName);
+        TapPermissions schemaPermissions = dao.getSchemaPermissions(schemaName);
+        TapPermissions tablePermissions = dao.getTablePermissions(tableName);
+        if (schemaPermissions == null) {
+            throw new ResourceNotFoundException("schema not found: " + schemaName);
+        }
+        if (tablePermissions == null) {
+            throw new ResourceNotFoundException("table not found: " + tableName);
+        }
+        if (Util.isOwner(schemaPermissions)) {
+            super.logInfo.setMessage("view table permissions allowed: schema owner");
+            return tablePermissions;
+        }
+        if (Util.isOwner(tablePermissions)) {
+            super.logInfo.setMessage("view table permissions allowed: table owner");
+            return tablePermissions;
+        }
+        throw new AccessControlException("permission denied");
     }
+    
+    // schema owner and table owner can modify table permissions 
+    void checkModifyTablePermissions(TapSchemaDAO dao, String tableName)
+            throws AccessControlException, ResourceNotFoundException {
+        
+        String schemaName = Util.getSchemaFromTable(tableName);
+        TapPermissions schemaPermissions = dao.getSchemaPermissions(schemaName);
+        TapPermissions tablePermissions = dao.getTablePermissions(tableName);
+        if (schemaPermissions == null) {
+            throw new ResourceNotFoundException("schema not found: " + schemaName);
+        }
+        if (tablePermissions == null) {
+            throw new ResourceNotFoundException("table not found: " + tableName);
+        }
+        if (Util.isOwner(schemaPermissions)) {
+            super.logInfo.setMessage("modify table permissions allowed: schema owner");
+            return;
+        }
+        if (Util.isOwner(tablePermissions)) {
+            super.logInfo.setMessage("modify table permissions allowed: table owner");
+            return;
+        }
+        throw new AccessControlException("permission denied");
+    }
+    
+    // if anon or authenticated check public
+    // if authenticated check schema and table owners, readGroups, readWriteGroups
+    void checkTableReadPermissions(TapSchemaDAO dao, String tableName)
+            throws AccessControlException, ResourceNotFoundException {
+        
+        TapPermissions tablePermissions = dao.getTablePermissions(tableName);
+        if (tablePermissions.isPublic()) {
+            super.logInfo.setMessage("view table allowed: public=true");
+            return;
+        }
+        String schemaName = Util.getSchemaFromTable(tableName);
+        TapPermissions schemaPermissions = dao.getSchemaPermissions(schemaName);
+        if (Util.isOwner(schemaPermissions)) {
+            super.logInfo.setMessage("view table allowed: schema owner");
+            return;
+        }
+        if (Util.isOwner(tablePermissions)) {
+            super.logInfo.setMessage("view table allowed: table owner");
+            return;
+        }
+        // The serviceID should come from the read or readWrite group
+        // in the future
+        LocalAuthority localAuthority = new LocalAuthority();
+        URI serviceURI = localAuthority.getServiceURI(Standards.GMS_SEARCH_01.toString());
+        GroupClient groupClient = GroupClient.getGroupClient(serviceURI);
+        GroupURI readGroup = Util.getReadPermissionsGroup(groupClient, schemaPermissions);
+        if (readGroup != null) {
+            super.logInfo.setMessage("view table allowed: member of schema group " + readGroup);
+            return;
+        }
+        readGroup = Util.getReadPermissionsGroup(groupClient, tablePermissions);
+        if (readGroup != null) {
+            super.logInfo.setMessage("view table allowed: member of table group " + readGroup);
+            return;
+        }
+        throw new AccessControlException("permission denied");
+    }
+    
+    public void checkTableWritePermissions(TapSchemaDAO dao, String tableName)
+            throws AccessControlException, ResourceNotFoundException {
+        
+        TablesAction.checkTableWritePermissions(dao, tableName, logInfo);
+    }
+    
+    // if authenticated check schema and table owners, readGroups, readWriteGroups
+    // static method here so that TableUpdateRunner can make this call
+    static void checkTableWritePermissions(TapSchemaDAO dao, String tableName, WebServiceLogInfo logInfo)
+            throws AccessControlException, ResourceNotFoundException {
+        
+        String schemaName = Util.getSchemaFromTable(tableName);
+        TapPermissions tablePermissions = dao.getTablePermissions(tableName); 
+        TapPermissions schemaPermissions = dao.getSchemaPermissions(schemaName);
+        if (Util.isOwner(schemaPermissions)) {
+            logInfo.setMessage("table write allowed: schema owner");
+            return;
+        }
+        if (Util.isOwner(tablePermissions)) {
+            logInfo.setMessage("table write allowed: table owner");
+            return;
+        }
+        // The serviceID should come from the readWrite group in the future
+        LocalAuthority localAuthority = new LocalAuthority();
+        URI serviceURI = localAuthority.getServiceURI(Standards.GMS_SEARCH_01.toString());
+        GroupClient groupClient = GroupClient.getGroupClient(serviceURI);
+        GroupURI readGroup = Util.getWritePermissionsGroup(groupClient, schemaPermissions);
+        if (readGroup != null) {
+            logInfo.setMessage("table write allowed: member of schema group " + readGroup);
+            return;
+        }
+        readGroup = Util.getWritePermissionsGroup(groupClient, tablePermissions);
+        if (readGroup != null) {
+            logInfo.setMessage("table write allowed: member of table group " + readGroup);
+            return;
+        }
+        throw new AccessControlException("permission denied");
+    }
+    
+    // if authenticated check schema owner and readWriteGroup
+    void checkSchemaWritePermissions(TapSchemaDAO dao, String schemaName) 
+            throws AccessControlException, ResourceNotFoundException {
+        
+        TapPermissions schemaPermissions = dao.getSchemaPermissions(schemaName);
+        if (Util.isOwner(schemaPermissions)) {
+            super.logInfo.setMessage("schema write allowed: schema owner");
+            return;
+        }
+        LocalAuthority localAuthority = new LocalAuthority();
+        URI serviceURI = localAuthority.getServiceURI(Standards.GMS_SEARCH_01.toString());
+        GroupClient groupClient = GroupClient.getGroupClient(serviceURI);
+        GroupURI writeGroup = Util.getWritePermissionsGroup(groupClient, schemaPermissions);
+        if (writeGroup != null) {
+            super.logInfo.setMessage("schema write allowed: member of table group " + writeGroup);
+            return;
+        }
+        throw new AccessControlException("permission denied");
+    }
+    
 }

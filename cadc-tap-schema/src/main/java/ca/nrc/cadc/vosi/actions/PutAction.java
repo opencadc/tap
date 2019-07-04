@@ -75,6 +75,7 @@ import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.tap.db.TableCreator;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
@@ -99,7 +100,8 @@ public class PutAction extends TablesAction {
         String schemaName = Util.getSchemaFromTable(tableName);
         log.debug("PUT: " + tableName);
         
-        checkSchemaWritePermission(schemaName);
+        TapSchemaDAO ts = getTapSchemaDAO();
+        checkSchemaWritePermissions(ts, schemaName);
         
         TableDesc inputTable = getInputTable(schemaName, tableName);
         if (inputTable == null) {
@@ -123,7 +125,6 @@ public class PutAction extends TablesAction {
         }
             
         DataSource ds = getDataSource();
-        TapSchemaDAO ts = getTapSchemaDAO();
         ts.setDataSource(ds);
         TableDesc td = ts.getTable(tableName);
         if (td != null) {
@@ -145,9 +146,15 @@ public class PutAction extends TablesAction {
             ts.put(inputTable);
             prof.checkpoint("insert-into-tap-schema");
             
-            // set owner
-            setTableOwner(tableName, AuthenticationUtil.getCurrentSubject());
-            prof.checkpoint("set-owner");
+            // set owner and other permissions inherited from the schema
+            TapPermissions schemaPermissions = ts.getSchemaPermissions(schemaName);
+            TapPermissions tablePermissions = new TapPermissions(
+                AuthenticationUtil.getCurrentSubject(),
+                schemaPermissions.isPublic(),
+                schemaPermissions.getReadGroup(),
+                schemaPermissions.getReadWriteGroup());
+            ts.setTablePermissions(tableName, tablePermissions);
+            prof.checkpoint("set-permissions");
             
             tm.commitTransaction();
             prof.checkpoint("commit-transaction");

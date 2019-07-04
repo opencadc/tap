@@ -110,10 +110,8 @@ public class GetAction extends TablesAction {
         TapSchemaDAO dao = getTapSchemaDAO();
         if (tableName != null)
         {
+            checkTableReadPermissions(dao, tableName);
             TableDesc td = dao.getTable(tableName);
-            if (td == null) {
-                throw new ResourceNotFoundException("not found: " + tableName);
-            }
             TableWriter tw = new TableWriter();
             syncOutput.setCode(HttpServletResponse.SC_OK);
             syncOutput.setHeader("Content-Type", "text/xml");
@@ -121,6 +119,7 @@ public class GetAction extends TablesAction {
         }
         else
         {
+            // permission check when reading all tables?
             TapSchema tapSchema = dao.get(depth);
             TableSetWriter tsw = new TableSetWriter();
             syncOutput.setCode(HttpServletResponse.SC_OK);

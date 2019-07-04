@@ -187,17 +187,17 @@ public class TableUpdateRunner implements JobRunner {
                     throw new IllegalArgumentException("missing parameter 'index'");
                 }
                 
+                PluginFactory pf = new PluginFactory();
+                TapSchemaDAO ts = pf.getTapSchemaDAO();
                 DataSource ds = getDataSource();
+                ts.setDataSource(ds);
                 try {
                     log.debug("Checking table write permission");
-                    Util.checkTableWritePermission(ds, tableName);
+                    TablesAction.checkTableWritePermissions(ts, tableName, logInfo);
                 } catch (ResourceNotFoundException ex) {
                     throw new IllegalArgumentException("table not found: " + tableName);
                 }
-                
-                PluginFactory pf = new PluginFactory();
-                TapSchemaDAO ts = pf.getTapSchemaDAO();
-                ts.setDataSource(ds);
+
                 TableDesc td = ts.getTable(tableName);
                 if (td == null) {
                     // if this was not thrown in permission check above then we have an inconsistency between

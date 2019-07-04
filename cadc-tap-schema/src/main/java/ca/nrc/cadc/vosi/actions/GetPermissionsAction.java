@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2019.                            (c) 2019.
+*  (c) 2018.                            (c) 2018.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -63,86 +63,92 @@
 *                                       <http://www.gnu.org/licenses/>.
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.vosi.actions;
 
+import java.io.OutputStream;
+
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.gms.GroupURI;
-import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.InlineContentHandler;
+import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import java.net.URI;
-import org.apache.log4j.Logger;
 
 /**
- * Update table content by accepting data via the input stream.
+ * Return the permissions for the object identified by the 'name'
+ * parameter.
  * 
- * @author pdowler
+ * @author majorb
+ *
  */
-public class PostAction extends TablesAction {
-    
-    private static final Logger log = Logger.getLogger(PostAction.class);
-    
-    public PostAction() {
-    }
+public class GetPermissionsAction extends TablesAction {
 
     @Override
     public void doAction() throws Exception {
-        String name = getTableName();
-        log.debug("POST: " + name);
+        String name = syncInput.getParameter("name");
         if (name == null) {
-            throw new IllegalArgumentException("Missing table name in path.");
+            throw new IllegalArgumentException( "Missing param: name");
         }
         
-        // see if this is a group-write permission set call
-        if (syncInput.getParameterNames().contains("grw")) {
-            String grw = syncInput.getParameter("grw");
-            log.debug("group read-write set request: " + grw);
-            setGroup(name, grw);
-        }
-        // TODO: handle tap_schema metadata update (like PutAction)
-    }
-    
-    private void setGroup(String name, String group) throws Exception {
-        URI groupURI = null;
-        if (group != null && group.trim().length() > 0) {
-            // validate the group
-            try {
-                groupURI = new GroupURI(group).getURI();
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("invalid group URI: " + e.getMessage());
-            }
-        }
-        
-        TapSchemaDAO ts = getTapSchemaDAO();
-        Object target = null;
-        if (Util.isTableName(name)) {
-            log.debug("checking table permission");
-            checkTableWritePermission(name);
-            log.debug("checking table existence");
-            target = ts.getTable(name, true);
-        } else if (Util.isSchemaName(name)) {
-            log.debug("checking schema permission");
-            checkSchemaWritePermission(name);
-            log.debug("checking schema existence");
-            target = ts.getSchema(name, true);
-            
+        TapSchemaDAO dao = getTapSchemaDAO();
+        TapPermissions permissions = null;
+        if (Util.isSchemaName(name)) {
+            permissions = checkViewSchemaPermissions(dao, name);
+        } else if (Util.isTableName(name)) {
+            permissions = checkViewTablePermissions(dao, name);
         } else {
-            throw new IllegalArgumentException("invalid table name: " + name + " (expected: <schema>.<table>)");
+            throw new IllegalArgumentException("No such object: " + name);
         }
         
-        if (target == null) {
-            throw new ResourceNotFoundException("not found: " + name);
-        }
-        
-        setReadWriteGroup(name, groupURI);
         syncOutput.setCode(200);
+        syncOutput.setHeader("Content-Type", PERMS_CONTENTTYPE);
+        
+        StringBuilder sb = new StringBuilder();
+        String ownerString = getOwnerString(permissions.getOwner());
+        String readGroupString = getGroupString(permissions.getReadGroup());
+        String readWriteGroupString = getGroupString(permissions.getReadWriteGroup());
+        sb.append(OWNER_KEY).append(ownerString).append("\n");
+        sb.append(PUBLIC_KEY).append(Boolean.toString(permissions.isPublic())).append("\n");
+        sb.append(RGROUP_KEY).append(readGroupString).append("\n");
+        sb.append(RWGROUP_KEY).append(readWriteGroupString).append("\n");
+        
+        OutputStream out = syncOutput.getOutputStream();
+        out.write(sb.toString().getBytes());
     }
     
     @Override
     protected InlineContentHandler getInlineContentHandler() {
-        // TODO: return a TableDescHandler so we can read docs and update tap_schema metadata
-        return super.getInlineContentHandler();
+        return null;
     }
     
+    // return the owner name, preferring userid, then DN, then
+    // numeric, then whatever is left
+    private String getOwnerString(Subject s) {
+        if (s == null || s.getPrincipals().size() == 0) {
+            return "";
+        }
+        if (s.getPrincipals(HttpPrincipal.class).size() > 0) {
+            return s.getPrincipals(HttpPrincipal.class).iterator().next().getName();
+        }
+        if (s.getPrincipals(X500Principal.class).size() > 0) {
+            return s.getPrincipals(X500Principal.class).iterator().next().getName();
+        }
+        if (s.getPrincipals(NumericPrincipal.class).size() > 0) {
+            return s.getPrincipals(NumericPrincipal.class).iterator().next().getName();
+        }
+        return s.getPrincipals().iterator().next().getName();
+    }
+            
+    private String getGroupString(GroupURI group) {
+        if (group == null) {
+            return "";
+        }
+        return group.toString();
+    }
+
 }

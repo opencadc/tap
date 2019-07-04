@@ -76,6 +76,9 @@ import ca.nrc.cadc.db.version.KeyValueDAO;
 import ca.nrc.cadc.gms.GroupClient;
 import ca.nrc.cadc.gms.GroupURI;
 import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.tap.schema.TapPermissions;
+import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+
 import java.net.URI;
 import java.security.AccessControlException;
 import java.security.Principal;
@@ -114,141 +117,60 @@ class Util {
         throw new IllegalArgumentException("invalid table name: " + tableName + " (expected: <schema>.<table>)");
     }
     
-    static void checkTableWritePermission(DataSource ds, String tableName) throws ResourceNotFoundException {
-        Subject owner = getOwner(ds, tableName);
-        if (owner == null) {
-            Subject schemaOwner = getOwner(ds, getSchemaFromTable(tableName));
-            if (schemaOwner == null) {
-                throw new AccessControlException("permission denied");
-            } else {
-                throw new ResourceNotFoundException("not found: " + tableName);
-            }
+    static boolean isOwner(TapPermissions permissions) {
+        Subject s = AuthenticationUtil.getCurrentSubject();
+        if (s == null || s.getPrincipals() == null || s.getPrincipals().isEmpty()) {
+            return false;
         }
-        
-        Subject cur = AuthenticationUtil.getCurrentSubject();
-        for (Principal cp : cur.getPrincipals()) {
-            for (Principal op : owner.getPrincipals()) {
-                if (AuthenticationUtil.equals(op, cp)) {
-                    log.debug("user is owner, permission granted");
-                    return;
+        if (isOwner(permissions, s)) {
+            return true;
+        }
+        return false;
+    }
+    
+    private static boolean isOwner(TapPermissions tp, Subject subject) {
+        if (tp.getOwner() == null) {
+            // should never happen
+            return false;
+        }
+        for (Principal oPrin : tp.getOwner().getPrincipals()) {
+            for (Principal cPrin : subject.getPrincipals()) {
+                if (AuthenticationUtil.equals(oPrin, cPrin)) {
+                    return true; // caller===owner
                 }
             }
         }
-        
-        // not owner: do group write permission check
-        GroupClient gmsClient = null;
-        GroupURI groupURI = null;
-        URI serviceID = null;
-        
-        // check group write on schema
-        String schemaName = Util.getSchemaFromTable(tableName);
-        URI rwSchemaGroup = getReadWriteGroup(ds, schemaName);
-        if (rwSchemaGroup != null) {
-            groupURI = new GroupURI(rwSchemaGroup);
-            serviceID = groupURI.getServiceID();
-            gmsClient = GroupClient.getGroupClient(serviceID);
-            if (isMember(gmsClient, rwSchemaGroup)) {
-                log.debug("user has schema level (" + schemaName + ") group access via " + rwSchemaGroup);
-                return;
-            }
-        }
-        
-        // check group write on table
-        URI rwTableGroup = getReadWriteGroup(ds, tableName);
-        if (rwTableGroup != null) {
-            groupURI = new GroupURI(rwTableGroup);
-            // if the service id is different, reinstantiate the GMSClient
-            if (gmsClient == null || !groupURI.getServiceID().equals(serviceID)) {
-                gmsClient = GroupClient.getGroupClient(groupURI.getServiceID());
-            }
-            if (isMember(gmsClient, rwTableGroup)) {
-                log.debug("user has table level (" + tableName + ") group access via " + rwTableGroup);
-                return;
-            }
-        }
-        
-        throw new AccessControlException("permission denied");
+        return false;
     }
     
-    // intent is that this is a tablename (from PutAction)
-    static void setOwner(DataSource ds, String tableName, Subject owner) {
-        IdentityManager im = AuthenticationUtil.getIdentityManager();
-        if (im == null) {
-            throw new RuntimeException("CONFIG: no IdentityManager implementation available");
+    public static GroupURI getReadPermissionsGroup(GroupClient groupClient, TapPermissions permissions) {
+        Subject s = AuthenticationUtil.getCurrentSubject();
+        if (s == null || s.getPrincipals() == null || s.getPrincipals().isEmpty()) {
+            return null;
         }
-        KeyValue kv = new KeyValue(tableName + ".owner");
-        
-        KeyValueDAO dao = new KeyValueDAO(ds, null, "tap_schema");
-        
-        if (owner == null) {
-            dao.delete(kv.getName());
-            log.debug("setOwner: " + kv.getName() + " deleted");
-        } else {
-            kv.value = im.toOwner(owner).toString();
-            dao.put(kv);
-            log.debug("setOwner: " + kv.getName() + " = " + kv.value);
+        if (permissions.getReadGroup() != null &&
+            isMember(groupClient, permissions.getReadGroup().getURI())) {
+            return permissions.getReadGroup();
         }
+        if (permissions.getReadWriteGroup() != null &&
+            isMember(groupClient, permissions.getReadWriteGroup().getURI())) {
+            return permissions.getReadWriteGroup();
+        }
+        return null;
     }
     
-    // can be schemaName or tableName
-    static Subject getOwner(DataSource ds, String name) {
-        try {
-            KeyValueDAO dao = new KeyValueDAO(ds, null, "tap_schema");
-            String key = name + ".owner";
-            KeyValue kv = dao.get(key);
-            if (kv == null || kv.value == null) {
-                return null;
-            }
-
-            IdentityManager im = AuthenticationUtil.getIdentityManager();
-            if (im == null) {
-                throw new RuntimeException("CONFIG: no IdentityManager implementation available");
-            }
-            Subject s = im.toSubject(kv.value);
-            log.debug("object: " + name + " owner: " + s);
-            return s;
-        } catch (RuntimeException rethrow) {
-            throw rethrow;
-        } catch (Exception ex) {
-            throw new RuntimeException("CONFIG: failed to find owner for object " + name, ex);
+    public static GroupURI getWritePermissionsGroup(GroupClient groupClient, TapPermissions permissions) {
+        Subject s = AuthenticationUtil.getCurrentSubject();
+        if (s == null || s.getPrincipals() == null || s.getPrincipals().isEmpty()) {
+            return null;
         }
+        if (permissions.getReadWriteGroup() != null &&
+            isMember(groupClient, permissions.getReadWriteGroup().getURI())) {
+            return permissions.getReadWriteGroup();
+        }
+        return null;
     }
-    
-    static URI getReadWriteGroup(DataSource ds, String name) {
-        try {
-            KeyValueDAO dao = new KeyValueDAO(ds, null, "tap_schema");
-            String key = name + ".rw-group";
-            KeyValue kv = dao.get(key);
-            if (kv == null || kv.value == null) {
-                return null;
-            }
-
-            URI ret = new URI(kv.value);
-            log.debug("schema: " + name + " RW group: " + ret);
-            return ret;
-        } catch (Exception ex) {
-            throw new RuntimeException("CONFIG: failed to find RW group for object " + name, ex);
-        }
-    }
-    
-    static void setReadWriteGroup(DataSource ds, String name, URI group) {
         
-        KeyValue kv = new KeyValue(name + ".rw-group");
-        
-        KeyValueDAO dao = new KeyValueDAO(ds, null, "tap_schema");
-        KeyValue persisted = dao.get(name);
-        
-        if (group == null || persisted != null) {
-            dao.delete(kv.getName());
-            log.debug("setReadWriteGroup: " + kv.getName() + " deleted");
-        }
-        if (group != null) {
-            kv.value = group.toASCIIString();
-            dao.put(kv);
-            log.debug("setReadWriteGroup: " + kv.getName() + " = " + kv.value);
-        }
-    }
-    
     static boolean isMember(GroupClient groupClient, URI grantingGroup) throws AccessControlException {
         try {
             if (CredUtil.checkCredentials()) {

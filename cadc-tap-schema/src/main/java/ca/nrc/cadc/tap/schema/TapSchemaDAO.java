@@ -139,10 +139,10 @@ public class TapSchemaDAO
     
     // access control columns are present in the tables schema, tables, and columns,
     // but are not exposed as tap schema columns
-    protected String ownerCol = "owner";
-    protected String publicCol = "public";
-    protected String readGroupCol = "readGroup";
-    protected String readWriteGroupCol = "readWriteGroup";
+    protected static String ownerCol = "owner";
+    protected static String publicCol = "public";
+    protected static String readGroupCol = "readGroup";
+    protected static String readWriteGroupCol = "readWriteGroup";
 
     protected Job job;
     protected DataSource dataSource;
@@ -636,6 +636,98 @@ public class TapSchemaDAO
             }
         }
     }
+    
+    /**
+     * Return the permissions of the schmema identified by schemaName
+     * 
+     * @param schemaName
+     * @return An object holding the permissions for the schema.
+     */
+    public TapPermissions getSchemaPermissions(String schemaName) {
+        
+        PermissionsStatement gsp = new PermissionsStatement(schemasTableName, "schema_name", schemaName);
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        IdentityManager identityManager = AuthenticationUtil.getIdentityManager();
+        log.debug("IdentityManager: " + identityManager);
+        TapPermissionsMapper tapPermissionsMapper = new TapPermissionsMapper(identityManager);
+        
+        List<TapPermissions> tps = jdbc.query(gsp, tapPermissionsMapper);
+        if (tps.isEmpty()) {
+            return null;
+        }
+        if (tps.size() == 1) {
+            return tps.get(0);
+        }
+        throw new RuntimeException("BUG: found " + tps.size() + " schema matching " + schemaName);
+    }
+    
+    /**
+     * Return the permissions of the table identified by tableName
+     * 
+     * @param tableName
+     * @return An object holding the permissions for the table.
+     */
+    public TapPermissions getTablePermissions(String tableName) {
+        
+        PermissionsStatement gtp = new PermissionsStatement(tablesTableName, "table_name", tableName);
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        IdentityManager identityManager = AuthenticationUtil.getIdentityManager();
+        log.debug("IdentityManager: " + identityManager);
+        TapPermissionsMapper tapPermissionsMapper = new TapPermissionsMapper(identityManager);
+        
+        List<TapPermissions> tps = jdbc.query(gtp, tapPermissionsMapper);
+        if (tps.isEmpty()) {
+            return null;
+        }
+        if (tps.size() == 1) {
+            return tps.get(0);
+        }
+        throw new RuntimeException("BUG: found " + tps.size() + " tables matching " + tableName);
+    }
+    
+    /**
+     * Set the permissions of the schema identified by schemaName.
+     * 
+     * See the javadoc in TapPermissions for how null values of the permissions
+     * field are handled.
+     * 
+     * @param schemaName
+     * @param tp
+     * @throws ResourceNotFoundException 
+     */
+    public void setSchemaPermissions(String schemaName, TapPermissions tp) throws ResourceNotFoundException {
+        PermissionsStatement ssp = new PermissionsStatement(schemasTableName, "schema_name", schemaName, tp);
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        int rows = jdbc.update(ssp);
+        if (rows == 0) {
+            throw new ResourceNotFoundException("No schema named " + schemaName);
+        }
+        if (rows != 1) {
+            throw new RuntimeException("BUG: found " + rows + " schema matching " + schemaName);
+        }
+    }
+    
+    /**
+     * Set the permissions of the schema identified by tableName.
+     * 
+     * See the javadoc in TapPermissions for how null values of the permissions
+     * field are handled.
+     * 
+     * @param tableName
+     * @param tp
+     * @throws ResourceNotFoundException 
+     */
+    public void setTablePermissions(String tableName, TapPermissions tp) throws ResourceNotFoundException {
+        PermissionsStatement stp = new PermissionsStatement(tablesTableName, "table_name", tableName, tp);
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        int rows = jdbc.update(stp);
+        if (rows == 0) {
+            throw new ResourceNotFoundException("No table named " + tableName);
+        }
+        if (rows != 1) {
+            throw new RuntimeException("BUG: found " + rows + " table matching " + tableName);
+        }
+    }
 
     private String toCommaList(String[] strs, int numUpdateKeys) {
         StringBuilder sb = new StringBuilder();
@@ -936,6 +1028,106 @@ public class TapSchemaDAO
                     prep.setString(col++, kd.getKeyID());
                 }
             }
+            return prep;
+        }
+    }
+    
+    private class PermissionsStatement implements PreparedStatementCreator
+    {
+        private String table;
+        private String column;
+        private String name;
+        private TapPermissions tp;
+
+        public PermissionsStatement(String table, String column, String name) {
+            this.table = table;
+            this.column = column;
+            this.name = name;
+        }
+        
+        public PermissionsStatement(String table, String column, String name, TapPermissions tp) {
+            this.table = table;
+            this.column = column;
+            this.name = name;
+            this.tp = tp;
+        }
+        
+        public PreparedStatement createPreparedStatement(Connection conn) throws SQLException
+        {
+            if (tp == null) {
+                return selectStatement(conn);
+            } else {
+                return updateStatement(conn);
+            }
+        }
+        
+        private PreparedStatement selectStatement(Connection conn) throws SQLException {
+            StringBuilder sb = new StringBuilder();
+            sb.append("SELECT ");
+            sb.append(ownerCol).append(", ");
+            sb.append(publicCol).append(", ");
+            sb.append(readGroupCol).append(", ");
+            sb.append(readWriteGroupCol);
+            sb.append(" FROM ").append(table);
+            sb.append(" WHERE ").append(column).append(" = ?");
+            String sql = sb.toString();
+            log.debug("sql: " + sql);
+            
+            PreparedStatement prep = conn.prepareStatement(sql);
+            prep.setString(1, name);
+            return prep;
+        }
+            
+        private PreparedStatement updateStatement(Connection conn) throws SQLException {
+            StringBuilder sb = new StringBuilder();
+            int colIndex = 1;
+            sb.append("UPDATE ");
+            sb.append(table);
+            sb.append(" SET ");
+            if (tp.isPublic() != null) {
+                sb.append(publicCol).append(" = ? ");
+            }
+            if (tp.getReadGroup() != null) {
+                sb.append(readGroupCol).append(" = ? ");
+            }
+            if (tp.getReadWriteGroup() != null) {
+                sb.append(readWriteGroupCol).append(" = ?");
+            }
+            sb.append(" WHERE ").append(column).append(" = ?");
+            
+            String sql = sb.toString();
+            log.debug("sql: " + sql);
+            PreparedStatement prep = conn.prepareStatement(sql);
+            
+            if (tp.isPublic() != null) {
+                int boolVal = 0;
+                if (tp.isPublic()) {
+                    boolVal = 1;
+                }
+                prep.setInt(colIndex++, boolVal);
+            }
+            
+            if (tp.getReadGroup() != null) {
+                if (tp.isClearReadGroup()) {
+                    prep.setNull(colIndex++, Types.VARCHAR);
+                } else {
+                    prep.setString(colIndex++, tp.getReadGroup().toString());
+                }
+            }
+            if (tp.getReadWriteGroup() != null) {
+                if (tp.isClearReadWriteGroup()) {
+                    prep.setNull(colIndex++, Types.VARCHAR);
+                } else {
+                    prep.setString(colIndex++, tp.getReadWriteGroup().toString());
+                }
+            }
+            
+            if (colIndex == 1) {
+                throw new IllegalArgumentException("No updates to perform");
+            }
+            
+            prep.setString(colIndex++, name);
+            
             return prep;
         }
     }
@@ -1517,6 +1709,47 @@ public class TapSchemaDAO
             KeyColumnDesc keyColumnDesc = new KeyColumnDesc(kid, fc, tc);
 
             return keyColumnDesc;
+        }
+    }
+    
+    /**
+     * Creates a List of Schema populated from the ResultSet.
+     */
+    private static final class TapPermissionsMapper implements RowMapper
+    {
+        
+        private IdentityManager identityManager;
+        
+        public TapPermissionsMapper(IdentityManager identityManager) {
+            this.identityManager = identityManager;
+        }
+        
+        public TapPermissions mapRow(ResultSet rs, int rowNum) throws SQLException
+        {
+            String ownerVal = rs.getString(ownerCol);
+            int isPublicVal = rs.getInt(publicCol);
+            String readGroupVal = rs.getString(readGroupCol);
+            String readWriteGroupVal = rs.getString(readWriteGroupCol);
+            
+            Subject owner = null;
+            if (ownerVal != null) {
+                identityManager.toSubject(ownerVal);
+            }
+            // a value of zero is either null or false
+            boolean isPublic = isPublicVal != 0;
+            GroupURI readGroup = null;
+            GroupURI readWriteGroup = null;
+            if (readGroupVal != null) {
+                readGroup = new GroupURI(readGroupVal);
+            }
+            if (readWriteGroupVal != null) {
+                readWriteGroup = new GroupURI(readWriteGroupVal);
+            }
+            
+            TapPermissions tapPermissions = new TapPermissions(
+                owner, isPublic, readGroup, readWriteGroup);
+            
+            return tapPermissions;
         }
     }
     

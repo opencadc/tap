@@ -96,12 +96,14 @@ public class DeleteAction extends TablesAction {
             throw new IllegalArgumentException("Missing table name in path.");
         }
         
-        checkDropTablePermission(tableName);
-        
         Profiler prof = new Profiler(DeleteAction.class);
         DataSource ds = getDataSource();
         DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
         try {
+            
+            TapSchemaDAO ts = getTapSchemaDAO();
+            checkDropTablePermission(ts, tableName);
+            
             tm.startTransaction();
             prof.checkpoint("start-transaction");
             
@@ -110,13 +112,7 @@ public class DeleteAction extends TablesAction {
             tc.dropTable(tableName);
             prof.checkpoint("delete-table");
             
-            // set to null deletes
-            setTableOwner(tableName, null);
-            setReadWriteGroup(tableName, null);
-            prof.checkpoint(("delete-permissions"));
-            
             // remove from tap_schema last to minimise locking
-            TapSchemaDAO ts = getTapSchemaDAO();
             ts.setDataSource(ds);
             ts.delete(tableName);
             prof.checkpoint("delete-from-tap-schema");
@@ -126,7 +122,7 @@ public class DeleteAction extends TablesAction {
         } catch (ResourceNotFoundException rethrow) { 
             tm.rollbackTransaction();
             throw rethrow;
-        }catch (Exception ex) {
+        } catch (Exception ex) {
             try {
                 log.error("DELETE failed - rollback", ex);
                 tm.rollbackTransaction();
