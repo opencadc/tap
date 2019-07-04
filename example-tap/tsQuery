@@ -3,7 +3,7 @@
 ## sample request: query TAP_SCHEMA.tables using the sync resource
 
 curl -v --location \
-	-d 'REQUEST=doQuery&LANG=ADQL-2.0&QUERY=SELECT * FROM tap_schema.tables' \
-	http://localhost/example-tap-1.1/sync
+	-d 'LANG=ADQL&QUERY=SELECT * FROM tap_schema.tables' \
+	http://localhost:8080/example-tap-1.1/sync
 
 

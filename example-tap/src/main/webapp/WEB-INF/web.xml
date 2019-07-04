@@ -5,7 +5,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2019.                            (c) 2019.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -88,11 +88,15 @@
         <init-param>
             <param-name>logLevelPackages</param-name>
             <param-value>
-                ca.nrc.cadc.log
+                ca.nrc.cadc.rest
                 ca.nrc.cadc.uws
+                ca.nrc.cadc.dali
                 ca.nrc.cadc.tap
+                ca.nrc.cadc.db
+                ca.nrc.cadc.cat
                 ca.nrc.cadc.net
                 ca.nrc.cadc.auth
+                ca.nrc.cadc.vosi
                 ca.nrc.cadc.sample
             </param-value>
         </init-param>
@@ -101,36 +105,55 @@
 
     <!-- synchronous access to JobManager service -->
     <servlet>
-        <load-on-startup>2</load-on-startup>
-      <servlet-name>SyncServlet</servlet-name>
-      <servlet-class>ca.nrc.cadc.uws.server.SyncServlet</servlet-class>
-      <init-param>
-          <param-name>ca.nrc.cadc.uws.server.JobManager</param-name>
-          <param-value>ca.nrc.cadc.sample.SampleJobManager</param-value>
-      </init-param>
-      <init-param>
-          <param-name>ca.nrc.cadc.uws.server.SyncServlet.execOnGET</param-name>
-          <param-value>true</param-value>
-      </init-param>
-      <init-param>
-          <param-name>ca.nrc.cadc.uws.server.SyncServlet.execOnPOST</param-name>
-          <param-value>false</param-value>
-      </init-param>
-    </servlet>
-
-    <!-- asynchronous access to JobManager service -->
-    <servlet>
-        <load-on-startup>2</load-on-startup>
-        <servlet-name>AsyncServlet</servlet-name>
-        <servlet-class>org.restlet.ext.servlet.ServerServlet</servlet-class>
-        <init-param>
-            <param-name>org.restlet.application</param-name>
-            <param-value>ca.nrc.cadc.uws.web.restlet.UWSAsyncApplication</param-value>
-        </init-param>
+    <servlet-name>AsyncServlet</servlet-name>
+    <servlet-class>ca.nrc.cadc.uws.server.JobServlet</servlet-class>
         <init-param>
             <param-name>ca.nrc.cadc.uws.server.JobManager</param-name>
             <param-value>ca.nrc.cadc.sample.SampleJobManager</param-value>
         </init-param>
+        <!--
+        <init-param>
+            <param-name>ca.nrc.cadc.rest.InlineContentHandler</param-name>
+            <param-value>fully qualified class name of a TapUploadInlineContentHandler</param-value>
+        </init-param>
+        -->
+        <init-param>
+            <param-name>get</param-name>
+            <param-value>ca.nrc.cadc.uws.web.GetAction</param-value>
+        </init-param>
+        <init-param>
+            <param-name>post</param-name>
+            <param-value>ca.nrc.cadc.uws.web.PostAction</param-value>
+        </init-param>
+        <init-param>
+            <param-name>delete</param-name>
+            <param-value>ca.nrc.cadc.uws.web.DeleteAction</param-value>
+        </init-param>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+
+    <servlet>
+        <servlet-name>SyncServlet</servlet-name>
+        <servlet-class>ca.nrc.cadc.uws.server.JobServlet</servlet-class>
+        <init-param>
+            <param-name>ca.nrc.cadc.uws.server.JobManager</param-name>
+            <param-value>ca.nrc.cadc.sample.SampleJobManager</param-value>
+        </init-param>
+        <!--
+        <init-param>
+            <param-name>ca.nrc.cadc.rest.InlineContentHandler</param-name>
+            <param-value>fully qualified class name of a TapUploadInlineContentHandler</param-value>
+        </init-param>
+        -->
+        <init-param>
+            <param-name>get</param-name>
+            <param-value>ca.nrc.cadc.uws.web.SyncGetAction</param-value>
+        </init-param>
+        <init-param>
+            <param-name>post</param-name>
+            <param-value>ca.nrc.cadc.uws.web.SyncPostAction</param-value>
+        </init-param>
+        <load-on-startup>2</load-on-startup>
     </servlet>
 
     <!-- VOSI-availability provides a standard resource to probe the web service
@@ -142,7 +165,7 @@
         <init-param>
             <description>
             </description>
-            <param-name>ca.nrc.cadc.vosi.WebService</param-name>
+            <param-name>ca.nrc.cadc.vosi.AvailabilityPlugin</param-name>
             <param-value>ca.nrc.cadc.sample.SampleWebService</param-value>
         </init-param>
     </servlet>
