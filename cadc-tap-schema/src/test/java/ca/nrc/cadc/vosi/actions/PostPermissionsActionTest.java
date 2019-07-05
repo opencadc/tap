@@ -219,6 +219,7 @@ public class PostPermissionsActionTest {
             Content c = p.accept(PostPermissionsAction.TAP_PERMISSIONS_CONTENT, TablesAction.PERMS_CONTENTTYPE, in);
             TapPermissions tp = (TapPermissions) c.value;
             Assert.assertEquals(testGroupURI, tp.getReadGroup().toString());
+            Assert.assertFalse(tp.isClearReadGroup());
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -237,6 +238,43 @@ public class PostPermissionsActionTest {
             Content c = p.accept(PostPermissionsAction.TAP_PERMISSIONS_CONTENT, TablesAction.PERMS_CONTENTTYPE, in);
             TapPermissions tp = (TapPermissions) c.value;
             Assert.assertEquals(testGroupURI, tp.getReadWriteGroup().toString());
+            Assert.assertFalse(tp.isClearReadWriteGroup());
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+    
+    @Test
+    public final void testClearReadGroup() {
+        log.debug("testSetReadGroup");
+        try {
+            String content = TablesAction.RGROUP_KEY + "=";
+            ByteArrayInputStream in = new ByteArrayInputStream(content.getBytes());
+
+            PermissionsInlineContentHandler p = new PostPermissionsAction().new PermissionsInlineContentHandler();
+            Content c = p.accept(PostPermissionsAction.TAP_PERMISSIONS_CONTENT, TablesAction.PERMS_CONTENTTYPE, in);
+            TapPermissions tp = (TapPermissions) c.value;
+            Assert.assertNull(tp.getReadGroup());
+            Assert.assertTrue(tp.isClearReadGroup());
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+    
+    @Test
+    public final void testClearReadWriteGroup() {
+        log.debug("testSetReadGroup");
+        try {
+            String content = TablesAction.RWGROUP_KEY + "=";
+            ByteArrayInputStream in = new ByteArrayInputStream(content.getBytes());
+
+            PermissionsInlineContentHandler p = new PostPermissionsAction().new PermissionsInlineContentHandler();
+            Content c = p.accept(PostPermissionsAction.TAP_PERMISSIONS_CONTENT, TablesAction.PERMS_CONTENTTYPE, in);
+            TapPermissions tp = (TapPermissions) c.value;
+            Assert.assertNull(tp.getReadWriteGroup());
+            Assert.assertTrue(tp.isClearReadWriteGroup());
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -298,6 +336,8 @@ public class PostPermissionsActionTest {
             Assert.assertTrue(tp.isPublic());
             Assert.assertEquals(testGroupURI1, tp.getReadGroup().toString());
             Assert.assertEquals(testGroupURI2, tp.getReadWriteGroup().toString());
+            Assert.assertFalse(tp.isClearReadGroup());
+            Assert.assertFalse(tp.isClearReadWriteGroup());
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);

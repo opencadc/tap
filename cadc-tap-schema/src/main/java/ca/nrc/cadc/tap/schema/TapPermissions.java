@@ -127,11 +127,11 @@ public class TapPermissions {
         this.clearReadWriteGroup = clearReadWriteGroup;
     }
 
-    protected boolean isClearReadGroup() {
+    public boolean isClearReadGroup() {
         return clearReadGroup;
     }
 
-    protected boolean isClearReadWriteGroup() {
+    public boolean isClearReadWriteGroup() {
         return clearReadWriteGroup;
     }
 }
