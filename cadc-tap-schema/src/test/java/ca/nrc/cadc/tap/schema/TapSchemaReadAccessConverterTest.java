@@ -86,7 +86,6 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.auth.NumericPrincipal;

@@ -89,10 +89,7 @@ public class PostPermissionsAction extends TablesAction {
     
     static final String TAP_PERMISSIONS_CONTENT = "tapPermissions";
     
-    PermissionsInlineContentHandler postPermissionsInlineContentHandler;
-    
     public PostPermissionsAction() {
-        postPermissionsInlineContentHandler = new PermissionsInlineContentHandler();
     }
     
     @Override
@@ -127,7 +124,7 @@ public class PostPermissionsAction extends TablesAction {
     
     @Override
     protected InlineContentHandler getInlineContentHandler() {
-        return postPermissionsInlineContentHandler;
+        return new PermissionsInlineContentHandler();
     }
     
     public class PermissionsInlineContentHandler implements InlineContentHandler {

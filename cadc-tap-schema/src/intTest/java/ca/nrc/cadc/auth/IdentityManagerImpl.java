@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2018.                            (c) 2018.
+*  (c) 2019.                            (c) 2019.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -65,50 +65,19 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.schema;
+package ca.nrc.cadc.auth;
 
-import ca.nrc.cadc.db.version.InitDatabase;
-import java.net.URL;
-import javax.sql.DataSource;
+
 import org.apache.log4j.Logger;
 
 /**
- *
+ * IM implementation for tests.
+ * 
  * @author pdowler
  */
-public class InitDatabaseTS extends InitDatabase {
-    private static final Logger log = Logger.getLogger(InitDatabaseTS.class);
+public class IdentityManagerImpl extends X500IdentityManager {
+    private static final Logger log = Logger.getLogger(IdentityManagerImpl.class);
 
-    public static final String MODEL_NAME = "TAP_SCHEMA";
-    public static final String MODEL_VERSION = "1.2.0";
-    public static final String PREV_MODEL_VERSION = "1.1.6";
-
-    static String[] CREATE_SQL = new String[] {
-        "tap_schema.ModelVersion.sql",
-        "tap_schema.KeyValue.sql",
-        "tap_schema11.sql",
-        "tap_schema_self11.sql",
-        "tap_schema.permissions.sql"
-    };
-
-    static String[] UPGRADE_SQL = new String[]{
-        "tap_schema.upgrade-1.2.0.sql"
-    };
-    
-    public InitDatabaseTS(DataSource dataSource, String database, String schema) {
-        super(dataSource, database, schema, MODEL_NAME, MODEL_VERSION, PREV_MODEL_VERSION);
-        for (String s : CREATE_SQL) {
-            createSQL.add(s);
-        }
-        for (String s : UPGRADE_SQL) {
-            upgradeSQL.add(s);
-        }
+    public IdentityManagerImpl() { 
     }
-
-    @Override
-    protected URL findSQL(String fname) {
-        return InitDatabaseTS.class.getClassLoader().getResource("postgresql/" + fname);
-    }
- 
-    
 }

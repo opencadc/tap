@@ -69,23 +69,16 @@ package ca.nrc.cadc.vosi.actions;
 
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.cred.client.CredUtil;
-import ca.nrc.cadc.db.version.KeyValue;
-import ca.nrc.cadc.db.version.KeyValueDAO;
 import ca.nrc.cadc.gms.GroupClient;
 import ca.nrc.cadc.gms.GroupURI;
-import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.tap.schema.TapPermissions;
-import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-
 import java.net.URI;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.security.cert.CertificateException;
 import java.util.List;
 import javax.security.auth.Subject;
-import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
 /**
