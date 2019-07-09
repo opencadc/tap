@@ -268,8 +268,6 @@ public class TapSchemaDAO
             throw new UnsupportedOperationException("getSchema(shallow=false) not implemented");
         }
         
-        AccessControlSQL acSQL = getAccessControlSQL();
-        
         GetSchemasStatement gss = new GetSchemasStatement(schemasTableName, null);
         gss.setSchemaName(schemaName);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
@@ -303,8 +301,6 @@ public class TapSchemaDAO
     public TableDesc getTable(String tableName, boolean shallow) {
         final Profiler prof = new Profiler(TapSchemaDAO.class);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
-        
-        AccessControlSQL acSQL = getAccessControlSQL();
         
         GetTablesStatement gts = new GetTablesStatement(tablesTableName, null);
         gts.setTableName(tableName);
@@ -367,8 +363,7 @@ public class TapSchemaDAO
      */
     public ColumnDesc getColumn(String tableName, String columnName) {
         
-        AccessControlSQL acSQL = getAccessControlSQL();
-        GetColumnsStatement gcs = new GetColumnsStatement(columnsTableName, acSQL);
+        GetColumnsStatement gcs = new GetColumnsStatement(columnsTableName, null);
         gcs.setTableName(tableName);
         gcs.setColumnName(columnName);
         
