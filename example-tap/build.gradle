@@ -37,3 +37,10 @@ dependencies {
     testCompile 'junit:junit:[4.0,)'
     testCompile 'xmlunit:xmlunit:[1.0,)'
 }
+
+configurations {
+  runtime.exclude group: 'javax.servlet'
+  runtime.exclude group: 'net.sourceforge.jtds'
+  runtime.exclude group: 'org.postgresql'
+  runtime.exclude group: 'org.restlet.jee'
+}
