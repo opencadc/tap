@@ -96,6 +96,7 @@ public class TapPermissions {
     private boolean clearReadGroup = false;
     private boolean clearReadWriteGroup = false;
     
+
     public TapPermissions(Subject owner, Boolean isPublic, GroupURI readGroup, GroupURI readWriteGroup) {
         this.owner = owner;
         this.isPublic = isPublic;

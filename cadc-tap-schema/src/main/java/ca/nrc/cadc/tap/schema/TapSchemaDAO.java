@@ -139,10 +139,10 @@ public class TapSchemaDAO
     
     // access control columns are present in the tables schema, tables, and columns,
     // but are not exposed as tap schema columns
-    protected static String ownerCol = "owner";
-    protected static String publicCol = "public";
-    protected static String readGroupCol = "readGroup";
-    protected static String readWriteGroupCol = "readWriteGroup";
+    protected static String ownerCol = "owner_id";
+    protected static String readAnonCol = "read_anon";
+    protected static String readOnlyCol = "read_only_group";
+    protected static String readWriteCol = "read_write_group";
 
     protected Job job;
     protected DataSource dataSource;
@@ -182,7 +182,7 @@ public class TapSchemaDAO
     }
 
     /** 
-     * Get the complete TapSchema.
+     * Get the complete TapSchema. Calls get(MAX_DEPTH).
      * 
      * @return complete TapSchema
      */
@@ -195,8 +195,9 @@ public class TapSchemaDAO
     
     /**
      * Creates and returns a TapSchema object representing some or all of the content in TAP_SCHEMA.
+     * This method filters output based on what the current Subject (user) is allowed to see.
      * 
-     * @param depth use MIN_DEPTH to get schame and table names only, MAX_DEPTH to get everything
+     * @param depth use MIN_DEPTH to get schema and table names only, MAX_DEPTH to get everything
      * @return TapSchema containing some or all of the content
      */
     public TapSchema get(int depth)
@@ -269,7 +270,7 @@ public class TapSchemaDAO
         
         AccessControlSQL acSQL = getAccessControlSQL();
         
-        GetSchemasStatement gss = new GetSchemasStatement(schemasTableName, acSQL);
+        GetSchemasStatement gss = new GetSchemasStatement(schemasTableName, null);
         gss.setSchemaName(schemaName);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         List<SchemaDesc> schemaDescs = jdbc.query(gss, new SchemaMapper());
@@ -305,7 +306,7 @@ public class TapSchemaDAO
         
         AccessControlSQL acSQL = getAccessControlSQL();
         
-        GetTablesStatement gts = new GetTablesStatement(tablesTableName, acSQL);
+        GetTablesStatement gts = new GetTablesStatement(tablesTableName, null);
         gts.setTableName(tableName);
         if (ordered) {
             gts.setOrderBy(orderTablesClause);
@@ -322,7 +323,7 @@ public class TapSchemaDAO
         }
         
         // column metadata
-        GetColumnsStatement gcs = new GetColumnsStatement(columnsTableName, acSQL);
+        GetColumnsStatement gcs = new GetColumnsStatement(columnsTableName, null);
         gcs.setTableName(tableName);
         if (ordered) {
             gcs.setOrderBy(orderColumnsClause);
@@ -583,7 +584,7 @@ public class TapSchemaDAO
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
         try {
-            TableDesc cur = getTable(tableName);
+            TableDesc cur = getTable(tableName, true);
             if (cur == null) {
                 throw new ResourceNotFoundException("not found: " + tableName);
             }
@@ -781,10 +782,15 @@ public class TapSchemaDAO
             sb.append(" FROM ").append(tap_schema_tab);
             sb.append(" WHERE ");
             
-            sb.append(acSQL.sql);
+            if (acSQL != null) {
+                sb.append(acSQL.sql);
+            }
             
             if (schemaName != null) {
-                sb.append(" AND schema_name = ?");
+                if (acSQL != null) {
+                    sb.append(" AND ");
+                }
+                sb.append("schema_name = ?");
             }
             if (orderBy != null) {
                 sb.append(orderBy);
@@ -795,16 +801,20 @@ public class TapSchemaDAO
 
             PreparedStatement prep = conn.prepareStatement(sql);
             int paramIndex = 1;
-            prep.setInt(paramIndex++, acSQL.publicValue);
-            if (acSQL.ownerValue != null) {
-                prep.setString(paramIndex++, acSQL.ownerValue);
-                for (String grp : acSQL.groupValues) {
-                    prep.setString(paramIndex++, grp);
+            if (acSQL != null) {
+                prep.setInt(paramIndex++, acSQL.publicValue);
+                if (acSQL.ownerValue != null) {
+                    prep.setString(paramIndex++, acSQL.ownerValue);
+                    for (String grp : acSQL.groupValues) {
+                        prep.setString(paramIndex++, grp);
+                    }
                 }
             }
+            
             if (schemaName != null) {
                 prep.setString(paramIndex++, schemaName);
             }
+            
             return prep;
         }
     }
@@ -839,10 +849,15 @@ public class TapSchemaDAO
             sb.append(" FROM ").append(tap_schema_tab);
             sb.append(" WHERE ");
             
-            sb.append(acSQL.sql);
+            if (acSQL != null) {
+                sb.append(acSQL.sql);
+            }
             
             if (tableName != null) {
-                sb.append(" AND table_name = ?");
+                if (acSQL != null) {
+                    sb.append(" AND ");
+                }
+                sb.append("table_name = ?");
             }
             if (orderBy != null) {
                 sb.append(orderBy);
@@ -851,18 +866,29 @@ public class TapSchemaDAO
             String sql = sb.toString();
             log.debug(sql);
 
+            StringBuilder vals = new StringBuilder();
+            vals.append("values: ");
+                    
             PreparedStatement prep = conn.prepareStatement(sql);
             int paramIndex = 1;
-            prep.setInt(paramIndex++, acSQL.publicValue);
-            if (acSQL.ownerValue != null) {
-                prep.setString(paramIndex++, acSQL.ownerValue);
-                for (String grp : acSQL.groupValues) {
-                    prep.setString(paramIndex++, grp);
+            if (acSQL != null) {
+                prep.setInt(paramIndex++, acSQL.publicValue);
+                vals.append(acSQL.publicValue).append(",");
+                if (acSQL.ownerValue != null) {
+                    prep.setString(paramIndex++, acSQL.ownerValue);
+                    vals.append(acSQL.ownerValue).append(",");
+                    for (String grp : acSQL.groupValues) {
+                        prep.setString(paramIndex++, grp);
+                        vals.append(grp).append(",");
+                    }
                 }
             }
+            
             if (tableName != null) {
                 prep.setString(paramIndex++, tableName);
+                vals.append(tableName);
             }
+            log.debug("values: " + vals.toString());
             return prep;
         }
     }
@@ -902,10 +928,15 @@ public class TapSchemaDAO
             sb.append(" FROM ").append(tap_schema_tab);
             sb.append(" WHERE ");
             
-            sb.append(acSQL.sql);
+            if (acSQL != null) {
+                sb.append(acSQL.sql);
+            }
             
             if (tableName != null) {
-                sb.append(" AND table_name = ?");
+                if (acSQL != null) {
+                    sb.append(" AND ");
+                }
+                sb.append("table_name = ?");
                 if (columnName != null) {
                     sb.append(" AND column_name = ?");
                 }
@@ -919,13 +950,16 @@ public class TapSchemaDAO
 
             PreparedStatement prep = conn.prepareStatement(sql);
             int paramIndex = 1;
-            prep.setInt(paramIndex++, acSQL.publicValue);
-            if (acSQL.ownerValue != null) {
-                prep.setString(paramIndex++, acSQL.ownerValue);
-                for (String grp : acSQL.groupValues) {
-                    prep.setString(paramIndex++, grp);
+            if (acSQL != null) {
+                prep.setInt(paramIndex++, acSQL.publicValue);
+                if (acSQL.ownerValue != null) {
+                    prep.setString(paramIndex++, acSQL.ownerValue);
+                    for (String grp : acSQL.groupValues) {
+                        prep.setString(paramIndex++, grp);
+                    }
                 }
             }
+            
             if (tableName != null) {
                 prep.setString(paramIndex++, tableName);
                 if (columnName != null) {
@@ -963,7 +997,7 @@ public class TapSchemaDAO
             sb.append("SELECT ").append(toCommaList(tsKeysCols, 0));
             sb.append(" FROM ").append(tap_schema_tab);
             if (tableName != null) {
-                sb.append("WHERE from_table = ?");
+                sb.append(" WHERE from_table = ?");
             } else if (orderBy != null) {
                 sb.append(orderBy);
             }
@@ -1052,8 +1086,7 @@ public class TapSchemaDAO
             this.tp = tp;
         }
         
-        public PreparedStatement createPreparedStatement(Connection conn) throws SQLException
-        {
+        public PreparedStatement createPreparedStatement(Connection conn) throws SQLException {
             if (tp == null) {
                 return selectStatement(conn);
             } else {
@@ -1065,9 +1098,9 @@ public class TapSchemaDAO
             StringBuilder sb = new StringBuilder();
             sb.append("SELECT ");
             sb.append(ownerCol).append(", ");
-            sb.append(publicCol).append(", ");
-            sb.append(readGroupCol).append(", ");
-            sb.append(readWriteGroupCol);
+            sb.append(readAnonCol).append(", ");
+            sb.append(readOnlyCol).append(", ");
+            sb.append(readWriteCol);
             sb.append(" FROM ").append(table);
             sb.append(" WHERE ").append(column).append(" = ?");
             String sql = sb.toString();
@@ -1083,48 +1116,35 @@ public class TapSchemaDAO
             int colIndex = 1;
             sb.append("UPDATE ");
             sb.append(table);
-            sb.append(" SET ");
-            if (tp.isPublic() != null) {
-                sb.append(publicCol).append(" = ? ");
-            }
-            if (tp.getReadGroup() != null) {
-                sb.append(readGroupCol).append(" = ? ");
-            }
-            if (tp.getReadWriteGroup() != null) {
-                sb.append(readWriteGroupCol).append(" = ?");
-            }
+            sb.append(" SET (");
+            sb.append(ownerCol).append(", ");
+            sb.append(readAnonCol).append(", ");
+            sb.append(readOnlyCol).append(", ");
+            sb.append(readWriteCol);
+            sb.append(")");
+            sb.append(" = (?, ?, ?, ?)");
             sb.append(" WHERE ").append(column).append(" = ?");
             
             String sql = sb.toString();
             log.debug("sql: " + sql);
             PreparedStatement prep = conn.prepareStatement(sql);
             
-            if (tp.isPublic() != null) {
-                int boolVal = 0;
-                if (tp.isPublic()) {
-                    boolVal = 1;
-                }
-                prep.setInt(colIndex++, boolVal);
-            }
+            StringBuilder vals = new StringBuilder();
+            vals.append("values: ");
             
-            if (tp.getReadGroup() != null) {
-                if (tp.isClearReadGroup()) {
-                    prep.setNull(colIndex++, Types.VARCHAR);
-                } else {
-                    prep.setString(colIndex++, tp.getReadGroup().toString());
-                }
+            IdentityManager identityManager = AuthenticationUtil.getIdentityManager();
+            if (identityManager == null) {
+                throw new IllegalStateException("failed to load IdentityManager implementation - cannot update permissions");
             }
-            if (tp.getReadWriteGroup() != null) {
-                if (tp.isClearReadWriteGroup()) {
-                    prep.setNull(colIndex++, Types.VARCHAR);
-                } else {
-                    prep.setString(colIndex++, tp.getReadWriteGroup().toString());
-                }
-            }
+            log.debug("IdentityManager: " + identityManager);
+            Subject owner = tp.getOwner();
+            Object ownerVal = identityManager.toOwner(owner);
             
-            if (colIndex == 1) {
-                throw new IllegalArgumentException("No updates to perform");
-            }
+            safeSetString(vals, prep, colIndex++, ownerVal.toString());
+            safeSetBoolean(vals, prep, colIndex++, tp.isPublic());
+            safeSetURI(vals, prep, colIndex++, tp.getReadGroup());
+            safeSetURI(vals, prep, colIndex++, tp.getReadWriteGroup());
+            log.debug(vals.toString());
             
             prep.setString(colIndex++, name);
             
@@ -1367,10 +1387,10 @@ public class TapSchemaDAO
         
         StringBuilder sb = new StringBuilder();
         Subject curSub = AuthenticationUtil.getCurrentSubject();
-        boolean anon = curSub != null && curSub.getPrincipals() != null && curSub.getPrincipals().size() > 0;
+        boolean anon = curSub == null || curSub.getPrincipals().isEmpty();
         
         // add public checks
-        sb.append("( " + ownerCol + " is null or " + publicCol + " is null or " + publicCol + " = ?");
+        sb.append("( " + ownerCol + " is null or " + readAnonCol + " is null or " + readAnonCol + " = ?");
         
         if (!anon && identityManager != null) {
             // add owner check
@@ -1386,14 +1406,14 @@ public class TapSchemaDAO
                 List<GroupURI> memberships = gmsClient.getMemberships();
                 if (memberships.size() > 0) {
                     // add group checks
-                    sb.append(" or " + readGroupCol + " in ( ");
+                    sb.append(" or " + readOnlyCol + " in ( ");
                     for (int i=0; i<memberships.size(); i++) {
                         sb.append("?, ");
                     }
                     sb.setLength(sb.length() - 2);
                     sb.append(" )");
                     
-                    sb.append(" or " + readWriteGroupCol + " in ( ");
+                    sb.append(" or " + readWriteCol + " in ( ");
                     for (int i=0; i<memberships.size(); i++) {
                         sb.append("?, ");
                     }
@@ -1727,23 +1747,27 @@ public class TapSchemaDAO
         public TapPermissions mapRow(ResultSet rs, int rowNum) throws SQLException
         {
             String ownerVal = rs.getString(ownerCol);
-            int isPublicVal = rs.getInt(publicCol);
-            String readGroupVal = rs.getString(readGroupCol);
-            String readWriteGroupVal = rs.getString(readWriteGroupCol);
+            log.debug("found owner: " + ownerVal);
+            int readAnon = rs.getInt(readAnonCol);
+            log.debug("found readAnon: " + readAnon);
+            String rog = rs.getString(readOnlyCol);
+            log.debug("found readOnly: " + rog);
+            String rwg = rs.getString(readWriteCol);
+            log.debug("found readAnon: " + rwg);
             
             Subject owner = null;
             if (ownerVal != null) {
-                identityManager.toSubject(ownerVal);
+                owner = identityManager.toSubject(ownerVal);
             }
             // a value of zero is either null or false
-            boolean isPublic = isPublicVal != 0;
+            boolean isPublic = readAnon != 0;
             GroupURI readGroup = null;
             GroupURI readWriteGroup = null;
-            if (readGroupVal != null) {
-                readGroup = new GroupURI(readGroupVal);
+            if (rog != null) {
+                readGroup = new GroupURI(rog);
             }
-            if (readWriteGroupVal != null) {
-                readWriteGroup = new GroupURI(readWriteGroupVal);
+            if (rwg != null) {
+                readWriteGroup = new GroupURI(rwg);
             }
             
             TapPermissions tapPermissions = new TapPermissions(
@@ -1769,6 +1793,19 @@ public class TapSchemaDAO
             throws SQLException {
         if (val != null) {
             ps.setString(col, val);
+        } else {
+            ps.setNull(col, Types.VARCHAR);
+        }
+        if (sb != null) {
+            sb.append(val);
+            sb.append(",");
+        }
+    }
+
+    protected void safeSetURI(StringBuilder sb, PreparedStatement ps, int col, GroupURI val)
+            throws SQLException {
+        if (val != null) {
+            ps.setString(col, val.getURI().toASCIIString());
         } else {
             ps.setNull(col, Types.VARCHAR);
         }

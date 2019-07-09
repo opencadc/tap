@@ -69,11 +69,20 @@
 
 package ca.nrc.cadc.tap.schema;
 
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.db.ConnectionConfig;
 import ca.nrc.cadc.db.DBConfig;
 import ca.nrc.cadc.db.DBUtil;
+import ca.nrc.cadc.gms.GroupURI;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.util.Log4jInit;
+import java.security.Principal;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
 import javax.sql.DataSource;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -369,4 +378,58 @@ public class TapSchemaDAOTest {
         }
     }
     
+    @Test
+    public void testSetGetPermisions() {
+        try {
+            TapSchemaDAO dao = new TapSchemaDAO();
+            dao.setDataSource(dataSource);
+            
+            TableDesc td = new TableDesc("intTest", "intTest.testSetGetPermisions");
+            td.getColumnDescs().add(new ColumnDesc(td.getTableName(), "a", TapDataType.INTEGER));
+            td.getColumnDescs().add(new ColumnDesc(td.getTableName(), "b", TapDataType.STRING));
+            
+            try {
+                dao.delete(td.getTableName());
+            } catch (ResourceNotFoundException ex) {
+                log.debug("table did not exist at setup: " + ex);
+            }
+            
+            dao.put(td);
+            
+            TableDesc td2 = dao.getTable(td.getTableName());
+            Assert.assertNotNull(td2);
+            
+            TapPermissions tp0 = dao.getTablePermissions(td.getTableName());
+            Assert.assertNotNull(tp0);
+            Assert.assertNull("owner", tp0.getOwner());
+            Assert.assertFalse("anon", tp0.isPublic());
+            Assert.assertNull("read-only", tp0.getReadGroup());
+            Assert.assertNull("read-write", tp0.getReadWriteGroup());
+            
+            // default IdentityManager is X500IdentityManager (cadc-util)
+            X500Principal owner = new X500Principal("C=ca, O=test, CN=foo");
+            
+            Set<Principal> pset = new HashSet<Principal>();
+            pset.add(owner); 
+            Subject foo = new Subject(true, pset, new HashSet<>(), new HashSet<>());
+            TapPermissions perms = new TapPermissions(foo, Boolean.FALSE, 
+                    new GroupURI("ivo://cadc.nrc.ca/gms?RO"), new GroupURI("ivo://cadc.nrc.ca/gms?RW"));
+            dao.setTablePermissions(td.getTableName(), perms);
+            
+            TapPermissions tp2 = dao.getTablePermissions(td.getTableName());
+            Assert.assertNotNull(tp2);
+            Assert.assertNotNull("null owner", tp2.getOwner());
+            Subject s2 = tp2.getOwner();
+            Assert.assertFalse(s2.getPrincipals().isEmpty());
+            Principal p2 = s2.getPrincipals().iterator().next();
+            Assert.assertTrue("owner", AuthenticationUtil.equals(owner, p2));
+            Assert.assertFalse("anon", tp2.isPublic());
+            Assert.assertEquals("read-only", perms.getReadGroup(), tp2.getReadGroup());
+            Assert.assertEquals("read-write", perms.getReadWriteGroup(), tp2.getReadWriteGroup());
+            
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
 }
