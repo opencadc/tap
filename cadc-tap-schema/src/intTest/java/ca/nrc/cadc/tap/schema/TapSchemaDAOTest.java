@@ -401,10 +401,10 @@ public class TapSchemaDAOTest {
             
             TapPermissions tp0 = dao.getTablePermissions(td.getTableName());
             Assert.assertNotNull(tp0);
-            Assert.assertNull("owner", tp0.getOwner());
-            Assert.assertFalse("anon", tp0.isPublic());
-            Assert.assertNull("read-only", tp0.getReadGroup());
-            Assert.assertNull("read-write", tp0.getReadWriteGroup());
+            Assert.assertNull("owner", tp0.owner);
+            Assert.assertFalse("anon", tp0.isPublic);
+            Assert.assertNull("read-only", tp0.readGroup);
+            Assert.assertNull("read-write", tp0.readWriteGroup);
             
             // default IdentityManager is X500IdentityManager (cadc-util)
             X500Principal owner = new X500Principal("C=ca, O=test, CN=foo");
@@ -418,14 +418,14 @@ public class TapSchemaDAOTest {
             
             TapPermissions tp2 = dao.getTablePermissions(td.getTableName());
             Assert.assertNotNull(tp2);
-            Assert.assertNotNull("null owner", tp2.getOwner());
-            Subject s2 = tp2.getOwner();
+            Assert.assertNotNull("null owner", tp2.owner);
+            Subject s2 = tp2.owner;
             Assert.assertFalse(s2.getPrincipals().isEmpty());
             Principal p2 = s2.getPrincipals().iterator().next();
             Assert.assertTrue("owner", AuthenticationUtil.equals(owner, p2));
-            Assert.assertFalse("anon", tp2.isPublic());
-            Assert.assertEquals("read-only", perms.getReadGroup(), tp2.getReadGroup());
-            Assert.assertEquals("read-write", perms.getReadWriteGroup(), tp2.getReadWriteGroup());
+            Assert.assertFalse("anon", tp2.isPublic);
+            Assert.assertEquals("read-only", perms.readGroup, tp2.readGroup);
+            Assert.assertEquals("read-write", perms.readWriteGroup, tp2.readWriteGroup);
             
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);

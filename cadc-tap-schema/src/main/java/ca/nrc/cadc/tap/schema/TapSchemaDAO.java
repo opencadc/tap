@@ -1137,13 +1137,13 @@ public class TapSchemaDAO
                 throw new IllegalStateException("failed to load IdentityManager implementation - cannot update permissions");
             }
             log.debug("IdentityManager: " + identityManager);
-            Subject owner = tp.getOwner();
+            Subject owner = tp.owner;
             Object ownerVal = identityManager.toOwner(owner);
             
             safeSetString(vals, prep, colIndex++, ownerVal.toString());
-            safeSetBoolean(vals, prep, colIndex++, tp.isPublic());
-            safeSetURI(vals, prep, colIndex++, tp.getReadGroup());
-            safeSetURI(vals, prep, colIndex++, tp.getReadWriteGroup());
+            safeSetBoolean(vals, prep, colIndex++, tp.isPublic);
+            safeSetURI(vals, prep, colIndex++, tp.readGroup);
+            safeSetURI(vals, prep, colIndex++, tp.readWriteGroup);
             log.debug(vals.toString());
             
             prep.setString(colIndex++, name);
@@ -1390,11 +1390,12 @@ public class TapSchemaDAO
         boolean anon = curSub == null || curSub.getPrincipals().isEmpty();
         
         // add public checks
-        sb.append("( " + ownerCol + " is null or " + readAnonCol + " is null or " + readAnonCol + " = ?");
+        sb.append("( ( " + ownerCol + " is null) OR " +
+                    "( " + ownerCol + " is not null AND " + readAnonCol + " = ? ) )");
         
         if (!anon && identityManager != null) {
             // add owner check
-            sb.append(" or " + ownerCol + " = ? ");
+            sb.append(" OR ( " + ownerCol + " = ? ) ");
             acSQL.ownerValue = identityManager.toOwnerString(curSub);
             
             LocalAuthority loc = new LocalAuthority();
@@ -1406,19 +1407,19 @@ public class TapSchemaDAO
                 List<GroupURI> memberships = gmsClient.getMemberships();
                 if (memberships.size() > 0) {
                     // add group checks
-                    sb.append(" or " + readOnlyCol + " in ( ");
+                    sb.append("OR ( " + readOnlyCol + " in ( ");
                     for (int i=0; i<memberships.size(); i++) {
                         sb.append("?, ");
                     }
                     sb.setLength(sb.length() - 2);
-                    sb.append(" )");
+                    sb.append(" ) ) ");
                     
-                    sb.append(" or " + readWriteCol + " in ( ");
+                    sb.append(" OR ( " + readWriteCol + " in ( ");
                     for (int i=0; i<memberships.size(); i++) {
                         sb.append("?, ");
                     }
                     sb.setLength(sb.length() - 2);
-                    sb.append(" )");
+                    sb.append(" ) ) ");
                     
                     for (GroupURI next : memberships) {
                         acSQL.groupValues.add(next.toString());

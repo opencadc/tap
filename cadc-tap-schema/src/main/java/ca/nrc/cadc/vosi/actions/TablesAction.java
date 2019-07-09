@@ -246,7 +246,7 @@ public abstract class TablesAction extends RestAction {
             throws AccessControlException, ResourceNotFoundException {
         
         TapPermissions tablePermissions = dao.getTablePermissions(tableName);
-        if (tablePermissions.isPublic()) {
+        if (tablePermissions.isPublic) {
             super.logInfo.setMessage("view table allowed: public=true");
             return;
         }

@@ -109,11 +109,11 @@ public class GetPermissionsAction extends TablesAction {
         syncOutput.setHeader("Content-Type", PERMS_CONTENTTYPE);
         
         StringBuilder sb = new StringBuilder();
-        String ownerString = getOwnerString(permissions.getOwner());
-        String readGroupString = getGroupString(permissions.getReadGroup());
-        String readWriteGroupString = getGroupString(permissions.getReadWriteGroup());
+        String ownerString = getOwnerString(permissions.owner);
+        String readGroupString = getGroupString(permissions.readGroup);
+        String readWriteGroupString = getGroupString(permissions.readWriteGroup);
         sb.append(OWNER_KEY).append(ownerString).append("\n");
-        sb.append(PUBLIC_KEY).append(Boolean.toString(permissions.isPublic())).append("\n");
+        sb.append(PUBLIC_KEY).append(Boolean.toString(permissions.isPublic)).append("\n");
         sb.append(RGROUP_KEY).append(readGroupString).append("\n");
         sb.append(RWGROUP_KEY).append(readWriteGroupString).append("\n");
         

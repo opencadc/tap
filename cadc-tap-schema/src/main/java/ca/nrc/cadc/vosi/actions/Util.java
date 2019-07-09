@@ -122,11 +122,11 @@ class Util {
     }
     
     private static boolean isOwner(TapPermissions tp, Subject subject) {
-        if (tp.getOwner() == null) {
+        if (tp.owner == null) {
             // should never happen
             return false;
         }
-        for (Principal oPrin : tp.getOwner().getPrincipals()) {
+        for (Principal oPrin : tp.owner.getPrincipals()) {
             for (Principal cPrin : subject.getPrincipals()) {
                 if (AuthenticationUtil.equals(oPrin, cPrin)) {
                     return true; // caller===owner
@@ -141,13 +141,13 @@ class Util {
         if (s == null || s.getPrincipals() == null || s.getPrincipals().isEmpty()) {
             return null;
         }
-        if (permissions.getReadGroup() != null &&
-            isMember(groupClient, permissions.getReadGroup().getURI())) {
-            return permissions.getReadGroup();
+        if (permissions.readGroup != null &&
+            isMember(groupClient, permissions.readGroup.getURI())) {
+            return permissions.readGroup;
         }
-        if (permissions.getReadWriteGroup() != null &&
-            isMember(groupClient, permissions.getReadWriteGroup().getURI())) {
-            return permissions.getReadWriteGroup();
+        if (permissions.readWriteGroup != null &&
+            isMember(groupClient, permissions.readWriteGroup.getURI())) {
+            return permissions.readWriteGroup;
         }
         return null;
     }
@@ -157,9 +157,9 @@ class Util {
         if (s == null || s.getPrincipals() == null || s.getPrincipals().isEmpty()) {
             return null;
         }
-        if (permissions.getReadWriteGroup() != null &&
-            isMember(groupClient, permissions.getReadWriteGroup().getURI())) {
-            return permissions.getReadWriteGroup();
+        if (permissions.readWriteGroup != null &&
+            isMember(groupClient, permissions.readWriteGroup.getURI())) {
+            return permissions.readWriteGroup;
         }
         return null;
     }

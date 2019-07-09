@@ -76,26 +76,20 @@ import ca.nrc.cadc.gms.GroupURI;
 /**
  * Class to hold access control information for a schema or table.
  * 
- * For the setting of permissions through TapSchemaDAO setSchemaPermissions() and setTablePermissions():
- * - ownership cannot be changed
- * - null isPublic, readGroup and readWriteGroup values indicates that they are not
- * to be changed.
- * - group permissions can be removed with clearReadGroup(boolean) and clearReadWriteGroup(boolean)
- * methods.
+ * Used in the retrieval and modification of permissions inTapSchemaDAO.
  * 
  * @author majorb
  *
  */
 public class TapPermissions {
     
-    private Subject owner;
-    private Boolean isPublic;
-    private GroupURI readGroup;
-    private GroupURI readWriteGroup;
+    public Subject owner;
+    public Boolean isPublic;
+    public GroupURI readGroup;
+    public GroupURI readWriteGroup;
     
-    private boolean clearReadGroup = false;
-    private boolean clearReadWriteGroup = false;
-    
+    public TapPermissions() {
+    }
 
     public TapPermissions(Subject owner, Boolean isPublic, GroupURI readGroup, GroupURI readWriteGroup) {
         this.owner = owner;
@@ -103,36 +97,5 @@ public class TapPermissions {
         this.readGroup = readGroup;
         this.readWriteGroup = readWriteGroup;
     }
-    
-    public Subject getOwner() {
-        return owner;
-    }
-    
-    public Boolean isPublic() {
-        return isPublic;
-    }
-    
-    public GroupURI getReadGroup() {
-        return readGroup;
-    }
-    
-    public GroupURI getReadWriteGroup() {
-        return readWriteGroup;
-    }
 
-    public void clearReadGroup(boolean clearReadGroup) {
-        this.clearReadGroup = clearReadGroup;
-    }
-
-    public void clearReadWriteGroup(boolean clearReadWriteGroup) {
-        this.clearReadWriteGroup = clearReadWriteGroup;
-    }
-
-    public boolean isClearReadGroup() {
-        return clearReadGroup;
-    }
-
-    public boolean isClearReadWriteGroup() {
-        return clearReadWriteGroup;
-    }
 }

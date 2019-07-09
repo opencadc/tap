@@ -71,6 +71,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.HashMap;
+import java.util.Map;
 
 import ca.nrc.cadc.gms.GroupURI;
 import ca.nrc.cadc.net.ResourceNotFoundException;
@@ -99,27 +101,41 @@ public class PostPermissionsAction extends TablesAction {
         if (name == null) {
             throw new IllegalArgumentException("Missing param: name");
         }
-        
-        TapPermissions tp = (TapPermissions) syncInput.getContent(TAP_PERMISSIONS_CONTENT);
-        if (tp == null) {
-            throw new IllegalArgumentException("No permission info");
-        }
-        
         TapSchemaDAO dao = new TapSchemaDAO();
         
         // get the permissions first to ensure table exists and to ensure user
         // is allowed to view/modifiy permissions.
         if (Util.isSchemaName(name)) {
             checkModifySchemaPermissions(dao, name);
-            dao.setSchemaPermissions(name, tp);
+            TapPermissions perms = dao.getSchemaPermissions(name);
+            modifyPermissions(perms);
+            dao.setSchemaPermissions(name, perms);
         } else if (Util.isTableName(name)) {
             checkModifyTablePermissions(dao, name);
-            dao.setTablePermissions(name, tp);
+            TapPermissions perms = dao.getTablePermissions(name);
+            modifyPermissions(perms);
+            dao.setTablePermissions(name, perms);
         } else {
             throw new IllegalArgumentException("No such object: " + name);
         }
         
         syncOutput.setCode(200);
+    }
+    
+    private void modifyPermissions(TapPermissions orig) {
+        Map<String, Object> perms = (Map<String, Object>) syncInput.getContent(TAP_PERMISSIONS_CONTENT);
+        if (perms == null) {
+            throw new IllegalArgumentException("No permission info");
+        }
+        if (perms.containsKey(PUBLIC_KEY)) {
+            orig.isPublic = (Boolean) perms.get(PUBLIC_KEY);
+        }
+        if (perms.containsKey(RGROUP_KEY)) {
+            orig.readGroup = (GroupURI) perms.get(RGROUP_KEY);
+        }
+        if (perms.containsKey(RWGROUP_KEY)) {
+            orig.readGroup = (GroupURI) perms.get(RWGROUP_KEY);
+        }
     }
     
     @Override
@@ -141,11 +157,7 @@ public class PostPermissionsAction extends TablesAction {
             BufferedReader reader = new BufferedReader(isReader);
             String next = reader.readLine();
             
-            Boolean isPublic = null;
-            GroupURI readGroup = null;
-            boolean clearReadGroup = false;
-            GroupURI readWriteGroup = null;
-            boolean clearReadWriteGroup = false;
+            Map<String, Object> params = new HashMap<String, Object>(4);
             
             while (next != null) {
                 
@@ -161,27 +173,28 @@ public class PostPermissionsAction extends TablesAction {
                     if (!emptyValue) {
                         throw new IllegalArgumentException(OWNER_KEY + " cannot be set");
                     }
-                } else if (parts[0].equalsIgnoreCase(PUBLIC_KEY) && isPublic == null) {
-                    if (!emptyValue) {
-                        if (parts[1].equalsIgnoreCase("true")) {
-                            isPublic = true;
-                        } else if (parts[1].equalsIgnoreCase("false")) {
-                            isPublic = false;
-                        } else {
-                            throw new IllegalArgumentException("bad public value: " + parts[1]);
-                        }
-                    }
-                } else if (parts[0].equalsIgnoreCase(RGROUP_KEY) && readGroup == null) {
+                } else if (parts[0].equalsIgnoreCase(PUBLIC_KEY)) {
                     if (emptyValue) {
-                        clearReadGroup = true;
-                    } else {
-                        readGroup = new GroupURI(parts[1]);
+                        throw new IllegalArgumentException("no value for " + PUBLIC_KEY);
                     }
-                } else if (parts[0].equalsIgnoreCase(RWGROUP_KEY) && readWriteGroup == null) {
-                    if (emptyValue) {
-                        clearReadWriteGroup = true;
+                    if (parts[1].equalsIgnoreCase("true")) {
+                        params.put(PUBLIC_KEY, Boolean.TRUE);
+                    } else if (parts[1].equalsIgnoreCase("false")) {
+                        params.put(PUBLIC_KEY, Boolean.FALSE);
                     } else {
-                        readWriteGroup = new GroupURI(parts[1]);
+                        throw new IllegalArgumentException("bad public value: " + parts[1]);
+                    }
+                } else if (parts[0].equalsIgnoreCase(RGROUP_KEY)) {
+                    if (emptyValue) {
+                        params.put(RGROUP_KEY, null);
+                    } else {
+                        params.put(RGROUP_KEY, new GroupURI(parts[1]));
+                    }
+                } else if (parts[0].equalsIgnoreCase(RWGROUP_KEY) ) {
+                    if (emptyValue) {
+                        params.put(RWGROUP_KEY, null);
+                    } else {
+                        params.put(RWGROUP_KEY, new GroupURI(parts[1]));
                     }
                 } else {
                     throw new IllegalArgumentException("unknown permissions key: " + parts[0]);
@@ -190,15 +203,10 @@ public class PostPermissionsAction extends TablesAction {
                 next = reader.readLine();
             }
             
-            if (isPublic != null || readGroup != null || readWriteGroup != null
-                || clearReadGroup || clearReadWriteGroup) {
-                
-                TapPermissions tp = new TapPermissions(null, isPublic, readGroup, readWriteGroup);
-                tp.clearReadGroup(clearReadGroup);
-                tp.clearReadWriteGroup(clearReadWriteGroup);
+            if (!params.isEmpty()) {
                 Content content = new Content();
                 content.name = TAP_PERMISSIONS_CONTENT;
-                content.value = tp;
+                content.value = params;
                 return content;
             }
             return null;

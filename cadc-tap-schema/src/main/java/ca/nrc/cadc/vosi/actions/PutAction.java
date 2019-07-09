@@ -150,9 +150,9 @@ public class PutAction extends TablesAction {
             TapPermissions schemaPermissions = ts.getSchemaPermissions(schemaName);
             TapPermissions tablePermissions = new TapPermissions(
                 AuthenticationUtil.getCurrentSubject(),
-                schemaPermissions.isPublic(),
-                schemaPermissions.getReadGroup(),
-                schemaPermissions.getReadWriteGroup());
+                schemaPermissions.isPublic,
+                schemaPermissions.readGroup,
+                schemaPermissions.readWriteGroup);
             ts.setTablePermissions(tableName, tablePermissions);
             prof.checkpoint("set-permissions");
             

@@ -69,12 +69,15 @@
 
 package ca.nrc.cadc.vosi.actions;
 
+import ca.nrc.cadc.gms.GroupURI;
 import ca.nrc.cadc.rest.InlineContentHandler.Content;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.vosi.actions.PostPermissionsAction.PermissionsInlineContentHandler;
 
 import java.io.ByteArrayInputStream;
+import java.util.Map;
+
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -161,8 +164,9 @@ public class PostPermissionsActionTest {
 
             PermissionsInlineContentHandler p = new PostPermissionsAction().new PermissionsInlineContentHandler();
             Content c = p.accept(PostPermissionsAction.TAP_PERMISSIONS_CONTENT, TablesAction.PERMS_CONTENTTYPE, in);
-            TapPermissions tp = (TapPermissions) c.value;
-            Assert.assertTrue(tp.isPublic());
+            Map<String, Object> tp = (Map<String, Object>) c.value;
+            Assert.assertTrue(tp.containsKey(TablesAction.PUBLIC_KEY));
+            Assert.assertTrue((Boolean) tp.get(TablesAction.PUBLIC_KEY));
             
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
@@ -179,8 +183,9 @@ public class PostPermissionsActionTest {
 
             PermissionsInlineContentHandler p = new PostPermissionsAction().new PermissionsInlineContentHandler();
             Content c = p.accept(PostPermissionsAction.TAP_PERMISSIONS_CONTENT, TablesAction.PERMS_CONTENTTYPE, in);
-            TapPermissions tp = (TapPermissions) c.value;
-            Assert.assertFalse(tp.isPublic());
+            Map<String, Object> tp = (Map<String, Object>) c.value;
+            Assert.assertTrue(tp.containsKey(TablesAction.PUBLIC_KEY));
+            Assert.assertFalse((Boolean) tp.get(TablesAction.PUBLIC_KEY));
             
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
@@ -217,9 +222,9 @@ public class PostPermissionsActionTest {
 
             PermissionsInlineContentHandler p = new PostPermissionsAction().new PermissionsInlineContentHandler();
             Content c = p.accept(PostPermissionsAction.TAP_PERMISSIONS_CONTENT, TablesAction.PERMS_CONTENTTYPE, in);
-            TapPermissions tp = (TapPermissions) c.value;
-            Assert.assertEquals(testGroupURI, tp.getReadGroup().toString());
-            Assert.assertFalse(tp.isClearReadGroup());
+            Map<String, Object> tp = (Map<String, Object>) c.value;
+            Assert.assertTrue(tp.containsKey(TablesAction.RGROUP_KEY));
+            Assert.assertEquals(testGroupURI, ((GroupURI) tp.get(TablesAction.RGROUP_KEY)).getURI().toString());
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -236,9 +241,9 @@ public class PostPermissionsActionTest {
 
             PermissionsInlineContentHandler p = new PostPermissionsAction().new PermissionsInlineContentHandler();
             Content c = p.accept(PostPermissionsAction.TAP_PERMISSIONS_CONTENT, TablesAction.PERMS_CONTENTTYPE, in);
-            TapPermissions tp = (TapPermissions) c.value;
-            Assert.assertEquals(testGroupURI, tp.getReadWriteGroup().toString());
-            Assert.assertFalse(tp.isClearReadWriteGroup());
+            Map<String, Object> tp = (Map<String, Object>) c.value;
+            Assert.assertTrue(tp.containsKey(TablesAction.RWGROUP_KEY));
+            Assert.assertEquals(testGroupURI, ((GroupURI) tp.get(TablesAction.RWGROUP_KEY)).getURI().toString());
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -254,9 +259,9 @@ public class PostPermissionsActionTest {
 
             PermissionsInlineContentHandler p = new PostPermissionsAction().new PermissionsInlineContentHandler();
             Content c = p.accept(PostPermissionsAction.TAP_PERMISSIONS_CONTENT, TablesAction.PERMS_CONTENTTYPE, in);
-            TapPermissions tp = (TapPermissions) c.value;
-            Assert.assertNull(tp.getReadGroup());
-            Assert.assertTrue(tp.isClearReadGroup());
+            Map<String, Object> tp = (Map<String, Object>) c.value;
+            Assert.assertTrue(tp.containsKey(TablesAction.RGROUP_KEY));
+            Assert.assertNull(tp.get(TablesAction.RGROUP_KEY));
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -272,9 +277,9 @@ public class PostPermissionsActionTest {
 
             PermissionsInlineContentHandler p = new PostPermissionsAction().new PermissionsInlineContentHandler();
             Content c = p.accept(PostPermissionsAction.TAP_PERMISSIONS_CONTENT, TablesAction.PERMS_CONTENTTYPE, in);
-            TapPermissions tp = (TapPermissions) c.value;
-            Assert.assertNull(tp.getReadWriteGroup());
-            Assert.assertTrue(tp.isClearReadWriteGroup());
+            Map<String, Object> tp = (Map<String, Object>) c.value;
+            Assert.assertTrue(tp.containsKey(TablesAction.RWGROUP_KEY));
+            Assert.assertNull(tp.get(TablesAction.RWGROUP_KEY));
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -332,12 +337,14 @@ public class PostPermissionsActionTest {
 
             PermissionsInlineContentHandler p = new PostPermissionsAction().new PermissionsInlineContentHandler();
             Content c = p.accept(PostPermissionsAction.TAP_PERMISSIONS_CONTENT, TablesAction.PERMS_CONTENTTYPE, in);
-            TapPermissions tp = (TapPermissions) c.value;
-            Assert.assertTrue(tp.isPublic());
-            Assert.assertEquals(testGroupURI1, tp.getReadGroup().toString());
-            Assert.assertEquals(testGroupURI2, tp.getReadWriteGroup().toString());
-            Assert.assertFalse(tp.isClearReadGroup());
-            Assert.assertFalse(tp.isClearReadWriteGroup());
+            
+            Map<String, Object> tp = (Map<String, Object>) c.value;
+            Assert.assertTrue(tp.containsKey(TablesAction.PUBLIC_KEY));
+            Assert.assertTrue(tp.containsKey(TablesAction.RGROUP_KEY));
+            Assert.assertTrue(tp.containsKey(TablesAction.RWGROUP_KEY));
+            Assert.assertTrue((Boolean) tp.get(TablesAction.PUBLIC_KEY));
+            Assert.assertEquals(testGroupURI1, ((GroupURI) tp.get(TablesAction.RGROUP_KEY)).getURI().toString());
+            Assert.assertEquals(testGroupURI2, ((GroupURI) tp.get(TablesAction.RWGROUP_KEY)).getURI().toString());
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
