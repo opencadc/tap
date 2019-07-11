@@ -190,13 +190,11 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
 
                 Expression publicByNullKey = publicByKeyColumn(assetTable, at.keyColumn);
                 Expression publicByNullOwner = publicByNullOwner(assetTable, at.ownerColumn);
-                Expression publicByNullPublic = publicByNullPublic(assetTable, at.publicColumn);
-                Expression publicByPublic = publicByPublic(assetTable, at.publicColumn);
+                Expression publicByPublicTrue = publicByPublicTrue(assetTable, at.ownerColumn, at.publicColumn);
                 
                 Expression pub = new Parenthesis(
                     new OrExpression(publicByNullKey,
-                        new OrExpression(publicByNullOwner,
-                            new OrExpression(publicByNullPublic, publicByPublic))));
+                        new OrExpression(publicByNullOwner, publicByPublicTrue)));
                 
                 if (isAuthenticated()) {
                 
@@ -248,19 +246,18 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
         return isNull;
     }
     
-    private Expression publicByNullPublic(Table fromTable, String publicColumn) {
-        Column columnMeta = useTableAliasIfExists(new Column(fromTable, publicColumn));
+    private Expression publicByPublicTrue(Table fromTable, String ownerColumn, String publicColumn) {
+        Column ownerColumnMeta = useTableAliasIfExists(new Column(fromTable, ownerColumn));
         IsNullExpression isNull = new IsNullExpression();
-        isNull.setLeftExpression(columnMeta);
-        return isNull;
-    }
-    
-    private Expression publicByPublic(Table fromTable, String publicColumn) {
-        Column columnMeta = useTableAliasIfExists(new Column(fromTable, publicColumn));
+        isNull.setNot(true);
+        isNull.setLeftExpression(ownerColumnMeta);
+        
+        Column publicColumnMeta = useTableAliasIfExists(new Column(fromTable, publicColumn));
         EqualsTo equals = new EqualsTo();
-        equals.setLeftExpression(columnMeta);
+        equals.setLeftExpression(publicColumnMeta);
         equals.setRightExpression(new LongValue("1"));
-        return equals;
+        
+        return new OrExpression(isNull, equals);
     }
     
     private Expression authorizedByOwner(Table fromTable, String ownerColumn) {
