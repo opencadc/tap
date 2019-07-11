@@ -88,6 +88,7 @@ import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.cred.client.CredUtil;
 import ca.nrc.cadc.gms.GroupClient;
 import ca.nrc.cadc.gms.GroupURI;
+import ca.nrc.cadc.gms.GroupUtil;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.tap.parser.ParserUtil;
@@ -140,9 +141,9 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
 
     public static final Map<String, AssetTable> ASSET_TABLES = new HashMap<String, AssetTable>();
     static {
-        ASSET_TABLES.put("tap_schema.schemas", new AssetTable("schema_name", "owner", "public", "readGroup", "readWriteGroup"));
-        ASSET_TABLES.put("tap_schema.tables", new AssetTable("table_name", "owner", "public", "readGroup", "readWriteGroup"));
-        ASSET_TABLES.put("tap_schema.columns", new AssetTable("column_name", "owner", "public", "readGroup", "readWriteGroup"));
+        ASSET_TABLES.put("tap_schema.schemas", new AssetTable("schema_name", "owner_id", "read_anon", "read_only_group", "read_write_group"));
+        ASSET_TABLES.put("tap_schema.tables", new AssetTable("table_name", "owner_id", "read_anon", "read_only_group", "read_write_group"));
+        ASSET_TABLES.put("tap_schema.columns", new AssetTable("column_name", "owner_id", "read_anon", "read_only_group", "read_write_group"));
     }
 
     private GroupClient gmsClient;
@@ -345,7 +346,7 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
                         log.debug("Constructing new GMS Client");
                         LocalAuthority loc = new LocalAuthority();
                         URI gmsURI = loc.getServiceURI(Standards.GMS_GROUPS_01.toString());
-                        gms = GroupClient.getGroupClient(gmsURI);
+                        gms = GroupUtil.getGroupClient(gmsURI);
                     }
                     List<GroupURI> groups = gms.getMemberships();
                     for (GroupURI group : groups) {

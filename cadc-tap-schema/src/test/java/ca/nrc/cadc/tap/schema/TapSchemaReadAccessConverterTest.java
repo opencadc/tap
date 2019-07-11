@@ -121,28 +121,28 @@ public class TapSchemaReadAccessConverterTest {
         "column_name".toLowerCase(),};
 
     static String[] OWNER_COLUMNS = new String[] {
-        "owner".toLowerCase(),
-        "owner".toLowerCase(),
-        "owner".toLowerCase(),
-        "owner".toLowerCase(),};
+        "owner_id".toLowerCase(),
+        "owner_id".toLowerCase(),
+        "owner_id".toLowerCase(),
+        "owner_id".toLowerCase(),};
     
     static String[] PUBLIC_COLUMNS = new String[] {
-        "public".toLowerCase(),
-        "public".toLowerCase(),
-        "public".toLowerCase(),
-        "public".toLowerCase(),};
+        "read_anon".toLowerCase(),
+        "read_anon".toLowerCase(),
+        "read_anon".toLowerCase(),
+        "read_anon".toLowerCase(),};
     
     static String[] READGROUP_COLUMNS = new String[] {
-        "readGroup".toLowerCase(),
-        "readGroup".toLowerCase(),
-        "readGroup".toLowerCase(),
-        "readGroup".toLowerCase(),};
+        "read_only_group".toLowerCase(),
+        "read_only_group".toLowerCase(),
+        "read_only_group".toLowerCase(),
+        "read_only_group".toLowerCase(),};
     
     static String[] READWRITEGROUP_COLUMNS = new String[] {
-        "readWriteGroup".toLowerCase(),
-        "readWriteGroup".toLowerCase(),
-        "readWriteGroup".toLowerCase(),
-        "readWriteGroup".toLowerCase(),};
+        "read_write_group".toLowerCase(),
+        "read_write_group".toLowerCase(),
+        "read_write_group".toLowerCase(),
+        "read_write_group".toLowerCase(),};
     
     static long userIDWithGroups = 1L;
     static long userIDWithNoGroups = 2L;
@@ -398,12 +398,12 @@ public class TapSchemaReadAccessConverterTest {
             Assert.assertTrue(method + " something", where.contains("something = 'foo'")); // parse/deparse normalises whitespace
 
             Assert.assertTrue(method + " tables keyCol is null", where.contains("t.table_name is null"));
-            Assert.assertTrue(method + " tables public", where.contains("t.public = 1"));
-            Assert.assertTrue(method + " tables groups", where.contains("t.readgroup " + groupInExpr));
+            Assert.assertTrue(method + " tables read_anon", where.contains("t.read_anon = 1"));
+            Assert.assertTrue(method + " tables read_only_group", where.contains("t.read_only_group " + groupInExpr));
 
             Assert.assertTrue(method + " columns keyCol is null", where.contains("c.column_name is null"));
-            Assert.assertTrue(method + " columns public", where.contains("t.public = 1"));
-            Assert.assertTrue(method + " columns groups", where.contains("t.readgroup " + groupInExpr));
+            Assert.assertTrue(method + " columns read_anon", where.contains("t.read_anon = 1"));
+            Assert.assertTrue(method + " columns read_only_group", where.contains("t.read_only_group " + groupInExpr));
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -426,12 +426,12 @@ public class TapSchemaReadAccessConverterTest {
             log.info(method + ": " + where);
 
             Assert.assertTrue(method + " tables keyCol is null", where.contains("t.table_name is null"));
-            Assert.assertTrue(method + " tables public", where.contains("t.public = 1"));
-            Assert.assertTrue(method + " tables groups", where.contains("t.readgroup " + groupInExpr));
+            Assert.assertTrue(method + " tables public", where.contains("t.read_anon = 1"));
+            Assert.assertTrue(method + " tables groups", where.contains("t.read_only_group " + groupInExpr));
 
             Assert.assertTrue(method + " columns keyCol is null", where.contains("c.column_name is null"));
-            Assert.assertTrue(method + " columns public", where.contains("t.public = 1"));
-            Assert.assertTrue(method + " columns groups", where.contains("t.readgroup " + groupInExpr));
+            Assert.assertTrue(method + " columns public", where.contains("t.read_anon = 1"));
+            Assert.assertTrue(method + " columns groups", where.contains("t.read_only_group " + groupInExpr));
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);

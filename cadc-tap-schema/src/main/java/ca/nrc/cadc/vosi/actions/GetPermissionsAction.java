@@ -72,6 +72,8 @@ import java.io.OutputStream;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.gms.GroupURI;
@@ -87,10 +89,13 @@ import ca.nrc.cadc.tap.schema.TapSchemaDAO;
  *
  */
 public class GetPermissionsAction extends TablesAction {
+    
+    private static final Logger log = Logger.getLogger(GetPermissionsAction.class);
 
     @Override
     public void doAction() throws Exception {
-        String name = syncInput.getParameter("name");
+        String name = getTableName();
+        log.debug("name: " + name);
         if (name == null) {
             throw new IllegalArgumentException( "Missing param: name");
         }
@@ -112,10 +117,10 @@ public class GetPermissionsAction extends TablesAction {
         String ownerString = getOwnerString(permissions.owner);
         String readGroupString = getGroupString(permissions.readGroup);
         String readWriteGroupString = getGroupString(permissions.readWriteGroup);
-        sb.append(OWNER_KEY).append(ownerString).append("\n");
-        sb.append(PUBLIC_KEY).append(Boolean.toString(permissions.isPublic)).append("\n");
-        sb.append(RGROUP_KEY).append(readGroupString).append("\n");
-        sb.append(RWGROUP_KEY).append(readWriteGroupString).append("\n");
+        sb.append(OWNER_KEY).append("=").append(ownerString).append("\n");
+        sb.append(PUBLIC_KEY).append("=").append(Boolean.toString(permissions.isPublic)).append("\n");
+        sb.append(RGROUP_KEY).append("=").append(readGroupString).append("\n");
+        sb.append(RWGROUP_KEY).append("=").append(readWriteGroupString).append("\n");
         
         OutputStream out = syncOutput.getOutputStream();
         out.write(sb.toString().getBytes());

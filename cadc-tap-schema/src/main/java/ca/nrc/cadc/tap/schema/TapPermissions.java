@@ -97,5 +97,31 @@ public class TapPermissions {
         this.readGroup = readGroup;
         this.readWriteGroup = readWriteGroup;
     }
+    
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("owner=");
+        if (owner != null) {
+            sb.append(owner);
+        }
+        sb.append(",");
+        sb.append("isPublic=");
+        if (isPublic != null) {
+            sb.append(isPublic);
+        }
+        sb.append(",");
+        sb.append("readGroup=");
+        if (readGroup != null) {
+            sb.append(readGroup.getURI());
+        }
+        sb.append(",");
+        sb.append("readWriteGroup=");
+        if (readWriteGroup != null) {
+            sb.append(readWriteGroup.getURI());
+        }
+        return sb.toString();
+    }
+    
 
 }

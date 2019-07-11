@@ -74,6 +74,8 @@ import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.gms.GroupURI;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.InlineContentException;
@@ -89,6 +91,8 @@ import ca.nrc.cadc.tap.schema.TapSchemaDAO;
  */
 public class PostPermissionsAction extends TablesAction {
     
+    private static final Logger log = Logger.getLogger(PostPermissionsAction.class);
+    
     static final String TAP_PERMISSIONS_CONTENT = "tapPermissions";
     
     public PostPermissionsAction() {
@@ -97,11 +101,12 @@ public class PostPermissionsAction extends TablesAction {
     @Override
     public void doAction() throws Exception {
         
-        String name = syncInput.getParameter("name");
+        String name = getTableName();
+        log.debug("name: " + name);
         if (name == null) {
             throw new IllegalArgumentException("Missing param: name");
         }
-        TapSchemaDAO dao = new TapSchemaDAO();
+        TapSchemaDAO dao = getTapSchemaDAO();
         
         // get the permissions first to ensure table exists and to ensure user
         // is allowed to view/modifiy permissions.
@@ -109,11 +114,13 @@ public class PostPermissionsAction extends TablesAction {
             checkModifySchemaPermissions(dao, name);
             TapPermissions perms = dao.getSchemaPermissions(name);
             modifyPermissions(perms);
+            log.debug("Setting schema permissions to: \n" + perms);
             dao.setSchemaPermissions(name, perms);
         } else if (Util.isTableName(name)) {
-            checkModifyTablePermissions(dao, name);
+            checkModifyTablePermissionsPermissions(dao, name);
             TapPermissions perms = dao.getTablePermissions(name);
             modifyPermissions(perms);
+            log.debug("Setting table permissions to: \n" + perms);
             dao.setTablePermissions(name, perms);
         } else {
             throw new IllegalArgumentException("No such object: " + name);
@@ -127,6 +134,7 @@ public class PostPermissionsAction extends TablesAction {
         if (perms == null) {
             throw new IllegalArgumentException("No permission info");
         }
+        log.debug("new perm keys: " + perms.keySet());
         if (perms.containsKey(PUBLIC_KEY)) {
             orig.isPublic = (Boolean) perms.get(PUBLIC_KEY);
         }
@@ -134,7 +142,7 @@ public class PostPermissionsAction extends TablesAction {
             orig.readGroup = (GroupURI) perms.get(RGROUP_KEY);
         }
         if (perms.containsKey(RWGROUP_KEY)) {
-            orig.readGroup = (GroupURI) perms.get(RWGROUP_KEY);
+            orig.readWriteGroup = (GroupURI) perms.get(RWGROUP_KEY);
         }
     }
     
@@ -149,7 +157,7 @@ public class PostPermissionsAction extends TablesAction {
         public Content accept(String name, String contentType, InputStream inputStream)
                 throws InlineContentException, IOException, ResourceNotFoundException {
             
-            if (!contentType.equals(PERMS_CONTENTTYPE)) {
+            if (contentType == null || !contentType.equals(PERMS_CONTENTTYPE)) {
                 throw new IllegalArgumentException("require content type of " + PERMS_CONTENTTYPE);
             }
             
@@ -161,6 +169,7 @@ public class PostPermissionsAction extends TablesAction {
             
             while (next != null) {
                 
+                log.debug("Next inline param: " + next);
                 String[] parts = next.split("[=]");
                 boolean emptyValue = false;
                 if (next.endsWith("=") && parts.length == 1) {

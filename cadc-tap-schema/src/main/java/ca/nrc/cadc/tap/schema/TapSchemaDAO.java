@@ -74,6 +74,7 @@ import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.gms.GroupClient;
 import ca.nrc.cadc.gms.GroupURI;
+import ca.nrc.cadc.gms.GroupUtil;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.reg.Standards;
@@ -714,6 +715,8 @@ public class TapSchemaDAO
      * @throws ResourceNotFoundException 
      */
     public void setTablePermissions(String tableName, TapPermissions tp) throws ResourceNotFoundException {
+        
+        // update tables permissions
         PermissionsStatement stp = new PermissionsStatement(tablesTableName, "table_name", tableName, tp);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         int rows = jdbc.update(stp);
@@ -723,6 +726,11 @@ public class TapSchemaDAO
         if (rows != 1) {
             throw new RuntimeException("BUG: found " + rows + " table matching " + tableName);
         }
+        
+        // update columns permissions
+        stp = new PermissionsStatement(columnsTableName, "table_name", tableName, tp);
+        jdbc = new JdbcTemplate(dataSource);
+        rows = jdbc.update(stp);
     }
 
     private String toCommaList(String[] strs, int numUpdateKeys) {
@@ -1102,7 +1110,10 @@ public class TapSchemaDAO
             log.debug("sql: " + sql);
             
             PreparedStatement prep = conn.prepareStatement(sql);
-            prep.setString(1, name);
+            StringBuilder vals = new StringBuilder();
+            vals.append("values: ");
+            safeSetString(vals, prep, 1, name);
+            log.debug(vals.toString());
             return prep;
         }
             
@@ -1139,9 +1150,10 @@ public class TapSchemaDAO
             safeSetBoolean(vals, prep, colIndex++, tp.isPublic);
             safeSetURI(vals, prep, colIndex++, tp.readGroup);
             safeSetURI(vals, prep, colIndex++, tp.readWriteGroup);
-            log.debug(vals.toString());
+
+            safeSetString(vals, prep, colIndex++, name);
             
-            prep.setString(colIndex++, name);
+            log.debug(vals.toString());
             
             return prep;
         }
@@ -1385,21 +1397,22 @@ public class TapSchemaDAO
         boolean anon = curSub == null || curSub.getPrincipals().isEmpty();
         
         // add public checks
-        sb.append("( ( " + ownerCol + " is null) OR " +
+        sb.append("( ( " + ownerCol + " is null ) OR " +
                     "( " + ownerCol + " is not null AND " + readAnonCol + " = ? ) )");
         
         if (!anon && identityManager != null) {
             // add owner check
             sb.append(" OR ( " + ownerCol + " = ? ) ");
-            acSQL.ownerValue = identityManager.toOwnerString(curSub);
+            acSQL.ownerValue = identityManager.toOwner(curSub).toString();
             
             LocalAuthority loc = new LocalAuthority();
             URI gmsURI = loc.getServiceURI(Standards.GMS_GROUPS_01.toString());
-            GroupClient gmsClient = GroupClient.getGroupClient(gmsURI);
+            GroupClient gmsClient = GroupUtil.getGroupClient(gmsURI);
             log.debug("GMSClient: " + gmsClient);
             
             if (gmsClient != null) {
                 List<GroupURI> memberships = gmsClient.getMemberships();
+                log.debug("user is a member of " + memberships.size() + " groups");
                 if (memberships.size() > 0) {
                     // add group checks
                     sb.append("OR ( " + readOnlyCol + " in ( ");
@@ -1425,8 +1438,6 @@ public class TapSchemaDAO
                 }
             }
         }
-        
-        sb.append(" )");
         
         acSQL.sql = sb.toString();
         return acSQL;
