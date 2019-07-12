@@ -226,7 +226,6 @@ public class TapSchemaReadAccessConverterTest {
 
                 Assert.assertTrue(method + " " + tname + " " + keyCol, where.contains(keyCol + " is null"));
                 Assert.assertTrue(method + " " + tname + " " + ownerCol, where.contains(ownerCol + " is null"));
-                Assert.assertTrue(method + " " + tname + " " + publicCol, where.contains(publicCol + " is null"));
                 Assert.assertTrue(method + " " + tname + " " + publicCol, where.contains(publicCol + " = 1"));
                 Assert.assertTrue(method + " " + tname + " " + ownerCol, !where.contains(ownerCol + " = '"));
             } catch (Exception unexpected) {
@@ -259,7 +258,6 @@ public class TapSchemaReadAccessConverterTest {
 
                 Assert.assertTrue(method + " " + tname + " " + keyCol, where.contains(keyCol + " is null"));
                 Assert.assertTrue(method + " " + tname + " " + ownerCol, where.contains(ownerCol + " is null"));
-                Assert.assertTrue(method + " " + tname + " " + publicCol, where.contains(publicCol + " is null"));
                 Assert.assertTrue(method + " " + tname + " " + publicCol, where.contains(publicCol + " = 1"));
                 Assert.assertTrue(method + " " + tname + " " + ownerCol, where.contains(ownerCol + " = '" + userIDWithNoGroups + "'"));
                 Assert.assertTrue(method + " " + tname + " " + readGroupCol, !where.contains(readGroupCol + " in ("));
@@ -294,7 +292,6 @@ public class TapSchemaReadAccessConverterTest {
 
                 Assert.assertTrue(method + " " + tname + " " + keyCol, where.contains(keyCol + " is null"));
                 Assert.assertTrue(method + " " + tname + " " + ownerCol, where.contains(ownerCol + " is null"));
-                Assert.assertTrue(method + " " + tname + " " + publicCol, where.contains(publicCol + " is null"));
                 Assert.assertTrue(method + " " + tname + " " + publicCol, where.contains(publicCol + " = 1"));
                 Assert.assertTrue(method + " " + tname + " " + ownerCol, where.contains(ownerCol + " = '" + userIDWithGroups + "'"));
                 Assert.assertTrue(method + " " + tname + " " + readGroupCol, where.contains(readGroupCol + " " + groupInExpr));
@@ -331,7 +328,6 @@ public class TapSchemaReadAccessConverterTest {
                 
                 Assert.assertTrue(method + " " + tname + " " + keyCol, where.contains(keyCol + " is null"));
                 Assert.assertTrue(method + " " + tname + " " + ownerCol, where.contains(ownerCol + " is null"));
-                Assert.assertTrue(method + " " + tname + " " + publicCol, where.contains(publicCol + " is null"));
                 Assert.assertTrue(method + " " + tname + " " + publicCol, where.contains(publicCol + " = 1"));
                 Assert.assertTrue(method + " " + tname + " " + ownerCol, where.contains(ownerCol + " = '" + userIDWithGroups + "'"));
                 Assert.assertTrue(method + " " + tname + " " + readGroupCol, where.contains(readGroupCol + " " + groupInExpr));
@@ -368,7 +364,6 @@ public class TapSchemaReadAccessConverterTest {
                 
                 Assert.assertTrue(method + " " + tname + " " + keyCol, where.contains("aa." + keyCol + " is null"));
                 Assert.assertTrue(method + " " + tname + " " + ownerCol, where.contains("aa." + ownerCol + " is null"));
-                Assert.assertTrue(method + " " + tname + " " + publicCol, where.contains("aa." + publicCol + " is null"));
                 Assert.assertTrue(method + " " + tname + " " + publicCol, where.contains("aa." + publicCol + " = 1"));
                 Assert.assertTrue(method + " " + tname + " " + ownerCol, where.contains("aa." + ownerCol + " = '" + userIDWithGroups + "'"));
                 Assert.assertTrue(method + " " + tname + " " + readGroupCol, where.contains("aa." + readGroupCol + " " + groupInExpr));

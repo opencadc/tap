@@ -194,7 +194,8 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
                 
                 Expression pub = new Parenthesis(
                     new OrExpression(publicByNullKey,
-                        new OrExpression(publicByNullOwner, publicByPublicTrue)));
+                        new Parenthesis(
+                            new OrExpression(publicByNullOwner, publicByPublicTrue))));
                 
                 if (isAuthenticated()) {
                 
@@ -257,7 +258,7 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
         equals.setLeftExpression(publicColumnMeta);
         equals.setRightExpression(new LongValue("1"));
         
-        return new OrExpression(isNull, equals);
+        return new Parenthesis(new AndExpression(isNull, equals));
     }
     
     private Expression authorizedByOwner(Table fromTable, String ownerColumn) {
