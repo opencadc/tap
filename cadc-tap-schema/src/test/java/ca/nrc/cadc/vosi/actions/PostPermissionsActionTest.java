@@ -69,7 +69,6 @@
 
 package ca.nrc.cadc.vosi.actions;
 
-import ca.nrc.cadc.gms.GroupURI;
 import ca.nrc.cadc.rest.InlineContentHandler.Content;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.util.Log4jInit;
@@ -82,6 +81,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
+import org.opencadc.gms.GroupURI;
 
 /**
  * Tests the inline content handler for permissions.

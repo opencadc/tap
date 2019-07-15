@@ -82,13 +82,13 @@ import java.util.Map;
 import javax.security.auth.Subject;
 
 import org.apache.log4j.Logger;
+import org.opencadc.gms.GroupClient;
+import org.opencadc.gms.GroupURI;
+import org.opencadc.gms.GroupUtil;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.cred.client.CredUtil;
-import ca.nrc.cadc.gms.GroupClient;
-import ca.nrc.cadc.gms.GroupURI;
-import ca.nrc.cadc.gms.GroupUtil;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.tap.parser.ParserUtil;

@@ -68,9 +68,6 @@
 package ca.nrc.cadc.vosi.actions;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.gms.GroupClient;
-import ca.nrc.cadc.gms.GroupURI;
-import ca.nrc.cadc.gms.GroupUtil;
 import ca.nrc.cadc.log.WebServiceLogInfo;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.reg.Standards;
@@ -86,6 +83,9 @@ import java.security.Principal;
 import javax.security.auth.Subject;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
+import org.opencadc.gms.GroupClient;
+import org.opencadc.gms.GroupURI;
+import org.opencadc.gms.GroupUtil;
 
 /**
  *

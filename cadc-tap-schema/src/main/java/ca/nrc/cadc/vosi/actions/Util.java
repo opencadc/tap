@@ -70,8 +70,6 @@ package ca.nrc.cadc.vosi.actions;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.cred.client.CredUtil;
-import ca.nrc.cadc.gms.GroupClient;
-import ca.nrc.cadc.gms.GroupURI;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import java.net.URI;
 import java.security.AccessControlException;
@@ -80,6 +78,8 @@ import java.security.cert.CertificateException;
 import java.util.List;
 import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
+import org.opencadc.gms.GroupClient;
+import org.opencadc.gms.GroupURI;
 
 /**
  * Utility class with static methods for checking permissions.

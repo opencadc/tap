@@ -85,12 +85,12 @@ import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.opencadc.gms.GroupClient;
+import org.opencadc.gms.GroupURI;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.gms.GroupClient;
-import ca.nrc.cadc.gms.GroupURI;
 import ca.nrc.cadc.tap.AdqlQuery;
 import ca.nrc.cadc.tap.TapQuery;
 import ca.nrc.cadc.util.Log4jInit;

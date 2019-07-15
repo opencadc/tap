@@ -73,10 +73,10 @@ import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Logger;
+import org.opencadc.gms.GroupURI;
 
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.gms.GroupURI;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
