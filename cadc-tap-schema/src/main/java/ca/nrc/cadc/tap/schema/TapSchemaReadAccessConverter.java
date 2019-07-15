@@ -200,9 +200,14 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
                 if (isAuthenticated()) {
                 
                     Expression authorizedByOwner = authorizedByOwner(assetTable, at.ownerColumn);
-                    List<String> gids = getGroupIDs(gmsClient);
                     
-                    if (gids.size() > 0) {
+                    List<String> gids = null;
+                    log.debug("gmsClient: " + gmsClient);
+                    if (gmsClient != null) {
+                        gids = getGroupIDs(gmsClient);
+                    }
+                    
+                    if (gids != null && gids.size() > 0) {
                         Expression authorizedByReadGroup = authorizedByReadGroup(assetTable, at.readGroupColumn, gids);
                         Expression authorizedByReadWriteGroup =  authorizedByReadWriteGroup(assetTable, at.readWriteGroupColumn, gids);
                         accessControlExpr = new Parenthesis(

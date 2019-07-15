@@ -71,6 +71,7 @@ package ca.nrc.cadc.tap.schema;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.IdentityManager;
+import ca.nrc.cadc.cred.client.CredUtil;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.profiler.Profiler;
@@ -79,6 +80,9 @@ import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.uws.Job;
 
 import java.net.URI;
+import java.security.AccessControlException;
+import java.security.cert.CertificateExpiredException;
+import java.security.cert.CertificateNotYetValidException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -1408,34 +1412,39 @@ public class TapSchemaDAO
             LocalAuthority loc = new LocalAuthority();
             URI gmsURI = loc.getServiceURI(Standards.GMS_GROUPS_01.toString());
             GroupClient gmsClient = GroupUtil.getGroupClient(gmsURI);
-            log.debug("GMSClient: " + gmsClient);
+            log.debug("gmsClient: " + gmsClient);
             
-            if (gmsClient != null) {
-                List<GroupURI> memberships = gmsClient.getMemberships();
-                log.debug("user is a member of " + memberships.size() + " groups");
-                if (memberships.size() > 0) {
-                    // add group checks
-                    sb.append("OR ( " + readOnlyCol + " in ( ");
-                    for (int i=0; i<memberships.size(); i++) {
-                        sb.append("?, ");
-                    }
-                    sb.setLength(sb.length() - 2);
-                    sb.append(" ) ) ");
-                    
-                    sb.append(" OR ( " + readWriteCol + " in ( ");
-                    for (int i=0; i<memberships.size(); i++) {
-                        sb.append("?, ");
-                    }
-                    sb.setLength(sb.length() - 2);
-                    sb.append(" ) ) ");
-                    
-                    for (GroupURI next : memberships) {
-                        acSQL.groupValues.add(next.toString());
-                    }
-                    for (GroupURI next : memberships) {
-                        acSQL.groupValues.add(next.toString());
+            try {
+                if (gmsClient != null && CredUtil.checkCredentials()) {
+                    List<GroupURI> memberships = gmsClient.getMemberships();
+                    log.debug("user is a member of " + memberships.size() + " groups");
+                    if (memberships.size() > 0) {
+                        // add group checks
+                        sb.append("OR ( " + readOnlyCol + " in ( ");
+                        for (int i=0; i<memberships.size(); i++) {
+                            sb.append("?, ");
+                        }
+                        sb.setLength(sb.length() - 2);
+                        sb.append(" ) ) ");
+                        
+                        sb.append(" OR ( " + readWriteCol + " in ( ");
+                        for (int i=0; i<memberships.size(); i++) {
+                            sb.append("?, ");
+                        }
+                        sb.setLength(sb.length() - 2);
+                        sb.append(" ) ) ");
+                        
+                        for (GroupURI next : memberships) {
+                            acSQL.groupValues.add(next.toString());
+                        }
+                        for (GroupURI next : memberships) {
+                            acSQL.groupValues.add(next.toString());
+                        }
                     }
                 }
+            } catch (Exception e) {
+                log.error("error getting groups or checking credentials", e);
+                throw new RuntimeException(e);
             }
         }
         
