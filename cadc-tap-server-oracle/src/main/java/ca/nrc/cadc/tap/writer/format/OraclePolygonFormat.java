@@ -74,6 +74,7 @@ import ca.nrc.cadc.dali.Polygon;
 import ca.nrc.cadc.dali.util.PolygonFormat;
 import ca.nrc.cadc.util.StringUtil;
 
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -83,7 +84,9 @@ import java.util.regex.Pattern;
 
 
 public class OraclePolygonFormat extends AbstractResultSetFormat {
+
     static final String POLYGON_FUNCTION = "SDO_ORDINATE_ARRAY";
+    static final String SHAPE_NAME = "Polygon";
     private final PolygonFormat polygonFormat = new PolygonFormat();
 
     @Override
@@ -93,9 +96,35 @@ public class OraclePolygonFormat extends AbstractResultSetFormat {
     }
 
     @Override
-    public String format(final Object o) {
-        return polygonFormat.format((Polygon) o);
+    public String format(final Object object) {
+        if (object instanceof Polygon) {
+            return OraclePolygonFormat.SHAPE_NAME + " " + polygonFormat.format((Polygon) object);
+        } else if (object instanceof BigDecimal[]) {
+            return fromStruct((BigDecimal[]) object);
+        } else {
+            return object.toString();
+        }
     }
+
+    private String fromStruct(final BigDecimal[] structVerticeValues) {
+        if (structVerticeValues.length < 6) {
+            throw new IllegalArgumentException(
+                    String.format("Should have at least six (6) values from the database, but has %d.",
+                                  structVerticeValues.length));
+        } else {
+            final Polygon polygon = new Polygon();
+
+            for (int i = 0; i < structVerticeValues.length; i = i+2) {
+                final BigDecimal xPoint = structVerticeValues[i];
+                final BigDecimal yPoint = structVerticeValues[i + 1];
+
+                polygon.getVertices().add(new Point(xPoint.doubleValue(), yPoint.doubleValue()));
+            }
+
+            return format(polygon);
+        }
+    }
+
 
     Polygon getPolygon(final String clause) {
         final Polygon polygon = new Polygon();
@@ -111,9 +140,9 @@ public class OraclePolygonFormat extends AbstractResultSetFormat {
             polygon.getVertices().addAll(parsePoints(functionArgumentString));
         } else {
             throw new IllegalArgumentException(
-                String.format("Missing %s function type for Polygon clause '%s'",
-                              OraclePolygonFormat.POLYGON_FUNCTION,
-                              clause));
+                    String.format("Missing %s function type for Polygon clause '%s'",
+                                  OraclePolygonFormat.POLYGON_FUNCTION,
+                                  clause));
         }
 
         return polygon;
@@ -125,8 +154,9 @@ public class OraclePolygonFormat extends AbstractResultSetFormat {
 
         if (pointCount % 2 != 0 || pointCount < 3) {
             throw new IllegalArgumentException(
-                String.format("Array does not contain enough values (6 required) for an array of points (Found %d).",
-                              items.length));
+                    String.format(
+                            "Array does not contain enough values (6 required) for an array of points (Found %d).",
+                            items.length));
         } else {
             final List<Point> points = new ArrayList<>(pointCount);
             double[] longitudes = new double[pointCount];

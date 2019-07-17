@@ -69,31 +69,32 @@
 
 package ca.nrc.cadc.tap.parser.region.function;
 
-import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.LongValue;
 import net.sf.jsqlparser.expression.NullValue;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 
-import ca.nrc.cadc.dali.Point;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+
 /**
  * Abstract class for an Oracle Geometric Function using the SDO_GEOMETRY function.  This class supports a POINT or
  * arbitrary POLYGON (i.e. CIRCLE, BOX, or POLYGON).
  */
-abstract class OracleGeometricFunction extends Function {
-    private static final String ORACLE_GEOMETRY_FUNCTION_NAME = "SDO_GEOMETRY";
+public abstract class OracleGeometricFunction extends Function {
+
+    public static final String ORACLE_GEOMETRY_FUNCTION_NAME = "SDO_GEOMETRY";
+    public static final long POINT_GEO_TYPE = 2001;
+    public static final long POLYGON_GEO_TYPE = 2003;
+    public static final long UNION_GEO_TYPE = 2004;
+
     static final String ORDINATE_ARRAY_FUNCTION_NAME = "SDO_ORDINATE_ARRAY";
     static final String ELEM_INFO_FUNCTION_NAME = "SDO_ELEM_INFO_ARRAY";
     static final String POINT_FUNCTION_NAME = "SDO_POINT_TYPE";
-    static final long POINT_GEO_TYPE = 2001;
-    static final long POLYGON_GEO_TYPE = 2003;
 
     private final List<Expression> elementInfoValues = new ArrayList<>();
 

@@ -69,31 +69,101 @@
 
 package ca.nrc.cadc.tap.writer.format;
 
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.tap.parser.region.function.OracleCircle;
+import ca.nrc.cadc.tap.parser.region.function.OracleGeometricFunction;
+import ca.nrc.cadc.tap.parser.region.function.OraclePolygon;
+
+import java.math.BigDecimal;
+import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Struct;
 
 
 public class OracleRegionFormat extends AbstractResultSetFormat {
+
+    private final static int EXPECTED_ARGUMENT_LENGTH = 5;
+
     @Override
     public Object extract(ResultSet resultSet, int i) throws SQLException {
-        final String value = resultSet.getString(i);
-        return format(value);
+        return format(resultSet.getObject(i));
     }
 
     @Override
     public String format(final Object object) {
+        final String returnValue;
+
         if (object == null) {
-            return null;
-        }
-        else if (!(object instanceof String)) {
-            throw new IllegalArgumentException(
-                "Expected String, was " + object.getClass().getName());
+            returnValue = null;
+        } else if (object instanceof Struct) {
+            final Struct struct = (Struct) object;
+            returnValue = toString(struct);
+        } else {
+            returnValue = object.toString();
         }
 
-        final String s = (String) object;
-        return s.replace("Union", "").replace("ICRS", "").replace("Not", "")
-                .replace("(", "").replace(")", "")
-                .replace("Polygon", "Polygon ICRS")
-                .trim();
+        return returnValue;
+    }
+
+    private String toString(final Struct struct) {
+        if (struct == null) {
+            return null;
+        } else {
+            try {
+                final String functionName = struct.getSQLTypeName();
+                final Object[] functionAttributes = struct.getAttributes();
+
+                if (functionAttributes.length != EXPECTED_ARGUMENT_LENGTH
+                    || !functionName.toUpperCase().contains(OracleGeometricFunction.ORACLE_GEOMETRY_FUNCTION_NAME)) {
+                    throw new IllegalArgumentException(
+                            String.format("Invalid Region function found '%s'", functionName));
+                }
+
+                final BigDecimal pointOrPolygonType = (BigDecimal) functionAttributes[0];
+                final int typeValue = pointOrPolygonType.intValue();
+
+                // Circle, Polygon, or Union.
+                if (typeValue == OracleGeometricFunction.POLYGON_GEO_TYPE) {
+                    return polygonToString(toBigDecimalArray(functionAttributes[3]),
+                                           toBigDecimalArray(functionAttributes[4]));
+                } else if (typeValue == OracleGeometricFunction.POINT_GEO_TYPE) {
+                    return pointToString(toBigDecimalArray(functionAttributes[2]));
+                } else if (typeValue == OracleGeometricFunction.UNION_GEO_TYPE) {
+                    return "UNION (In progress)";
+                } else {
+                    throw new IllegalArgumentException(
+                            String.format("Unsupported Region function '%s'.", functionName));
+                }
+            } catch (ClassCastException cce) {
+                return String.format("Invalid format for the Region from Oracle.\n\n%s\n", cce.getMessage());
+            } catch (SQLException e) {
+                return String.format("Unexpected Region value.\n\n%s\n", e.getMessage());
+            }
+        }
+    }
+
+    String polygonToString(final BigDecimal[] structTypeArray, final BigDecimal[] structVerticesArray) {
+        if (OracleCircle.structMatches(structTypeArray)) {
+            return new OracleCircleFormat().format(structVerticesArray);
+        } else if (OraclePolygon.structMatches(structTypeArray)) {
+            return new OraclePolygonFormat().format(structVerticesArray);
+        } else {
+            return null;
+        }
+    }
+
+    String pointToString(final BigDecimal[] structAttributes) {
+        final OraclePointFormat oraclePointFormat = new OraclePointFormat();
+        return oraclePointFormat.format(
+                new Point(structAttributes[0].doubleValue(), structAttributes[1].doubleValue()));
+    }
+
+    BigDecimal[] toBigDecimalArray(final Object structArray) throws SQLException {
+        if (structArray instanceof Array) {
+            return (BigDecimal[]) ((Array) structArray).getArray();
+        } else {
+            return null;
+        }
     }
 }

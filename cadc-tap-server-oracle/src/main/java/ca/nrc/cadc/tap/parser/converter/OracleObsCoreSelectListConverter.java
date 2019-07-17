@@ -67,106 +67,54 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.parser.region.function;
+package ca.nrc.cadc.tap.parser.converter;
 
-import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.LongValue;
-import net.sf.jsqlparser.expression.StringValue;
-import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.SelectExpressionItem;
+import net.sf.jsqlparser.statement.select.SelectItem;
+import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
+import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
+import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
+import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
 
-import ca.nrc.cadc.dali.Point;
-import ca.nrc.cadc.dali.Polygon;
-import ca.nrc.cadc.tap.parser.RegionFinder;
-
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.function.IntPredicate;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 
-public class OraclePolygon extends OracleGeometricFunction {
+public class OracleObsCoreSelectListConverter extends SelectNavigator {
 
-    private static final int[] ORACLE_ELEMENT_INFO_VALUES = new int[] {
-            1, 1003, 1
-    };
+    private static final String OBSCORE_REGION_COLUMN_NAME = "S_REGION";
+    private static final String OBSCORE_REGION_COLUMN_REPLACE_NAME = "FOOTPRINT";
 
-    // Outer Polygon element
-    private static final Expression[] ORACLE_ELEMENT_INFO = new Expression[ORACLE_ELEMENT_INFO_VALUES.length];
-
-    static {
-        for (int i = 0; i < ORACLE_ELEMENT_INFO_VALUES.length; i++) {
-            ORACLE_ELEMENT_INFO[i] = new LongValue(Long.toString(ORACLE_ELEMENT_INFO_VALUES[i]));
-        }
+    public OracleObsCoreSelectListConverter(final ExpressionNavigator en, final ReferenceNavigator rn,
+                                            final FromItemNavigator fn) {
+        super(en, rn, fn);
     }
 
-    private final List<Expression> vertices = new ArrayList<>();
-
-
-    private OraclePolygon() {
-        super(ORACLE_ELEMENT_INFO);
-    }
-
-    public OraclePolygon(final List<Expression> verticeExpressions) {
-        this();
-        if (verticeExpressions != null) {
-            this.vertices.addAll(verticeExpressions);
-        }
-        processOrdinateParameters();
-    }
-
-    public OraclePolygon(final Polygon polygon) {
-        this();
-        vertices.add(new StringValue(RegionFinder.ICRS));
-        for (final Point p : polygon.getVertices()) {
-            vertices.add(new DoubleValue(Double.toString(p.getLongitude())));
-            vertices.add(new DoubleValue(Double.toString(p.getLatitude())));
-        }
-        processOrdinateParameters();
-    }
-
-    /**
-     * Map this shape's values to ORACLE ORDINATE function parameters.
-     *
-     * @param parameterList The ExpressionList to add parameters to.
-     */
     @Override
-    void mapValues(final ExpressionList parameterList) {
-        // Start at 1 since the first item will be the coordinate system.
-        for (int i = 1; i < this.vertices.size(); i = i + 2) {
-            final Expression ra = this.vertices.get(i);
-            final Expression dec = this.vertices.get(i + 1);
-            addNumericExpression(ra, parameterList);
-            addNumericExpression(dec, parameterList);
-        }
-    }
+    public void visit(final PlainSelect plainSelect) {
+        enterPlainSelect(plainSelect);
 
-    @SuppressWarnings("unchecked")
-    void addNumericExpression(final Expression expression, final ExpressionList parameterList) {
-        if (!(expression instanceof DoubleValue) && !(expression instanceof LongValue)) {
-            throw new UnsupportedOperationException(
-                    String.format("Cannot use non-constant coordinates in Polygon.  Expected Double or Long but found" +
-                                  " '%s'", expression.toString()));
-        } else {
-            parameterList.getExpressions().add(expression);
-        }
-    }
+        @SuppressWarnings("unchecked") final List<SelectItem> selectItems = plainSelect.getSelectItems();
 
-    /**
-     * Determine whether this shape matches the types provided by the structTypeArray.  The individual types should
-     * have an array of numbers to compare.
-     *
-     * @param structTypeArray The numerical array from the database to check for.
-     * @return True if the numbers match, False otherwise.
-     */
-    public static boolean structMatches(final BigDecimal[] structTypeArray) {
-        final List<Integer> currValues = Arrays.stream(ORACLE_ELEMENT_INFO_VALUES).boxed().collect(Collectors.toList());
-        final List<Integer> structValues = Arrays.stream(structTypeArray).map(BigDecimal::intValue).collect(
-                Collectors.toList());
-        return structValues.containsAll(currValues);
+        if (selectItems != null) {
+            for (final SelectItem s : selectItems) {
+                if (s instanceof SelectExpressionItem) {
+
+                    final SelectExpressionItem se = (SelectExpressionItem) s;
+                    final Expression e = se.getExpression();
+
+                    if (e instanceof Column) {
+                        final Column c = (Column) e;
+                        if (c.getColumnName().equals(OBSCORE_REGION_COLUMN_NAME)) {
+                            c.setColumnName(OBSCORE_REGION_COLUMN_REPLACE_NAME);
+                        }
+                    }
+                }
+            }
+        }
+
+        leavePlainSelect();
     }
 }

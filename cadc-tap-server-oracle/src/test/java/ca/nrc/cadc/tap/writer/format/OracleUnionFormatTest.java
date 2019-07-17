@@ -67,106 +67,23 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.parser.region.function;
+package ca.nrc.cadc.tap.writer.format;
 
-import net.sf.jsqlparser.expression.DoubleValue;
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.LongValue;
-import net.sf.jsqlparser.expression.StringValue;
-import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import org.junit.Ignore;
+import org.junit.Test;
 
-import ca.nrc.cadc.dali.Point;
-import ca.nrc.cadc.dali.Polygon;
-import ca.nrc.cadc.tap.parser.RegionFinder;
-
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.function.IntPredicate;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
+import static org.junit.Assert.*;
 
 
-public class OraclePolygon extends OracleGeometricFunction {
+public class OracleUnionFormatTest {
 
-    private static final int[] ORACLE_ELEMENT_INFO_VALUES = new int[] {
-            1, 1003, 1
-    };
+    @Test
+    @Ignore("Not ready yet.")
+    public void format() {
+        final OracleUnionFormat testSubject = new OracleUnionFormat();
 
-    // Outer Polygon element
-    private static final Expression[] ORACLE_ELEMENT_INFO = new Expression[ORACLE_ELEMENT_INFO_VALUES.length];
-
-    static {
-        for (int i = 0; i < ORACLE_ELEMENT_INFO_VALUES.length; i++) {
-            ORACLE_ELEMENT_INFO[i] = new LongValue(Long.toString(ORACLE_ELEMENT_INFO_VALUES[i]));
-        }
-    }
-
-    private final List<Expression> vertices = new ArrayList<>();
-
-
-    private OraclePolygon() {
-        super(ORACLE_ELEMENT_INFO);
-    }
-
-    public OraclePolygon(final List<Expression> verticeExpressions) {
-        this();
-        if (verticeExpressions != null) {
-            this.vertices.addAll(verticeExpressions);
-        }
-        processOrdinateParameters();
-    }
-
-    public OraclePolygon(final Polygon polygon) {
-        this();
-        vertices.add(new StringValue(RegionFinder.ICRS));
-        for (final Point p : polygon.getVertices()) {
-            vertices.add(new DoubleValue(Double.toString(p.getLongitude())));
-            vertices.add(new DoubleValue(Double.toString(p.getLatitude())));
-        }
-        processOrdinateParameters();
-    }
-
-    /**
-     * Map this shape's values to ORACLE ORDINATE function parameters.
-     *
-     * @param parameterList The ExpressionList to add parameters to.
-     */
-    @Override
-    void mapValues(final ExpressionList parameterList) {
-        // Start at 1 since the first item will be the coordinate system.
-        for (int i = 1; i < this.vertices.size(); i = i + 2) {
-            final Expression ra = this.vertices.get(i);
-            final Expression dec = this.vertices.get(i + 1);
-            addNumericExpression(ra, parameterList);
-            addNumericExpression(dec, parameterList);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    void addNumericExpression(final Expression expression, final ExpressionList parameterList) {
-        if (!(expression instanceof DoubleValue) && !(expression instanceof LongValue)) {
-            throw new UnsupportedOperationException(
-                    String.format("Cannot use non-constant coordinates in Polygon.  Expected Double or Long but found" +
-                                  " '%s'", expression.toString()));
-        } else {
-            parameterList.getExpressions().add(expression);
-        }
-    }
-
-    /**
-     * Determine whether this shape matches the types provided by the structTypeArray.  The individual types should
-     * have an array of numbers to compare.
-     *
-     * @param structTypeArray The numerical array from the database to check for.
-     * @return True if the numbers match, False otherwise.
-     */
-    public static boolean structMatches(final BigDecimal[] structTypeArray) {
-        final List<Integer> currValues = Arrays.stream(ORACLE_ELEMENT_INFO_VALUES).boxed().collect(Collectors.toList());
-        final List<Integer> structValues = Arrays.stream(structTypeArray).map(BigDecimal::intValue).collect(
-                Collectors.toList());
-        return structValues.containsAll(currValues);
+        assertEquals("Wrong output.",
+                     "Polygon 0.9 4.6 9.0 10.2 3.3 8.7 12.9 45.6 UNION Polygon 9.0 6.4 0.9 2.10 3.3 7.8 9.12 6.45",
+                     testSubject.format(null));
     }
 }

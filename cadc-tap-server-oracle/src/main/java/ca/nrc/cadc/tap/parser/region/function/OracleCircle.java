@@ -75,15 +75,28 @@ import net.sf.jsqlparser.expression.LongValue;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import ca.nrc.cadc.dali.Circle;
 
+import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
+import java.util.function.IntPredicate;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 
 public class OracleCircle extends OracleGeometricFunction {
-    private static final Expression[] ORACLE_ELEMENT_INFO = new Expression[] {
-        new LongValue("1"),
-        new LongValue("1003"),
-        new LongValue("4")
-    };   // Outer Polygon element
+
+    private static final int[] ORACLE_ELEMENT_INFO_VALUES = new int[] {
+            1, 1003, 4
+    };
+
+    private static final Expression[] ORACLE_ELEMENT_INFO = new Expression[ORACLE_ELEMENT_INFO_VALUES.length];
+
+    static {
+        for (int i = 0; i < ORACLE_ELEMENT_INFO_VALUES.length; i++) {
+            ORACLE_ELEMENT_INFO[i] = new LongValue(Long.toString(ORACLE_ELEMENT_INFO_VALUES[i]));
+        }
+    }
+
     private final Expression ra;
     private final Expression dec;
     private final Expression radius;
@@ -151,5 +164,19 @@ public class OracleCircle extends OracleGeometricFunction {
 
     double parseDec() {
         return Double.parseDouble(dec.toString());
+    }
+
+    /**
+     * Determine whether this shape matches the types provided by the structTypeArray.  The individual types should
+     * have an array of numbers to compare.
+     *
+     * @param structTypeArray The numerical array from the database to check for.
+     * @return True if the numbers match, False otherwise.
+     */
+    public static boolean structMatches(final BigDecimal[] structTypeArray) {
+        final List<Integer> currValues = Arrays.stream(ORACLE_ELEMENT_INFO_VALUES).boxed().collect(Collectors.toList());
+        final List<Integer> structValues = Arrays.stream(structTypeArray).map(BigDecimal::intValue).collect(
+                Collectors.toList());
+        return structValues.containsAll(currValues);
     }
 }
