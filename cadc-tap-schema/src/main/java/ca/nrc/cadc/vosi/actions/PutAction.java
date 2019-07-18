@@ -72,10 +72,12 @@ import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.net.ResourceAlreadyExistsException;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.rest.InlineContentHandler;
+import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.tap.db.TableCreator;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import java.security.AccessControlException;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
@@ -98,6 +100,8 @@ public class PutAction extends TablesAction {
         String tableName = getTableName();
         String schemaName = Util.getSchemaFromTable(tableName);
         log.debug("PUT: " + tableName);
+        
+        checkWritable();
         
         checkSchemaWritePermission(schemaName);
         

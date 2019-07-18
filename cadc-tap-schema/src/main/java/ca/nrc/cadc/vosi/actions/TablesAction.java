@@ -75,7 +75,6 @@ import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.tap.PluginFactory;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import static ca.nrc.cadc.vosi.actions.Util.getOwner;
 import java.net.URI;
 import java.security.AccessControlException;
 import java.security.Principal;
@@ -90,9 +89,8 @@ import org.apache.log4j.Logger;
 public abstract class TablesAction extends RestAction {
     private static final Logger log = Logger.getLogger(TablesAction.class);
 
-    
-    
     public TablesAction() { 
+        super();
     }
 
     protected final DataSource getDataSource() {
@@ -100,6 +98,18 @@ public abstract class TablesAction extends RestAction {
         DataSourceProvider dsf = pf.getDataSourceProvider();
         return dsf.getDataSource(super.syncInput.getRequestPath());
     }
+    
+    // package access so InlineContentHandler could call it via ref to parent action
+    void checkWritable() {
+        if (!writable) {
+            String cause = RestAction.STATE_OFFLINE_MSG;
+            if (readable) {
+                cause = RestAction.STATE_READ_ONLY_MSG;
+            }
+            throw new AccessControlException(cause);
+        }
+    }
+    
     
     @Override
     protected InlineContentHandler getInlineContentHandler() {

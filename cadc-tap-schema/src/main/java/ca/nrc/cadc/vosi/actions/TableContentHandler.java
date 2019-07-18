@@ -80,6 +80,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import org.apache.log4j.Logger;
 
+/**
+ * ContentHandler for SyncLoadAction.
+ * 
+ * @author pdowler
+ */
 public class TableContentHandler implements InlineContentHandler {
     
     private static final Logger log = Logger.getLogger(TableContentHandler.class);
@@ -91,7 +96,7 @@ public class TableContentHandler implements InlineContentHandler {
     
     private static final int BATCH_SIZE = 1000;
     
-    SyncLoadAction parent;
+    private final SyncLoadAction parent;
     
     TableContentHandler(SyncLoadAction parent) {
         this.parent = parent;
@@ -101,6 +106,10 @@ public class TableContentHandler implements InlineContentHandler {
     public Content accept(String name, String contentType, InputStream inputStream)
             throws InlineContentException, IOException, ResourceNotFoundException {
         String tableName = parent.getTableName();
+        log.debug("TableContentHandler: " + tableName);
+        
+        parent.checkWritable();
+        
         if (tableName == null) {
             throw new IllegalArgumentException("Missing table name in path");
         }

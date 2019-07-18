@@ -70,8 +70,10 @@ package ca.nrc.cadc.vosi.actions;
 import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.InlineContentHandler;
+import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import java.net.URI;
+import java.security.AccessControlException;
 import org.apache.log4j.Logger;
 
 /**
@@ -90,6 +92,9 @@ public class PostAction extends TablesAction {
     public void doAction() throws Exception {
         String name = getTableName();
         log.debug("POST: " + name);
+        
+        checkWritable();
+        
         if (name == null) {
             throw new IllegalArgumentException("Missing table name in path.");
         }
