@@ -14,9 +14,3 @@ alter table tap_schema.tables11
     add column read_anon        integer,
     add column read_only_group  varchar(128),
     add column read_write_group varchar(128);
-
-alter table tap_schema.columns11
-    add column owner_id         varchar(32),
-    add column read_anon        integer,
-    add column read_only_group  varchar(128),
-    add column read_write_group varchar(128);
