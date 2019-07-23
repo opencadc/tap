@@ -77,7 +77,7 @@ import org.opencadc.gms.GroupURI;
 /**
  * Class to hold access control information for a schema or table.
  * 
- * Used in the retrieval and modification of permissions inTapSchemaDAO.
+ * Used in the retrieval and modification of permissions in TapSchemaDAO.
  * 
  * @author majorb
  *

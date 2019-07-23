@@ -87,6 +87,7 @@ public class TableDesc
     public String utype;
     public Integer tableIndex;
     public TableType tableType = TableType.TABLE;
+    public TapPermissions tapPermissions;
     
     public enum TableType {
         TABLE("table"),
