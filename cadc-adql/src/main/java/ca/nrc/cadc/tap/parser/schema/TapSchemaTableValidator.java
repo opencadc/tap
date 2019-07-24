@@ -69,15 +69,29 @@
 
 package ca.nrc.cadc.tap.parser.schema;
 
-import org.apache.log4j.Logger;
+import java.net.URI;
+import java.security.AccessControlException;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
+import javax.security.auth.Subject;
+
+import org.apache.log4j.Logger;
+import org.opencadc.gms.GroupClient;
+import org.opencadc.gms.GroupURI;
+import org.opencadc.gms.GroupUtil;
+
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.cred.client.CredUtil;
 import ca.nrc.cadc.tap.parser.ParserUtil;
 import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.schema.TableDesc;
-
+import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchema;
-import java.util.ArrayList;
-import java.util.List;
 import net.sf.jsqlparser.schema.Table;
 
 /**
@@ -86,43 +100,43 @@ import net.sf.jsqlparser.schema.Table;
  * @author zhangsa
  *
  */
-public class TapSchemaTableValidator extends FromItemNavigator
-{
+public class TapSchemaTableValidator extends FromItemNavigator {
     protected static Logger log = Logger.getLogger(TapSchemaTableValidator.class);
 
     protected TapSchema tapSchema;
-    
+
     private List<TableDesc> tables = new ArrayList<>();
-    
-    public TapSchemaTableValidator()
-    {
+    private Map<URI, List<GroupURI>> membershipCache = new HashMap<URI, List<GroupURI>>();
+
+    public TapSchemaTableValidator() {
     }
 
-    public TapSchemaTableValidator(TapSchema ts)
-    {
+    public TapSchemaTableValidator(TapSchema ts) {
         this.tapSchema = ts;
     }
 
-    public void setTapSchema(TapSchema tapSchema)
-    {
+    public void setTapSchema(TapSchema tapSchema) {
         this.tapSchema = tapSchema;
     }
 
     /**
      * Get list of tables referenced in the query.
      * 
-     * @return tables referenced in query 
+     * @return tables referenced in query
      */
     public List<TableDesc> getTables() {
         return tables;
     }
-        
-    /* (non-Javadoc)
-     * @see net.sf.jsqlparser.statement.select.FromItemVisitor#visit(net.sf.jsqlparser.schema.Table)
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * net.sf.jsqlparser.statement.select.FromItemVisitor#visit(net.sf.jsqlparser.
+     * schema.Table)
      */
     @Override
-    public void visit(Table table)
-    {
+    public void visit(Table table) {
         log.debug("visit(table) " + table);
         String tableNameOrAlias = table.getName();
         Table qTable = ParserUtil.findFromTable(selectNavigator.getPlainSelect(), tableNameOrAlias);
@@ -132,7 +146,96 @@ public class TapSchemaTableValidator extends FromItemNavigator
         if (td == null)
             throw new IllegalArgumentException("Table [ " + table + " ] is not found in TapSchema");
         if (!tables.contains(td)) {
+            checkPermissions(td);
             tables.add(td);
         }
     }
+
+    // This method will throw an access control exception if the table
+    // is not readable by the current (possibly anonymous) user.
+    private void checkPermissions(TableDesc tableDesc) throws AccessControlException {
+
+        log.debug("Checking permissions on table " + tableDesc.getTableName());
+        TapPermissions tp = tableDesc.tapPermissions;
+
+        // first check if the table is public
+        if (tp == null) {
+            log.debug("public: no tap permissions on table");
+            return;
+        }
+        if (tp.owner == null) {
+            log.debug("public: no owner in tap permissions");
+            return;
+        }
+        if (tp.owner != null && tp.isPublic != null && tp.isPublic) {
+            log.debug("public: table set as public");
+            return;
+        }
+
+        Subject curSub = AuthenticationUtil.getCurrentSubject();
+        boolean anon = curSub == null || curSub.getPrincipals().isEmpty();
+
+        if (!anon) {
+            if (isOwner(tp.owner, curSub)) {
+                log.debug("caller is owner");
+                return;
+            }
+            try {
+                if (isMember(tp.readGroup)) {
+                    log.debug("caller member of read-only group " + tp.readGroup);
+                    return;
+                }
+                if (isMember(tp.readWriteGroup)) {
+                    log.debug("caller member of read-write group " + tp.readWriteGroup);
+                    return;
+                }
+            } catch (Exception e) {
+                log.error("error getting groups or checking credentials", e);
+                throw new RuntimeException(e);
+            }
+        }
+        throw new AccessControlException("permission denied on table " + tableDesc.getTableName());
+    }
+
+    private boolean isOwner(Subject owner, Subject caller) {
+        Set<Principal> ownerPrincipals = owner.getPrincipals();
+        Set<Principal> callerPrincipals = caller.getPrincipals();
+
+        for (Principal oPrin : ownerPrincipals) {
+            for (Principal cPrin : callerPrincipals) {
+                if (AuthenticationUtil.equals(oPrin, cPrin))
+                    return true; // caller===owner
+            }
+        }
+        return false;
+    }
+
+    // check and cache memberships for the service ID
+    private boolean isMember(GroupURI group) throws Exception {
+
+        if (group != null) {
+            List<GroupURI> memberships = membershipCache.get(group.getServiceID());
+            if (memberships == null) {
+                // get the list of memberships from a group client
+                GroupClient groupClient = GroupUtil.getGroupClient(group.getServiceID());
+                if (groupClient != null && CredUtil.checkCredentials()) {
+                    memberships = groupClient.getMemberships();
+                    log.debug("user is a member of " + memberships.size() + " groups in service " + group.getServiceID());
+                    if (memberships != null) {
+                        membershipCache.put(group.getServiceID(), memberships);
+                    } else {
+                        // just in case the group client returns null instead of an empty list
+                        membershipCache.put(group.getServiceID(), new ArrayList<GroupURI>());
+                    }
+                }
+            }
+            for (GroupURI next : memberships) {
+                if (next.equals(group)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
 }
