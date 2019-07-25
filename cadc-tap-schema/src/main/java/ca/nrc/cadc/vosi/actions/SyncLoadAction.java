@@ -79,12 +79,15 @@ public class SyncLoadAction extends TablesAction {
     private static final Logger log = Logger.getLogger(SyncLoadAction.class);
 
     public SyncLoadAction() { 
+        super();
     }
     
     @Override
     public void doAction() throws Exception {
         String tableName = getTableName();
         log.debug("POST: " + tableName);
+        
+        checkWritable();
         
         // all the work happens in the TableContentHandler
         String msg = (String) syncInput.getContent(TableContentHandler.MSG);
