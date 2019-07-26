@@ -107,7 +107,7 @@ public class TapSchemaReadAccessConverterTest {
     private static final Logger log = Logger.getLogger(TapSchemaReadAccessConverterTest.class);
 
     static {
-        Log4jInit.setLevel("ca.nrc.cadc.tap.schema", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.tap.schema", Level.INFO);
     }
 
     static String[] ASSET_TABLES = new String[] {
