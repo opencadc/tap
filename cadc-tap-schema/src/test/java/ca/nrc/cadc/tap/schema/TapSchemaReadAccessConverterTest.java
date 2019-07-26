@@ -107,21 +107,25 @@ public class TapSchemaReadAccessConverterTest {
     private static final Logger log = Logger.getLogger(TapSchemaReadAccessConverterTest.class);
 
     static {
-        Log4jInit.setLevel("ca.nrc.cadc.tap.schema", Level.INFO);
+        Log4jInit.setLevel("ca.nrc.cadc.tap.schema", Level.DEBUG);
     }
 
     static String[] ASSET_TABLES = new String[] {
         "tap_schema.schemas".toLowerCase(),
         "tap_schema.tables".toLowerCase(),
         "tap_schema.columns".toLowerCase(),};
+    
+    static String[] ASSET_TABLE_CONDITION_TABLES = new String[] {
+        "tap_schema.schemas".toLowerCase(),
+        "tap_schema.tables".toLowerCase(),
+        "tap_schema.tables".toLowerCase(),};
 
     static String[] KEY_COLUMNS = new String[] {
         "schema_name".toLowerCase(),
         "table_name".toLowerCase(),
-        "column_name".toLowerCase(),};
+        "table_name".toLowerCase(),};
 
     static String[] OWNER_COLUMNS = new String[] {
-        "owner_id".toLowerCase(),
         "owner_id".toLowerCase(),
         "owner_id".toLowerCase(),
         "owner_id".toLowerCase(),};
@@ -129,17 +133,14 @@ public class TapSchemaReadAccessConverterTest {
     static String[] PUBLIC_COLUMNS = new String[] {
         "read_anon".toLowerCase(),
         "read_anon".toLowerCase(),
-        "read_anon".toLowerCase(),
         "read_anon".toLowerCase(),};
     
     static String[] READGROUP_COLUMNS = new String[] {
         "read_only_group".toLowerCase(),
         "read_only_group".toLowerCase(),
-        "read_only_group".toLowerCase(),
         "read_only_group".toLowerCase(),};
     
     static String[] READWRITEGROUP_COLUMNS = new String[] {
-        "read_write_group".toLowerCase(),
         "read_write_group".toLowerCase(),
         "read_write_group".toLowerCase(),
         "read_write_group".toLowerCase(),};
@@ -206,19 +207,36 @@ public class TapSchemaReadAccessConverterTest {
     }
     
     @Test
+    public final void testAnonymousNonAssetTable() {
+        String method = "testAnonymousNonAssetTable";
+        String tname = "usertable";
+        log.info(method + ": " + tname);
+        String query = "select * from " + tname;
+        try {
+            String sql = new QueryConvertAction(method, query).run();
+            Assert.assertEquals(query, sql);
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+    
+    @Test
     public final void testAnonymous() {
         String method = "testAnonymous";
         for (int a = 0; a < ASSET_TABLES.length; a++) {
             String tname = ASSET_TABLES[a];
-            String keyCol = KEY_COLUMNS[a];
-            String ownerCol = OWNER_COLUMNS[a];
-            String publicCol = PUBLIC_COLUMNS[a];
+            String conditionTable = ASSET_TABLE_CONDITION_TABLES[a];
+            String keyCol = conditionTable + "." + KEY_COLUMNS[a];
+            String ownerCol = conditionTable + "." + OWNER_COLUMNS[a];
+            String publicCol = conditionTable + "." + PUBLIC_COLUMNS[a];
             log.info(method + ": " + tname);
             try {
                 String query = "select * from " + tname;
                 String sql = new QueryConvertAction(method, query).run();
 
                 int i = sql.indexOf("where");
+                log.debug("i=" + i);
                 Assert.assertTrue("found where", (i > 0));
 
                 String where = sql.substring(i).toLowerCase();
@@ -239,12 +257,13 @@ public class TapSchemaReadAccessConverterTest {
     public final void testWithNoGroups() {
         String method = "testWithNoGroups";
         for (int a = 0; a < ASSET_TABLES.length; a++) {
-            String tname = ASSET_TABLES[a];
-            String keyCol = KEY_COLUMNS[a];
-            String ownerCol = OWNER_COLUMNS[a];
-            String publicCol = PUBLIC_COLUMNS[a];
-            String readGroupCol = READGROUP_COLUMNS[a];
-            String readWriteGroupCol = READWRITEGROUP_COLUMNS[a];
+            String tname = ASSET_TABLES[a];          
+            String conditionTable = ASSET_TABLE_CONDITION_TABLES[a];
+            String keyCol = conditionTable + "." + KEY_COLUMNS[a];
+            String ownerCol = conditionTable + "." + OWNER_COLUMNS[a];
+            String publicCol = conditionTable + "." + PUBLIC_COLUMNS[a];
+            String readGroupCol = conditionTable + "." + READGROUP_COLUMNS[a];
+            String readWriteGroupCol = conditionTable + "." + READWRITEGROUP_COLUMNS[a];
             log.info(method + ": " + tname);
             try {
                 String query = "select * from " + tname;
@@ -274,11 +293,12 @@ public class TapSchemaReadAccessConverterTest {
         String method = "testWithGroups";
         for (int a = 0; a < ASSET_TABLES.length; a++) {
             String tname = ASSET_TABLES[a];
-            String keyCol = KEY_COLUMNS[a];
-            String ownerCol = OWNER_COLUMNS[a];
-            String publicCol = PUBLIC_COLUMNS[a];
-            String readGroupCol = READGROUP_COLUMNS[a];
-            String readWriteGroupCol = READWRITEGROUP_COLUMNS[a];
+            String conditionTable = ASSET_TABLE_CONDITION_TABLES[a];
+            String keyCol = conditionTable + "." + KEY_COLUMNS[a];
+            String ownerCol = conditionTable + "." + OWNER_COLUMNS[a];
+            String publicCol = conditionTable + "." + PUBLIC_COLUMNS[a];
+            String readGroupCol = conditionTable + "." + READGROUP_COLUMNS[a];
+            String readWriteGroupCol = conditionTable + "." + READWRITEGROUP_COLUMNS[a];
             log.info(method + ": " + tname);
             try {
                 String query = "select * from " + tname;
@@ -308,11 +328,12 @@ public class TapSchemaReadAccessConverterTest {
         String method = "testWithWhere";
         for (int a = 0; a < ASSET_TABLES.length; a++) {
             String tname = ASSET_TABLES[a];
-            String keyCol = KEY_COLUMNS[a];
-            String ownerCol = OWNER_COLUMNS[a];
-            String publicCol = PUBLIC_COLUMNS[a];
-            String readGroupCol = READGROUP_COLUMNS[a];
-            String readWriteGroupCol = READWRITEGROUP_COLUMNS[a];
+            String conditionTable = ASSET_TABLE_CONDITION_TABLES[a];
+            String keyCol = conditionTable + "." + KEY_COLUMNS[a];
+            String ownerCol = conditionTable + "." + OWNER_COLUMNS[a];
+            String publicCol = conditionTable + "." + PUBLIC_COLUMNS[a];
+            String readGroupCol = conditionTable + "." + READGROUP_COLUMNS[a];
+            String readWriteGroupCol = conditionTable + "." + READWRITEGROUP_COLUMNS[a];
             log.info(method + ": " + tname);
             try {
                 String query = "select * from " + tname + " where something='foo'";
@@ -340,42 +361,6 @@ public class TapSchemaReadAccessConverterTest {
     }
     
     @Test
-    public final void testWithAlias() {
-        String method = "testWithAlias";
-        for (int a = 0; a < ASSET_TABLES.length; a++) {
-            String tname = ASSET_TABLES[a];
-            String keyCol = KEY_COLUMNS[a];
-            String ownerCol = OWNER_COLUMNS[a];
-            String publicCol = PUBLIC_COLUMNS[a];
-            String readGroupCol = READGROUP_COLUMNS[a];
-            String readWriteGroupCol = READWRITEGROUP_COLUMNS[a];
-            log.info(method + ": " + tname);
-            try {
-                String query = "select * from " + tname + " as aa where aa.something='foo'";
-                String sql = Subject.doAs(subjectWithGroups, new QueryConvertAction(method, query));
-
-                int i = sql.indexOf("where");
-                Assert.assertTrue("found where", (i > 0));
-
-                String where = sql.substring(i).toLowerCase();
-                log.info(method + ": " + where);
-
-                Assert.assertTrue(method + " something", where.contains("something = 'foo'")); 
-                
-                Assert.assertTrue(method + " " + tname + " " + keyCol, where.contains("aa." + keyCol + " is null"));
-                Assert.assertTrue(method + " " + tname + " " + ownerCol, where.contains("aa." + ownerCol + " is null"));
-                Assert.assertTrue(method + " " + tname + " " + publicCol, where.contains("aa." + publicCol + " = 1"));
-                Assert.assertTrue(method + " " + tname + " " + ownerCol, where.contains("aa." + ownerCol + " = '" + userIDWithGroups + "'"));
-                Assert.assertTrue(method + " " + tname + " " + readGroupCol, where.contains("aa." + readGroupCol + " " + groupInExpr));
-                Assert.assertTrue(method + " " + tname + " " + readWriteGroupCol, where.contains("aa." + readWriteGroupCol + " " + groupInExpr));
-            } catch (Exception unexpected) {
-                log.error("unexpected exception", unexpected);
-                Assert.fail("unexpected exception: " + unexpected);
-            }
-        }
-    }
-    
-    @Test
     public final void testMultiTable() {
         String method = "testMultiTable";
         try {
@@ -392,13 +377,13 @@ public class TapSchemaReadAccessConverterTest {
 
             Assert.assertTrue(method + " something", where.contains("something = 'foo'")); // parse/deparse normalises whitespace
 
-            Assert.assertTrue(method + " tables keyCol is null", where.contains("t.table_name is null"));
-            Assert.assertTrue(method + " tables read_anon", where.contains("t.read_anon = 1"));
-            Assert.assertTrue(method + " tables read_only_group", where.contains("t.read_only_group " + groupInExpr));
+            Assert.assertTrue(method + " tables keyCol is null", where.contains("tables.table_name is null"));
+            Assert.assertTrue(method + " tables read_anon", where.contains("tables.read_anon = 1"));
+            Assert.assertTrue(method + " tables read_only_group", where.contains("tables.read_only_group " + groupInExpr));
 
-            Assert.assertTrue(method + " columns keyCol is null", where.contains("c.column_name is null"));
-            Assert.assertTrue(method + " columns read_anon", where.contains("t.read_anon = 1"));
-            Assert.assertTrue(method + " columns read_only_group", where.contains("t.read_only_group " + groupInExpr));
+            Assert.assertTrue(method + " columns keyCol is null", !where.contains("columns.columns_name is null"));
+            Assert.assertTrue(method + " columns read_anon", !where.contains("columns.read_anon = 1"));
+            Assert.assertTrue(method + " columns read_only_group", !where.contains("columns.read_only_group " + groupInExpr));
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -420,13 +405,13 @@ public class TapSchemaReadAccessConverterTest {
             String where = sql.substring(i).toLowerCase();
             log.info(method + ": " + where);
 
-            Assert.assertTrue(method + " tables keyCol is null", where.contains("t.table_name is null"));
-            Assert.assertTrue(method + " tables public", where.contains("t.read_anon = 1"));
-            Assert.assertTrue(method + " tables groups", where.contains("t.read_only_group " + groupInExpr));
+            Assert.assertTrue(method + " tables keyCol is null", where.contains("tables.table_name is null"));
+            Assert.assertTrue(method + " tables public", where.contains("tables.read_anon = 1"));
+            Assert.assertTrue(method + " tables groups", where.contains("tables.read_only_group " + groupInExpr));
 
-            Assert.assertTrue(method + " columns keyCol is null", where.contains("c.column_name is null"));
-            Assert.assertTrue(method + " columns public", where.contains("t.read_anon = 1"));
-            Assert.assertTrue(method + " columns groups", where.contains("t.read_only_group " + groupInExpr));
+            Assert.assertTrue(method + " columns keyCol is null", !where.contains("columns.column_name is null"));
+            Assert.assertTrue(method + " columns public", !where.contains("columns.read_anon = 1"));
+            Assert.assertTrue(method + " columns groups", !where.contains("columns.read_only_group " + groupInExpr));
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);

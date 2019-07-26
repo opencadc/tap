@@ -90,15 +90,14 @@ import ca.nrc.cadc.cred.client.CredUtil;
 import ca.nrc.cadc.tap.parser.ParserUtil;
 import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapAuthorizer;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import net.sf.jsqlparser.schema.Table;
 
 /**
- * Validate Tables.
+ * Validate Tables and check permissions if applicable.
  * 
- * @author zhangsa
- *
  */
 public class TapSchemaTableValidator extends FromItemNavigator {
     protected static Logger log = Logger.getLogger(TapSchemaTableValidator.class);
@@ -106,7 +105,7 @@ public class TapSchemaTableValidator extends FromItemNavigator {
     protected TapSchema tapSchema;
 
     private List<TableDesc> tables = new ArrayList<>();
-    private Map<URI, List<GroupURI>> membershipCache = new HashMap<URI, List<GroupURI>>();
+    private TapAuthorizer tapAuthorizer = new TapAuthorizer();
 
     public TapSchemaTableValidator() {
     }
@@ -140,102 +139,21 @@ public class TapSchemaTableValidator extends FromItemNavigator {
         log.debug("visit(table) " + table);
         String tableNameOrAlias = table.getName();
         Table qTable = ParserUtil.findFromTable(selectNavigator.getPlainSelect(), tableNameOrAlias);
-        if (qTable == null)
+        if (qTable == null) {
             throw new IllegalArgumentException("Table [ " + table + " ] is not found in FROM clause");
+        }
         TableDesc td = TapSchemaUtil.findTableDesc(tapSchema, qTable);
-        if (td == null)
+        if (td == null) {
             throw new IllegalArgumentException("Table [ " + table + " ] is not found in TapSchema");
+        }
         if (!tables.contains(td)) {
-            checkPermissions(td);
-            tables.add(td);
-        }
-    }
-
-    // This method will throw an access control exception if the table
-    // is not readable by the current (possibly anonymous) user.
-    private void checkPermissions(TableDesc tableDesc) throws AccessControlException {
-
-        log.debug("Checking permissions on table " + tableDesc.getTableName());
-        TapPermissions tp = tableDesc.tapPermissions;
-
-        // first check if the table is public
-        if (tp == null) {
-            log.debug("public: no tap permissions on table");
-            return;
-        }
-        if (tp.owner == null) {
-            log.debug("public: no owner in tap permissions");
-            return;
-        }
-        if (tp.owner != null && tp.isPublic != null && tp.isPublic) {
-            log.debug("public: table set as public");
-            return;
-        }
-
-        Subject curSub = AuthenticationUtil.getCurrentSubject();
-        boolean anon = curSub == null || curSub.getPrincipals().isEmpty();
-
-        if (!anon) {
-            if (isOwner(tp.owner, curSub)) {
-                log.debug("caller is owner");
-                return;
-            }
-            try {
-                if (isMember(tp.readGroup)) {
-                    log.debug("caller member of read-only group " + tp.readGroup);
-                    return;
-                }
-                if (isMember(tp.readWriteGroup)) {
-                    log.debug("caller member of read-write group " + tp.readWriteGroup);
-                    return;
-                }
-            } catch (Exception e) {
-                log.error("error getting groups or checking credentials", e);
-                throw new RuntimeException(e);
+            log.debug("Checking permissions on table " + td.getTableName());
+            if (tapAuthorizer.hasReadPermission(td.tapPermissions)) {
+                tables.add(td);
+            } else {
+                throw new AccessControlException("permission denied on table " + td.getTableName());
             }
         }
-        throw new AccessControlException("permission denied on table " + tableDesc.getTableName());
-    }
-
-    private boolean isOwner(Subject owner, Subject caller) {
-        Set<Principal> ownerPrincipals = owner.getPrincipals();
-        Set<Principal> callerPrincipals = caller.getPrincipals();
-
-        for (Principal oPrin : ownerPrincipals) {
-            for (Principal cPrin : callerPrincipals) {
-                if (AuthenticationUtil.equals(oPrin, cPrin))
-                    return true; // caller===owner
-            }
-        }
-        return false;
-    }
-
-    // check and cache memberships for the service ID
-    private boolean isMember(GroupURI group) throws Exception {
-
-        if (group != null) {
-            List<GroupURI> memberships = membershipCache.get(group.getServiceID());
-            if (memberships == null) {
-                // get the list of memberships from a group client
-                GroupClient groupClient = GroupUtil.getGroupClient(group.getServiceID());
-                if (groupClient != null && CredUtil.checkCredentials()) {
-                    memberships = groupClient.getMemberships();
-                    log.debug("user is a member of " + memberships.size() + " groups in service " + group.getServiceID());
-                    if (memberships != null) {
-                        membershipCache.put(group.getServiceID(), memberships);
-                    } else {
-                        // just in case the group client returns null instead of an empty list
-                        membershipCache.put(group.getServiceID(), new ArrayList<GroupURI>());
-                    }
-                }
-            }
-            for (GroupURI next : memberships) {
-                if (next.equals(group)) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
 }

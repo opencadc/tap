@@ -75,6 +75,7 @@ import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import ca.nrc.cadc.tap.schema.TapSchemaLoader;
 import ca.nrc.cadc.uws.ErrorSummary;
 import ca.nrc.cadc.uws.ErrorType;
 import ca.nrc.cadc.uws.ExecutionPhase;
@@ -298,7 +299,8 @@ public class QueryRunner implements JobRunner
             log.debug("reading TapSchema...");
             TapSchemaDAO dao = pfac.getTapSchemaDAO();
             dao.setDataSource(tapSchemaDataSource);
-            TapSchema tapSchema = dao.get();
+            TapSchemaLoader loader = new TapSchemaLoader(dao);
+            TapSchema tapSchema = loader.load();
 
             t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
             diagnostics.add(new Result("diag", URI.create("read:tap_schema:"+dt)));

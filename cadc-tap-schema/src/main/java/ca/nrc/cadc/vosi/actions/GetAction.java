@@ -71,6 +71,7 @@ import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import ca.nrc.cadc.tap.schema.TapSchemaLoader;
 import ca.nrc.cadc.vosi.TableSetWriter;
 import ca.nrc.cadc.vosi.TableWriter;
 import java.io.OutputStreamWriter;
@@ -108,19 +109,16 @@ public class GetAction extends TablesAction {
         }
 
         TapSchemaDAO dao = getTapSchemaDAO();
-        if (tableName != null)
-        {
+        if (tableName != null) {
             checkTableReadPermissions(dao, tableName);
             TableDesc td = dao.getTable(tableName);
             TableWriter tw = new TableWriter();
             syncOutput.setCode(HttpServletResponse.SC_OK);
             syncOutput.setHeader("Content-Type", "text/xml");
             tw.write(td, new OutputStreamWriter(syncOutput.getOutputStream()));
-        }
-        else
-        {
-            // permission check when reading all tables?
-            TapSchema tapSchema = dao.get(depth);
+        } else {
+            TapSchemaLoader loader = new TapSchemaLoader(dao);
+            TapSchema tapSchema = loader.load(depth);
             TableSetWriter tsw = new TableSetWriter();
             syncOutput.setCode(HttpServletResponse.SC_OK);
             syncOutput.setHeader("Content-Type", "text/xml");
