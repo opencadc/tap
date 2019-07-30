@@ -108,16 +108,14 @@ public class TapSchemaLoader {
      * @return
      */
     public TapSchema load(int depth) {
-        TapSchema schema = dao.get(1);
+        TapSchema schema = dao.get(depth);
         TapSchema ret = new TapSchema();
-        SchemaDesc full = null;
         List<SchemaDesc> schemaDescs = schema.getSchemaDescs();
         for (SchemaDesc next : schemaDescs) {
             log.debug("Checking permissions on schema: " + next.getSchemaName());
             if (tapAuthorizer.hasReadPermission(next.tapPermissions)) {
                 log.debug("Adding schema " + next.getSchemaName());
-                full = dao.getSchema(next.getSchemaName(), false);
-                ret.getSchemaDescs().add(full);
+                ret.getSchemaDescs().add(schema.getSchema(next.getSchemaName()));
             } else {
                 log.debug("No read access on schema: " + next.getSchemaName());
             }

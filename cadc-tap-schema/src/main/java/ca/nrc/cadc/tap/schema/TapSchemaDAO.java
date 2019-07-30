@@ -737,11 +737,6 @@ public class TapSchemaDAO {
         if (rows != 1) {
             throw new RuntimeException("BUG: found " + rows + " table matching " + tableName);
         }
-
-        // update columns permissions
-        stp = new PermissionsStatement(columnsTableName, "table_name", tableName, tp);
-        jdbc = new JdbcTemplate(dataSource);
-        rows = jdbc.update(stp);
     }
 
     private String toCommaList(String[] strs, int numUpdateKeys) {
@@ -789,10 +784,9 @@ public class TapSchemaDAO {
             sb.append("SELECT ").append(toCommaList(tsSchemaCols, 0));
             sb.append(",").append(toCommaList(accessControlCols, 0));
             sb.append(" FROM ").append(tap_schema_tab);
-            sb.append(" WHERE ");
 
             if (schemaName != null) {
-                sb.append("schema_name = ?");
+                sb.append(" WHERE schema_name = ?");
             }
             if (orderBy != null) {
                 sb.append(orderBy);
@@ -834,10 +828,9 @@ public class TapSchemaDAO {
             sb.append("SELECT ").append(toCommaList(tsTablesCols, 0));
             sb.append(",").append(toCommaList(accessControlCols, 0));
             sb.append(" FROM ").append(tap_schema_tab);
-            sb.append(" WHERE ");
 
             if (tableName != null) {
-                sb.append("table_name = ?");
+                sb.append(" WHERE table_name = ?");
             }
             if (orderBy != null) {
                 sb.append(orderBy);
@@ -887,10 +880,9 @@ public class TapSchemaDAO {
             StringBuilder sb = new StringBuilder();
             sb.append("SELECT ").append(toCommaList(tsColumnsCols, 0));
             sb.append(" FROM ").append(tap_schema_tab);
-            sb.append(" WHERE ");
 
             if (tableName != null) {
-                sb.append("table_name = ?");
+                sb.append(" WHERE table_name = ?");
                 if (columnName != null) {
                     sb.append(" AND column_name = ?");
                 }

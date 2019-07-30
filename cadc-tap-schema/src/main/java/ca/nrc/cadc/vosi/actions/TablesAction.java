@@ -246,27 +246,43 @@ public abstract class TablesAction extends RestAction {
     void checkTableReadPermissions(TapSchemaDAO dao, String tableName)
             throws AccessControlException, ResourceNotFoundException {
         
+        String schemaName = Util.getSchemaFromTable(tableName);
+        
+        TapPermissions schemaPermissions = dao.getSchemaPermissions(schemaName);
+        if (schemaPermissions == null) {
+            throw new ResourceNotFoundException("schema not found: " + schemaName);
+        }
+        if (schemaPermissions.owner == null) {
+            super.logInfo.setMessage("view table allowed: null schema owner");
+        }
+        if (schemaPermissions.isPublic) {
+            super.logInfo.setMessage("view table allowed: public schema");
+            return;
+        }
+        
         TapPermissions tablePermissions = dao.getTablePermissions(tableName);
         if (tablePermissions == null) {
             throw new ResourceNotFoundException("table not found: " + tableName);
         }
-        if (tablePermissions.isPublic) {
-            super.logInfo.setMessage("view table allowed: public=true");
+        if (tablePermissions.owner == null) {
+            super.logInfo.setMessage("view table allowed: null table owner");
             return;
         }
-        String schemaName = Util.getSchemaFromTable(tableName);
-        TapPermissions schemaPermissions = dao.getSchemaPermissions(schemaName);
-        if (schemaPermissions == null) {
-            throw new ResourceNotFoundException("schema not found: " + schemaName);
+        if (tablePermissions.isPublic) {
+            super.logInfo.setMessage("view table allowed: public table");
+            return;
+        }
+        
+        if (Util.isOwner(tablePermissions)) {
+            super.logInfo.setMessage("view table allowed: table owner");
+            return;
         }
         if (Util.isOwner(schemaPermissions)) {
             super.logInfo.setMessage("view table allowed: schema owner");
             return;
         }
-        if (Util.isOwner(tablePermissions)) {
-            super.logInfo.setMessage("view table allowed: table owner");
-            return;
-        }
+        
+        // check group permissions
         // The serviceID should come from the read or readWrite group
         // in the future
         LocalAuthority localAuthority = new LocalAuthority();

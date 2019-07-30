@@ -67,7 +67,7 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.schema;
+package ca.nrc.cadc.tap.impl;
 
 import java.net.URI;
 import java.security.AccessControlException;
@@ -212,7 +212,7 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
             if (tableName.equals(COLUMNS_ASSET_TABLE)) {
                 
                 AssetTable tablesAt = ASSET_TABLES.get(TABLES_ASSET_TABLE);
-                Table tablesTable = new Table();
+                Table tablesTable = new Table(table.getSchemaName(), table.getName());
                 tablesTable.setName(TABLES_ASSET_TABLE);
                 
                 Join tablesJoin = new Join();

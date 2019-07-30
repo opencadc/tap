@@ -67,7 +67,7 @@
 ************************************************************************
  */
 
-package ca.nrc.cadc.tap.schema;
+package ca.nrc.cadc.tap.impl;
 
 import java.security.AccessControlException;
 import java.security.PrivilegedExceptionAction;
@@ -93,6 +93,7 @@ import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.tap.AdqlQuery;
 import ca.nrc.cadc.tap.TapQuery;
+import ca.nrc.cadc.tap.impl.TapSchemaReadAccessConverter;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;

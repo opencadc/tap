@@ -120,7 +120,9 @@ public class DeleteAction extends TablesAction {
             tm.commitTransaction();
             prof.checkpoint("commit-transaction");
         } catch (ResourceNotFoundException rethrow) { 
-            tm.rollbackTransaction();
+            if (tm.isOpen()) {
+                tm.rollbackTransaction();
+            }
             throw rethrow;
         } catch (Exception ex) {
             try {

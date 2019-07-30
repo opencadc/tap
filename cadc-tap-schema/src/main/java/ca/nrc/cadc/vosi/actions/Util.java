@@ -123,13 +123,12 @@ class Util {
     
     private static boolean isOwner(TapPermissions tp, Subject subject) {
         if (tp.owner == null) {
-            // should never happen
             return false;
         }
         for (Principal oPrin : tp.owner.getPrincipals()) {
             for (Principal cPrin : subject.getPrincipals()) {
                 if (AuthenticationUtil.equals(oPrin, cPrin)) {
-                    return true; // caller===owner
+                    return true;
                 }
             }
         }
