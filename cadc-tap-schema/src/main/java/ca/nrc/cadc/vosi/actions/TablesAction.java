@@ -247,6 +247,10 @@ public abstract class TablesAction extends RestAction {
             throws AccessControlException, ResourceNotFoundException {
         
         String schemaName = Util.getSchemaFromTable(tableName);
+        TapPermissions tablePermissions = dao.getTablePermissions(tableName);
+        if (tablePermissions == null) {
+            throw new ResourceNotFoundException("table not found: " + tableName);
+        }
         
         TapPermissions schemaPermissions = dao.getSchemaPermissions(schemaName);
         if (schemaPermissions == null) {
@@ -259,11 +263,7 @@ public abstract class TablesAction extends RestAction {
             super.logInfo.setMessage("view table allowed: public schema");
             return;
         }
-        
-        TapPermissions tablePermissions = dao.getTablePermissions(tableName);
-        if (tablePermissions == null) {
-            throw new ResourceNotFoundException("table not found: " + tableName);
-        }
+
         if (tablePermissions.owner == null) {
             super.logInfo.setMessage("view table allowed: null table owner");
             return;

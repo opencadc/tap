@@ -69,6 +69,7 @@
 
 package ca.nrc.cadc.tap.schema;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -109,20 +110,25 @@ public class TapSchemaLoader {
      */
     public TapSchema load(int depth) {
         TapSchema schema = dao.get(depth);
-        TapSchema ret = new TapSchema();
         List<SchemaDesc> schemaDescs = schema.getSchemaDescs();
-        for (SchemaDesc next : schemaDescs) {
+        int total = schemaDescs.size();
+        SchemaDesc next = null;
+        List<SchemaDesc> toRemove = new ArrayList<SchemaDesc>(schemaDescs.size());
+        for (int i=0; i<schemaDescs.size(); i++) {
+            next = schemaDescs.get(i);
             log.debug("Checking permissions on schema: " + next.getSchemaName());
             if (tapAuthorizer.hasReadPermission(next.tapPermissions)) {
-                log.debug("Adding schema " + next.getSchemaName());
-                ret.getSchemaDescs().add(schema.getSchema(next.getSchemaName()));
+                log.debug("Allowing access to schema " + next.getSchemaName());
             } else {
                 log.debug("No read access on schema: " + next.getSchemaName());
+                toRemove.add(next);
             }
         }
-        log.debug("user has read access on " + ret.getSchemaDescs().size() +
-            " of " + schemaDescs.size());
-        return ret;
+        
+        schema.getSchemaDescs().removeAll(toRemove);
+        log.debug("user has read access on " + schema.getSchemaDescs().size() +
+            " of " + total + " schemas");
+        return schema;
     }
     
 }
