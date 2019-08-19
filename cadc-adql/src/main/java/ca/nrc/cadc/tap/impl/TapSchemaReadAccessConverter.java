@@ -75,6 +75,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -96,6 +97,8 @@ import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
 import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
+import ca.nrc.cadc.uws.server.RandomStringGenerator;
+import ca.nrc.cadc.uws.server.StringIDGenerator;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.LongValue;
 import net.sf.jsqlparser.expression.Parenthesis;
@@ -106,9 +109,14 @@ import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.expression.operators.relational.InExpression;
 import net.sf.jsqlparser.expression.operators.relational.IsNullExpression;
+import net.sf.jsqlparser.expression.operators.relational.ItemsList;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
+import net.sf.jsqlparser.statement.select.Join;
 import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.SelectExpressionItem;
+import net.sf.jsqlparser.statement.select.SelectItem;
+import net.sf.jsqlparser.statement.select.SubSelect;;
 
 /**
  * Query converter that injects read-access constraints for tap_schema queries.
@@ -118,34 +126,33 @@ import net.sf.jsqlparser.statement.select.PlainSelect;
 public class TapSchemaReadAccessConverter extends SelectNavigator {
     
     private static Logger log = Logger.getLogger(TapSchemaReadAccessConverter.class);
+    
+    private static final String schemaOwnerColumn = "owner_id";
+    private static final String schemaReadAnonColumn = "read_anon";
+    private static final String schemaReadOnlyGroupColumn = "read_only_group";
+    private static final String schemaReadWriteGroupColumn = "read_write_group";
 
     public static class AssetTable {
         
+        public String schema;
+        public String name;
+        public String wholeName;
         public String keyColumn;
-        public String ownerColumn;
-        public String publicColumn;
-        public String readGroupColumn;
-        public String readWriteGroupColumn;
 
         AssetTable() {
         }
 
-        AssetTable(String keyColumn, String ownerColumn, String publicColumn, String readGroupColumn, String readWriteGroupColumn) {
+        AssetTable(String schema, String name, String keyColumn) {
+            this.schema = schema;
+            this.name = name;
+            this.wholeName = new String(schema + "." + name).toLowerCase();
             this.keyColumn = keyColumn;
-            this.ownerColumn = ownerColumn;
-            this.publicColumn = publicColumn;
-            this.readGroupColumn = readGroupColumn;
-            this.readWriteGroupColumn = readWriteGroupColumn;
         }
     }
 
-    public static final Map<String, AssetTable> ASSET_TABLES = new HashMap<String, AssetTable>();
-    static {
-        ASSET_TABLES.put("tap_schema.schemas", new AssetTable("schema_name", "owner_id", "read_anon", "read_only_group", "read_write_group"));
-        ASSET_TABLES.put("tap_schema.tables", new AssetTable("table_name", "owner_id", "read_anon", "read_only_group", "read_write_group"));
-        //ASSET_TABLES.put("tap_schema.columns", new AssetTable("column_name", null, null, null, null));
-        ASSET_TABLES.put("tap_schema.columns", new AssetTable("column_name", "owner_id", "read_anon", "read_only_group", "read_write_group"));
-    }
+    public static final AssetTable SCHEMAS_ASSET_TABLE = new AssetTable("tap_schema", "schemas", "schema_name");
+    public static final AssetTable TABLES_ASSET_TABLE = new AssetTable("tap_schema", "tables", "table_name");
+    public static final AssetTable COLUMNS_ASSET_TABLE = new AssetTable("tap_schema", "columns", "column_name");
 
     private GroupClient gmsClient;
     private IdentityManager identityManager;
@@ -168,6 +175,18 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
         if (exprAccessControl == null) {
             return; 
         }
+        
+        /**
+        // TODO: Convert joins
+        List<Join> joins = ps.getJoins();
+        if (joins != null) {
+            for (Join join : joins) {
+                fromItem = join.getRightItem();
+                accessControlFromItem = accessControlConvert(fromItem);
+                join.setRightItem(accessControlFromItem);
+            }
+        }
+         */
 
         Expression where = ps.getWhere();
         if (where == null)
@@ -186,48 +205,13 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
         for (Table assetTable : fromTableList) {
             String fromTableWholeName = assetTable.getWholeTableName().toLowerCase();
             log.debug("check: " + fromTableWholeName);
-            AssetTable at = ASSET_TABLES.get(fromTableWholeName);
-            if (at != null) {
-                Expression accessControlExpr = null;
 
-                Expression publicByNullKey = publicByKeyColumn(assetTable, at.keyColumn);
-                Expression publicByNullOwner = publicByNullOwner(assetTable, at.ownerColumn);
-                Expression publicByPublicTrue = publicByPublicTrue(assetTable, at.ownerColumn, at.publicColumn);
-                
-                Expression pub = new Parenthesis(
-                    new OrExpression(publicByNullKey,
-                        new Parenthesis(
-                            new OrExpression(publicByNullOwner, publicByPublicTrue))));
-                
-                if (isAuthenticated()) {
-                
-                    Expression authorizedByOwner = authorizedByOwner(assetTable, at.ownerColumn);
-                    
-                    List<String> gids = null;
-                    log.debug("gmsClient: " + gmsClient);
-                    if (gmsClient != null) {
-                        gids = getGroupIDs(gmsClient);
-                    }
-                    
-                    if (gids != null && gids.size() > 0) {
-                        Expression authorizedByReadGroup = authorizedByReadGroup(assetTable, at.readGroupColumn, gids);
-                        Expression authorizedByReadWriteGroup =  authorizedByReadWriteGroup(assetTable, at.readWriteGroupColumn, gids);
-                        accessControlExpr = new Parenthesis(
-                            new OrExpression(authorizedByOwner,
-                                new OrExpression(authorizedByReadGroup, authorizedByReadWriteGroup)));
-                    } else {
-                        accessControlExpr = new Parenthesis(authorizedByOwner);
-                    }
-                    
-                }
-
-                if (accessControlExpr != null) {
-                    accessControlExpr = new Parenthesis(new OrExpression(pub, accessControlExpr));
-                } else {
-                    accessControlExpr = pub;
-                }
-
-                exprAcList.add(accessControlExpr);
+            if (SCHEMAS_ASSET_TABLE.wholeName.equals(fromTableWholeName)) {
+                exprAcList.add(schemasAccessControlExpression(assetTable));
+            } else if (TABLES_ASSET_TABLE.wholeName.equals(fromTableWholeName)) {
+                exprAcList.add(tablesAccessControlExpression(assetTable));
+            } else if (COLUMNS_ASSET_TABLE.wholeName.equals(fromTableWholeName)) {
+                exprAcList.add(columnsAccessControlExpression(assetTable));
             } else {
                 log.debug("not an asset table: " + fromTableWholeName);
             }
@@ -239,6 +223,154 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
         return null;
     }
 
+    private Expression schemasAccessControlExpression(Table schemasAssetTable) {
+
+        Expression accessControlExpr = null;
+        //   WHERE:
+        // 
+        //   key_col is null OR
+        //   owner is null OR
+        //   (owner_id is not null AND read_anon=1) OR
+        //   (owner_id = 1) OR
+        //   (read_only_group IN (group1, group2, ... groupN)) OR
+        //   (read_write_group IN (group1, group2, ... groupN))
+
+        Expression publicByNullKey = publicByKeyColumn(schemasAssetTable, SCHEMAS_ASSET_TABLE.keyColumn);
+        Expression publicByNullOwner = publicByNullOwner(schemasAssetTable);
+        Expression publicByPublicTrue = publicByPublicTrue(schemasAssetTable);
+        
+        Expression pub = new OrExpression(publicByNullKey, 
+            new OrExpression(publicByNullOwner,
+                publicByPublicTrue));
+                    
+        if (isAuthenticated()) {
+        
+            Expression authorizedByOwner = authorizedByOwner(schemasAssetTable);
+            
+            List<String> gids = null;
+            log.debug("gmsClient: " + gmsClient);
+            if (gmsClient != null) {
+                gids = getGroupIDs(gmsClient);
+            }
+            
+            if (gids != null && gids.size() > 0) {
+                Expression authorizedByReadGroup = authorizedByReadGroup(schemasAssetTable, gids);
+                Expression authorizedByReadWriteGroup =  authorizedByReadWriteGroup(schemasAssetTable, gids);
+                accessControlExpr = new OrExpression(authorizedByOwner,
+                    new OrExpression(authorizedByReadGroup,
+                        authorizedByReadWriteGroup));
+            } else {
+                accessControlExpr = authorizedByOwner;
+            }
+            
+        }
+
+        if (accessControlExpr != null) {
+            accessControlExpr = new OrExpression(pub, accessControlExpr);
+        } else {
+            accessControlExpr = pub;
+        }
+        return accessControlExpr;
+    }
+    
+    private Expression tablesAccessControlExpression(Table tablesAssetTable) {
+        
+        // WHERE:
+        // 
+        // schema_name in
+        //   (select tap_schema.schemas.schema_name from tap_schema.schemas
+        //    where <schemasAccessControlExpresssion>);
+        
+        Column tablesKeyCol = new Column(tablesAssetTable, TABLES_ASSET_TABLE.keyColumn);
+        PlainSelect ps = new PlainSelect();
+        
+        // create the select item list for the subselect 
+        SelectExpressionItem selectExpressionItem = new SelectExpressionItem();
+        selectExpressionItem.setExpression(tablesKeyCol);
+        ps.setSelectItems(Arrays.asList(selectExpressionItem));
+        
+        // create the from expression for the subselect
+        Table schemasAssetTable = new Table(SCHEMAS_ASSET_TABLE.schema, SCHEMAS_ASSET_TABLE.name);
+        ps.setFromItem(schemasAssetTable);
+        
+        // create the subselect where clause
+        Expression schemasAccessControlExpression = this.schemasAccessControlExpression(schemasAssetTable);
+        ps.setWhere(schemasAccessControlExpression);
+        
+        // create the subselect
+        SubSelect itemsList = new SubSelect();
+        itemsList.setSelectBody(ps);
+        
+        // put together the in expression
+        InExpression inExpression = new InExpression();
+        inExpression.setLeftExpression(tablesKeyCol);
+        inExpression.setItemsList(itemsList);
+        
+        return inExpression;
+    }
+    
+    private Expression columnsAccessControlExpression(Table columnsAssetTable) {
+        
+        // WHERE:
+        //
+        // table_name in
+        //   (select table_name from tap_schema.tables t
+        //    join tap_schema.schemas s on t.schema_name=s.schema_name
+        //    where <schemasAccessControlExpression>);
+        
+        Column columnsKeyCol = new Column(columnsAssetTable, COLUMNS_ASSET_TABLE.keyColumn);
+        PlainSelect ps = new PlainSelect();
+        
+        // create the select item list for the subselect 
+        SelectExpressionItem selectExpressionItem = new SelectExpressionItem();
+        Table tablesTable = new Table(TABLES_ASSET_TABLE.schema, TABLES_ASSET_TABLE.name);
+        Column tablesKeyCol = new Column(tablesTable, TABLES_ASSET_TABLE.keyColumn);
+        selectExpressionItem.setExpression(tablesKeyCol);
+        ps.setSelectItems(Arrays.asList(selectExpressionItem));
+        
+        // create the from expression for the subselect
+        Table tablesAssetTable = new Table(TABLES_ASSET_TABLE.schema, TABLES_ASSET_TABLE.name);
+        StringIDGenerator idGenerator = new RandomStringGenerator(8);
+        tablesAssetTable.setAlias(idGenerator.getID());
+        ps.setFromItem(tablesAssetTable);
+        
+        // add a join to schemas
+        Join joinToSchemas = new Join();
+        
+        Table schemasTable = new Table(SCHEMAS_ASSET_TABLE.schema, SCHEMAS_ASSET_TABLE.name);
+        schemasTable.setAlias(idGenerator.getID());
+        
+        joinToSchemas.setRightItem(schemasTable);
+        EqualsTo onExpression = new EqualsTo();
+        //Column tablesOnColumn = new Column(tablesAssetTable, TABLES_ASSET_TABLE.keyColumn);
+        // Note: alias isn't used in above column creation so use hack version below instead
+        Column tablesOnColumn = new Column(new Table(), tablesAssetTable.getAlias() + "." + TABLES_ASSET_TABLE.keyColumn);
+        onExpression.setLeftExpression(tablesOnColumn);
+        
+        //Column schemasOnCol = new Column(schemasTable, SCHEMAS_ASSET_TABLE.keyColumn);
+        // Note: alias isn't used in above column creation so use hack version below instead
+        Column schemasOnCol = new Column(new Table(), schemasTable.getAlias() + "." + SCHEMAS_ASSET_TABLE.keyColumn);
+        onExpression.setRightExpression(schemasOnCol);
+        joinToSchemas.setOnExpression(onExpression);
+        ps.setJoins(Arrays.asList(joinToSchemas));
+        
+        // create the subselect where clause
+        Expression schemasAccessControlExpression = this.schemasAccessControlExpression(schemasTable);
+        ps.setWhere(schemasAccessControlExpression);
+        
+        // create the subselect
+        SubSelect itemsList = new SubSelect();
+        itemsList.setSelectBody(ps);
+        
+        // put together the in expression
+        InExpression inExpression = new InExpression();
+        inExpression.setLeftExpression(columnsKeyCol);
+        inExpression.setItemsList(itemsList);
+        
+        return inExpression;
+    }
+    
+
     // if keyColumn is null, this is a join that didn't match any rows
     private Expression publicByKeyColumn(Table fromTable, String keyColumn) {
         Column columnMeta = useTableAliasIfExists(new Column(fromTable, keyColumn));
@@ -247,20 +379,20 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
         return isNull;
     }
     
-    private Expression publicByNullOwner(Table fromTable, String ownerColumn) {
-        Column columnMeta = useTableAliasIfExists(new Column(fromTable, ownerColumn));
+    private Expression publicByNullOwner(Table schemaTable) {
+        Column columnMeta = useTableAliasIfExists(new Column(schemaTable, schemaOwnerColumn));
         IsNullExpression isNull = new IsNullExpression();
         isNull.setLeftExpression(columnMeta);
         return isNull;
     }
     
-    private Expression publicByPublicTrue(Table fromTable, String ownerColumn, String publicColumn) {
-        Column ownerColumnMeta = useTableAliasIfExists(new Column(fromTable, ownerColumn));
+    private Expression publicByPublicTrue(Table schemaTable) {
+        Column ownerColumnMeta = useTableAliasIfExists(new Column(schemaTable, schemaOwnerColumn));
         IsNullExpression isNull = new IsNullExpression();
         isNull.setNot(true);
         isNull.setLeftExpression(ownerColumnMeta);
         
-        Column publicColumnMeta = useTableAliasIfExists(new Column(fromTable, publicColumn));
+        Column publicColumnMeta = useTableAliasIfExists(new Column(schemaTable, schemaReadAnonColumn));
         EqualsTo equals = new EqualsTo();
         equals.setLeftExpression(publicColumnMeta);
         equals.setRightExpression(new LongValue("1"));
@@ -268,8 +400,8 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
         return new Parenthesis(new AndExpression(isNull, equals));
     }
     
-    private Expression authorizedByOwner(Table fromTable, String ownerColumn) {
-        Column columnMeta = useTableAliasIfExists(new Column(fromTable, ownerColumn));
+    private Expression authorizedByOwner(Table schemaTable) {
+        Column columnMeta = useTableAliasIfExists(new Column(schemaTable, schemaOwnerColumn));
         EqualsTo equals = new EqualsTo();
         equals.setLeftExpression(columnMeta);
         String owner = identityManager.toOwnerString(AuthenticationUtil.getCurrentSubject());
@@ -277,16 +409,16 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
         return equals;
     }
     
-    private Expression authorizedByReadGroup(Table fromTable, String readGroupColumn, List<String> groupIDs) {
-        Column columnMeta = useTableAliasIfExists(new Column(fromTable, readGroupColumn));
+    private Expression authorizedByReadGroup(Table schemaTable, List<String> groupIDs) {
+        Column columnMeta = useTableAliasIfExists(new Column(schemaTable, schemaReadOnlyGroupColumn));
         InExpression in = new InExpression();
         in.setLeftExpression(columnMeta);
         in.setItemsList(createStringExpressionList(groupIDs));
         return in;
     }
     
-    private Expression authorizedByReadWriteGroup(Table fromTable, String readWriteGroupColumn, List<String> groupIDs) {
-        Column columnMeta = useTableAliasIfExists(new Column(fromTable, readWriteGroupColumn));
+    private Expression authorizedByReadWriteGroup(Table schemaTable, List<String> groupIDs) {
+        Column columnMeta = useTableAliasIfExists(new Column(schemaTable, schemaReadWriteGroupColumn));
         InExpression in = new InExpression();
         in.setLeftExpression(columnMeta);
         in.setItemsList(createStringExpressionList(groupIDs));
