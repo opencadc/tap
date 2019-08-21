@@ -76,9 +76,7 @@ import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import javax.security.auth.Subject;
 
@@ -109,13 +107,11 @@ import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.expression.operators.relational.InExpression;
 import net.sf.jsqlparser.expression.operators.relational.IsNullExpression;
-import net.sf.jsqlparser.expression.operators.relational.ItemsList;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.Join;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.SelectExpressionItem;
-import net.sf.jsqlparser.statement.select.SelectItem;
 import net.sf.jsqlparser.statement.select.SubSelect;;
 
 /**
@@ -175,25 +171,14 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
         if (exprAccessControl == null) {
             return; 
         }
-        
-        /**
-        // TODO: Convert joins
-        List<Join> joins = ps.getJoins();
-        if (joins != null) {
-            for (Join join : joins) {
-                fromItem = join.getRightItem();
-                accessControlFromItem = accessControlConvert(fromItem);
-                join.setRightItem(accessControlFromItem);
-            }
-        }
-         */
 
         Expression where = ps.getWhere();
         if (where == null)
             ps.setWhere(exprAccessControl);
         else {
-            Parenthesis par = new Parenthesis(where);
-            Expression and = new AndExpression(par, exprAccessControl);
+            Parenthesis left = new Parenthesis(where);
+            Parenthesis right = new Parenthesis(exprAccessControl);
+            Expression and = new AndExpression(left, right);
             ps.setWhere(and);
         }
         log.debug("end - visit(PlainSelect) " + ps);
@@ -222,26 +207,137 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
         }
         return null;
     }
-
+    
     private Expression schemasAccessControlExpression(Table schemasAssetTable) {
-
-        Expression accessControlExpr = null;
+        
         //   WHERE:
         // 
         //   key_col is null OR
+        //   <schemasAccessControlClause>
+        
+        Column schemasKeyCol = new Column(schemasAssetTable, SCHEMAS_ASSET_TABLE.keyColumn);
+        Expression publicByNullKey = publicByKeyColumn(schemasKeyCol);
+        Expression accessControlClause = accessControlWhereClause(schemasAssetTable);    
+        return new OrExpression(publicByNullKey, accessControlClause);
+    }
+    
+    private Expression tablesAccessControlExpression(Table tablesAssetTable) {
+        
+        // WHERE:
+        // 
+        // schema_name in
+        //   (select tap_schema.schemas.schema_name from tap_schema.schemas
+        //    where <schemasAccessControlExpresssion>);
+        
+        PlainSelect ps = new PlainSelect();
+        
+        // create the select item list for the subselect 
+        SelectExpressionItem selectExpressionItem = new SelectExpressionItem();
+        Table subSelectSchemasTable = new Table(SCHEMAS_ASSET_TABLE.schema, SCHEMAS_ASSET_TABLE.name);
+        Column subSelectSelectCol = new Column(subSelectSchemasTable, SCHEMAS_ASSET_TABLE.keyColumn);
+        selectExpressionItem.setExpression(subSelectSelectCol);
+        ps.setSelectItems(Arrays.asList(selectExpressionItem));
+        
+        // create the from expression for the subselect
+        ps.setFromItem(subSelectSchemasTable);
+        
+        // create the subselect where clause
+        Expression schemasAccessControlExpression = accessControlWhereClause(subSelectSchemasTable);
+        ps.setWhere(schemasAccessControlExpression);
+        
+        // create the subselect
+        SubSelect itemsList = new SubSelect();
+        itemsList.setSelectBody(ps);
+        
+        // put together the in expression
+        InExpression inExpression = new InExpression();
+        Column tablesForeignKeyCol = new Column(tablesAssetTable, SCHEMAS_ASSET_TABLE.keyColumn);
+        inExpression.setLeftExpression(useTableAliasIfExists(tablesForeignKeyCol));
+        inExpression.setItemsList(itemsList);
+        
+        Column tablesKeyCol = new Column(tablesAssetTable, TABLES_ASSET_TABLE.keyColumn);
+        Expression publicByNull = this.publicByKeyColumn(tablesKeyCol);
+        
+        return new OrExpression(publicByNull, inExpression);
+    }
+    
+    private Expression columnsAccessControlExpression(Table columnsAssetTable) {
+        
+        // WHERE:
+        //
+        // table_name in
+        //   (select table_name from tap_schema.tables t
+        //    join tap_schema.schemas s on t.schema_name=s.schema_name
+        //    where <schemasAccessControlExpression>);
+        
+        PlainSelect ps = new PlainSelect();
+        
+        // create the select item list for the subselect 
+        SelectExpressionItem selectExpressionItem = new SelectExpressionItem();
+        Table selectTable = new Table(TABLES_ASSET_TABLE.schema, TABLES_ASSET_TABLE.name);
+        Column tablesKeyCol = new Column(selectTable, TABLES_ASSET_TABLE.keyColumn);
+        selectExpressionItem.setExpression(tablesKeyCol);
+        ps.setSelectItems(Arrays.asList(selectExpressionItem));
+        
+        // create the from expression for the subselect
+        Table tablesAssetTable = new Table(TABLES_ASSET_TABLE.schema, TABLES_ASSET_TABLE.name);
+        StringIDGenerator idGenerator = new RandomStringGenerator(8);
+        tablesAssetTable.setAlias(idGenerator.getID());
+        ps.setFromItem(tablesAssetTable);
+        
+        // add a join to schemas
+        Join joinToSchemas = new Join();
+        
+        Table schemasAssetTable = new Table(SCHEMAS_ASSET_TABLE.schema, SCHEMAS_ASSET_TABLE.name);
+        schemasAssetTable.setAlias(idGenerator.getID());
+        
+        joinToSchemas.setRightItem(schemasAssetTable);
+        EqualsTo onExpression = new EqualsTo();
+
+        Column tablesOnColumn = new Column(tablesAssetTable, SCHEMAS_ASSET_TABLE.keyColumn);
+        onExpression.setLeftExpression(useTableAliasIfExists(tablesOnColumn));
+        
+        Column schemasOnCol = new Column(schemasAssetTable, SCHEMAS_ASSET_TABLE.keyColumn);
+        onExpression.setRightExpression(useTableAliasIfExists(schemasOnCol));
+        joinToSchemas.setOnExpression(onExpression);
+        ps.setJoins(Arrays.asList(joinToSchemas));
+        
+        // create the subselect where clause
+        Expression schemasAccessControlExpression = accessControlWhereClause(schemasAssetTable);
+        ps.setWhere(schemasAccessControlExpression);
+        
+        // create the subselect
+        SubSelect itemsList = new SubSelect();
+        itemsList.setSelectBody(ps);
+        
+        // put together the in expression
+        InExpression inExpression = new InExpression();
+        
+        Column leftExpression = new Column(columnsAssetTable, TABLES_ASSET_TABLE.keyColumn);
+        inExpression.setLeftExpression(useTableAliasIfExists(leftExpression));
+        inExpression.setItemsList(itemsList);
+        
+        Column columnsKeyCol = new Column(columnsAssetTable, COLUMNS_ASSET_TABLE.keyColumn);
+        Expression publicByNull = this.publicByKeyColumn(columnsKeyCol);
+        return new OrExpression(publicByNull, inExpression);
+    }
+    
+    private Expression accessControlWhereClause(Table schemasAssetTable) {
+        
+        //   WHERE:
+        // 
         //   owner is null OR
         //   (owner_id is not null AND read_anon=1) OR
-        //   (owner_id = 1) OR
-        //   (read_only_group IN (group1, group2, ... groupN)) OR
-        //   (read_write_group IN (group1, group2, ... groupN))
+        //   (owner_id = <ownerID>) OR
+        //   (read_only_group IN (<group1>, <group2>, ... <groupN>)) OR
+        //   (read_write_group IN (<group1>, <group2>, ... <groupN>))
 
-        Expression publicByNullKey = publicByKeyColumn(schemasAssetTable, SCHEMAS_ASSET_TABLE.keyColumn);
+        Expression accessControlExpr = null;
         Expression publicByNullOwner = publicByNullOwner(schemasAssetTable);
         Expression publicByPublicTrue = publicByPublicTrue(schemasAssetTable);
         
-        Expression pub = new OrExpression(publicByNullKey, 
-            new OrExpression(publicByNullOwner,
-                publicByPublicTrue));
+        Expression pub = new OrExpression(publicByNullOwner,
+                publicByPublicTrue);
                     
         if (isAuthenticated()) {
         
@@ -272,108 +368,10 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
         }
         return accessControlExpr;
     }
-    
-    private Expression tablesAccessControlExpression(Table tablesAssetTable) {
-        
-        // WHERE:
-        // 
-        // schema_name in
-        //   (select tap_schema.schemas.schema_name from tap_schema.schemas
-        //    where <schemasAccessControlExpresssion>);
-        
-        Column tablesKeyCol = new Column(tablesAssetTable, TABLES_ASSET_TABLE.keyColumn);
-        PlainSelect ps = new PlainSelect();
-        
-        // create the select item list for the subselect 
-        SelectExpressionItem selectExpressionItem = new SelectExpressionItem();
-        selectExpressionItem.setExpression(tablesKeyCol);
-        ps.setSelectItems(Arrays.asList(selectExpressionItem));
-        
-        // create the from expression for the subselect
-        Table schemasAssetTable = new Table(SCHEMAS_ASSET_TABLE.schema, SCHEMAS_ASSET_TABLE.name);
-        ps.setFromItem(schemasAssetTable);
-        
-        // create the subselect where clause
-        Expression schemasAccessControlExpression = this.schemasAccessControlExpression(schemasAssetTable);
-        ps.setWhere(schemasAccessControlExpression);
-        
-        // create the subselect
-        SubSelect itemsList = new SubSelect();
-        itemsList.setSelectBody(ps);
-        
-        // put together the in expression
-        InExpression inExpression = new InExpression();
-        inExpression.setLeftExpression(tablesKeyCol);
-        inExpression.setItemsList(itemsList);
-        
-        return inExpression;
-    }
-    
-    private Expression columnsAccessControlExpression(Table columnsAssetTable) {
-        
-        // WHERE:
-        //
-        // table_name in
-        //   (select table_name from tap_schema.tables t
-        //    join tap_schema.schemas s on t.schema_name=s.schema_name
-        //    where <schemasAccessControlExpression>);
-        
-        Column columnsKeyCol = new Column(columnsAssetTable, COLUMNS_ASSET_TABLE.keyColumn);
-        PlainSelect ps = new PlainSelect();
-        
-        // create the select item list for the subselect 
-        SelectExpressionItem selectExpressionItem = new SelectExpressionItem();
-        Table tablesTable = new Table(TABLES_ASSET_TABLE.schema, TABLES_ASSET_TABLE.name);
-        Column tablesKeyCol = new Column(tablesTable, TABLES_ASSET_TABLE.keyColumn);
-        selectExpressionItem.setExpression(tablesKeyCol);
-        ps.setSelectItems(Arrays.asList(selectExpressionItem));
-        
-        // create the from expression for the subselect
-        Table tablesAssetTable = new Table(TABLES_ASSET_TABLE.schema, TABLES_ASSET_TABLE.name);
-        StringIDGenerator idGenerator = new RandomStringGenerator(8);
-        tablesAssetTable.setAlias(idGenerator.getID());
-        ps.setFromItem(tablesAssetTable);
-        
-        // add a join to schemas
-        Join joinToSchemas = new Join();
-        
-        Table schemasTable = new Table(SCHEMAS_ASSET_TABLE.schema, SCHEMAS_ASSET_TABLE.name);
-        schemasTable.setAlias(idGenerator.getID());
-        
-        joinToSchemas.setRightItem(schemasTable);
-        EqualsTo onExpression = new EqualsTo();
-        //Column tablesOnColumn = new Column(tablesAssetTable, TABLES_ASSET_TABLE.keyColumn);
-        // Note: alias isn't used in above column creation so use hack version below instead
-        Column tablesOnColumn = new Column(new Table(), tablesAssetTable.getAlias() + "." + TABLES_ASSET_TABLE.keyColumn);
-        onExpression.setLeftExpression(tablesOnColumn);
-        
-        //Column schemasOnCol = new Column(schemasTable, SCHEMAS_ASSET_TABLE.keyColumn);
-        // Note: alias isn't used in above column creation so use hack version below instead
-        Column schemasOnCol = new Column(new Table(), schemasTable.getAlias() + "." + SCHEMAS_ASSET_TABLE.keyColumn);
-        onExpression.setRightExpression(schemasOnCol);
-        joinToSchemas.setOnExpression(onExpression);
-        ps.setJoins(Arrays.asList(joinToSchemas));
-        
-        // create the subselect where clause
-        Expression schemasAccessControlExpression = this.schemasAccessControlExpression(schemasTable);
-        ps.setWhere(schemasAccessControlExpression);
-        
-        // create the subselect
-        SubSelect itemsList = new SubSelect();
-        itemsList.setSelectBody(ps);
-        
-        // put together the in expression
-        InExpression inExpression = new InExpression();
-        inExpression.setLeftExpression(columnsKeyCol);
-        inExpression.setItemsList(itemsList);
-        
-        return inExpression;
-    }
-    
 
     // if keyColumn is null, this is a join that didn't match any rows
-    private Expression publicByKeyColumn(Table fromTable, String keyColumn) {
-        Column columnMeta = useTableAliasIfExists(new Column(fromTable, keyColumn));
+    private Expression publicByKeyColumn(Column keyColumn) {
+        Column columnMeta = useTableAliasIfExists(keyColumn);
         IsNullExpression isNull = new IsNullExpression();
         isNull.setLeftExpression(columnMeta);
         return isNull;
@@ -440,10 +438,11 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
     private static Expression combineAndExpressions(List<Expression> exprList) {
         Expression rtn = null;
         for (Expression expr : exprList) {
-            if (rtn == null)
+            if (rtn == null) {
                 rtn = expr;
-            else
-                rtn = new AndExpression(rtn, expr);
+            } else {
+                rtn = new AndExpression(new Parenthesis(rtn), new Parenthesis(expr));
+            }
         }
         return rtn;
     }
