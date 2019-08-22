@@ -274,15 +274,14 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
         
         // create the select item list for the subselect 
         SelectExpressionItem selectExpressionItem = new SelectExpressionItem();
-        Table selectTable = new Table(TABLES_ASSET_TABLE.schema, TABLES_ASSET_TABLE.name);
-        Column tablesKeyCol = new Column(selectTable, TABLES_ASSET_TABLE.keyColumn);
-        selectExpressionItem.setExpression(tablesKeyCol);
-        ps.setSelectItems(Arrays.asList(selectExpressionItem));
-        
-        // create the from expression for the subselect
         Table tablesAssetTable = new Table(TABLES_ASSET_TABLE.schema, TABLES_ASSET_TABLE.name);
         StringIDGenerator idGenerator = new RandomStringGenerator(8);
         tablesAssetTable.setAlias(idGenerator.getID());
+        Column tablesKeyCol = new Column(tablesAssetTable, TABLES_ASSET_TABLE.keyColumn);
+        selectExpressionItem.setExpression(useTableAliasIfExists(tablesKeyCol));
+        ps.setSelectItems(Arrays.asList(selectExpressionItem));
+        
+        // create the from expression for the subselect
         ps.setFromItem(tablesAssetTable);
         
         // add a join to schemas
