@@ -491,6 +491,14 @@ public class TapSchemaReadAccessConverterTest {
 
         @Override
         public Object toOwner(Subject subject) {
+            if (subject == null) {
+                return null;
+            }
+            Set<NumericPrincipal> p = subject.getPrincipals(NumericPrincipal.class);
+            if (p.size() > 0) {
+                UUID uuid = UUID.fromString(p.iterator().next().getName());
+                return new Long(uuid.getLeastSignificantBits()).toString();
+            }
             return null;
         }
 
@@ -501,14 +509,6 @@ public class TapSchemaReadAccessConverterTest {
 
         @Override
         public String toOwnerString(Subject subject) {
-            if (subject == null) {
-                return null;
-            }
-            Set<NumericPrincipal> p = subject.getPrincipals(NumericPrincipal.class);
-            if (p.size() > 0) {
-                UUID uuid = UUID.fromString(p.iterator().next().getName());
-                return new Long(uuid.getLeastSignificantBits()).toString();
-            }
             return null;
         }
         

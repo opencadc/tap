@@ -403,7 +403,7 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
         Column columnMeta = useTableAliasIfExists(new Column(schemaTable, schemaOwnerColumn));
         EqualsTo equals = new EqualsTo();
         equals.setLeftExpression(columnMeta);
-        String owner = identityManager.toOwnerString(AuthenticationUtil.getCurrentSubject());
+        Object owner = identityManager.toOwner(AuthenticationUtil.getCurrentSubject());
         equals.setRightExpression(new StringValue("'" + owner + "'"));
         return equals;
     }
