@@ -156,6 +156,9 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
     public TapSchemaReadAccessConverter(IdentityManager identityManager) {
         super(new ExpressionNavigator(), new ReferenceNavigator(), new FromItemNavigator());
         this.identityManager = identityManager;
+        LocalAuthority localAuthority = new LocalAuthority();
+        URI serviceID = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
+        this.gmsClient = GroupUtil.getGroupClient(serviceID);
     }
 
     // testing support
