@@ -210,10 +210,10 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
     
     private Expression schemasAccessControlExpression(Table schemasAssetTable) {
         
-        //   WHERE:
+        // WHERE:
         // 
-        //   key_col is null OR
-        //   <schemasAccessControlClause>
+        // key_col is null OR
+        // <schemasAccessControlClause>
         
         Column schemasKeyCol = new Column(schemasAssetTable, SCHEMAS_ASSET_TABLE.keyColumn);
         Expression publicByNullKey = publicByKeyColumn(schemasKeyCol);
@@ -234,11 +234,12 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
         // create the select item list for the subselect 
         SelectExpressionItem selectExpressionItem = new SelectExpressionItem();
         Table subSelectSchemasTable = new Table(SCHEMAS_ASSET_TABLE.schema, SCHEMAS_ASSET_TABLE.name);
+        
+        // create the from expression for the subselect
         Column subSelectSelectCol = new Column(subSelectSchemasTable, SCHEMAS_ASSET_TABLE.keyColumn);
         selectExpressionItem.setExpression(subSelectSelectCol);
         ps.setSelectItems(Arrays.asList(selectExpressionItem));
         
-        // create the from expression for the subselect
         ps.setFromItem(subSelectSchemasTable);
         
         // create the subselect where clause
@@ -277,11 +278,12 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
         Table tablesAssetTable = new Table(TABLES_ASSET_TABLE.schema, TABLES_ASSET_TABLE.name);
         StringIDGenerator idGenerator = new RandomStringGenerator(8);
         tablesAssetTable.setAlias(idGenerator.getID());
+        
+        // create the from expression for the subselect
         Column tablesKeyCol = new Column(tablesAssetTable, TABLES_ASSET_TABLE.keyColumn);
         selectExpressionItem.setExpression(useTableAliasIfExists(tablesKeyCol));
         ps.setSelectItems(Arrays.asList(selectExpressionItem));
         
-        // create the from expression for the subselect
         ps.setFromItem(tablesAssetTable);
         
         // add a join to schemas

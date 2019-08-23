@@ -107,7 +107,7 @@ public class TapSchemaReadAccessConverterTest {
     private static final Logger log = Logger.getLogger(TapSchemaReadAccessConverterTest.class);
 
     static {
-        Log4jInit.setLevel("ca.nrc.cadc.tap.impl", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.tap.impl", Level.INFO);
     }
     
     static String SCHEMAS_TABLE = "tap_schema.schemas";
@@ -458,24 +458,6 @@ public class TapSchemaReadAccessConverterTest {
         } finally {
             job.getParameterList().clear();
         }
-    }
-
-    // expect: $keyCol IS NULL OR $groupsCol @@ 'g1 g2 ...'
-    private void assertGroupRestriction(String method, String where, String keyCol, String groupsCol, String alias) {
-        log.debug("assertGroupRestriction: " + where + " vs. " + keyCol + " and " + groupsCol);
-        if (keyCol != null) {
-            Assert.assertTrue(method + "[" + where + "] has key column " + keyCol, where.contains(keyCol + " is null or "));
-        }
-
-        String gc = groupsCol;
-        if (alias != null) {
-            gc = alias + "." + groupsCol;
-        }
-        Assert.assertTrue(method + "[" + where + "] has meta table " + groupsCol, where.contains(gc + " @@ "));
-        Assert.assertTrue(method + "[" + where + "] has meta table " + groupsCol, where.contains("::tsquery"));
-
-        Assert.assertTrue(method + "[" + where + "] has meta read access group 666", where.contains("666"));
-        Assert.assertTrue(method + "[" + where + "] has meta read access group 777", where.contains("777"));
     }
 
     class TestQuery extends AdqlQuery {
