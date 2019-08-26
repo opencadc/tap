@@ -120,5 +120,7 @@ public class OraclePolygonFormatTest {
         polygon.getVertices().add(new Point(8.6D, 45.3D));
 
         assertEquals("Wrong output.", "Polygon 88.0 90.0 88.4 -19.2 8.6 45.3", testSubject.format(polygon));
+
+        assertEquals("Wrong output from null input.", "", testSubject.format(null));
     }
 }

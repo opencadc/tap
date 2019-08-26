@@ -97,7 +97,9 @@ public class OraclePolygonFormat extends AbstractResultSetFormat {
 
     @Override
     public String format(final Object object) {
-        if (object instanceof Polygon) {
+        if (object == null) {
+            return "";
+        } else if (object instanceof Polygon) {
             return OraclePolygonFormat.SHAPE_NAME + " " + polygonFormat.format((Polygon) object);
         } else if (object instanceof BigDecimal[]) {
             return fromStruct((BigDecimal[]) object);

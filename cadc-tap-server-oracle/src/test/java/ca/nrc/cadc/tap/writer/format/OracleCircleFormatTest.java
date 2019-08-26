@@ -117,5 +117,7 @@ public class OracleCircleFormatTest {
 
         final Circle circle = new Circle(new Point(80.6D, 4.4D), 0.04);
         assertEquals("Wrong output.", "Circle 80.6 4.4 0.04", testSubject.format(circle));
+
+        assertEquals("Wrong output from null input.", "", testSubject.format(null));
     }
 }

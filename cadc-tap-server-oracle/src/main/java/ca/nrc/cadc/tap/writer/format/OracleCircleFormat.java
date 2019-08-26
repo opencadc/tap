@@ -97,7 +97,9 @@ public class OracleCircleFormat extends AbstractResultSetFormat {
 
     @Override
     public String format(final Object object) {
-        if (object instanceof Circle) {
+        if (object == null) {
+            return "";
+        } else if (object instanceof Circle) {
             return OracleCircleFormat.SHAPE_NAME + " " + circleFormat.format((Circle) object);
         } else if (object instanceof BigDecimal[]) {
             return fromStruct((BigDecimal[]) object);
