@@ -101,6 +101,7 @@ public abstract class TablesAction extends RestAction {
     protected static final String RWGROUP_KEY = "rw-group";
     
     public TablesAction() { 
+        super();
     }
 
     protected final DataSource getDataSource() {
@@ -108,6 +109,18 @@ public abstract class TablesAction extends RestAction {
         DataSourceProvider dsf = pf.getDataSourceProvider();
         return dsf.getDataSource(super.syncInput.getRequestPath());
     }
+    
+    // package access so InlineContentHandler could call it via ref to parent action
+    void checkWritable() {
+        if (!writable) {
+            String cause = RestAction.STATE_OFFLINE_MSG;
+            if (readable) {
+                cause = RestAction.STATE_READ_ONLY_MSG;
+            }
+            throw new AccessControlException(cause);
+        }
+    }
+    
     
     @Override
     protected InlineContentHandler getInlineContentHandler() {

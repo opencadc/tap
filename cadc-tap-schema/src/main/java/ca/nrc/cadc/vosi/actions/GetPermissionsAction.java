@@ -95,7 +95,10 @@ public class GetPermissionsAction extends TablesAction {
     @Override
     public void doAction() throws Exception {
         String name = getTableName();
-        log.debug("name: " + name);
+        log.debug("POST: " + name);
+        
+        checkWritable();
+        
         if (name == null) {
             throw new IllegalArgumentException( "Missing param: name");
         }

@@ -31,10 +31,11 @@ dependencies {
     compile 'org.opencadc:cadc-uws:[1.0,)'
     compile 'org.opencadc:cadc-uws-server:[1.1,)'
     compile 'org.opencadc:cadc-dali:[1.1,)'
-    compile 'org.opencadc:cadc-rest:[1.2.6,)'
     compile 'org.opencadc:cadc-jsqlparser-compat:0.6.4'
     compile 'org.opencadc:cadc-cdp:[1.2,)'
     compile 'org.opencadc:cadc-gms:[1.0,)'
+    compile 'org.opencadc:cadc-rest:[1.2.9,)'
+    compile 'org.opencadc:cadc-access-control:[1.1.13,)'
     compile 'uk.ac.starlink:jcdf:1.2.3'
     compile 'uk.ac.starlink:stil-io:3.3.2'
 

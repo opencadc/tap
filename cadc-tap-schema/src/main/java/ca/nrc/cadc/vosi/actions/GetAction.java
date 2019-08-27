@@ -68,6 +68,7 @@
 package ca.nrc.cadc.vosi.actions;
 
 import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
@@ -75,6 +76,7 @@ import ca.nrc.cadc.tap.schema.TapSchemaLoader;
 import ca.nrc.cadc.vosi.TableSetWriter;
 import ca.nrc.cadc.vosi.TableWriter;
 import java.io.OutputStreamWriter;
+import java.security.AccessControlException;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;
 
@@ -93,6 +95,10 @@ public class GetAction extends TablesAction {
     public void doAction() throws Exception {
         String tableName = getTableName();
         log.debug("GET: " + tableName);
+        
+        if (!readable) {
+            throw new AccessControlException(RestAction.STATE_OFFLINE_MSG);
+        }
 
         int depth = TapSchemaDAO.MIN_DEPTH;
         // TODO: default depth used to be configurable... worth it?

@@ -71,8 +71,10 @@ package ca.nrc.cadc.vosi.actions;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.profiler.Profiler;
+import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.tap.db.TableCreator;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import java.security.AccessControlException;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
@@ -92,6 +94,9 @@ public class DeleteAction extends TablesAction {
     public void doAction() throws Exception {
         String tableName = getTableName();
         log.debug("DELETE: " + tableName);
+        
+        checkWritable();
+        
         if (tableName == null) {
             throw new IllegalArgumentException("Missing table name in path.");
         }

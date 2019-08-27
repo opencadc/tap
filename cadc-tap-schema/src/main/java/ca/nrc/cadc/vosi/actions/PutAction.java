@@ -72,11 +72,13 @@ import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.net.ResourceAlreadyExistsException;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.rest.InlineContentHandler;
+import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.tap.db.TableCreator;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import java.security.AccessControlException;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
@@ -102,6 +104,8 @@ public class PutAction extends TablesAction {
         
         TapSchemaDAO ts = getTapSchemaDAO();
         checkSchemaWritePermissions(ts, schemaName);
+        
+        checkWritable();
         
         TableDesc inputTable = getInputTable(schemaName, tableName);
         if (inputTable == null) {
