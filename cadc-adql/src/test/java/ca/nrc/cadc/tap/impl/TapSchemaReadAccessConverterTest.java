@@ -83,6 +83,7 @@ import javax.security.auth.Subject;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opencadc.gms.GroupClient;
@@ -94,6 +95,7 @@ import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.tap.AdqlQuery;
 import ca.nrc.cadc.tap.TapQuery;
 import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.util.PropertiesReader;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
 
@@ -163,6 +165,11 @@ public class TapSchemaReadAccessConverterTest {
         userWithGroups = new NumericPrincipal(new UUID(0L, (long) userIDWithGroups));
         subjectWithGroups.getPrincipals().add(TapSchemaReadAccessConverterTest.userWithGroups);
         log.debug("created subjectWithGroups: " + TapSchemaReadAccessConverterTest.subjectWithGroups);
+    }
+    
+    @Before
+    public void setup() {
+        System.setProperty(PropertiesReader.CONFIG_DIR_SYSTEM_PROPERTY, "src/test/resources");
     }
 
     private static Job job = new Job() {
