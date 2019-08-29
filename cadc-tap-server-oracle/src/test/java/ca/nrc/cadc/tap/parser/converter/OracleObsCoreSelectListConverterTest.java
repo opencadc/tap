@@ -67,106 +67,97 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.parser.region.function;
+package ca.nrc.cadc.tap.parser.converter;
 
 import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.LongValue;
-import net.sf.jsqlparser.expression.StringValue;
+import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.schema.Table;
+import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.SelectExpressionItem;
+import org.junit.Test;
+import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
+import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
+import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 
-import ca.nrc.cadc.dali.Point;
-import ca.nrc.cadc.dali.Polygon;
-import ca.nrc.cadc.tap.parser.RegionFinder;
-
-import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.function.IntPredicate;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
+
+import static org.junit.Assert.assertEquals;
 
 
-public class OraclePolygon extends OracleGeometricFunction {
+public class OracleObsCoreSelectListConverterTest {
 
-    private static final int[] ORACLE_ELEMENT_INFO_VALUES = new int[] {
-            1, 1003, 1
-    };
+    @Test
+    public void visit() {
+        final OracleObsCoreSelectListConverter testSubject =
+                new OracleObsCoreSelectListConverter(new ExpressionNavigator(), new ReferenceNavigator(),
+                                                     new FromItemNavigator());
 
-    // Outer Polygon element
-    private static final Expression[] ORACLE_ELEMENT_INFO = new Expression[ORACLE_ELEMENT_INFO_VALUES.length];
+        final Table table = new Table("schema", "table");
+        final Column columnA = new Column(table, "A");
+        final Column columnB = new Column(table, "S_REGION");
+        final Column columnC = new Column(table, "C");
 
-    static {
-        for (int i = 0; i < ORACLE_ELEMENT_INFO_VALUES.length; i++) {
-            ORACLE_ELEMENT_INFO[i] = new LongValue(Long.toString(ORACLE_ELEMENT_INFO_VALUES[i]));
+        final List<Expression> substringParameters = new ArrayList<>();
+
+        substringParameters.add(columnB);
+        substringParameters.add(new DoubleValue("1"));
+        substringParameters.add(new DoubleValue("3"));
+
+        final ExpressionList expressionList = new ExpressionList(substringParameters);
+
+        final List<SelectExpressionItem> selectItems = new ArrayList<>();
+        final SelectExpressionItem selectExpressionItemA = new SelectExpressionItem();
+        selectExpressionItemA.setExpression(columnA);
+        selectItems.add(selectExpressionItemA);
+
+        final SelectExpressionItem selectExpressionItemB = new SelectExpressionItem();
+        selectExpressionItemB.setExpression(columnB);
+        selectItems.add(selectExpressionItemB);
+
+        final SelectExpressionItem selectExpressionItemC = new SelectExpressionItem();
+        selectExpressionItemC.setExpression(columnC);
+        selectItems.add(selectExpressionItemC);
+
+        final PlainSelect plainSelect = new PlainSelect();
+        plainSelect.setSelectItems(selectItems);
+
+        // RUN THE TEST
+
+        testSubject.visit(plainSelect);
+
+        // END TEST RUN
+
+        final Column expectedColumnB = new Column(table, "FOOTPRINT");
+
+        final List<SelectExpressionItem> expectedSelectItems = new ArrayList<>();
+        final SelectExpressionItem expectedSelectExpressionItemA = new SelectExpressionItem();
+        expectedSelectExpressionItemA.setExpression(columnA);
+        expectedSelectItems.add(expectedSelectExpressionItemA);
+
+        final SelectExpressionItem expectedSelectExpressionItemB = new SelectExpressionItem();
+        expectedSelectExpressionItemB.setExpression(expectedColumnB);
+        expectedSelectItems.add(expectedSelectExpressionItemB);
+
+        final SelectExpressionItem expectedSelectExpressionItemC = new SelectExpressionItem();
+        expectedSelectExpressionItemC.setExpression(columnC);
+        expectedSelectItems.add(expectedSelectExpressionItemC);
+
+        final SelectExpressionItem[] expecteds = expectedSelectItems.toArray(new SelectExpressionItem[0]);
+        final SelectExpressionItem[] actuals = (SelectExpressionItem[])
+                plainSelect.getSelectItems().toArray(new SelectExpressionItem[0]);
+
+        assertEquals("Should be three.", 3, actuals.length);
+        assertEquals("Wrong length.", expecteds.length, actuals.length);
+
+        for (int i = 0, el = expecteds.length; i < el; i++) {
+            final SelectExpressionItem selectExpressionItem = expecteds[i];
+            final SelectExpressionItem actualExpressionItem = actuals[i];
+
+            assertEquals("Wrong item.", selectExpressionItem.toString(), actualExpressionItem.toString());
         }
-    }
-
-    private final List<Expression> vertices = new ArrayList<>();
-
-
-    private OraclePolygon() {
-        super(ORACLE_ELEMENT_INFO);
-    }
-
-    public OraclePolygon(final List<Expression> verticeExpressions) {
-        this();
-        if (verticeExpressions != null) {
-            this.vertices.addAll(verticeExpressions);
-        }
-        processOrdinateParameters();
-    }
-
-    public OraclePolygon(final Polygon polygon) {
-        this();
-        vertices.add(new StringValue(RegionFinder.ICRS));
-        for (final Point p : polygon.getVertices()) {
-            vertices.add(new DoubleValue(Double.toString(p.getLongitude())));
-            vertices.add(new DoubleValue(Double.toString(p.getLatitude())));
-        }
-        processOrdinateParameters();
-    }
-
-    /**
-     * Map this shape's values to ORACLE ORDINATE function parameters.
-     *
-     * @param parameterList The ExpressionList to add parameters to.
-     */
-    @Override
-    void mapValues(final ExpressionList parameterList) {
-        // Start at 1 since the first item will be the coordinate system.
-        for (int i = 1; i < this.vertices.size(); i = i + 2) {
-            final Expression ra = this.vertices.get(i);
-            final Expression dec = this.vertices.get(i + 1);
-            addNumericExpression(ra, parameterList);
-            addNumericExpression(dec, parameterList);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    void addNumericExpression(final Expression expression, final ExpressionList parameterList) {
-        if (!(expression instanceof DoubleValue) && !(expression instanceof LongValue)) {
-            throw new UnsupportedOperationException(
-                    String.format("Cannot use non-constant coordinates in Polygon.  Expected Double or Long but found" +
-                                  " '%s'", expression.toString()));
-        } else {
-            parameterList.getExpressions().add(expression);
-        }
-    }
-
-    /**
-     * Determine whether this shape matches the types provided by the structTypeArray.  The individual types should
-     * have an array of numbers to compare.
-     *
-     * @param structTypeArray The numerical array from the database to check for.
-     * @return True if the numbers match, False otherwise.
-     */
-    public static boolean structMatches(final BigDecimal[] structTypeArray) {
-        final List<Integer> currValues = Arrays.stream(ORACLE_ELEMENT_INFO_VALUES).boxed().collect(Collectors.toList());
-        final List<Integer> structValues = Arrays.stream(structTypeArray).map(BigDecimal::intValue).collect(
-                Collectors.toList());
-        return structValues.containsAll(currValues);
     }
 }

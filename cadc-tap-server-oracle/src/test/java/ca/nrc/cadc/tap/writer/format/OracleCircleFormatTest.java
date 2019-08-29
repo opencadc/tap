@@ -70,6 +70,7 @@
 package ca.nrc.cadc.tap.writer.format;
 
 import ca.nrc.cadc.dali.Circle;
+import ca.nrc.cadc.dali.Point;
 
 import org.junit.Test;
 
@@ -108,5 +109,15 @@ public class OracleCircleFormatTest {
         assertEquals("Wrong center point longitude.", 9.74028D, circle2.getCenter().getLongitude(), 0.01D);
         assertEquals("Wrong center point latitude.", 56.14986D, circle2.getCenter().getLatitude(), 0.01D);
         assertEquals("Wrong radius.", 28.64788D, circle2.getRadius(), 0.1D);
+    }
+
+    @Test
+    public void format() {
+        final OracleCircleFormat testSubject = new OracleCircleFormat();
+
+        final Circle circle = new Circle(new Point(80.6D, 4.4D), 0.04);
+        assertEquals("Wrong output.", "Circle 80.6 4.4 0.04", testSubject.format(circle));
+
+        assertEquals("Wrong output from null input.", "", testSubject.format(null));
     }
 }

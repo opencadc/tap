@@ -67,106 +67,107 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.parser.region.function;
-
-import net.sf.jsqlparser.expression.DoubleValue;
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.LongValue;
-import net.sf.jsqlparser.expression.StringValue;
-import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
-
-import ca.nrc.cadc.dali.Point;
-import ca.nrc.cadc.dali.Polygon;
-import ca.nrc.cadc.tap.parser.RegionFinder;
+package ca.nrc.cadc.tap.writer.format;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.function.IntPredicate;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
+
+import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.Assert;
+import ca.nrc.cadc.dali.Circle;
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.Polygon;
+import ca.nrc.cadc.stc.CoordPair;
+import ca.nrc.cadc.stc.Flavor;
+import ca.nrc.cadc.stc.Frame;
+import ca.nrc.cadc.stc.ReferencePosition;
+import ca.nrc.cadc.stc.Region;
+import ca.nrc.cadc.stc.Union;
 
 
-public class OraclePolygon extends OracleGeometricFunction {
+public class OracleRegionFormatTest {
 
-    private static final int[] ORACLE_ELEMENT_INFO_VALUES = new int[] {
-            1, 1003, 1
-    };
+    @Test
+    public void formatCircle() {
+        final OracleRegionFormat testSubject = new OracleRegionFormat();
 
-    // Outer Polygon element
-    private static final Expression[] ORACLE_ELEMENT_INFO = new Expression[ORACLE_ELEMENT_INFO_VALUES.length];
+        final BigDecimal[] points = new BigDecimal[] {
+                new BigDecimal(3.4D - 0.7D),
+                new BigDecimal(88.5D),
+                new BigDecimal(3.4D),
+                new BigDecimal(88.5D + 0.7D),
+                new BigDecimal(3.4D + 0.7D),
+                new BigDecimal(88.5D)
+        };
 
-    static {
-        for (int i = 0; i < ORACLE_ELEMENT_INFO_VALUES.length; i++) {
-            ORACLE_ELEMENT_INFO[i] = new LongValue(Long.toString(ORACLE_ELEMENT_INFO_VALUES[i]));
+        final BigDecimal[] typeValues = new BigDecimal[] {
+                new BigDecimal(1),
+                new BigDecimal(1003),
+                new BigDecimal(4)
+        };
+
+        final Circle comparisonCircle = new Circle(new Point(3.4D, 88.5D), 0.6999999999999997D);
+        final String comparisonCircleString = new OracleCircleFormat().format(comparisonCircle);
+
+        final String asString = testSubject.polygonToString(typeValues, points);
+        Assert.assertEquals("Wrong output.", comparisonCircleString, asString);
+    }
+
+    @Test
+    public void formatPolygon() {
+        final OracleRegionFormat testSubject = new OracleRegionFormat();
+        final Polygon comparisonPolygon = new Polygon();
+
+        final double[] points = {0.9, 4.6, 9.0, 10.2, 3.3, 8.7, 12.9, 45.6};
+
+        final BigDecimal[] structPoints = new BigDecimal[points.length];
+
+        for (int i = 0; i < points.length; i++) {
+            structPoints[i] = new BigDecimal(points[i]);
         }
+
+        comparisonPolygon.getVertices().add(new Point(0.9D, 4.6D));
+        comparisonPolygon.getVertices().add(new Point(9.0D, 10.2D));
+        comparisonPolygon.getVertices().add(new Point(3.3D, 8.7D));
+        comparisonPolygon.getVertices().add(new Point(12.9D, 45.6D));
+
+        final BigDecimal[] typeValues = new BigDecimal[] {
+                new BigDecimal(1),
+                new BigDecimal(1003),
+                new BigDecimal(1)
+        };
+
+        final String comparisonPolygonString = new OraclePolygonFormat().format(comparisonPolygon);
+
+        final String asString = testSubject.polygonToString(typeValues, structPoints);
+        Assert.assertEquals("Wrong output.", comparisonPolygonString, asString);
     }
 
-    private final List<Expression> vertices = new ArrayList<>();
+    @Test
+    @Ignore("Just trying Unions...")
+    public void formatUnion() {
+        final OracleRegionFormat testSubject = new OracleRegionFormat();
+        final List<Region> regionList = new ArrayList<>();
 
+        final List<CoordPair> coordPairs = new ArrayList<>();
 
-    private OraclePolygon() {
-        super(ORACLE_ELEMENT_INFO);
-    }
+        coordPairs.add(new CoordPair(0.9D, 4.6D));
+        coordPairs.add(new CoordPair(9.0D, 10.2D));
+        coordPairs.add(new CoordPair(3.3D, 8.7D));
+        coordPairs.add(new CoordPair(12.9D, 45.6D));
 
-    public OraclePolygon(final List<Expression> verticeExpressions) {
-        this();
-        if (verticeExpressions != null) {
-            this.vertices.addAll(verticeExpressions);
-        }
-        processOrdinateParameters();
-    }
+        final ca.nrc.cadc.stc.Polygon comparisonPolygon =
+                new ca.nrc.cadc.stc.Polygon(Frame.ICRS, ReferencePosition.UNKNOWNREFPOS, Flavor.CARTESIAN2, coordPairs);
 
-    public OraclePolygon(final Polygon polygon) {
-        this();
-        vertices.add(new StringValue(RegionFinder.ICRS));
-        for (final Point p : polygon.getVertices()) {
-            vertices.add(new DoubleValue(Double.toString(p.getLongitude())));
-            vertices.add(new DoubleValue(Double.toString(p.getLatitude())));
-        }
-        processOrdinateParameters();
-    }
+        //comparisonPolygon.getVertices().add(new Point(0.9D, 4.6D));
+        //comparisonPolygon.getVertices().add(new Point(9.0D, 10.2D));
+        //comparisonPolygon.getVertices().add(new Point(3.3D, 8.7D));
+        //comparisonPolygon.getVertices().add(new Point(12.9D, 45.6D));
 
-    /**
-     * Map this shape's values to ORACLE ORDINATE function parameters.
-     *
-     * @param parameterList The ExpressionList to add parameters to.
-     */
-    @Override
-    void mapValues(final ExpressionList parameterList) {
-        // Start at 1 since the first item will be the coordinate system.
-        for (int i = 1; i < this.vertices.size(); i = i + 2) {
-            final Expression ra = this.vertices.get(i);
-            final Expression dec = this.vertices.get(i + 1);
-            addNumericExpression(ra, parameterList);
-            addNumericExpression(dec, parameterList);
-        }
-    }
+        regionList.add(comparisonPolygon);
 
-    @SuppressWarnings("unchecked")
-    void addNumericExpression(final Expression expression, final ExpressionList parameterList) {
-        if (!(expression instanceof DoubleValue) && !(expression instanceof LongValue)) {
-            throw new UnsupportedOperationException(
-                    String.format("Cannot use non-constant coordinates in Polygon.  Expected Double or Long but found" +
-                                  " '%s'", expression.toString()));
-        } else {
-            parameterList.getExpressions().add(expression);
-        }
-    }
-
-    /**
-     * Determine whether this shape matches the types provided by the structTypeArray.  The individual types should
-     * have an array of numbers to compare.
-     *
-     * @param structTypeArray The numerical array from the database to check for.
-     * @return True if the numbers match, False otherwise.
-     */
-    public static boolean structMatches(final BigDecimal[] structTypeArray) {
-        final List<Integer> currValues = Arrays.stream(ORACLE_ELEMENT_INFO_VALUES).boxed().collect(Collectors.toList());
-        final List<Integer> structValues = Arrays.stream(structTypeArray).map(BigDecimal::intValue).collect(
-                Collectors.toList());
-        return structValues.containsAll(currValues);
+        final Union union = new Union(Frame.ICRS, ReferencePosition.UNKNOWNREFPOS, Flavor.CARTESIAN2, regionList);
     }
 }

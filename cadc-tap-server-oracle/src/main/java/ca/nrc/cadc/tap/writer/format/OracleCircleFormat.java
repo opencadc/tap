@@ -73,6 +73,7 @@ import ca.nrc.cadc.dali.Circle;
 import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.dali.util.CircleFormat;
 
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.regex.Matcher;
@@ -83,6 +84,7 @@ public class OracleCircleFormat extends AbstractResultSetFormat {
 
     // Oracle's POINT type accepts a radius as an argument.
     static final String CIRCLE_FUNCTION_TYPE = "SDO_POINT_TYPE";
+    static final String SHAPE_NAME = "Circle";
 
     private final CircleFormat circleFormat = new CircleFormat();
 
@@ -95,7 +97,36 @@ public class OracleCircleFormat extends AbstractResultSetFormat {
 
     @Override
     public String format(final Object object) {
-        return circleFormat.format((Circle) object);
+        if (object == null) {
+            return "";
+        } else if (object instanceof Circle) {
+            return OracleCircleFormat.SHAPE_NAME + " " + circleFormat.format((Circle) object);
+        } else if (object instanceof BigDecimal[]) {
+            return fromStruct((BigDecimal[]) object);
+        } else {
+            return object.toString();
+        }
+    }
+
+    private String fromStruct(final BigDecimal[] structVerticeValues) {
+        if (structVerticeValues.length != 6) {
+            throw new IllegalArgumentException(
+                    String.format("Should have six (6) values from the database, but has %d.",
+                                  structVerticeValues.length));
+        } else {
+            // X - Radius
+            final double pointOneX = structVerticeValues[0].doubleValue();
+
+            // Y
+            final double pointOneY = structVerticeValues[1].doubleValue();
+
+            // X
+            final double pointTwoX = structVerticeValues[2].doubleValue();
+
+            final double radius = pointTwoX - pointOneX;
+
+            return format(new Circle(new Point(pointTwoX, pointOneY), radius));
+        }
     }
 
     Circle getCircle(final String clause) {
@@ -117,12 +148,12 @@ public class OracleCircleFormat extends AbstractResultSetFormat {
             final int openFunctionParenIndex = clause.indexOf("(", openFunctionIndex);
             final int closeFunctionParenIndex = clause.indexOf(")", openFunctionParenIndex);
             final String functionArgumentString =
-                clause.substring(openFunctionParenIndex + 1, closeFunctionParenIndex);
+                    clause.substring(openFunctionParenIndex + 1, closeFunctionParenIndex);
             final String[] functionArguments = functionArgumentString.split(",");
 
             if (functionArguments.length != 3) {
                 throw new IllegalArgumentException(
-                    String.format("Circles/Points should have three arguments in Oracle: '%s'", clause));
+                        String.format("Circles/Points should have three arguments in Oracle: '%s'", clause));
             } else {
                 final double[] coords = new double[3];
                 coords[0] = Math.toDegrees(Double.valueOf(functionArguments[0]));
@@ -138,9 +169,9 @@ public class OracleCircleFormat extends AbstractResultSetFormat {
             }
         } else {
             throw new IllegalArgumentException(
-                String.format("Missing %s function type for Circle clause '%s'",
-                              OracleCircleFormat.CIRCLE_FUNCTION_TYPE,
-                              clause));
+                    String.format("Missing %s function type for Circle clause '%s'",
+                                  OracleCircleFormat.CIRCLE_FUNCTION_TYPE,
+                                  clause));
         }
     }
 }

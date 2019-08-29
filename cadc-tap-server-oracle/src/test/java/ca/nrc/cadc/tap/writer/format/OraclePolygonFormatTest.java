@@ -105,8 +105,22 @@ public class OraclePolygonFormatTest {
         }
 
         final Polygon polygon = testSubject.getPolygon(OraclePolygonFormat.POLYGON_FUNCTION
-                                                           + "(0.9, 4.6, 9.0, 10.2, 3.3, 8.7, 12.9, 45.6)");
+                                                       + "(0.9, 4.6, 9.0, 10.2, 3.3, 8.7, 12.9, 45.6)");
         final List<Point> vertices = polygon.getVertices();
         assertEquals("Wrong vertice count.", 4, vertices.size());
+    }
+
+    @Test
+    public void format() {
+        final OraclePolygonFormat testSubject = new OraclePolygonFormat();
+
+        final Polygon polygon = new Polygon();
+        polygon.getVertices().add(new Point(88.0D, 90.0D));
+        polygon.getVertices().add(new Point(88.4D, -19.2D));
+        polygon.getVertices().add(new Point(8.6D, 45.3D));
+
+        assertEquals("Wrong output.", "Polygon 88.0 90.0 88.4 -19.2 8.6 45.3", testSubject.format(polygon));
+
+        assertEquals("Wrong output from null input.", "", testSubject.format(null));
     }
 }
