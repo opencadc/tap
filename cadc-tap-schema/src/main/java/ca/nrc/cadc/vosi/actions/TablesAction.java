@@ -80,6 +80,9 @@ import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import java.net.URI;
 import java.security.AccessControlException;
 import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.security.auth.Subject;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
@@ -301,16 +304,34 @@ public abstract class TablesAction extends RestAction {
         LocalAuthority localAuthority = new LocalAuthority();
         URI serviceURI = localAuthority.getServiceURI(Standards.GMS_SEARCH_01.toString());
         GroupClient groupClient = GroupUtil.getGroupClient(serviceURI);
-        GroupURI readGroup = Util.getReadPermissionsGroup(groupClient, schemaPermissions);
-        if (readGroup != null) {
-            super.logInfo.setMessage("view table allowed: member of schema group " + readGroup);
+        
+        List<GroupURI> readGroups = new ArrayList<GroupURI>(4);
+        if (schemaPermissions.readGroup != null) {
+            readGroups.add(schemaPermissions.readGroup);
+        }
+        if (schemaPermissions.readWriteGroup != null) {
+            readGroups.add(schemaPermissions.readWriteGroup);
+        }
+        if (tablePermissions.readGroup != null) {
+            readGroups.add(tablePermissions.readGroup);
+        }
+        if (tablePermissions.readWriteGroup != null) {
+            readGroups.add(tablePermissions.readWriteGroup);
+        }
+        
+        GroupURI permittingGroup = Util.getPermittedGroup(groupClient, readGroups);
+        if (permittingGroup != null) {
+            super.logInfo.setMessage("view table allowed: member of group " + permittingGroup);
             return;
         }
-        readGroup = Util.getReadPermissionsGroup(groupClient, tablePermissions);
-        if (readGroup != null) {
-            super.logInfo.setMessage("view table allowed: member of table group " + readGroup);
-            return;
-        }
+                
+//        GroupURI readGroup = Util.getReadPermissionsGroup(groupClient, schemaPermissions);
+//
+//        readGroup = Util.getReadPermissionsGroup(groupClient, tablePermissions);
+//        if (readGroup != null) {
+//            super.logInfo.setMessage("view table allowed: member of table group " + readGroup);
+//            return;
+//        }
         throw new AccessControlException("permission denied");
     }
     
@@ -337,10 +358,14 @@ public abstract class TablesAction extends RestAction {
         LocalAuthority localAuthority = new LocalAuthority();
         URI serviceURI = localAuthority.getServiceURI(Standards.GMS_SEARCH_01.toString());
         GroupClient groupClient = GroupUtil.getGroupClient(serviceURI);
-        GroupURI writeGroup = Util.getWritePermissionsGroup(groupClient, tablePermissions);
-        if (writeGroup != null) {
-            logInfo.setMessage("table write allowed: member of table group " + writeGroup);
-            return;
+        List<GroupURI> permittedGroups = new ArrayList<GroupURI>(1);
+        if (tablePermissions.readWriteGroup != null) {
+            permittedGroups.add(tablePermissions.readWriteGroup);
+            GroupURI permittedGroup = Util.getPermittedGroup(groupClient, permittedGroups);
+            if (permittedGroup != null) {
+                logInfo.setMessage("schema write allowed: member of table group " + permittedGroup);
+                return;
+            }
         }
         throw new AccessControlException("permission denied");
     }
@@ -360,10 +385,14 @@ public abstract class TablesAction extends RestAction {
         LocalAuthority localAuthority = new LocalAuthority();
         URI serviceURI = localAuthority.getServiceURI(Standards.GMS_SEARCH_01.toString());
         GroupClient groupClient = GroupUtil.getGroupClient(serviceURI);
-        GroupURI writeGroup = Util.getWritePermissionsGroup(groupClient, schemaPermissions);
-        if (writeGroup != null) {
-            super.logInfo.setMessage("schema write allowed: member of table group " + writeGroup);
-            return;
+        List<GroupURI> permittedGroups = new ArrayList<GroupURI>(1);
+        if (schemaPermissions.readWriteGroup != null) {
+            permittedGroups.add(schemaPermissions.readWriteGroup);
+            GroupURI permittedGroup = Util.getPermittedGroup(groupClient, permittedGroups);
+            if (permittedGroup != null) {
+                super.logInfo.setMessage("schema write allowed: member of table group " + permittedGroup);
+                return;
+            }
         }
         throw new AccessControlException("permission denied");
     }

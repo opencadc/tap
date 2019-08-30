@@ -102,11 +102,15 @@ public class DeleteAction extends TablesAction {
         }
         
         Profiler prof = new Profiler(DeleteAction.class);
-        DataSource ds = getDataSource();
-        DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
+        DatabaseTransactionManager tm = null;
+
         try {
             
+            DataSource ds = getDataSource();
             TapSchemaDAO ts = getTapSchemaDAO();
+            ts.setDataSource(ds);
+            
+            tm = new DatabaseTransactionManager(ds);
             checkDropTablePermission(ts, tableName);
             
             tm.startTransaction();
@@ -118,14 +122,13 @@ public class DeleteAction extends TablesAction {
             prof.checkpoint("delete-table");
             
             // remove from tap_schema last to minimise locking
-            ts.setDataSource(ds);
             ts.delete(tableName);
             prof.checkpoint("delete-from-tap-schema");
             
             tm.commitTransaction();
             prof.checkpoint("commit-transaction");
         } catch (ResourceNotFoundException rethrow) { 
-            if (tm.isOpen()) {
+            if (tm != null && tm.isOpen()) {
                 tm.rollbackTransaction();
             }
             throw rethrow;

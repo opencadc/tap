@@ -135,33 +135,53 @@ class Util {
         return false;
     }
     
-    public static GroupURI getReadPermissionsGroup(GroupClient groupClient, TapPermissions permissions) {
+    public static GroupURI getPermittedGroup(GroupClient groupClient, List<GroupURI> permittedGroups) {
+        
+        // no read groups assigned
+        if (permittedGroups == null || permittedGroups.size() == 0) {
+            return null;
+        }
+        
+        // anonymous caller
         Subject s = AuthenticationUtil.getCurrentSubject();
         if (s == null || s.getPrincipals() == null || s.getPrincipals().isEmpty()) {
             return null;
         }
-        if (permissions.readGroup != null &&
-            isMember(groupClient, permissions.readGroup.getURI())) {
-            return permissions.readGroup;
+        
+        // single group membership required
+        if (permittedGroups.size() == 1) {
+            if (groupClient.isMember(permittedGroups.get(0))) {
+                return permittedGroups.get(0);
+            }
+            return null;
         }
-        if (permissions.readWriteGroup != null &&
-            isMember(groupClient, permissions.readWriteGroup.getURI())) {
-            return permissions.readWriteGroup;
+        
+        // membership in at least one of the groups
+        List<GroupURI> memberships = groupClient.getMemberships();
+        if (memberships == null || memberships.size() == 0) {
+            return null;
         }
+        
+        // remove groups that are not in the list of permitted read groups
+        memberships.retainAll(permittedGroups);
+        if (memberships.size() > 0) {
+            return memberships.get(0);
+        }
+        
         return null;
     }
     
-    public static GroupURI getWritePermissionsGroup(GroupClient groupClient, TapPermissions permissions) {
-        Subject s = AuthenticationUtil.getCurrentSubject();
-        if (s == null || s.getPrincipals() == null || s.getPrincipals().isEmpty()) {
-            return null;
-        }
-        if (permissions.readWriteGroup != null &&
-            isMember(groupClient, permissions.readWriteGroup.getURI())) {
-            return permissions.readWriteGroup;
-        }
-        return null;
-    }
+//    public static GroupURI getWritePermissionsGroup(GroupClient groupClient, TapPermissions permissions) {
+//        Subject s = AuthenticationUtil.getCurrentSubject();
+//        if (s == null || s.getPrincipals() == null || s.getPrincipals().isEmpty()) {
+//            return null;
+//        }
+//        if (permissions.readWriteGroup != null &&
+//            isMember(groupClient, permissions.readWriteGroup.getURI())) {
+//            return permissions.readWriteGroup;
+//        }
+//        return null;
+//    }
         
     static boolean isMember(GroupClient groupClient, URI grantingGroup) throws AccessControlException {
         try {

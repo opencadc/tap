@@ -134,15 +134,20 @@ public class PostPermissionsAction extends TablesAction {
         if (perms == null) {
             throw new IllegalArgumentException("No permission info");
         }
+        
         log.debug("new perm keys: " + perms.keySet());
-        if (perms.containsKey(PUBLIC_KEY)) {
-            orig.isPublic = (Boolean) perms.get(PUBLIC_KEY);
+        Boolean newIsPublic = (Boolean) perms.get(PUBLIC_KEY);
+        GroupURI newReadGroupURI = (GroupURI) perms.get(RGROUP_KEY);
+        GroupURI newReadWriteGroupURI = (GroupURI) perms.get(RWGROUP_KEY);
+        
+        if (newIsPublic != null) {
+            orig.isPublic = newIsPublic;
         }
-        if (perms.containsKey(RGROUP_KEY)) {
-            orig.readGroup = (GroupURI) perms.get(RGROUP_KEY);
+        if (newReadGroupURI != null) {
+            orig.readGroup = newReadGroupURI;
         }
-        if (perms.containsKey(RWGROUP_KEY)) {
-            orig.readWriteGroup = (GroupURI) perms.get(RWGROUP_KEY);
+        if (newReadWriteGroupURI != null) {
+            orig.readWriteGroup = newReadWriteGroupURI;
         }
     }
     

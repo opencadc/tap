@@ -102,10 +102,11 @@ public class PutAction extends TablesAction {
         String schemaName = Util.getSchemaFromTable(tableName);
         log.debug("PUT: " + tableName);
         
+        checkWritable();
+        
         TapSchemaDAO ts = getTapSchemaDAO();
         checkSchemaWritePermissions(ts, schemaName);
         
-        checkWritable();
         
         TableDesc inputTable = getInputTable(schemaName, tableName);
         if (inputTable == null) {
@@ -150,7 +151,7 @@ public class PutAction extends TablesAction {
             ts.put(inputTable);
             prof.checkpoint("insert-into-tap-schema");
             
-            // set owner and other permissions inherited from the schema
+            // set the permissions inherited from the schema
             TapPermissions schemaPermissions = ts.getSchemaPermissions(schemaName);
             TapPermissions tablePermissions = new TapPermissions(
                 AuthenticationUtil.getCurrentSubject(),
