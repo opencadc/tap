@@ -89,9 +89,7 @@ import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.cred.client.CredUtil;
 
 /**
- * Class that checks authorization on TapPermissions.  This class can be
- * reused for the extent of a single REST call by a specific user (possibly
- * anonymous) but cannot be used in multiple calls due to group caching.
+ * Class that checks authorization on TapPermissions.
  * 
  * @author majorb
  *
@@ -99,8 +97,6 @@ import ca.nrc.cadc.cred.client.CredUtil;
 public class TapAuthorizer {
     
     protected static Logger log = Logger.getLogger(TapAuthorizer.class);
-    
-    private Map<URI, List<GroupURI>> membershipCache = new HashMap<URI, List<GroupURI>>();
     
     public TapAuthorizer() {
     }
@@ -136,13 +132,17 @@ public class TapAuthorizer {
                 return true;
             }
             try {
-                if (isMember(tp.readGroup)) {
-                    log.debug("caller member of read-only group " + tp.readGroup);
-                    return true;
+                if (tp.readGroup != null) {
+                    if (isMember(tp.readGroup)) {
+                        log.debug("caller member of read-only group " + tp.readGroup);
+                        return true;
+                    }
                 }
-                if (isMember(tp.readWriteGroup)) {
-                    log.debug("caller member of read-write group " + tp.readWriteGroup);
-                    return true;
+                if (tp.readWriteGroup != null) {
+                    if (isMember(tp.readWriteGroup)) {
+                        log.debug("caller member of read-write group " + tp.readWriteGroup);
+                        return true;
+                    }
                 }
             } catch (Exception e) {
                 log.error("error getting groups or checking credentials", e);
@@ -166,28 +166,32 @@ public class TapAuthorizer {
         return false;
     }
 
-    // check and cache memberships for the service ID
+    // check membership
     private boolean isMember(GroupURI group) throws Exception {
-        if (group != null) {
-            List<GroupURI> memberships = membershipCache.get(group.getServiceID());
-            if (memberships == null) {
-                // get the list of memberships from a group client
-                GroupClient groupClient = GroupUtil.getGroupClient(group.getServiceID());
-                if (groupClient != null && CredUtil.checkCredentials()) {
-                    memberships = groupClient.getMemberships();
-                    log.debug("user is a member of " + memberships.size() + " groups in service " + group.getServiceID());
-                    if (memberships != null) {
-                        membershipCache.put(group.getServiceID(), memberships);
-                    } else {
-                        // just in case the group client returns null instead of an empty list
-                        membershipCache.put(group.getServiceID(), new ArrayList<GroupURI>());
-                    }
-                }
+        GroupClient groupClient = GroupUtil.getGroupClient(group.getServiceID());
+        if (groupClient != null) {
+            
+            boolean hasCDPCreds = false;
+            try {
+                hasCDPCreds = CredUtil.checkCredentials();
+            } catch (Exception e) {
+                log.debug("Failed to check for valid CDP credentials needed for group membership check");
+                throw e;
             }
-            for (GroupURI next : memberships) {
-                if (next.equals(group)) {
-                    return true;
+            if (hasCDPCreds) {
+                List<GroupURI> memberships = groupClient.getMemberships();
+                if (memberships != null) {
+                    log.debug("user is a member of " + memberships.size() + " groups in service " + group.getServiceID());
+                    for (GroupURI next : memberships) {
+                        if (next.equals(group)) {
+                            return true;
+                        }
+                    }
+                } else {
+                    log.debug("User has no group memberships (null)");
                 }
+            } else {
+                log.debug("No CDP credentials availalbe to allow group membership check");
             }
         }
         return false;
