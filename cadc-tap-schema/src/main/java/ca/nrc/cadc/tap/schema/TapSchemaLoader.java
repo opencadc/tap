@@ -112,20 +112,16 @@ public class TapSchemaLoader {
         TapSchema schema = dao.get(depth);
         List<SchemaDesc> schemaDescs = schema.getSchemaDescs();
         int total = schemaDescs.size();
-        SchemaDesc next = null;
-        List<SchemaDesc> toRemove = new ArrayList<SchemaDesc>(schemaDescs.size());
-        for (int i=0; i<schemaDescs.size(); i++) {
-            next = schemaDescs.get(i);
+        for (SchemaDesc next : schemaDescs) {
             log.debug("Checking permissions on schema: " + next.getSchemaName());
             if (tapAuthorizer.hasReadPermission(next.tapPermissions)) {
                 log.debug("Allowing access to schema " + next.getSchemaName());
             } else {
                 log.debug("No read access on schema: " + next.getSchemaName());
-                toRemove.add(next);
+                schemaDescs.remove(next);
             }
         }
         
-        schema.getSchemaDescs().removeAll(toRemove);
         log.debug("user has read access on " + schema.getSchemaDescs().size() +
             " of " + total + " schemas");
         return schema;

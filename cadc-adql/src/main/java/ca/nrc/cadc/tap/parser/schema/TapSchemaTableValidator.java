@@ -131,7 +131,8 @@ public class TapSchemaTableValidator extends FromItemNavigator {
         }
         TableDesc td = TapSchemaUtil.findTableDesc(tapSchema, qTable);
         if (td == null) {
-            throw new IllegalArgumentException("Table [ " + table + " ] is not found in TapSchema");
+            throw new IllegalArgumentException("Table [ " + table + " ] is not found in TapSchema." +
+                " Possible reasons: table does not exist or permission is denied.");
         }
         if (!tables.contains(td)) {
             log.debug("Checking permissions on table " + td.getTableName());
