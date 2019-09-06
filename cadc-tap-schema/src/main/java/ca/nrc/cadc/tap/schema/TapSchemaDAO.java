@@ -653,7 +653,7 @@ public class TapSchemaDAO {
      */
     public TapPermissions getSchemaPermissions(String schemaName) {
 
-        PermissionsStatement gsp = new PermissionsStatement(schemasTableName, "schema_name", schemaName);
+        GetPermissionsStatement gsp = new GetPermissionsStatement(schemasTableName, "schema_name", schemaName);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         IdentityManager identityManager = AuthenticationUtil.getIdentityManager();
         log.debug("IdentityManager: " + identityManager);
@@ -677,7 +677,7 @@ public class TapSchemaDAO {
      */
     public TapPermissions getTablePermissions(String tableName) {
 
-        PermissionsStatement gtp = new PermissionsStatement(tablesTableName, "table_name", tableName);
+        GetPermissionsStatement gtp = new GetPermissionsStatement(tablesTableName, "table_name", tableName);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         IdentityManager identityManager = AuthenticationUtil.getIdentityManager();
         log.debug("IdentityManager: " + identityManager);
@@ -704,7 +704,7 @@ public class TapSchemaDAO {
      * @throws ResourceNotFoundException
      */
     public void setSchemaPermissions(String schemaName, TapPermissions tp) throws ResourceNotFoundException {
-        PermissionsStatement ssp = new PermissionsStatement(schemasTableName, "schema_name", schemaName, tp);
+        PutPermissionsStatement ssp = new PutPermissionsStatement(schemasTableName, "schema_name", schemaName, tp);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         int rows = jdbc.update(ssp);
         if (rows == 0) {
@@ -728,7 +728,7 @@ public class TapSchemaDAO {
     public void setTablePermissions(String tableName, TapPermissions tp) throws ResourceNotFoundException {
 
         // update tables permissions
-        PermissionsStatement stp = new PermissionsStatement(tablesTableName, "table_name", tableName, tp);
+        PutPermissionsStatement stp = new PutPermissionsStatement(tablesTableName, "table_name", tableName, tp);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         int rows = jdbc.update(stp);
         if (rows == 0) {
@@ -992,34 +992,19 @@ public class TapSchemaDAO {
         }
     }
 
-    private class PermissionsStatement implements PreparedStatementCreator {
+    private class GetPermissionsStatement implements PreparedStatementCreator {
         private String table;
         private String column;
         private String name;
         private TapPermissions tp;
 
-        public PermissionsStatement(String table, String column, String name) {
+        public GetPermissionsStatement(String table, String column, String name) {
             this.table = table;
             this.column = column;
             this.name = name;
-        }
-
-        public PermissionsStatement(String table, String column, String name, TapPermissions tp) {
-            this.table = table;
-            this.column = column;
-            this.name = name;
-            this.tp = tp;
         }
 
         public PreparedStatement createPreparedStatement(Connection conn) throws SQLException {
-            if (tp == null) {
-                return selectStatement(conn);
-            } else {
-                return updateStatement(conn);
-            }
-        }
-
-        private PreparedStatement selectStatement(Connection conn) throws SQLException {
             StringBuilder sb = new StringBuilder();
             sb.append("SELECT ");
             sb.append(ownerCol).append(", ");
@@ -1039,7 +1024,22 @@ public class TapSchemaDAO {
             return prep;
         }
 
-        private PreparedStatement updateStatement(Connection conn) throws SQLException {
+    }
+    
+    private class PutPermissionsStatement implements PreparedStatementCreator {
+        private String table;
+        private String column;
+        private String name;
+        private TapPermissions tp;
+
+        public PutPermissionsStatement(String table, String column, String name, TapPermissions tp) {
+            this.table = table;
+            this.column = column;
+            this.name = name;
+            this.tp = tp;
+        }
+
+        public PreparedStatement createPreparedStatement(Connection conn) throws SQLException {
             StringBuilder sb = new StringBuilder();
             int colIndex = 1;
             sb.append("UPDATE ");
@@ -1080,6 +1080,7 @@ public class TapSchemaDAO {
 
             return prep;
         }
+
     }
 
     private class PutSchemaStatement implements PreparedStatementCreator {
