@@ -102,26 +102,22 @@ public class TapSchemaLoader {
         return this.load(TapSchemaDAO.MAX_DEPTH);
     }
     
-    /**
-     * Load the schema at a specific depth.
-     * 
-     * @param depth
-     * @return
-     */
     public TapSchema load(int depth) {
         TapSchema schema = dao.get(depth);
         List<SchemaDesc> schemaDescs = schema.getSchemaDescs();
         int total = schemaDescs.size();
+        List<SchemaDesc> toRemove = new ArrayList<SchemaDesc>(schemaDescs.size());
         for (SchemaDesc next : schemaDescs) {
             log.debug("Checking permissions on schema: " + next.getSchemaName());
             if (tapAuthorizer.hasReadPermission(next.tapPermissions)) {
                 log.debug("Allowing access to schema " + next.getSchemaName());
             } else {
                 log.debug("No read access on schema: " + next.getSchemaName());
-                schemaDescs.remove(next);
+                toRemove.add(next);
             }
         }
         
+        schema.getSchemaDescs().removeAll(toRemove);
         log.debug("user has read access on " + schema.getSchemaDescs().size() +
             " of " + total + " schemas");
         return schema;
