@@ -274,6 +274,7 @@ public abstract class TablesAction extends RestAction {
         }
         if (schemaPermissions.owner == null) {
             super.logInfo.setMessage("view table allowed: null schema owner");
+            return;
         }
         if (schemaPermissions.isPublic) {
             super.logInfo.setMessage("view table allowed: public schema");
