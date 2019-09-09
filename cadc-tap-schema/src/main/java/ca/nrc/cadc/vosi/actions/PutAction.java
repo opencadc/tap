@@ -151,13 +151,9 @@ public class PutAction extends TablesAction {
             ts.put(inputTable);
             prof.checkpoint("insert-into-tap-schema");
             
-            // set the permissions inherited from the schema
-            TapPermissions schemaPermissions = ts.getSchemaPermissions(schemaName);
+            // set the permissions to be initially private
             TapPermissions tablePermissions = new TapPermissions(
-                AuthenticationUtil.getCurrentSubject(),
-                schemaPermissions.isPublic,
-                schemaPermissions.readGroup,
-                schemaPermissions.readWriteGroup);
+                AuthenticationUtil.getCurrentSubject(), false, null, null);
             ts.setTablePermissions(tableName, tablePermissions);
             prof.checkpoint("set-permissions");
             
