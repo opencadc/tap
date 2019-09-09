@@ -148,6 +148,9 @@ class Util {
             return null;
         }
         
+        if (!ensureCredentials()) {
+            throw new AccessControlException("No delegated credentials");
+        }
         // single group membership required
         if (permittedGroups.size() == 1) {
             if (groupClient.isMember(permittedGroups.get(0))) {
@@ -183,21 +186,12 @@ class Util {
 //        return null;
 //    }
         
-    static boolean isMember(GroupClient groupClient, URI grantingGroup) throws AccessControlException {
+    
+    private static boolean ensureCredentials() {
         try {
-            if (CredUtil.checkCredentials()) {
-                List<GroupURI> groups = groupClient.getMemberships();
-                for (GroupURI group : groups) {
-                    if (group.getURI().equals(grantingGroup)) {
-                        log.debug("group match: " + grantingGroup);
-                        return true;
-                    }
-                }
-            }
+            return CredUtil.checkCredentials();
         } catch (CertificateException ex) {
             throw new RuntimeException("failed to find group memberships (invalid proxy certficate)", ex);
         }
-        log.debug("no group match");
-        return false;
     }
 }
