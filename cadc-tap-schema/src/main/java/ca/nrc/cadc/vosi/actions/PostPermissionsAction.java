@@ -106,6 +106,9 @@ public class PostPermissionsAction extends TablesAction {
         if (name == null) {
             throw new IllegalArgumentException("Missing param: name");
         }
+        
+        checkWritable();
+        
         TapSchemaDAO dao = getTapSchemaDAO();
         
         // get the permissions first to ensure table exists and to ensure user

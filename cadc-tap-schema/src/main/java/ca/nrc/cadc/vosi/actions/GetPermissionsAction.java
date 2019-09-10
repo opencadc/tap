@@ -134,22 +134,15 @@ public class GetPermissionsAction extends TablesAction {
         return null;
     }
     
-    // return the owner name, preferring userid, then DN, then
-    // numeric, then whatever is left
+    // return the the x500 DN or a blank string
     private String getOwnerString(Subject s) {
-        if (s == null || s.getPrincipals().size() == 0) {
+        if (s == null) {
             return "";
-        }
-        if (s.getPrincipals(HttpPrincipal.class).size() > 0) {
-            return s.getPrincipals(HttpPrincipal.class).iterator().next().getName();
         }
         if (s.getPrincipals(X500Principal.class).size() > 0) {
             return s.getPrincipals(X500Principal.class).iterator().next().getName();
         }
-        if (s.getPrincipals(NumericPrincipal.class).size() > 0) {
-            return s.getPrincipals(NumericPrincipal.class).iterator().next().getName();
-        }
-        return s.getPrincipals().iterator().next().getName();
+        return "";
     }
             
     private String getGroupString(GroupURI group) {
