@@ -65,89 +65,19 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.vosi.actions;
+package ca.nrc.cadc.auth;
 
-import ca.nrc.cadc.ac.GroupURI;
-import ca.nrc.cadc.net.ResourceNotFoundException;
-import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.rest.RestAction;
-import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import java.net.URI;
-import java.security.AccessControlException;
+
 import org.apache.log4j.Logger;
 
 /**
- * Update table content by accepting data via the input stream.
+ * IM implementation for tests.
  * 
  * @author pdowler
  */
-public class PostAction extends TablesAction {
-    
-    private static final Logger log = Logger.getLogger(PostAction.class);
-    
-    public PostAction() {
-    }
+public class IdentityManagerImpl extends X500IdentityManager {
+    private static final Logger log = Logger.getLogger(IdentityManagerImpl.class);
 
-    @Override
-    public void doAction() throws Exception {
-        String name = getTableName();
-        log.debug("POST: " + name);
-        
-        checkWritable();
-        
-        if (name == null) {
-            throw new IllegalArgumentException("Missing table name in path.");
-        }
-        
-        // see if this is a group-write permission set call
-        if (syncInput.getParameterNames().contains("grw")) {
-            String grw = syncInput.getParameter("grw");
-            log.debug("group read-write set request: " + grw);
-            setGroup(name, grw);
-        }
-        // TODO: handle tap_schema metadata update (like PutAction)
+    public IdentityManagerImpl() { 
     }
-    
-    private void setGroup(String name, String group) throws Exception {
-        URI groupURI = null;
-        if (group != null && group.trim().length() > 0) {
-            // validate the group
-            try {
-                groupURI = new GroupURI(group).getURI();
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("invalid group URI: " + e.getMessage());
-            }
-        }
-        
-        TapSchemaDAO ts = getTapSchemaDAO();
-        Object target = null;
-        if (Util.isTableName(name)) {
-            log.debug("checking table permission");
-            checkTableWritePermission(name);
-            log.debug("checking table existence");
-            target = ts.getTable(name, true);
-        } else if (Util.isSchemaName(name)) {
-            log.debug("checking schema permission");
-            checkSchemaWritePermission(name);
-            log.debug("checking schema existence");
-            target = ts.getSchema(name, true);
-            
-        } else {
-            throw new IllegalArgumentException("invalid table name: " + name + " (expected: <schema>.<table>)");
-        }
-        
-        if (target == null) {
-            throw new ResourceNotFoundException("not found: " + name);
-        }
-        
-        setReadWriteGroup(name, groupURI);
-        syncOutput.setCode(200);
-    }
-    
-    @Override
-    protected InlineContentHandler getInlineContentHandler() {
-        // TODO: return a TableDescHandler so we can read docs and update tap_schema metadata
-        return super.getInlineContentHandler();
-    }
-    
 }

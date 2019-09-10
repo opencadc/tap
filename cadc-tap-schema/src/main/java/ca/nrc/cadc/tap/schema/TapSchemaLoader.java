@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2009.                            (c) 2009.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -72,110 +72,55 @@ package ca.nrc.cadc.tap.schema;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.log4j.Logger;
+
 /**
- * Descriptor Class to represent a TAP_SCHEMA.tables table.
+ * Class to assist in the loading of the complete Tap Schema.  If permissions
+ * are supported in the Tap Schema, this class will enforce those permissions
+ * by filtering out any non-readable schema.
  * 
+ * @author majorb
+ *
  */
-public class TableDesc
-{
-    private String schemaName;
-    private String tableName;
-    private final List<ColumnDesc> columnDescs = new ArrayList<ColumnDesc>();
-    private final List<KeyDesc> keyDescs = new ArrayList<KeyDesc>();
+public class TapSchemaLoader {
     
-    public String description;
-    public String utype;
-    public Integer tableIndex;
-    public TableType tableType = TableType.TABLE;
-    public TapPermissions tapPermissions;
+    protected static Logger log = Logger.getLogger(TapSchemaLoader.class);
     
-    public enum TableType {
-        TABLE("table"),
-        VIEW("view");
-        
-        private String value;
-        
-        TableType(String value) {
-            this.value = value;
-        }
-        
-        static TableType toValue(String s) {
-            for (TableType tt : TableType.values()) {
-                if (tt.value.equals(s)) {
-                    return tt;
-                }
+    TapSchemaDAO dao;
+    TapAuthorizer tapAuthorizer;
+    
+    public TapSchemaLoader(TapSchemaDAO dao) {
+        this.dao = dao;
+        this.tapAuthorizer = new TapAuthorizer();
+    }
+    
+    /**
+     * Load the schema with maximum depth.
+     * @return
+     */
+    public TapSchema load() {
+        return this.load(TapSchemaDAO.MAX_DEPTH);
+    }
+    
+    public TapSchema load(int depth) {
+        TapSchema schema = dao.get(depth);
+        List<SchemaDesc> schemaDescs = schema.getSchemaDescs();
+        int total = schemaDescs.size();
+        List<SchemaDesc> toRemove = new ArrayList<SchemaDesc>(schemaDescs.size());
+        for (SchemaDesc next : schemaDescs) {
+            log.debug("Checking permissions on schema: " + next.getSchemaName());
+            if (tapAuthorizer.hasReadPermission(next.tapPermissions)) {
+                log.debug("Allowing access to schema " + next.getSchemaName());
+            } else {
+                log.debug("No read access on schema: " + next.getSchemaName());
+                toRemove.add(next);
             }
-            throw new IllegalArgumentException("invalid value: " + s);
         }
         
-        public String getValue() {
-            return value;
-        }
-    }
-
-    public TableDesc(String schemaName, String tableName) 
-    {
-        TapSchema.assertNotNull(TableDesc.class, "schemaName", schemaName);
-        TapSchema.assertNotNull(TableDesc.class, "tableName", tableName);
-        this.schemaName = schemaName;
-        this.tableName = tableName;
-    }
-
-    public void setSchemaName(String schemaName) {
-        this.schemaName = schemaName;
-    }
-
-    public String getSchemaName()
-    {
-        return schemaName;
-    }
-
-    public void setTableName(String tableName) {
-        this.tableName = tableName;
-    }
-
-    public String getTableName()
-    {
-        return tableName;
-    }
-
-    public List<ColumnDesc> getColumnDescs()
-    {
-        return columnDescs;
+        schema.getSchemaDescs().removeAll(toRemove);
+        log.debug("user has read access on " + schema.getSchemaDescs().size() +
+            " of " + total + " schemas");
+        return schema;
     }
     
-    public ColumnDesc getColumn(String name)
-    {
-        for (ColumnDesc cd : columnDescs)
-        {
-            if (cd.getColumnName().equalsIgnoreCase(name))
-                return cd;
-        }
-        return null;
-    }
-
-    public List<KeyDesc> getKeyDescs()
-    {
-        return keyDescs;
-    }
-
-    public String toString()
-    {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Table[");
-        sb.append(schemaName == null ? "" : schemaName).append(",");
-        sb.append(tableName).append(",");
-        sb.append(description == null ? "" : description).append(",");
-        sb.append(utype == null ? "" : utype).append(",");
-        sb.append("columns[");
-        for (ColumnDesc col : columnDescs)
-            sb.append(col).append("|");
-        sb.append("],");
-        sb.append("keys[");
-        for (KeyDesc key:  keyDescs)
-            sb.append(key).append("|");
-        sb.append("]]");
-        return sb.toString();
-    }
-
 }

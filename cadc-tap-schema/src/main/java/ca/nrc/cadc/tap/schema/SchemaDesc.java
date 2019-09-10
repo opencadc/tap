@@ -84,6 +84,7 @@ public class SchemaDesc
     public String description;
     public String utype;
     public Integer schema_index;
+    public TapPermissions tapPermissions;
 
     public SchemaDesc(String schemaName)
     {

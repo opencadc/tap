@@ -75,6 +75,7 @@ import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import ca.nrc.cadc.tap.schema.TapSchemaLoader;
 import ca.nrc.cadc.uws.ErrorSummary;
 import ca.nrc.cadc.uws.ErrorType;
 import ca.nrc.cadc.uws.ExecutionPhase;
@@ -91,6 +92,7 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.security.AccessControlException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -250,6 +252,7 @@ public class QueryRunner implements JobRunner
             log.debug("loaded: " + rs.getClass().getName());
         }
         int responseCodeOnUserFail = 400;   // default for TAP-1.1+
+        int responseCodeOnPermissionDenied = 403;
         int responseCodeOnSystemFail = 500;
         try
         {
@@ -298,7 +301,8 @@ public class QueryRunner implements JobRunner
             log.debug("reading TapSchema...");
             TapSchemaDAO dao = pfac.getTapSchemaDAO();
             dao.setDataSource(tapSchemaDataSource);
-            TapSchema tapSchema = dao.get();
+            TapSchemaLoader loader = new TapSchemaLoader(dao);
+            TapSchema tapSchema = loader.load();
 
             t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
             diagnostics.add(new Result("diag", URI.create("read:tap_schema:"+dt)));
@@ -483,6 +487,11 @@ public class QueryRunner implements JobRunner
             {
                 logInfo.setSuccess(true);
                 errorCode = responseCodeOnUserFail;
+            }
+            else if (t instanceof AccessControlException)
+            {
+                logInfo.setSuccess(true);
+                errorCode = responseCodeOnPermissionDenied;
             }
             else
             {

@@ -63,99 +63,93 @@
 *                                       <http://www.gnu.org/licenses/>.
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.vosi.actions;
 
+import java.io.OutputStream;
 
-import ca.nrc.cadc.db.DatabaseTransactionManager;
-import ca.nrc.cadc.net.ResourceNotFoundException;
-import ca.nrc.cadc.profiler.Profiler;
-import ca.nrc.cadc.rest.RestAction;
-import ca.nrc.cadc.tap.db.TableCreator;
-import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import java.security.AccessControlException;
-import javax.sql.DataSource;
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+
 import org.apache.log4j.Logger;
+import org.opencadc.gms.GroupURI;
+
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.rest.InlineContentHandler;
+import ca.nrc.cadc.tap.schema.TapPermissions;
+import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 
 /**
- * Drop table. This action drops a database table and removes the description
- * to the tap_schema.
+ * Return the permissions for the object identified by the 'name'
+ * parameter.
  * 
- * @author pdowler
+ * @author majorb
+ *
  */
-public class DeleteAction extends TablesAction {
-    private static final Logger log = Logger.getLogger(DeleteAction.class);
-
-    public DeleteAction() { 
-    }
+public class GetPermissionsAction extends TablesAction {
+    
+    private static final Logger log = Logger.getLogger(GetPermissionsAction.class);
 
     @Override
     public void doAction() throws Exception {
-        String tableName = getTableName();
-        log.debug("DELETE: " + tableName);
+        String name = getTableName();
+        log.debug("POST: " + name);
         
         checkWritable();
         
-        if (tableName == null) {
-            throw new IllegalArgumentException("Missing table name in path.");
+        if (name == null) {
+            throw new IllegalArgumentException( "Missing param: name");
         }
         
-        Profiler prof = new Profiler(DeleteAction.class);
-        DatabaseTransactionManager tm = null;
-
-        DataSource ds = getDataSource();
-        TapSchemaDAO ts = getTapSchemaDAO();
-        ts.setDataSource(ds);
-        
-        tm = new DatabaseTransactionManager(ds);
-        checkDropTablePermission(ts, tableName);
-            
-        try {
-            
-            tm.startTransaction();
-            prof.checkpoint("start-transaction");
-            
-            // drop table
-            TableCreator tc = new TableCreator(ds);
-            tc.dropTable(tableName);
-            prof.checkpoint("delete-table");
-            
-            // remove from tap_schema last to minimise locking
-            ts.delete(tableName);
-            prof.checkpoint("delete-from-tap-schema");
-            
-            tm.commitTransaction();
-            prof.checkpoint("commit-transaction");
-        } catch (ResourceNotFoundException rethrow) { 
-            if (tm != null && tm.isOpen()) {
-                tm.rollbackTransaction();
-            }
-            throw rethrow;
-        } catch (Exception ex) {
-            try {
-                log.error("DELETE failed - rollback", ex);
-                tm.rollbackTransaction();
-                prof.checkpoint("rollback-transaction");
-                log.error("DELETE failed - rollback: OK");
-            } catch (Exception oops) {
-                log.error("DELETE failed - rollback : FAIL", oops);
-            }
-            // TODO: categorise failures better
-            throw new RuntimeException("failed to delete " + tableName, ex);
-        } finally { 
-            if (tm.isOpen()) {
-                log.error("BUG: open transaction in finally - trying to rollback");
-                try {
-                    tm.rollbackTransaction();
-                    prof.checkpoint("rollback-transaction");
-                    log.error("BUG: rollback in finally: OK");
-                } catch (Exception oops) {
-                    log.error("BUG: rollback in finally: FAIL", oops);
-                }
-            }
+        TapSchemaDAO dao = getTapSchemaDAO();
+        TapPermissions permissions = null;
+        if (Util.isSchemaName(name)) {
+            permissions = checkViewSchemaPermissions(dao, name);
+        } else if (Util.isTableName(name)) {
+            permissions = checkViewTablePermissions(dao, name);
+        } else {
+            throw new IllegalArgumentException("No such object: " + name);
         }
         
         syncOutput.setCode(200);
+        syncOutput.setHeader("Content-Type", PERMS_CONTENTTYPE);
+        
+        StringBuilder sb = new StringBuilder();
+        String ownerString = getOwnerString(permissions.owner);
+        String readGroupString = getGroupString(permissions.readGroup);
+        String readWriteGroupString = getGroupString(permissions.readWriteGroup);
+        sb.append(OWNER_KEY).append("=").append(ownerString).append("\n");
+        sb.append(PUBLIC_KEY).append("=").append(Boolean.toString(permissions.isPublic)).append("\n");
+        sb.append(RGROUP_KEY).append("=").append(readGroupString).append("\n");
+        sb.append(RWGROUP_KEY).append("=").append(readWriteGroupString).append("\n");
+        
+        OutputStream out = syncOutput.getOutputStream();
+        out.write(sb.toString().getBytes());
     }
+    
+    @Override
+    protected InlineContentHandler getInlineContentHandler() {
+        return null;
+    }
+    
+    // return the the x500 DN or a blank string
+    private String getOwnerString(Subject s) {
+        if (s == null) {
+            return "";
+        }
+        if (s.getPrincipals(X500Principal.class).size() > 0) {
+            return s.getPrincipals(X500Principal.class).iterator().next().getName();
+        }
+        return "";
+    }
+            
+    private String getGroupString(GroupURI group) {
+        if (group == null) {
+            return "";
+        }
+        return group.toString();
+    }
+
 }

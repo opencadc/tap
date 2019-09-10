@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2009.                            (c) 2009.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,113 +69,60 @@
 
 package ca.nrc.cadc.tap.schema;
 
-import java.util.ArrayList;
-import java.util.List;
+import javax.security.auth.Subject;
+
+import org.opencadc.gms.GroupURI;
+
 
 /**
- * Descriptor Class to represent a TAP_SCHEMA.tables table.
+ * Class to hold access control information for a schema or table.
  * 
+ * Used in the retrieval and modification of permissions in TapSchemaDAO.
+ * 
+ * @author majorb
+ *
  */
-public class TableDesc
-{
-    private String schemaName;
-    private String tableName;
-    private final List<ColumnDesc> columnDescs = new ArrayList<ColumnDesc>();
-    private final List<KeyDesc> keyDescs = new ArrayList<KeyDesc>();
+public class TapPermissions {
     
-    public String description;
-    public String utype;
-    public Integer tableIndex;
-    public TableType tableType = TableType.TABLE;
-    public TapPermissions tapPermissions;
+    public Subject owner;
+    public Boolean isPublic;
+    public GroupURI readGroup;
+    public GroupURI readWriteGroup;
     
-    public enum TableType {
-        TABLE("table"),
-        VIEW("view");
-        
-        private String value;
-        
-        TableType(String value) {
-            this.value = value;
-        }
-        
-        static TableType toValue(String s) {
-            for (TableType tt : TableType.values()) {
-                if (tt.value.equals(s)) {
-                    return tt;
-                }
-            }
-            throw new IllegalArgumentException("invalid value: " + s);
-        }
-        
-        public String getValue() {
-            return value;
-        }
+    public TapPermissions() {
     }
 
-    public TableDesc(String schemaName, String tableName) 
-    {
-        TapSchema.assertNotNull(TableDesc.class, "schemaName", schemaName);
-        TapSchema.assertNotNull(TableDesc.class, "tableName", tableName);
-        this.schemaName = schemaName;
-        this.tableName = tableName;
-    }
-
-    public void setSchemaName(String schemaName) {
-        this.schemaName = schemaName;
-    }
-
-    public String getSchemaName()
-    {
-        return schemaName;
-    }
-
-    public void setTableName(String tableName) {
-        this.tableName = tableName;
-    }
-
-    public String getTableName()
-    {
-        return tableName;
-    }
-
-    public List<ColumnDesc> getColumnDescs()
-    {
-        return columnDescs;
+    public TapPermissions(Subject owner, Boolean isPublic, GroupURI readGroup, GroupURI readWriteGroup) {
+        this.owner = owner;
+        this.isPublic = isPublic;
+        this.readGroup = readGroup;
+        this.readWriteGroup = readWriteGroup;
     }
     
-    public ColumnDesc getColumn(String name)
-    {
-        for (ColumnDesc cd : columnDescs)
-        {
-            if (cd.getColumnName().equalsIgnoreCase(name))
-                return cd;
-        }
-        return null;
-    }
-
-    public List<KeyDesc> getKeyDescs()
-    {
-        return keyDescs;
-    }
-
-    public String toString()
-    {
+    @Override
+    public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("Table[");
-        sb.append(schemaName == null ? "" : schemaName).append(",");
-        sb.append(tableName).append(",");
-        sb.append(description == null ? "" : description).append(",");
-        sb.append(utype == null ? "" : utype).append(",");
-        sb.append("columns[");
-        for (ColumnDesc col : columnDescs)
-            sb.append(col).append("|");
-        sb.append("],");
-        sb.append("keys[");
-        for (KeyDesc key:  keyDescs)
-            sb.append(key).append("|");
-        sb.append("]]");
+        sb.append("owner=");
+        if (owner != null) {
+            sb.append(owner);
+        }
+        sb.append(",");
+        sb.append("isPublic=");
+        if (isPublic != null) {
+            sb.append(isPublic);
+        }
+        sb.append(",");
+        sb.append("readGroup=");
+        if (readGroup != null) {
+            sb.append(readGroup.getURI());
+        }
+        sb.append(",");
+        sb.append("readWriteGroup=");
+        if (readWriteGroup != null) {
+            sb.append(readWriteGroup.getURI());
+        }
         return sb.toString();
     }
+    
 
 }

@@ -114,9 +114,9 @@ public class TableContentHandler implements InlineContentHandler {
             throw new IllegalArgumentException("Missing table name in path");
         }
 
-        parent.checkTableWritePermission(tableName);
-
         TapSchemaDAO ts = parent.getTapSchemaDAO();
+        parent.checkTableWritePermissions(ts, tableName);
+
         TableDesc targetTableDesc = ts.getTable(tableName);
         if (targetTableDesc == null) {
             throw new ResourceNotFoundException("Table not found: " + tableName);

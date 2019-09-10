@@ -69,16 +69,25 @@
 
 package ca.nrc.cadc.tap.schema;
 
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.db.ConnectionConfig;
 import ca.nrc.cadc.db.DBConfig;
 import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.util.Log4jInit;
+import java.security.Principal;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
 import javax.sql.DataSource;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
+import org.opencadc.gms.GroupURI;
 
 /**
  *
@@ -369,4 +378,101 @@ public class TapSchemaDAOTest {
         }
     }
     
+    @Test
+    public void testSetGetPermisions() {
+        try {
+            TapSchemaDAO dao = new TapSchemaDAO();
+            dao.setDataSource(dataSource);
+            
+            SchemaDesc sd = dao.getSchema("intTest", true);
+            if (sd == null) {
+                sd = new SchemaDesc("intTest");
+                dao.put(sd);
+            }
+            
+            TableDesc td = new TableDesc("intTest", "intTest.testSetGetPermisions");
+            td.getColumnDescs().add(new ColumnDesc(td.getTableName(), "a", TapDataType.INTEGER));
+            td.getColumnDescs().add(new ColumnDesc(td.getTableName(), "b", TapDataType.STRING));
+            
+            try {
+                dao.delete(td.getTableName());
+            } catch (ResourceNotFoundException ex) {
+                log.debug("table did not exist at setup: " + ex);
+            }
+            
+            dao.put(td);
+            
+            TableDesc td2 = dao.getTable(td.getTableName());
+            Assert.assertNotNull(td2);
+            
+            TapPermissions tp0 = dao.getTablePermissions(td.getTableName());
+            Assert.assertNotNull(tp0);
+            Assert.assertNull("owner", tp0.owner);
+            Assert.assertFalse("anon", tp0.isPublic);
+            Assert.assertNull("read-only", tp0.readGroup);
+            Assert.assertNull("read-write", tp0.readWriteGroup);
+            
+            // default IdentityManager is X500IdentityManager (cadc-util)
+            X500Principal owner = new X500Principal("C=ca, O=test, CN=foo");
+            
+            Set<Principal> pset = new HashSet<Principal>();
+            pset.add(owner); 
+            Subject foo = new Subject(true, pset, new HashSet<>(), new HashSet<>());
+            TapPermissions perms = new TapPermissions(foo, Boolean.FALSE, 
+                    new GroupURI("ivo://cadc.nrc.ca/gms?RO"), new GroupURI("ivo://cadc.nrc.ca/gms?RW"));
+            
+            dao.setSchemaPermissions("intTest", perms);
+            TapPermissions sp1 = dao.getSchemaPermissions("intTest");
+            Assert.assertNotNull(sp1);
+            Assert.assertNotNull("null owner", sp1.owner);
+            Subject s1 = sp1.owner;
+            Assert.assertFalse(s1.getPrincipals().isEmpty());
+            Principal p1 = s1.getPrincipals().iterator().next();
+            Assert.assertTrue("owner", AuthenticationUtil.equals(owner, p1));
+            Assert.assertFalse("anon", sp1.isPublic);
+            Assert.assertEquals("read-only", perms.readGroup, sp1.readGroup);
+            Assert.assertEquals("read-write", perms.readWriteGroup, sp1.readWriteGroup);
+            
+            dao.setSchemaPermissions("intTest", new TapPermissions());
+            TapPermissions sp2 = dao.getSchemaPermissions("intTest");
+            Assert.assertNotNull(sp2);
+            Assert.assertNotNull("null owner", sp2.owner);
+            Subject s2 = sp2.owner;
+            Assert.assertFalse(s2.getPrincipals().isEmpty());
+            Principal p2 = s2.getPrincipals().iterator().next();
+            Assert.assertTrue("owner", AuthenticationUtil.equals(owner, p2));
+            Assert.assertFalse("anon", sp2.isPublic);
+            Assert.assertNull("read-only", sp2.readGroup);
+            Assert.assertNull("read-write", sp2.readWriteGroup);
+            
+            dao.setTablePermissions(td.getTableName(), perms);
+            
+            TapPermissions tp3 = dao.getTablePermissions(td.getTableName());
+            Assert.assertNotNull(tp3);
+            Assert.assertNotNull("null owner", tp3.owner);
+            Subject s3 = tp3.owner;
+            Assert.assertFalse(s3.getPrincipals().isEmpty());
+            Principal p3 = s3.getPrincipals().iterator().next();
+            Assert.assertTrue("owner", AuthenticationUtil.equals(owner, p3));
+            Assert.assertFalse("anon", tp3.isPublic);
+            Assert.assertEquals("read-only", perms.readGroup, tp3.readGroup);
+            Assert.assertEquals("read-write", perms.readWriteGroup, tp3.readWriteGroup);
+            
+            dao.setTablePermissions(td.getTableName(), new TapPermissions());
+            TapPermissions tp4 = dao.getTablePermissions(td.getTableName());
+            Assert.assertNotNull(tp4);
+            Assert.assertNotNull("null owner", tp4.owner);
+            Subject s4 = tp4.owner;
+            Assert.assertFalse(s4.getPrincipals().isEmpty());
+            Principal p4 = s4.getPrincipals().iterator().next();
+            Assert.assertTrue("owner", AuthenticationUtil.equals(owner, p4));
+            Assert.assertFalse("anon", tp4.isPublic);
+            Assert.assertNull("read-only", tp4.readGroup);
+            Assert.assertNull("read-write", tp4.readWriteGroup);
+            
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
 }

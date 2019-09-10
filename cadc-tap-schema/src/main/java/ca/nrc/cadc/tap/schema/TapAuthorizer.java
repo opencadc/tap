@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2009.                            (c) 2009.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,113 +69,132 @@
 
 package ca.nrc.cadc.tap.schema;
 
+import java.net.URI;
+import java.security.AccessControlException;
+import java.security.Principal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.security.auth.Subject;
+
+import org.apache.log4j.Logger;
+import org.opencadc.gms.GroupClient;
+import org.opencadc.gms.GroupURI;
+import org.opencadc.gms.GroupUtil;
+
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.cred.client.CredUtil;
 
 /**
- * Descriptor Class to represent a TAP_SCHEMA.tables table.
+ * Class that checks authorization on TapPermissions.
  * 
+ * @author majorb
+ *
  */
-public class TableDesc
-{
-    private String schemaName;
-    private String tableName;
-    private final List<ColumnDesc> columnDescs = new ArrayList<ColumnDesc>();
-    private final List<KeyDesc> keyDescs = new ArrayList<KeyDesc>();
+public class TapAuthorizer {
     
-    public String description;
-    public String utype;
-    public Integer tableIndex;
-    public TableType tableType = TableType.TABLE;
-    public TapPermissions tapPermissions;
+    protected static Logger log = Logger.getLogger(TapAuthorizer.class);
     
-    public enum TableType {
-        TABLE("table"),
-        VIEW("view");
-        
-        private String value;
-        
-        TableType(String value) {
-            this.value = value;
+    public TapAuthorizer() {
+    }
+    
+    /**
+     * Check if the current user has read permission according to the given
+     * TapPermissions.
+     * 
+     * @param tp The permissions to check.
+     */
+    public boolean hasReadPermission(TapPermissions tp) {
+
+        // first check if the table is public
+        if (tp == null) {
+            log.debug("public: no tap permissions");
+            return true;
         }
-        
-        static TableType toValue(String s) {
-            for (TableType tt : TableType.values()) {
-                if (tt.value.equals(s)) {
-                    return tt;
+        if (tp.owner == null) {
+            log.debug("public: no owner in tap permissions");
+            return true;
+        }
+        if (tp.owner != null && tp.isPublic != null && tp.isPublic) {
+            log.debug("public: set as public");
+            return true;
+        }
+
+        Subject curSub = AuthenticationUtil.getCurrentSubject();
+        boolean anon = curSub == null || curSub.getPrincipals().isEmpty();
+
+        if (!anon) {
+            if (isOwner(tp.owner, curSub)) {
+                log.debug("caller is owner");
+                return true;
+            }
+            try {
+                if (tp.readGroup != null) {
+                    if (isMember(tp.readGroup)) {
+                        log.debug("caller member of read-only group " + tp.readGroup);
+                        return true;
+                    }
+                }
+                if (tp.readWriteGroup != null) {
+                    if (isMember(tp.readWriteGroup)) {
+                        log.debug("caller member of read-write group " + tp.readWriteGroup);
+                        return true;
+                    }
+                }
+            } catch (Exception e) {
+                log.error("error getting groups or checking credentials", e);
+                throw new RuntimeException(e);
+            }
+        }
+        return false;
+    }
+
+    // return true if the two subjects have a common principal
+    private boolean isOwner(Subject owner, Subject caller) {
+        Set<Principal> ownerPrincipals = owner.getPrincipals();
+        Set<Principal> callerPrincipals = caller.getPrincipals();
+        for (Principal oPrin : ownerPrincipals) {
+            for (Principal cPrin : callerPrincipals) {
+                if (AuthenticationUtil.equals(oPrin, cPrin)) {
+                    return true;
                 }
             }
-            throw new IllegalArgumentException("invalid value: " + s);
         }
-        
-        public String getValue() {
-            return value;
+        return false;
+    }
+
+    // check membership
+    private boolean isMember(GroupURI group) throws Exception {
+        GroupClient groupClient = GroupUtil.getGroupClient(group.getServiceID());
+        if (groupClient != null) {
+            
+            boolean hasCDPCreds = false;
+            try {
+                hasCDPCreds = CredUtil.checkCredentials();
+            } catch (Exception e) {
+                log.debug("Failed to check for valid CDP credentials needed for group membership check");
+                throw e;
+            }
+            if (hasCDPCreds) {
+                List<GroupURI> memberships = groupClient.getMemberships();
+                if (memberships != null) {
+                    log.debug("user is a member of " + memberships.size() + " groups in service " + group.getServiceID());
+                    for (GroupURI next : memberships) {
+                        if (next.equals(group)) {
+                            return true;
+                        }
+                    }
+                } else {
+                    log.debug("User has no group memberships (null)");
+                }
+            } else {
+                log.debug("No CDP credentials availalbe to allow group membership check");
+            }
         }
-    }
-
-    public TableDesc(String schemaName, String tableName) 
-    {
-        TapSchema.assertNotNull(TableDesc.class, "schemaName", schemaName);
-        TapSchema.assertNotNull(TableDesc.class, "tableName", tableName);
-        this.schemaName = schemaName;
-        this.tableName = tableName;
-    }
-
-    public void setSchemaName(String schemaName) {
-        this.schemaName = schemaName;
-    }
-
-    public String getSchemaName()
-    {
-        return schemaName;
-    }
-
-    public void setTableName(String tableName) {
-        this.tableName = tableName;
-    }
-
-    public String getTableName()
-    {
-        return tableName;
-    }
-
-    public List<ColumnDesc> getColumnDescs()
-    {
-        return columnDescs;
-    }
-    
-    public ColumnDesc getColumn(String name)
-    {
-        for (ColumnDesc cd : columnDescs)
-        {
-            if (cd.getColumnName().equalsIgnoreCase(name))
-                return cd;
-        }
-        return null;
-    }
-
-    public List<KeyDesc> getKeyDescs()
-    {
-        return keyDescs;
-    }
-
-    public String toString()
-    {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Table[");
-        sb.append(schemaName == null ? "" : schemaName).append(",");
-        sb.append(tableName).append(",");
-        sb.append(description == null ? "" : description).append(",");
-        sb.append(utype == null ? "" : utype).append(",");
-        sb.append("columns[");
-        for (ColumnDesc col : columnDescs)
-            sb.append(col).append("|");
-        sb.append("],");
-        sb.append("keys[");
-        for (KeyDesc key:  keyDescs)
-            sb.append(key).append("|");
-        sb.append("]]");
-        return sb.toString();
+        return false;
     }
 
 }

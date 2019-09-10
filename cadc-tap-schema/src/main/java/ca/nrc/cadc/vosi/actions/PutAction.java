@@ -76,6 +76,7 @@ import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.tap.db.TableCreator;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import java.security.AccessControlException;
 import javax.sql.DataSource;
@@ -103,7 +104,9 @@ public class PutAction extends TablesAction {
         
         checkWritable();
         
-        checkSchemaWritePermission(schemaName);
+        TapSchemaDAO ts = getTapSchemaDAO();
+        checkSchemaWritePermissions(ts, schemaName);
+        
         
         TableDesc inputTable = getInputTable(schemaName, tableName);
         if (inputTable == null) {
@@ -127,7 +130,6 @@ public class PutAction extends TablesAction {
         }
             
         DataSource ds = getDataSource();
-        TapSchemaDAO ts = getTapSchemaDAO();
         ts.setDataSource(ds);
         TableDesc td = ts.getTable(tableName);
         if (td != null) {
@@ -149,9 +151,11 @@ public class PutAction extends TablesAction {
             ts.put(inputTable);
             prof.checkpoint("insert-into-tap-schema");
             
-            // set owner
-            setTableOwner(tableName, AuthenticationUtil.getCurrentSubject());
-            prof.checkpoint("set-owner");
+            // set the permissions to be initially private
+            TapPermissions tablePermissions = new TapPermissions(
+                AuthenticationUtil.getCurrentSubject(), false, null, null);
+            ts.setTablePermissions(tableName, tablePermissions);
+            prof.checkpoint("set-permissions");
             
             tm.commitTransaction();
             prof.checkpoint("commit-transaction");

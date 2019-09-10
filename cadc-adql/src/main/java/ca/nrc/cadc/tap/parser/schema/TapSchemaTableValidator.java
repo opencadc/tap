@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2019.                            (c) 2019.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,70 +69,79 @@
 
 package ca.nrc.cadc.tap.parser.schema;
 
+import java.security.AccessControlException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.tap.parser.ParserUtil;
 import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.schema.TableDesc;
-
+import ca.nrc.cadc.tap.schema.TapAuthorizer;
 import ca.nrc.cadc.tap.schema.TapSchema;
-import java.util.ArrayList;
-import java.util.List;
 import net.sf.jsqlparser.schema.Table;
 
 /**
- * Validate Tables.
+ * Validate Tables and check permissions if applicable.
  * 
- * @author zhangsa
- *
  */
-public class TapSchemaTableValidator extends FromItemNavigator
-{
+public class TapSchemaTableValidator extends FromItemNavigator {
     protected static Logger log = Logger.getLogger(TapSchemaTableValidator.class);
 
     protected TapSchema tapSchema;
-    
+
     private List<TableDesc> tables = new ArrayList<>();
-    
-    public TapSchemaTableValidator()
-    {
+    private TapAuthorizer tapAuthorizer = new TapAuthorizer();
+
+    public TapSchemaTableValidator() {
     }
 
-    public TapSchemaTableValidator(TapSchema ts)
-    {
+    public TapSchemaTableValidator(TapSchema ts) {
         this.tapSchema = ts;
     }
 
-    public void setTapSchema(TapSchema tapSchema)
-    {
+    public void setTapSchema(TapSchema tapSchema) {
         this.tapSchema = tapSchema;
     }
 
     /**
      * Get list of tables referenced in the query.
      * 
-     * @return tables referenced in query 
+     * @return tables referenced in query
      */
     public List<TableDesc> getTables() {
         return tables;
     }
-        
-    /* (non-Javadoc)
-     * @see net.sf.jsqlparser.statement.select.FromItemVisitor#visit(net.sf.jsqlparser.schema.Table)
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * net.sf.jsqlparser.statement.select.FromItemVisitor#visit(net.sf.jsqlparser.
+     * schema.Table)
      */
     @Override
-    public void visit(Table table)
-    {
+    public void visit(Table table) {
         log.debug("visit(table) " + table);
         String tableNameOrAlias = table.getName();
         Table qTable = ParserUtil.findFromTable(selectNavigator.getPlainSelect(), tableNameOrAlias);
-        if (qTable == null)
+        if (qTable == null) {
             throw new IllegalArgumentException("Table [ " + table + " ] is not found in FROM clause");
+        }
         TableDesc td = TapSchemaUtil.findTableDesc(tapSchema, qTable);
-        if (td == null)
-            throw new IllegalArgumentException("Table [ " + table + " ] is not found in TapSchema");
+        if (td == null) {
+            throw new IllegalArgumentException("Table [ " + table + " ] is not found in TapSchema." +
+                " Possible reasons: table does not exist or permission is denied.");
+        }
         if (!tables.contains(td)) {
-            tables.add(td);
+            log.debug("Checking permissions on table " + td.getTableName());
+            if (tapAuthorizer.hasReadPermission(td.tapPermissions)) {
+                tables.add(td);
+            } else {
+                throw new AccessControlException("permission denied on table " + td.getTableName());
+            }
         }
     }
+
 }
