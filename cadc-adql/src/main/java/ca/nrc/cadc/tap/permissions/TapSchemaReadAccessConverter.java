@@ -67,7 +67,7 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.impl;
+package ca.nrc.cadc.tap.permissions;
 
 import java.net.URI;
 import java.security.AccessControlException;
