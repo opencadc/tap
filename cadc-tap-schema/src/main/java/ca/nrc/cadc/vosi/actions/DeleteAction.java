@@ -104,14 +104,14 @@ public class DeleteAction extends TablesAction {
         Profiler prof = new Profiler(DeleteAction.class);
         DatabaseTransactionManager tm = null;
 
+        DataSource ds = getDataSource();
+        TapSchemaDAO ts = getTapSchemaDAO();
+        ts.setDataSource(ds);
+        
+        tm = new DatabaseTransactionManager(ds);
+        checkDropTablePermission(ts, tableName);
+            
         try {
-            
-            DataSource ds = getDataSource();
-            TapSchemaDAO ts = getTapSchemaDAO();
-            ts.setDataSource(ds);
-            
-            tm = new DatabaseTransactionManager(ds);
-            checkDropTablePermission(ts, tableName);
             
             tm.startTransaction();
             prof.checkpoint("start-transaction");
