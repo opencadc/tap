@@ -262,11 +262,12 @@ public abstract class TablesAction extends RestAction {
     void checkTableReadPermissions(TapSchemaDAO dao, String tableName)
             throws AccessControlException, ResourceNotFoundException {
         
-        String schemaName = Util.getSchemaFromTable(tableName);
         TapPermissions tablePermissions = dao.getTablePermissions(tableName);
         if (tablePermissions == null) {
             throw new ResourceNotFoundException("table not found: " + tableName);
         }
+        
+        String schemaName = Util.getSchemaFromTable(tableName);
         
         TapPermissions schemaPermissions = dao.getSchemaPermissions(schemaName);
         if (schemaPermissions == null) {
