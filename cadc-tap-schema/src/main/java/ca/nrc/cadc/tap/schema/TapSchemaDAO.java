@@ -1069,7 +1069,11 @@ public class TapSchemaDAO {
             Subject owner = tp.owner;
             Object ownerVal = identityManager.toOwner(owner);
 
-            safeSetString(vals, prep, colIndex++, ownerVal.toString());
+            if (ownerVal != null) {
+                safeSetString(vals, prep, colIndex++, ownerVal.toString());
+            } else {
+                safeSetString(vals, prep, colIndex++, null);
+            }
             safeSetBoolean(vals, prep, colIndex++, tp.isPublic);
             safeSetURI(vals, prep, colIndex++, tp.readGroup);
             safeSetURI(vals, prep, colIndex++, tp.readWriteGroup);

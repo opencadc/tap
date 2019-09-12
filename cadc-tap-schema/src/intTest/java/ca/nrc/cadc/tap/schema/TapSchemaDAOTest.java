@@ -421,6 +421,7 @@ public class TapSchemaDAOTest {
             TapPermissions perms = new TapPermissions(foo, Boolean.FALSE, 
                     new GroupURI("ivo://cadc.nrc.ca/gms?RO"), new GroupURI("ivo://cadc.nrc.ca/gms?RW"));
             
+            // set schema permissions
             dao.setSchemaPermissions("intTest", perms);
             TapPermissions sp1 = dao.getSchemaPermissions("intTest");
             Assert.assertNotNull(sp1);
@@ -433,20 +434,8 @@ public class TapSchemaDAOTest {
             Assert.assertEquals("read-only", perms.readGroup, sp1.readGroup);
             Assert.assertEquals("read-write", perms.readWriteGroup, sp1.readWriteGroup);
             
-            dao.setSchemaPermissions("intTest", new TapPermissions());
-            TapPermissions sp2 = dao.getSchemaPermissions("intTest");
-            Assert.assertNotNull(sp2);
-            Assert.assertNotNull("null owner", sp2.owner);
-            Subject s2 = sp2.owner;
-            Assert.assertFalse(s2.getPrincipals().isEmpty());
-            Principal p2 = s2.getPrincipals().iterator().next();
-            Assert.assertTrue("owner", AuthenticationUtil.equals(owner, p2));
-            Assert.assertFalse("anon", sp2.isPublic);
-            Assert.assertNull("read-only", sp2.readGroup);
-            Assert.assertNull("read-write", sp2.readWriteGroup);
-            
+            // set table permissions
             dao.setTablePermissions(td.getTableName(), perms);
-            
             TapPermissions tp3 = dao.getTablePermissions(td.getTableName());
             Assert.assertNotNull(tp3);
             Assert.assertNotNull("null owner", tp3.owner);
@@ -458,14 +447,20 @@ public class TapSchemaDAOTest {
             Assert.assertEquals("read-only", perms.readGroup, tp3.readGroup);
             Assert.assertEquals("read-write", perms.readWriteGroup, tp3.readWriteGroup);
             
+            // clear schema permissions
+            dao.setSchemaPermissions("intTest", new TapPermissions());
+            TapPermissions sp2 = dao.getSchemaPermissions("intTest");
+            Assert.assertNotNull(sp2);
+            Assert.assertNull("null owner", sp2.owner);
+            Assert.assertFalse("anon", sp2.isPublic);
+            Assert.assertNull("read-only", sp2.readGroup);
+            Assert.assertNull("read-write", sp2.readWriteGroup);
+            
+            // clear table permissions
             dao.setTablePermissions(td.getTableName(), new TapPermissions());
             TapPermissions tp4 = dao.getTablePermissions(td.getTableName());
             Assert.assertNotNull(tp4);
-            Assert.assertNotNull("null owner", tp4.owner);
-            Subject s4 = tp4.owner;
-            Assert.assertFalse(s4.getPrincipals().isEmpty());
-            Principal p4 = s4.getPrincipals().iterator().next();
-            Assert.assertTrue("owner", AuthenticationUtil.equals(owner, p4));
+            Assert.assertNull("null owner", tp4.owner);
             Assert.assertFalse("anon", tp4.isPublic);
             Assert.assertNull("read-only", tp4.readGroup);
             Assert.assertNull("read-write", tp4.readWriteGroup);
