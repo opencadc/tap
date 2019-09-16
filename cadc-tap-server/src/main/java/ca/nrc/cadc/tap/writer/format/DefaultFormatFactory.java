@@ -131,55 +131,72 @@ public class DefaultFormatFactory implements FormatFactory
         TapDataType tt = item.getDatatype();
         String datatype = tt.getDatatype();
         
-        // DALI-1.1
-        if ( datatype.equals("char") && "timestamp".equals(tt.xtype)) // DALI-1.1
-            return new UTCTimestampFormat();
+        if (tt.xtype != null) {
+            if ( datatype.equals("char") && "timestamp".equals(tt.xtype)) // DALI-1.1
+                return new UTCTimestampFormat();
 
-        if ("point".equals(tt.xtype)) // DALI-1.1
-            return getPointFormat(item);
-        
-        if ("circle".equals(tt.xtype)) // DALI-1.1
-            return getCircleFormat(item);
-        
-        if ("polygon".equals(tt.xtype)) // DALI-1.1
-            return getPolygonFormat(item);
-        
-        if ("interval".equals(tt.xtype)) // DALI-1.1
-            return getIntervalFormat(item);
-        
-        if ("uuid".equals(tt.xtype)) // custom
-            return getUUIDFormat(item);
+            if ("point".equals(tt.xtype)) // DALI-1.1
+                return getPointFormat(item);
 
-        if ("uri".equals(tt.xtype)) // custom
-            return getStringFormat(item);
-        
-        if ("clob".equals(tt.xtype)) // custom or ADQL-2.1?
-            return getClobFormat(item);
-        
-        // unsupported: boolean, bit, unsignedByte, floatComplex, doubleComplex
-        
-        // TAP-1.0 ADQL types for backwards compatibility
-        if ("adql:POINT".equalsIgnoreCase(tt.xtype))
-            return getPositionFormat(item);
-        
-        if ("adql:REGION".equalsIgnoreCase(tt.xtype))
-            return getRegionFormat(item);
-        
-        if ("adql:TIMESTAMP".equalsIgnoreCase(tt.xtype))
-            return new UTCTimestampFormat();
-        
-        if ("adql:CLOB".equalsIgnoreCase(tt.xtype))
-            return getClobFormat(item);
-        
-        if ("adql:BLOB".equalsIgnoreCase(tt.xtype))
-            return getBlobFormat(item);
+            if ("circle".equals(tt.xtype)) // DALI-1.1
+                return getCircleFormat(item);
+
+            if ("polygon".equals(tt.xtype)) // DALI-1.1
+                return getPolygonFormat(item);
+
+            if ("interval".equals(tt.xtype)) // DALI-1.1
+                return getIntervalFormat(item);
+
+            if (tt.xtype.endsWith("multiinterval")) // proposed DALI-1.2, ignore prefix
+                return getMultiIntervalFormat(item);
+
+            if (tt.xtype.endsWith("multipolygon")) // proposed DALI-1.2, ignore prefix
+                return getMultiPolygonFormat(item);
+
+            if (tt.xtype.endsWith("shape")) // proposed DALI-1.2, ignore prefix
+                return getShapeFormat(item);
+
+            if (tt.xtype.endsWith("region")) // proposed DALI-1.2, ignore prefix
+                return getRegionFormat(item);
+
+            if ("uuid".equals(tt.xtype)) // custom
+                return getUUIDFormat(item);
+
+            if ("uri".equals(tt.xtype)) // custom
+                return getStringFormat(item);
+
+            if ("clob".equals(tt.xtype)) // custom or ADQL-2.1?
+                return getClobFormat(item);
+
+            // unsupported: boolean, bit, floatComplex, doubleComplex
+
+            // TAP-1.0 ADQL types for backwards compatibility
+            if ("adql:POINT".equalsIgnoreCase(tt.xtype))
+                return getPositionFormat(item);
+
+            if ("adql:REGION".equalsIgnoreCase(tt.xtype))
+                return getRegionFormat(item);
+
+            if ("adql:TIMESTAMP".equalsIgnoreCase(tt.xtype))
+                return new UTCTimestampFormat();
+
+            if ("adql:CLOB".equalsIgnoreCase(tt.xtype))
+                return getClobFormat(item);
+
+            if ("adql:BLOB".equalsIgnoreCase(tt.xtype))
+                return getBlobFormat(item);
+        }
         
         // primitive types
-        if (datatype.equalsIgnoreCase("char") || datatype.equalsIgnoreCase("char"))
+        if (datatype.equalsIgnoreCase("char"))
             return getStringFormat(item);
         
-        if (datatype.equalsIgnoreCase("unsignedByte") && tt.arraysize != null)
+        if (datatype.equalsIgnoreCase("unsignedByte"))
+            if (tt.arraysize != null)
                 return getByteArrayFormat(item);
+            else
+                return getByteFormat(item);
+                
         
         if (datatype.equalsIgnoreCase("short"))
             if (tt.arraysize != null)
@@ -214,6 +231,15 @@ public class DefaultFormatFactory implements FormatFactory
         return getDefaultFormat();
     }
 
+    /**
+     * @param columnDesc
+     * @return a DefaultFormat
+     */
+    protected Format<Object> getByteFormat(TapSelectItem columnDesc)
+    {
+        return getDefaultFormat();
+    }
+    
     /**
      * @param columnDesc
      * @return a DefaultFormat
@@ -364,6 +390,19 @@ public class DefaultFormatFactory implements FormatFactory
      * @param columnDesc
      * @throws UnsupportedOperationException
      */
+    protected Format<Object> getMultiPolygonFormat(TapSelectItem columnDesc)
+    {
+        throw new UnsupportedOperationException("no formatter for column " + columnDesc.getName());
+    }
+    
+    protected Format<Object> getShapeFormat(TapSelectItem columnDesc) {
+        throw new UnsupportedOperationException("no formatter for column " + columnDesc.getName());
+    }
+    
+    /**
+     * @param columnDesc
+     * @throws UnsupportedOperationException
+     */
     protected Format<Object> getPositionFormat(TapSelectItem columnDesc)
     {
         throw new UnsupportedOperationException("no formatter for column " + columnDesc.getName());
@@ -383,6 +422,15 @@ public class DefaultFormatFactory implements FormatFactory
      * @throws UnsupportedOperationException
      */
     protected Format<Object> getIntervalFormat(TapSelectItem columnDesc)
+    {
+        throw new UnsupportedOperationException("no formatter for column " + columnDesc.getName());
+    }
+    
+    /**
+     * @param columnDesc
+     * @throws UnsupportedOperationException
+     */
+    protected Format<Object> getMultiIntervalFormat(TapSelectItem columnDesc)
     {
         throw new UnsupportedOperationException("no formatter for column " + columnDesc.getName());
     }

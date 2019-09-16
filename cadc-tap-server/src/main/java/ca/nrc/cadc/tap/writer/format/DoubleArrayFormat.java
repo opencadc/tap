@@ -76,15 +76,14 @@ import java.sql.SQLException;
  * Formats a double[] into a String.
  *
  */
-public class DoubleArrayFormat extends AbstractResultSetFormat
-{
-    private static final ca.nrc.cadc.dali.util.DoubleArrayFormat fmt 
+public class DoubleArrayFormat extends AbstractResultSetFormat {
+
+    private static final ca.nrc.cadc.dali.util.DoubleArrayFormat fmt
             = new ca.nrc.cadc.dali.util.DoubleArrayFormat();
-    
+
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
-            throws SQLException
-    {
+            throws SQLException {
         return resultSet.getObject(columnIndex);
     }
 
@@ -97,25 +96,34 @@ public class DoubleArrayFormat extends AbstractResultSetFormat
      * @throws IllegalArgumentException if the object cannot be converted to a double[]
      */
     @Override
-    public String format(Object object)
-    {
-        if (object == null)
+    public String format(Object object) {
+        if (object == null) {
             return "";
-        if (object instanceof java.sql.Array)
-        {
-            try
-            {
+        }
+
+        return fmt.format(unwrap(object));
+    }
+
+    /**
+     * Convert a variety of ResultSet.getObject(int) return values to double[].
+     * 
+     * @param object
+     * @return 
+     */
+    public double[] unwrap(Object object) {
+        if (object == null) {
+            return null;
+        }
+        if (object instanceof java.sql.Array) {
+            try {
                 java.sql.Array array = (java.sql.Array) object;
                 object = array.getArray();
-            }
-            catch (SQLException e)
-            {
+            } catch (SQLException e) {
                 throw new IllegalArgumentException("Error accessing array data for " + object.getClass().getCanonicalName(), e);
             }
         }
-        
-        if (object instanceof Double[])
-        {
+
+        if (object instanceof Double[]) {
             Double[] arr = (Double[]) object;
             double[] tmp = new double[arr.length];
             for (int i = 0; i < arr.length; i++) {
@@ -123,12 +131,11 @@ public class DoubleArrayFormat extends AbstractResultSetFormat
             }
             object = tmp;
         }
-        
-        if (object instanceof double[])
-            return fmt.format((double[]) object);
+
+        if (object instanceof double[]) {
+            return (double[]) object;
+        }
 
         throw new IllegalArgumentException(object.getClass().getCanonicalName() + " not supported.");
-
-
     }
 }
