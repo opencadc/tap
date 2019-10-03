@@ -256,6 +256,8 @@ public class DefaultTableWriter implements TableWriter
             rssTableWriter = new RssTableWriter();
             this.contentType = rssTableWriter.getContentType();
             rssTableWriter.setJob(job);
+            // for error handling
+            tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
         }
         else
         {
@@ -266,16 +268,12 @@ public class DefaultTableWriter implements TableWriter
             if (type.equals(TSV))
                 tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
 
-            if (tableWriter == null)
-            {
-                // legal format but we don't have a table writer for it
-                throw new UnsupportedOperationException("unsupported format: " + type);
-            }
-
             this.contentType = tableWriter.getContentType();
             this.extension = tableWriter.getExtension();
         }
-        log.debug("created: " + tableWriter.getClass().getName());
+        if (tableWriter == null && rssTableWriter == null) {
+            throw new UnsupportedOperationException("unsupported format: " + type);
+        }
     }
 
     public void setFormatFactory(FormatFactory formatFactory)
