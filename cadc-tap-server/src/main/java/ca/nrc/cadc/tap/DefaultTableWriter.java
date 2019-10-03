@@ -254,28 +254,23 @@ public class DefaultTableWriter implements TableWriter
         if (type.equals(RSS))
         {
             rssTableWriter = new RssTableWriter();
-            this.contentType = rssTableWriter.getContentType();
             rssTableWriter.setJob(job);
+            // for error handling
+            tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
         }
-        else
-        {
-            if (type.equals(VOTABLE))
-                tableWriter = new VOTableWriter(format);
-            if (type.equals(CSV))
-                tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.CSV);
-            if (type.equals(TSV))
-                tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
-
-            if (tableWriter == null)
-            {
-                // legal format but we don't have a table writer for it
-                throw new UnsupportedOperationException("unsupported format: " + type);
-            }
-
-            this.contentType = tableWriter.getContentType();
-            this.extension = tableWriter.getExtension();
+        else if (type.equals(VOTABLE)) {
+            tableWriter = new VOTableWriter(format);
+        } else if (type.equals(CSV)) {
+            tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.CSV);
+        } else if (type.equals(TSV)) {
+            tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
         }
-        log.debug("created: " + tableWriter.getClass().getName());
+    
+        if (tableWriter == null) {
+            throw new UnsupportedOperationException("unsupported format: " + type);
+        }
+        this.contentType = tableWriter.getContentType();
+        this.extension = tableWriter.getExtension();
     }
 
     public void setFormatFactory(FormatFactory formatFactory)
