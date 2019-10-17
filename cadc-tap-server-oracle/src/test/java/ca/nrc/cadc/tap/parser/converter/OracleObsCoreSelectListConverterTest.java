@@ -98,7 +98,7 @@ public class OracleObsCoreSelectListConverterTest {
 
         final Table table = new Table("schema", "table");
         final Column columnA = new Column(table, "A");
-        final Column columnB = new Column(table, "S_REGION");
+        final Column columnB = new Column(table, "s_region");
         final Column columnC = new Column(table, "C");
 
         final List<Expression> substringParameters = new ArrayList<>();

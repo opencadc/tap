@@ -107,7 +107,7 @@ public class OracleObsCoreSelectListConverter extends SelectNavigator {
 
                     if (e instanceof Column) {
                         final Column c = (Column) e;
-                        if (c.getColumnName().equals(OBSCORE_REGION_COLUMN_NAME)) {
+                        if (c.getColumnName().equalsIgnoreCase(OBSCORE_REGION_COLUMN_NAME)) {
                             c.setColumnName(OBSCORE_REGION_COLUMN_REPLACE_NAME);
                         }
                     }
