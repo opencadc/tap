@@ -67,7 +67,6 @@
 
 package ca.nrc.cadc.tap.pg;
 
-
 import ca.nrc.cadc.dali.Circle;
 import ca.nrc.cadc.dali.DoubleInterval;
 import ca.nrc.cadc.dali.Point;
@@ -92,6 +91,7 @@ public class PostgresDataTypeMapper extends BasicDataTypeMapper {
     private static final Logger log = Logger.getLogger(PostgresDataTypeMapper.class);
 
     public PostgresDataTypeMapper() {
+        // DALI
         dataTypes.put(TapDataType.POINT, new TypePair("spoint", null));
         dataTypes.put(TapDataType.CIRCLE, new TypePair("scircle", null));
         dataTypes.put(TapDataType.POLYGON, new TypePair("spoly", null));
@@ -100,8 +100,16 @@ public class PostgresDataTypeMapper extends BasicDataTypeMapper {
         dataTypes.put(new TapDataType("char", "*", "uri"), new TypePair("CHAR", Types.CHAR));
         dataTypes.put(new TapDataType("char", "36", "uuid"), new TypePair("uuid", null));
         
+        // TAP-1.0 compat
         dataTypes.put(new TapDataType("char", "*", "adql:POINT"), new TypePair("spoint", null));
         dataTypes.put(new TapDataType("char", "*", "adql:REGION"), new TypePair("spoly", null));
+        
+        // arrays
+        dataTypes.put(new TapDataType("short", "*", null), new TypePair("smallint[]", null));
+        dataTypes.put(new TapDataType("int", "*", null), new TypePair("integer[]", null));
+        dataTypes.put(new TapDataType("long", "*", null), new TypePair("bigint[]", null));
+        dataTypes.put(new TapDataType("float", "*", null), new TypePair("real[]", null));
+        dataTypes.put(new TapDataType("double", "*", null), new TypePair("double precision[]", null));
     }
 
     @Override
@@ -112,6 +120,9 @@ public class PostgresDataTypeMapper extends BasicDataTypeMapper {
     @Override
     public String getIndexUsingQualifier(ColumnDesc columnDesc, boolean unique) {
         TypePair tp = findTypePair(columnDesc.getDatatype());
+        if (tp.str.contains("[")) {
+            throw new IllegalArgumentException("index not supported for array column type: " + columnDesc.getDatatype());
+        }
         switch(tp.str) {
             case "spoint":
             case "scircle":
@@ -183,5 +194,125 @@ public class PostgresDataTypeMapper extends BasicDataTypeMapper {
     {
         PgInterval gen = new PgInterval();
         return gen.generatePolygon2D(inter);
+    }
+
+    @Override
+    public Object getArrayObject(float[] val) {
+        if (val == null) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("{");
+        for (int i = 0; i < val.length; i++) {
+            sb.append(Double.toString(val[i]));
+            if (i + 1 < val.length) {
+                sb.append(",");
+            }
+        }
+        sb.append("}");
+        try {
+            PGobject pgo = new PGobject();
+            pgo.setType("float4[]");
+            pgo.setValue(sb.toString());
+            return pgo;
+        } catch (SQLException ex) {
+            throw new RuntimeException("BUG: failed to convert float[] to PGobject", ex);
+        }
+    }
+    
+    @Override
+    public Object getArrayObject(double[] val) {
+        if (val == null) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("{");
+        for (int i = 0; i < val.length; i++) {
+            sb.append(Double.toString(val[i]));
+            if (i + 1 < val.length) {
+                sb.append(",");
+            }
+        }
+        sb.append("}");
+        try {
+            PGobject pgo = new PGobject();
+            pgo.setType("float8[]");
+            pgo.setValue(sb.toString());
+            return pgo;
+        } catch (SQLException ex) {
+            throw new RuntimeException("BUG: failed to convert double[] to PGobject", ex);
+        }
+    }
+
+    @Override
+    public Object getArrayObject(short[] val) {
+        if (val == null) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("{");
+        for (int i = 0; i < val.length; i++) {
+            sb.append(Short.toString(val[i]));
+            if (i + 1 < val.length) {
+                sb.append(",");
+            }
+        }
+        sb.append("}");
+        try {
+            PGobject pgo = new PGobject();
+            pgo.setType("int2[]");
+            pgo.setValue(sb.toString());
+            return pgo;
+        } catch (SQLException ex) {
+            throw new RuntimeException("BUG: failed to convert short[] to PGobject", ex);
+        }
+    }
+    
+    @Override
+    public Object getArrayObject(int[] val) {
+        if (val == null) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("{");
+        for (int i = 0; i < val.length; i++) {
+            sb.append(Integer.toString(val[i]));
+            if (i + 1 < val.length) {
+                sb.append(",");
+            }
+        }
+        sb.append("}");
+        try {
+            PGobject pgo = new PGobject();
+            pgo.setType("int4[]");
+            pgo.setValue(sb.toString());
+            return pgo;
+        } catch (SQLException ex) {
+            throw new RuntimeException("BUG: failed to convert int[] to PGobject", ex);
+        }
+    }
+    
+    @Override
+    public Object getArrayObject(long[] val) {
+        if (val == null) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("{");
+        for (int i = 0; i < val.length; i++) {
+            sb.append(Long.toString(val[i]));
+            if (i + 1 < val.length) {
+                sb.append(",");
+            }
+        }
+        sb.append("}");
+        try {
+            PGobject pgo = new PGobject();
+            pgo.setType("int8[]");
+            pgo.setValue(sb.toString());
+            return pgo;
+        } catch (SQLException ex) {
+            throw new RuntimeException("BUG: failed to convert long[] to PGobject", ex);
+        }
     }
 }

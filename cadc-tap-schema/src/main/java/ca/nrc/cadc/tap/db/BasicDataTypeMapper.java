@@ -203,7 +203,7 @@ public class BasicDataTypeMapper implements DatabaseDataType {
     protected TypePair findTypePair(TapDataType tt) {
         TypePair dbt = dataTypes.get(tt);
         if (dbt == null && tt.arraysize != null) {
-            // input may have a non-matching arraysize
+            // input may have a more restrictive arraysize
             TapDataType tmp = new TapDataType(tt.getDatatype(), "*", tt.xtype);
             dbt = dataTypes.get(tmp);
         }
@@ -268,6 +268,31 @@ public class BasicDataTypeMapper implements DatabaseDataType {
 
     @Override
     public Object getIntervalArrayObject(DoubleInterval[] inter) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object getArrayObject(short[] val) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object getArrayObject(int[] val) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object getArrayObject(long[] val) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object getArrayObject(float[] val) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object getArrayObject(double[] val) {
         throw new UnsupportedOperationException();
     }
 }
