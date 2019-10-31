@@ -127,7 +127,8 @@ public class TableServlet extends HttpServlet
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
         throws ServletException, IOException
     {
-        WebServiceLogInfo logInfo = new ServletLogInfo(request, this.getClass());
+        WebServiceLogInfo logInfo = new ServletLogInfo(request);
+        logInfo.setClass(this.getClass());
         long start = System.currentTimeMillis();
         
         try
