@@ -1,5 +1,10 @@
 # cadc-tap-server-oracle
 
+## 2019.10.18 - 1.2.4
+
+  * Removed too-specific code for column replacement.
+  * Added `settings.gradle` for ease of loading the repository.
+
 ## 2019.04.16 - 1.2.2
 
   * Added retangle (box) support for ranges.
