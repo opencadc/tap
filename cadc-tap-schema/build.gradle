@@ -26,7 +26,7 @@ dependencies {
     compile 'org.apache.commons:commons-csv:[1.6,1.7)'
 
     compile 'org.opencadc:cadc-util:[1.2.25,)'
-    compile 'org.opencadc:cadc-log:[1.0.9,)'
+    compile 'org.opencadc:cadc-log:[1.1.0,)'
     compile 'org.opencadc:cadc-vosi:[1.3.2,)'
     compile 'org.opencadc:cadc-uws:[1.0,)'
     compile 'org.opencadc:cadc-uws-server:[1.2.4,)'
