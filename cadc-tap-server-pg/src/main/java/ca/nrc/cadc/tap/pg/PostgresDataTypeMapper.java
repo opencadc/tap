@@ -204,7 +204,7 @@ public class PostgresDataTypeMapper extends BasicDataTypeMapper {
         StringBuilder sb = new StringBuilder();
         sb.append("{");
         for (int i = 0; i < val.length; i++) {
-            sb.append(Double.toString(val[i]));
+            sb.append(Float.toString(val[i]));
             if (i + 1 < val.length) {
                 sb.append(",");
             }
