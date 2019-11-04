@@ -189,4 +189,11 @@ public class TapDataType
     // ADQL types
     public static final TapDataType BLOB = new TapDataType("byte", "*", "blob");
     public static final TapDataType CLOB = new TapDataType("char", "*", "clob");
+    
+    // Primitive arrays
+    public static final TapDataType SHORT_ARR = new TapDataType("short", "*", null);
+    public static final TapDataType INTEGER_ARR = new TapDataType("int", "*", null);
+    public static final TapDataType LONG_ARR = new TapDataType("long", "*", null);
+    public static final TapDataType FLOAT_ARR = new TapDataType("float", "*", null);
+    public static final TapDataType DOUBLE_ARR = new TapDataType("double", "*", null);
 }
