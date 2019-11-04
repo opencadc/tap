@@ -130,6 +130,12 @@ public class BasicDataTypeMapper implements DatabaseDataType {
 
         dataTypes.put(TapDataType.STRING, new TypePair("CHAR", Types.CHAR));
         dataTypes.put(TapDataType.TIMESTAMP, new TypePair("TIMESTAMP", Types.TIMESTAMP));
+        
+        dataTypes.put(TapDataType.SHORT_ARR, new TypePair("SMALLINT", Types.SMALLINT));
+        dataTypes.put(TapDataType.INTEGER_ARR, new TypePair("INTEGER", Types.INTEGER));
+        dataTypes.put(TapDataType.LONG_ARR, new TypePair("BIGINT", Types.BIGINT));
+        dataTypes.put(TapDataType.FLOAT_ARR, new TypePair("REAL", Types.REAL));
+        dataTypes.put(TapDataType.DOUBLE_ARR, new TypePair("DOUBLE PRECISION", Types.DOUBLE));
     }
 
     /**
