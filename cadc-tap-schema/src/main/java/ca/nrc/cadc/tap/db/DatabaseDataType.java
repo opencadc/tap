@@ -172,4 +172,14 @@ public interface DatabaseDataType
      * @return 
      */
     Object getIntervalArrayObject(DoubleInterval[] inter);
+    
+    Object getArrayObject(short[] val);
+    
+    Object getArrayObject(int[] val);
+    
+    Object getArrayObject(long[] val);
+    
+    Object getArrayObject(float[] val);
+    
+    Object getArrayObject(double[] val);
 }
