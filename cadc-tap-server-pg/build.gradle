@@ -10,17 +10,20 @@ repositories {
     jcenter()
 }
 
+apply from: '../intTest.gradle'
+
 sourceCompatibility = 1.7
+
 group = 'org.opencadc'
-version = '1.0.3'
+
+version = '1.0.4'
 
 dependencies {
     compile 'org.opencadc:cadc-dali-pg:[0.1,)'
     compile 'org.opencadc:cadc-tap-schema:[1.1.6, )'
     compile 'org.opencadc:cadc-tap-server:[1.1.7, )'
 
-    testCompile 'junit:junit:4.+'
-    testCompile 'org.opencadc:cadc-util:1.+'
-    testCompile 'xerces:xercesImpl:2.+'
-    testCompile 'org.jdom:jaxen-jdom:1.+'
+    testCompile 'junit:junit:[4.0,5.0)'
+    testCompile 'org.opencadc:cadc-util:[1.2,)'
+    testCompile 'xerces:xercesImpl:[2.0,)'
 }

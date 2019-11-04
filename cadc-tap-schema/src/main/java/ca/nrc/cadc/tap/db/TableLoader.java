@@ -252,6 +252,21 @@ public class TableLoader {
                 } else if (v instanceof ca.nrc.cadc.stc.Region) {
                     Object nv = ddType.getRegionObject((ca.nrc.cadc.stc.Region) v);
                     values.set(i, nv);
+                } else if (v instanceof short[]) {
+                    Object nv = ddType.getArrayObject((short[]) v);
+                    values.set(i, nv);
+                } else if (v instanceof int[]) {
+                    Object nv = ddType.getArrayObject((int[]) v);
+                    values.set(i, nv);
+                } else if (v instanceof long[]) {
+                    Object nv = ddType.getArrayObject((long[]) v);
+                    values.set(i, nv);
+                } else if (v instanceof float[]) {
+                    Object nv = ddType.getArrayObject((float[]) v);
+                    values.set(i, nv);
+                } else if (v instanceof double[]) {
+                    Object nv = ddType.getArrayObject((double[]) v);
+                    values.set(i, nv);
                 }
             }
         }
