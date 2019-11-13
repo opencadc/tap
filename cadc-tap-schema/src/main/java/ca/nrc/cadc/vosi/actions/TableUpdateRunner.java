@@ -229,7 +229,7 @@ public class TableUpdateRunner implements JobRunner {
                     ts.put(cd);
                     
                     // get current values in case another thread has updated it
-                    cd = ts.getColumn(tableName, columnName);
+                    cd = ts.getColumn(tableName, cd.getColumnName());
                     
                     // update tap_schema
                     cd.indexed = true;
