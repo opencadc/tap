@@ -168,8 +168,8 @@ public class TapSchemaUtil
      * 
      * @param tapSchema
      * @param plainSelect
-     * @param columnName
-     * @return
+     * @param column
+     * @return the Table
      */
     public static Table findTableForColumnName(TapSchema tapSchema, PlainSelect plainSelect, Column column)
     {
