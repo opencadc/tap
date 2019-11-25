@@ -144,7 +144,7 @@ public class TapSchemaUtil
         for (SchemaDesc sd : tapSchema.getSchemaDescs())
         {
             log.debug("findTableDesc: " + table.getWholeTableName() 
-                    + " aka " + table.getSchemaName() + " + " + table.getName()
+                    + " aka " + table.getSchemaName() + "." + table.getName()
                     + " AS " + table.getAlias() + " vs " + sd.getSchemaName());
             
             if (table.getSchemaName() == null
@@ -171,19 +171,28 @@ public class TapSchemaUtil
      * @param columnName
      * @return
      */
-    public static Table findTableForColumnName(TapSchema tapSchema, PlainSelect plainSelect, String columnName)
+    public static Table findTableForColumnName(TapSchema tapSchema, PlainSelect plainSelect, Column column)
     {
+        log.debug("findTableForColumnName: " + column);
         Table ret = null;
         int matchCount = 0;
         
+        String columnName = column.getColumnName();
+        boolean aliasMatch = false;
         List<Table> fromTableList = ParserUtil.getFromTableList(plainSelect);
         for (Table fromTable : fromTableList)
         {
+            log.debug("findTableForColumnName: from " + fromTable);
             TableDesc td = findTableDesc(tapSchema, fromTable);
             if (td == null) 
                 throw new IllegalArgumentException("Table [" + fromTable + "] does not exist.");
+            if (fromTable.getAlias() != null && fromTable.getAlias().equals(column.getTable().getName())) {
+                ret = fromTable;
+                aliasMatch = true;
+                matchCount++;
+            }
             log.debug("findTableForColumnName: " + columnName + " in " + td.getTableName());
-            if (isValidColumnName(td, columnName))
+            if (!aliasMatch && isValidColumnName(td, columnName))
             {
                 ret = fromTable;
                 matchCount++;
@@ -191,7 +200,7 @@ public class TapSchemaUtil
         }
         if (matchCount == 0)
             throw new IllegalArgumentException("findTableForColumnName: Column [" + columnName + "] does not exist.");
-        else if (matchCount > 1) 
+        else if (!aliasMatch && matchCount > 1) 
             throw new IllegalArgumentException("Column [" + columnName + "] is ambiguous.");
 
         log.debug("findTableForColumnName: found " + ret);
@@ -284,7 +293,7 @@ public class TapSchemaUtil
         if (table == null || table.getName() == null || table.getName().equals(""))
         {
             // form: columnName
-            Table fromTable = TapSchemaUtil.findTableForColumnName(tapSchema, plainSelect, columnName);
+            Table fromTable = TapSchemaUtil.findTableForColumnName(tapSchema, plainSelect, column);
             if (fromTable == null) throw new IllegalArgumentException("validateColumnNonAlias: Column: [" + columnName + "] does not exist.");
         }
         else
@@ -397,7 +406,7 @@ public class TapSchemaUtil
         if (table == null || table.getName() == null || table.getName().equals(""))
         {
             // columnName only
-            qTable = findTableForColumnName(tapSchema, plainSelect, column.getColumnName());
+            qTable = findTableForColumnName(tapSchema, plainSelect, column);
         }
         else
         {
