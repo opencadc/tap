@@ -65,19 +65,22 @@
 *  $Revision: 4 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.tap.parser.converter;
 
+import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
+import ca.nrc.cadc.tap.parser.schema.TapSchemaUtil;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.SchemaDesc;
+import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapSchema;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.TreeMap;
-
 import net.sf.jsqlparser.schema.Column;
-
+import net.sf.jsqlparser.schema.Table;
 import org.apache.log4j.Logger;
-
-import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
-import ca.nrc.cadc.util.CaseInsensitiveStringComparator;
 
 /**
  * Simple class to map columns name(s) used in the query to column name(s) used
@@ -85,28 +88,94 @@ import ca.nrc.cadc.util.CaseInsensitiveStringComparator;
  *
  * @author zhangsa
  */
-public class ColumnNameConverter extends ReferenceNavigator
-{
+public class ColumnNameConverter extends ReferenceNavigator {
+
     protected static Logger log = Logger.getLogger(ColumnNameConverter.class);
 
-    public Map<String, String> map;
+    public Map<QualifiedColumn, QualifiedColumn> map;
+    private final TapSchema tapSchema;
 
-    public ColumnNameConverter(boolean ignoreCase)
-    {
-        if (ignoreCase)
-            this.map = new TreeMap<String, String>(new CaseInsensitiveStringComparator());
-        else
-            this.map = new TreeMap<String, String>();
+    public static class QualifiedColumn {
+
+        String tableName;
+        String columnName;
+
+        public QualifiedColumn(String tableName, String columnName) {
+            this.tableName = tableName;
+            this.columnName = columnName;
+        }
+
+        @Override
+        public String toString() {
+            return "QualifiedColumn[" + tableName + "," + columnName + ']';
+        }
+        
+    }
+
+    private static class QualfiedColumnComparator implements Comparator<QualifiedColumn> {
+
+        private boolean ignoreCase;
+
+        public QualfiedColumnComparator(boolean ignoreCase) {
+            this.ignoreCase = ignoreCase;
+        }
+
+        @Override
+        public int compare(QualifiedColumn lhs, QualifiedColumn rhs) {
+            int ret;
+            if (lhs.tableName == null || rhs.tableName == null) {
+                if (lhs.tableName == null && rhs.tableName == null) {
+                    ret = 0;
+                } else if (lhs.tableName == null) {
+                    ret = -1; // null after not null
+                } else {
+                    ret = 1;
+                }
+            } else {
+                if (ignoreCase) {
+                    ret = lhs.tableName.compareToIgnoreCase(rhs.tableName);
+                } else {
+                    ret = lhs.tableName.compareTo(rhs.tableName);
+                }
+            }
+
+            if (ret == 0) {
+                if (ignoreCase) {
+                    ret = lhs.columnName.compareToIgnoreCase(rhs.columnName);
+                } else {
+                    ret = lhs.columnName.compareTo(rhs.columnName);
+                }
+            }
+            return ret;
+        }
+
+    }
+
+    public ColumnNameConverter(boolean ignoreCase, TapSchema tapSchema) {
+        this.map = new TreeMap<QualifiedColumn, QualifiedColumn>(new QualfiedColumnComparator(ignoreCase));
+        this.tapSchema = tapSchema;
     }
 
     /**
      * Add new entries to the column name map.
-     * 
+     *
+     * @param originalName a column name that should be replaced
+     * @param newName the value that originalName should be replaced with
+     * @deprecated use put(QualifiedColumn, QualifiedColumn)
+     */
+    @Deprecated
+    public void put(String originalName, String newName) {
+        String t = findTableNameInTapSchema(originalName);
+        map.put(new QualifiedColumn(t, originalName), new QualifiedColumn(t, newName));
+    }
+
+    /**
+     * Add new entries to the column name map.
+     *
      * @param originalName a column name that should be replaced
      * @param newName the value that originalName should be replaced with
      */
-    public void put(String originalName, String newName)
-    {
+    public void put(QualifiedColumn originalName, QualifiedColumn newName) {
         map.put(originalName, newName);
     }
 
@@ -114,12 +183,52 @@ public class ColumnNameConverter extends ReferenceNavigator
      * @see net.sf.jsqlparser.statement.select.ColumnReferenceVisitor#visit(net.sf.jsqlparser.schema.Column)
      */
     @Override
-    public void visit(Column column)
-    {
-        log.debug("visit(column)" + column);
-        //VisitingPart visiting = _selectNavigator.getVisitingPart(); 
+    public void visit(Column column) {
+        log.debug("visit(column) " + column);
+        String tableName = null;
+        TableDesc td = TapSchemaUtil.findTableDesc(tapSchema, column.getTable());
+        if (td != null) {
+            tableName = td.getTableName();
+        } else {
+            tableName = findTableName(column);
+        }
+        
+        log.debug("visit(Column) : tableName=" + tableName);
         String columnName = column.getColumnName();
-        String newName = map.get(columnName);
-        if (newName != null) column.setColumnName(newName);
+        QualifiedColumn qc = new QualifiedColumn(tableName, columnName);
+        QualifiedColumn nqc = map.get(qc);
+        log.debug("visit(Column) : " + qc + " :: " + nqc);
+        if (nqc != null) {
+            column.setColumnName(nqc.columnName);
+        }
+    }
+    
+    private String findTableName(Column col) {
+        String ret = null;
+        Table t = TapSchemaUtil.findTableForColumnName(tapSchema, super.getSelectNavigator().getPlainSelect(), col);
+        if (t != null) {
+            TableDesc td = TapSchemaUtil.findTableDesc(tapSchema, t);
+            if (td != null) {
+                ret = td.getTableName();
+            }
+        }
+        return ret;
+    }
+    
+    private String findTableNameInTapSchema(String col) {
+        String ret = null;
+        for (SchemaDesc sd : tapSchema.getSchemaDescs()) {
+            for (TableDesc td : sd.getTableDescs()) {
+                for (ColumnDesc cd : td.getColumnDescs()) {
+                    if (cd.getColumnName().equalsIgnoreCase(col)) {
+                        if (ret != null) {
+                            throw new IllegalArgumentException("ambiguous unqualified column: " + col);
+                        }
+                        ret = td.getTableName();
+                    }
+                }
+            }
+        }
+        return ret;
     }
 }
