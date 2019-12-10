@@ -184,24 +184,23 @@ public class TapSchemaUtil
         {
             log.debug("findTableForColumnName: from " + fromTable);
             TableDesc td = findTableDesc(tapSchema, fromTable);
-            if (td == null) 
-                throw new IllegalArgumentException("Table [" + fromTable + "] does not exist.");
-            if (fromTable.getAlias() != null && fromTable.getAlias().equals(column.getTable().getName())) {
-                ret = fromTable;
-                aliasMatch = true;
-                matchCount++;
-            }
-            log.debug("findTableForColumnName: " + columnName + " in " + td.getTableName());
-            if (!aliasMatch && isValidColumnName(td, columnName))
-            {
-                ret = fromTable;
-                matchCount++;
+            if (td != null) {
+                if (fromTable.getAlias() != null && fromTable.getAlias().equals(column.getTable().getName())) {
+                    ret = fromTable;
+                    aliasMatch = true;
+                    matchCount++;
+                }
+                log.debug("findTableForColumnName: " + columnName + " in " + td.getTableName());
+                if (!aliasMatch && isValidColumnName(td, columnName))
+                {
+                    ret = fromTable;
+                    matchCount++;
+                }
             }
         }
-        if (matchCount == 0)
-            throw new IllegalArgumentException("findTableForColumnName: Column [" + columnName + "] does not exist.");
-        else if (!aliasMatch && matchCount > 1) 
+        if (!aliasMatch && matchCount > 1) {
             throw new IllegalArgumentException("Column [" + columnName + "] is ambiguous.");
+        }
 
         log.debug("findTableForColumnName: found " + ret);
         return ret;
