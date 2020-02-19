@@ -10,7 +10,7 @@ repositories {
     jcenter()
 }
 
-apply from: '../intTest.gradle'
+apply from: '../opencadc.gradle'
 
 sourceCompatibility = 1.7
 

@@ -99,7 +99,7 @@ public class TableDesc
             this.value = value;
         }
         
-        static TableType toValue(String s) {
+        public static TableType toValue(String s) {
             for (TableType tt : TableType.values()) {
                 if (tt.value.equals(s)) {
                     return tt;

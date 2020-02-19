@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2019.                            (c) 2019.
+*  (c) 2020.                            (c) 2020.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -68,50 +68,103 @@
 package org.opencadc.tap;
 
 import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
+import ca.nrc.cadc.dali.tables.votable.VOTableField;
+import ca.nrc.cadc.dali.tables.votable.VOTableInfo;
+import ca.nrc.cadc.dali.tables.votable.VOTableReader;
+import ca.nrc.cadc.dali.tables.votable.VOTableResource;
+import ca.nrc.cadc.dali.tables.votable.VOTableTable;
+import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
+import ca.nrc.cadc.dali.util.Format;
+import ca.nrc.cadc.dali.util.FormatFactory;
+import ca.nrc.cadc.io.ByteLimitExceededException;
+import ca.nrc.cadc.net.ExpectationFailedException;
+import ca.nrc.cadc.net.HttpPost;
+import ca.nrc.cadc.net.PreconditionFailedException;
+import ca.nrc.cadc.net.ResourceAlreadyExistsException;
 import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.reg.Capabilities;
+import ca.nrc.cadc.reg.Capability;
+import ca.nrc.cadc.reg.Interface;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.RegistryClient;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringReader;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.security.AccessControlException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
 
 /**
  * Basic client for Table Access Protocol (TAP).
  * 
  * @author pdowler
+ * @param <E> the type of object this instance returns from query execution
  */
-public class TapClient {
+public class TapClient<E> {
     private static final Logger log = Logger.getLogger(TapClient.class);
 
+    private static final String QUERY_STATUS = "QUERY_STATUS";
+    private static final String QUERY_STATUS_OK = "OK";
+    private static final String QUERY_STATUS_ERROR = "ERROR";
+    private static final String QUERY_STATUS_OVERFLOW = "OVERFLOW";
+    
     private final URI resourceID;
-    private final RegistryClient reg;
+    private final Capabilities caps;
+    private final Capability tap;
     
     /**
      * Constructor.
      * 
      * @param resourceID unique identifier for the TAP service
+     * @throws ResourceNotFoundException if the resourceID lookup fails or does not include a TAP capability
      */
-    public TapClient(URI resourceID) {
+    public TapClient(URI resourceID) throws ResourceNotFoundException {
         this.resourceID = resourceID;
-        this.reg = new RegistryClient();
+        RegistryClient reg = new RegistryClient();
+        try {
+            this.caps = reg.getCapabilities(resourceID);
+            if (caps == null) {
+                throw new ResourceNotFoundException("not found: " + resourceID);
+            }
+            log.debug("found capabilities: " + resourceID);
+            this.tap = caps.findCapability(Standards.TAP_10);
+            if (tap == null) {
+                throw new ResourceNotFoundException("not found: " + Standards.TAP_10 + " capability in " + resourceID);
+            }
+            
+        } catch (IOException ex) {
+            throw new ResourceNotFoundException("not found: " + resourceID, ex);
+        }
     }
     
     /**
      * Generate a usable async endpoint URL. This method only considers the specified
      * authentication method when performing the lookup of the base URL.
      * 
-     * @param am authentication method
+     * @param securityMethod IVOA securityMethod identifier
      * @return async URL
      * @throws ResourceNotFoundException if base URL matching specified auth not found
      */
-    public URL getAsyncURL(AuthMethod am) throws ResourceNotFoundException {
-        URL base = reg.getServiceURL(resourceID, Standards.TAP_10, am);
-        if (base == null) {
-            throw new ResourceNotFoundException("not found: " + resourceID + " with " + am.getValue());
+    public URL getAsyncURL(URI securityMethod) 
+            throws ResourceNotFoundException {
+        Interface i = tap.findInterface(securityMethod);
+        if (i == null) {
+            throw new ResourceNotFoundException("not found: " + securityMethod + " in " + resourceID + "::" + tap.getStandardID());
         }
+        String base = i.getAccessURL().getURL().toExternalForm();
         try {
-            return new URL(base.toExternalForm() + "/async");
+            return new URL(base + "/async");
         } catch (MalformedURLException ex) {
             throw new RuntimeException("FAIL: appending /async to " + base + " gave invalid URL", ex);
         }
@@ -121,19 +174,106 @@ public class TapClient {
      * Generate a usable sync endpoint URL. This method only considers the specified
      * authentication method when performing the lookup of the base URL.
      * 
-     * @param am authentication method
+     * @param securityMethod IVOA securityMethod identifier
      * @return sync URL
-     * @throws ResourceNotFoundException if base URL matching specified auth not found
+     * @throws ResourceNotFoundException if base URL matching specified security method not found
      */
-    public URL getSyncURL(AuthMethod am) throws ResourceNotFoundException {
-        URL base = reg.getServiceURL(resourceID, Standards.TAP_10, am);
-        if (base == null) {
-            throw new ResourceNotFoundException("not found: " + resourceID + " with " + am.getValue());
+    public URL getSyncURL(URI securityMethod) 
+            throws ResourceNotFoundException {
+        Interface i = tap.findInterface(securityMethod);
+        if (i == null) {
+            throw new ResourceNotFoundException("not found: " + securityMethod + " in " + resourceID + "::" + tap.getStandardID());
+        }
+        String base = i.getAccessURL().getURL().toExternalForm();
+        try {
+            return new URL(base + "/sync");
+        } catch (MalformedURLException ex) {
+            throw new RuntimeException("FAIL: appending /sync to " + base + " gave invalid URL", ex);
+        }
+    }
+    
+    public Iterator<E> execute(String query, TapRowMapper<E> rowMapper) 
+        throws AccessControlException, 
+            ByteLimitExceededException, ExpectationFailedException, 
+            IllegalArgumentException, PreconditionFailedException, 
+            ResourceAlreadyExistsException, ResourceNotFoundException, 
+            TransientException, IOException, InterruptedException {
+        if (query == null) {
+            throw new IllegalArgumentException("query: null");
+        }
+        if (rowMapper == null) {
+            throw new IllegalArgumentException("rowMapper: null");
+        }
+        
+        Subject s = AuthenticationUtil.getCurrentSubject();
+        AuthMethod am = AuthenticationUtil.getAuthMethodFromCredentials(s);
+        URI sm = Standards.getSecurityMethod(am);
+        final URL syncURL = getSyncURL(sm);
+        
+        // execute MAXREC=0 query to get VOTable field metadata
+        // and create formatter for each column
+        Map<String,Object> params = new TreeMap<>();
+        params.put("LANG", "ADQL");
+        params.put("QUERY", query);
+        params.put("RESPONSEFORMAT", VOTableWriter.CONTENT_TYPE);
+        params.put("MAXREC", 0);
+        log.debug("meta query: " + syncURL + " " + query);
+        HttpPost meta = new HttpPost(syncURL, params, true);
+        try {
+            meta.prepare();
+        } catch (IllegalArgumentException ex) {
+            extractTapError(meta.getContentType(), ex);
+        }
+        
+        if (!VOTableWriter.CONTENT_TYPE.equals(meta.getContentType())) {
+            throw new RuntimeException("unexpected response: " + meta.getContentType() 
+                    + " expected: " + VOTableWriter.CONTENT_TYPE);
+        }
+        
+        VOTableReader r = new VOTableReader();
+        VOTableDocument doc = r.read(meta.getInputStream());
+        VOTableResource vr = doc.getResourceByType("results");
+        VOTableTable vt = vr.getTable();
+        FormatFactory formatFactory = new FormatFactory();
+        List<Format> formatters = new ArrayList<>();
+        for (VOTableField f : vt.getFields()) {
+            Format fmt = formatFactory.getFormat(f);
+            log.debug("field: " + f.getName() + " " + fmt.getClass().getName());
+            formatters.add(fmt);
+        }
+        
+        // execute full query with RESPONSEFORMAT=tsv so we can stream
+        params.put("RESPONSEFORMAT", "tsv");
+        params.remove("MAXREC");
+        log.debug("stream query: " + syncURL + " " + query);
+        HttpPost stream = new HttpPost(syncURL, params, true);
+        stream.prepare();
+        InputStream istream = stream.getInputStream();
+        if (istream != null) {
+            return new TsvIterator<E>(rowMapper, formatters, istream);
+        }
+
+        throw new RuntimeException("BUG: query response had InputStream: null");
+    }
+    
+    // bad input -- IllegalArgumentException -- votable with error message
+    private void extractTapError(String contentType, IllegalArgumentException ex)
+            throws IllegalArgumentException {
+        if (!VOTableWriter.CONTENT_TYPE.equals(contentType)) {
+            throw ex;
         }
         try {
-            return new URL(base.toExternalForm() + "/sync");
-        } catch (MalformedURLException ex) {
-            throw new RuntimeException("FAIL: appending /async to " + base + " gave invalid URL", ex);
+            VOTableReader r = new VOTableReader();
+            VOTableDocument doc = r.read(new StringReader(ex.getMessage()));
+            VOTableResource vr = doc.getResourceByType("results");
+            for (VOTableInfo i : vr.getInfos()) {
+                if (QUERY_STATUS.equals(i.getName()) && QUERY_STATUS_ERROR.equals(i.getValue())) {
+                    throw new IllegalArgumentException(i.getValue() + ": " + i.content);
+                }
+            }
+        } catch (IOException ex2) {
+            throw new RuntimeException("failed to extract TAP error message", ex2);
         }
+        throw ex;
     }
 }
