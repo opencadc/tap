@@ -70,22 +70,16 @@ package org.opencadc.tap;
 import java.util.List;
 
 /**
- * Map a row of values into a data object.
+ * Raw row data mapper.
  * 
  * @author pdowler
  */
-public interface TapRowMapper<T> {
-    /**
-     * Map raw row data into a domain object. The values in the row (list) will
-     * already be converted from text or binary into suitable immutable value objects,
-     * such as Double, Integer, String... or extended types (DALI xtypes) (Point, 
-     * Circle, Date, etc.) or custom xtypes (URI, UUID, etc.) supported by the cadc-dali
-     * library. The presence of null values is allowed and depends entirely on the TAP
-     * table that was queried. The number and order of values is consistent with the
-     * list of items in the select clause of the ADQL query.
-     * 
-     * @param row list of values for one row
-     * @return domain-specific value object created for single row
-     */
-    public T mapRow(List<Object> row);
+public class RawRowMapper implements TapRowMapper<List<Object>> {
+    public RawRowMapper() { 
+    }
+
+    @Override
+    public List<Object> mapRow(List<Object> row) {
+        return row;
+    }
 }

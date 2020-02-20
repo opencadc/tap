@@ -85,7 +85,7 @@ public class TapClientTest {
     private static final Logger log = Logger.getLogger(TapClientTest.class);
 
     static {
-        Log4jInit.setLevel("org.opencadc.tap", Level.DEBUG);
+        Log4jInit.setLevel("org.opencadc.tap", Level.INFO);
         Log4jInit.setLevel("ca.nrc.cadc.net", Level.INFO);
     }
     
@@ -95,19 +95,35 @@ public class TapClientTest {
         this.tapClient = new TapClient(URI.create("ivo://cadc.nrc.ca/argus"));
     }
     
-    //@Test
+    @Test
     public void testSyncOK() throws Exception {
         String query = "select schema_name,table_name,description,utype,table_type,table_index"
                 + " from tap_schema.tables where schema_name='tap_schema'"
                 + " order by table_index";
-        
         Iterator<TableDesc> ti = tapClient.execute(query, new TapSchemaTablesRowMapper());
         Assert.assertNotNull(ti);
         while (ti.hasNext()) {
             TableDesc td = ti.next();
             log.info("found: " + td);
         }
+    }
+    
+    @Test
+    public void testSyncRawOK() throws Exception {
+        String query = "select schema_name,table_name,description,utype,table_type,table_index"
+                + " from tap_schema.tables where schema_name='tap_schema'"
+                + " order by table_index";
+        Iterator<List<Object>> ti = tapClient.execute(query, new RawRowMapper());
+        Assert.assertNotNull(ti);
         
+        while (ti.hasNext()) {
+            List<Object> row = ti.next();
+            StringBuilder sb = new StringBuilder();
+            for (Object o : row) {
+                sb.append("\t").append(o);
+            }
+            log.info("found: " + sb.toString());
+        }
     }
     
     @Test

@@ -11,6 +11,6 @@ before_script:
   - openssl s_client -CApath /etc/ssl/certs/ -connect plugins.gradle.org:443 </dev/null | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > /tmp/gradle.crt; sudo keytool -importcert -noprompt -file /tmp/gradle.crt -trustcacerts -keystore $JAVA_HOME/jre/lib/security/cacerts -alias root -storepass changeit;
 
 script: 
-  - for mod in cadc-tap-schema cadc-tap-server; do cd $mod; gradle --stacktrace build javadoc install || break -1; cd ..; done
+  - for mod in cadc-tap-schema cadc-tap cadc-tap-server cadc-jsqlparser-compat cadc-adql cadc-test-tap; do cd $mod; gradle --stacktrace clean build javadoc install || break -1; cd ..; done
   - for db in pg oracle; do cd cadc-tap-server-$db; gradle --stacktrace clean build javadoc install; cd ../; done
-  - for mod in cadc-jsqlparser-compat cadc-adql cadc-test-tap example-tap; do cd $mod; gradle --stacktrace build javadoc install || break -1; cd ..; done
+  - for mod in example-tap; do cd $mod; gradle --stacktrace build || break -1; cd ..; done

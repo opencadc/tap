@@ -69,7 +69,6 @@ package org.opencadc.tap;
 
 import ca.nrc.cadc.dali.util.Format;
 import ca.nrc.cadc.tap.db.AsciiTableData;
-import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.vosi.actions.TableContentHandler;
 import java.io.IOException;
 import java.io.InputStream;

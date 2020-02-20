@@ -69,6 +69,7 @@ package org.opencadc.tap;
 
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableField;
 import ca.nrc.cadc.dali.tables.votable.VOTableInfo;
@@ -106,10 +107,16 @@ import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
 
 /**
- * Basic client for Table Access Protocol (TAP).
+ * Basic client for Table Access Protocol (TAP). This cleint currently supports lookup
+ * and generation of TAP sync and async endpoint URLs and streaming TAP sync query 
+ * execution by returning a type-safe iterator. To stream a list of objects, simply 
+ * pass in a type-specific TapRowMapper. To stream the raw row data, simple use the 
+ * RawRowMapper to return each row (List of Object). Note: the TapClient itself does 
+ * not need to be instantiated with a specific return type and can be re-used with 
+ * different types.
  * 
  * @author pdowler
- * @param <E> the type of object this instance returns from query execution
+ * @param <E> may be ignored when instantiating this class
  */
 public class TapClient<E> {
     private static final Logger log = Logger.getLogger(TapClient.class);
@@ -192,8 +199,26 @@ public class TapClient<E> {
         }
     }
     
-    public Iterator<E> execute(String query, TapRowMapper<E> rowMapper) 
-        throws AccessControlException, 
+    /**
+     * Synchronous TAP query with streaming output.
+     * 
+     * @param query ADQL query to execute
+     * @param mapper TapRowMapper to convert row data to domain object
+     * @return domain object of type E
+     * @throws AccessControlException permission denied
+     * @throws NotAuthenticatedException authentication rejected
+     * @throws ByteLimitExceededException input or output limit exceeded
+     * @throws ExpectationFailedException not possible here
+     * @throws IllegalArgumentException null method arguments or invalid query
+     * @throws PreconditionFailedException not possible here
+     * @throws ResourceAlreadyExistsException not possible here
+     * @throws ResourceNotFoundException internet resource not found
+     * @throws TransientException temporary failure of TAP service: same call could work in future
+     * @throws IOException failure to send or read data stream
+     * @throws InterruptedException thread interrupted
+     */
+    public Iterator<E> execute(String query, TapRowMapper<E> mapper) 
+        throws AccessControlException, NotAuthenticatedException,
             ByteLimitExceededException, ExpectationFailedException, 
             IllegalArgumentException, PreconditionFailedException, 
             ResourceAlreadyExistsException, ResourceNotFoundException, 
@@ -201,7 +226,7 @@ public class TapClient<E> {
         if (query == null) {
             throw new IllegalArgumentException("query: null");
         }
-        if (rowMapper == null) {
+        if (mapper == null) {
             throw new IllegalArgumentException("rowMapper: null");
         }
         
@@ -250,11 +275,14 @@ public class TapClient<E> {
         stream.prepare();
         InputStream istream = stream.getInputStream();
         if (istream != null) {
-            return new TsvIterator<E>(rowMapper, formatters, istream);
+            return new TsvIterator<E>(mapper, formatters, istream);
         }
 
         throw new RuntimeException("BUG: query response had InputStream: null");
     }
+    
+    // TODO: sync query and return a single result object (usually small query for one domain object)
+    //public E execute(String query, TapResultMapper<E> mapper)
     
     // bad input -- IllegalArgumentException -- votable with error message
     private void extractTapError(String contentType, IllegalArgumentException ex)
