@@ -206,21 +206,31 @@ public class TapClient<E> {
      * @param mapper TapRowMapper to convert row data to domain object
      * @return domain object of type E
      * @throws AccessControlException permission denied
-     * @throws NotAuthenticatedException authentication rejected
+     * @throws NotAuthenticatedException authentication attempt failed or rejected
      * @throws ByteLimitExceededException input or output limit exceeded
-     * @throws ExpectationFailedException not possible here
      * @throws IllegalArgumentException null method arguments or invalid query
-     * @throws PreconditionFailedException not possible here
-     * @throws ResourceAlreadyExistsException not possible here
-     * @throws ResourceNotFoundException internet resource not found
+     * @throws ResourceNotFoundException remote resource not found
      * @throws TransientException temporary failure of TAP service: same call could work in future
      * @throws IOException failure to send or read data stream
      * @throws InterruptedException thread interrupted
      */
     public Iterator<E> execute(String query, TapRowMapper<E> mapper) 
         throws AccessControlException, NotAuthenticatedException,
-            ByteLimitExceededException, ExpectationFailedException, 
-            IllegalArgumentException, PreconditionFailedException, 
+            ByteLimitExceededException, IllegalArgumentException,
+            ResourceNotFoundException, 
+            TransientException, IOException, InterruptedException {
+        // this method avoids extraneous checked exceptions in the method declaration
+        try {
+            return executeImpl(query, mapper);
+        } catch (ResourceAlreadyExistsException ex) {
+            throw new RuntimeException("BUG: unexpected " + ex.toString(), ex);
+        }
+    }
+    
+    // extraneous: ResourceAlreadyExistsException
+    private Iterator<E> executeImpl(String query, TapRowMapper<E> mapper) 
+        throws AccessControlException, NotAuthenticatedException,
+            ByteLimitExceededException, IllegalArgumentException,
             ResourceAlreadyExistsException, ResourceNotFoundException, 
             TransientException, IOException, InterruptedException {
         if (query == null) {
@@ -284,7 +294,7 @@ public class TapClient<E> {
     // TODO: sync query and return a single result object (usually small query for one domain object)
     //public E execute(String query, TapResultMapper<E> mapper)
     
-    // bad input -- IllegalArgumentException -- votable with error message
+    // IllegalArgumentException = bad input = possible votable wrapped error message
     private void extractTapError(String contentType, IllegalArgumentException ex)
             throws IllegalArgumentException {
         if (!VOTableWriter.CONTENT_TYPE.equals(contentType)) {

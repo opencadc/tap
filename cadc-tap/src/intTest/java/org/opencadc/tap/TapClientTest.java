@@ -104,7 +104,7 @@ public class TapClientTest {
         Assert.assertNotNull(ti);
         while (ti.hasNext()) {
             TableDesc td = ti.next();
-            log.info("found: " + td);
+            log.info(td);
         }
     }
     
@@ -120,9 +120,9 @@ public class TapClientTest {
             List<Object> row = ti.next();
             StringBuilder sb = new StringBuilder();
             for (Object o : row) {
-                sb.append("\t").append(o);
+                sb.append(o).append("\t");
             }
-            log.info("found: " + sb.toString());
+            log.info(sb.toString());
         }
     }
     
@@ -134,7 +134,7 @@ public class TapClientTest {
             Iterator<TableDesc> ti = tapClient.execute(query, new TapSchemaTablesRowMapper());
         } catch (IllegalArgumentException expected) {
             log.info("caught expected exception: " + expected.getClass().getName());
-            log.info("message:\n" + expected.getMessage());
+            log.info(expected.getMessage());
         }
         
         
