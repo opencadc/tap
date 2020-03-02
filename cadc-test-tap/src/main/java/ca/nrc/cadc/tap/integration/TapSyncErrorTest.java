@@ -93,10 +93,11 @@ public class TapSyncErrorTest extends SyncUWSTest {
     protected void validateResponse(JobResultWrapper result) {
         Assert.assertEquals(400, result.responseCode);
         Assert.assertEquals("application/x-votable+xml", result.contentType);
+        Assert.assertNotNull("exception", result.throwable);
 
         try {
             Assert.assertNotNull(result.syncOutput);
-            VOTableDocument vot = VOTableHandler.getVOTable(result.syncOutput);
+            VOTableDocument vot = VOTableHandler.getVOTable(result.throwable.getMessage());
 
             String queryStatus = VOTableHandler.getQueryStatus(vot);
             Assert.assertNotNull("QUERY_STATUS", queryStatus);

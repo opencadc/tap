@@ -113,6 +113,11 @@ public abstract class VOTableHandler
         return getVOTable(istream);
     }
     
+    static VOTableDocument getVOTable(String xml) throws IOException {
+        VOTableReader vrdr = new VOTableReader();
+        return vrdr.read(xml);
+    }
+    
     static String getQueryStatus(VOTableDocument vot)
     {
         VOTableResource vr = vot.getResourceByType("results");
