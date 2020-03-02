@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2019.                            (c) 2019.
+*  (c) 2020.                            (c) 2020.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,49 +62,24 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
-*
 ************************************************************************
- */
+*/
 
-package ca.nrc.cadc.tap.integration;
+package org.opencadc.tap;
 
-import ca.nrc.cadc.conformance.uws2.JobResultWrapper;
-import ca.nrc.cadc.conformance.uws2.SyncUWSTest;
-import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
-import ca.nrc.cadc.reg.Standards;
-import java.net.URI;
-import org.apache.log4j.Logger;
-import org.junit.Assert;
+import java.util.List;
 
 /**
- *
+ * Raw row data mapper.
+ * 
  * @author pdowler
  */
-public class TapSyncErrorTest extends SyncUWSTest {
-
-    private static final Logger log = Logger.getLogger(TapSyncErrorTest.class);
-
-    public TapSyncErrorTest(URI resourceID) {
-        super(resourceID, Standards.TAP_10, Standards.INTERFACE_PARAM_HTTP, "sync");
+public class RawRowMapper implements TapRowMapper<List<Object>> {
+    public RawRowMapper() { 
     }
 
     @Override
-    protected void validateResponse(JobResultWrapper result) {
-        Assert.assertEquals(400, result.responseCode);
-        Assert.assertEquals("application/x-votable+xml", result.contentType);
-        Assert.assertNotNull("exception", result.throwable);
-
-        try {
-            Assert.assertNotNull(result.syncOutput);
-            VOTableDocument vot = VOTableHandler.getVOTable(result.throwable.getMessage());
-
-            String queryStatus = VOTableHandler.getQueryStatus(vot);
-            Assert.assertNotNull("QUERY_STATUS", queryStatus);
-            Assert.assertEquals("ERROR", queryStatus);
-        } catch (Exception ex) {
-            log.error("unexpected exception", ex);
-            Assert.fail("unexpected exception: " + ex);
-        }
+    public List<Object> mapRow(List<Object> row) {
+        return row;
     }
 }

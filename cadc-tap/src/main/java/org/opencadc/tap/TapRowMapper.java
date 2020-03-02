@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2019.                            (c) 2019.
+*  (c) 2020.                            (c) 2020.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,49 +62,30 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
-*
 ************************************************************************
- */
+*/
 
-package ca.nrc.cadc.tap.integration;
+package org.opencadc.tap;
 
-import ca.nrc.cadc.conformance.uws2.JobResultWrapper;
-import ca.nrc.cadc.conformance.uws2.SyncUWSTest;
-import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
-import ca.nrc.cadc.reg.Standards;
-import java.net.URI;
-import org.apache.log4j.Logger;
-import org.junit.Assert;
+import java.util.List;
 
 /**
- *
+ * Map a row of values into a data object.
+ * 
  * @author pdowler
  */
-public class TapSyncErrorTest extends SyncUWSTest {
-
-    private static final Logger log = Logger.getLogger(TapSyncErrorTest.class);
-
-    public TapSyncErrorTest(URI resourceID) {
-        super(resourceID, Standards.TAP_10, Standards.INTERFACE_PARAM_HTTP, "sync");
-    }
-
-    @Override
-    protected void validateResponse(JobResultWrapper result) {
-        Assert.assertEquals(400, result.responseCode);
-        Assert.assertEquals("application/x-votable+xml", result.contentType);
-        Assert.assertNotNull("exception", result.throwable);
-
-        try {
-            Assert.assertNotNull(result.syncOutput);
-            VOTableDocument vot = VOTableHandler.getVOTable(result.throwable.getMessage());
-
-            String queryStatus = VOTableHandler.getQueryStatus(vot);
-            Assert.assertNotNull("QUERY_STATUS", queryStatus);
-            Assert.assertEquals("ERROR", queryStatus);
-        } catch (Exception ex) {
-            log.error("unexpected exception", ex);
-            Assert.fail("unexpected exception: " + ex);
-        }
-    }
+public interface TapRowMapper<T> {
+    /**
+     * Map raw row data into a domain object. The values in the row (list) will
+     * already be converted from text or binary into suitable immutable value objects,
+     * such as Double, Integer, String... or extended types (DALI xtypes) (Point, 
+     * Circle, Date, etc.) or custom xtypes (URI, UUID, etc.) supported by the cadc-dali
+     * library. The presence of null values is allowed and depends entirely on the TAP
+     * table that was queried. The number and order of values is consistent with the
+     * list of items in the select clause of the ADQL query.
+     * 
+     * @param row list of values for one row
+     * @return domain-specific value object created for single row
+     */
+    public T mapRow(List<Object> row);
 }

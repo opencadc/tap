@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2019.                            (c) 2019.
+*  (c) 2020.                            (c) 2020.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,49 +62,102 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
-*
 ************************************************************************
- */
+*/
 
-package ca.nrc.cadc.tap.integration;
+package org.opencadc.tap;
 
-import ca.nrc.cadc.conformance.uws2.JobResultWrapper;
-import ca.nrc.cadc.conformance.uws2.SyncUWSTest;
-import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
-import ca.nrc.cadc.reg.Standards;
+import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.util.Log4jInit;
 import java.net.URI;
+import java.util.Iterator;
+import java.util.List;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
+import org.junit.Test;
 
 /**
  *
  * @author pdowler
  */
-public class TapSyncErrorTest extends SyncUWSTest {
+public class TapClientTest {
+    private static final Logger log = Logger.getLogger(TapClientTest.class);
 
-    private static final Logger log = Logger.getLogger(TapSyncErrorTest.class);
-
-    public TapSyncErrorTest(URI resourceID) {
-        super(resourceID, Standards.TAP_10, Standards.INTERFACE_PARAM_HTTP, "sync");
+    static {
+        Log4jInit.setLevel("org.opencadc.tap", Level.INFO);
+        Log4jInit.setLevel("ca.nrc.cadc.net", Level.INFO);
     }
-
-    @Override
-    protected void validateResponse(JobResultWrapper result) {
-        Assert.assertEquals(400, result.responseCode);
-        Assert.assertEquals("application/x-votable+xml", result.contentType);
-        Assert.assertNotNull("exception", result.throwable);
-
+    
+    TapClient tapClient;
+    
+    public TapClientTest() throws Exception { 
+        this.tapClient = new TapClient(URI.create("ivo://cadc.nrc.ca/argus"));
+    }
+    
+    @Test
+    public void testSyncOK() throws Exception {
+        String query = "select schema_name,table_name,description,utype,table_type,table_index"
+                + " from tap_schema.tables where schema_name='tap_schema'"
+                + " order by table_index";
+        Iterator<TableDesc> ti = tapClient.execute(query, new TapSchemaTablesRowMapper());
+        Assert.assertNotNull(ti);
+        while (ti.hasNext()) {
+            TableDesc td = ti.next();
+            log.info(td);
+        }
+    }
+    
+    @Test
+    public void testSyncRawOK() throws Exception {
+        String query = "select schema_name,table_name,description,utype,table_type,table_index"
+                + " from tap_schema.tables where schema_name='tap_schema'"
+                + " order by table_index";
+        Iterator<List<Object>> ti = tapClient.execute(query, new RawRowMapper());
+        Assert.assertNotNull(ti);
+        
+        while (ti.hasNext()) {
+            List<Object> row = ti.next();
+            StringBuilder sb = new StringBuilder();
+            for (Object o : row) {
+                sb.append(o).append("\t");
+            }
+            log.info(sb.toString());
+        }
+    }
+    
+    @Test
+    public void testSyncBadQuery() throws Exception {
+        String query = "select foo bar";
+        
         try {
-            Assert.assertNotNull(result.syncOutput);
-            VOTableDocument vot = VOTableHandler.getVOTable(result.throwable.getMessage());
+            Iterator<TableDesc> ti = tapClient.execute(query, new TapSchemaTablesRowMapper());
+        } catch (IllegalArgumentException expected) {
+            log.info("caught expected exception: " + expected.getClass().getName());
+            log.info(expected.getMessage());
+        }
+        
+        
+    }
+    
+    
+    class TapSchemaTablesRowMapper implements TapRowMapper<TableDesc> {
 
-            String queryStatus = VOTableHandler.getQueryStatus(vot);
-            Assert.assertNotNull("QUERY_STATUS", queryStatus);
-            Assert.assertEquals("ERROR", queryStatus);
-        } catch (Exception ex) {
-            log.error("unexpected exception", ex);
-            Assert.fail("unexpected exception: " + ex);
+        @Override
+        public TableDesc mapRow(List<Object> row) {
+            Iterator i = row.iterator();
+            String schemaName = (String) i.next();
+            String tableName = (String) i.next();
+            TableDesc ret = new TableDesc(schemaName, tableName);
+            ret.description = (String) i.next();
+            ret.utype = (String) i.next();
+            String stt = (String) i.next();
+            log.debug("type enum: " + stt);
+            if (stt != null) {
+                ret.tableType = TableDesc.TableType.toValue(stt);
+            }
+            ret.tableIndex = (Integer) i.next();
+            return ret;
         }
     }
 }

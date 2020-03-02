@@ -201,6 +201,16 @@ public class AsciiTableData implements TableDataInputStream, Iterator<List<Objec
         throw new UnsupportedOperationException();
     }
     
+    /**
+     * Set column formatters for parsing. This is an alternative to calling
+     * acceptTargetTableDesc.
+     * 
+     * @param columnFormats 
+     */
+    public void setColumnFormats(List<Format> columnFormats) {
+        this.columnFormats = columnFormats;
+    }
+    
     @Override
     public TableDesc acceptTargetTableDesc(TableDesc target) {
         TableDesc td = new TableDesc(target.getSchemaName(), target.getTableName());
