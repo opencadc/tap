@@ -4,7 +4,6 @@ group: edge
 dist: trusty
 
 jdk:
-  - openjdk7
   - oraclejdk8
 
 before_script: 
