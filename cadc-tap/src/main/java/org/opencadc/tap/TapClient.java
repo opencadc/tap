@@ -155,6 +155,18 @@ public class TapClient<E> {
         }
     }
     
+    @Deprecated
+    public URL getAsyncURL(AuthMethod am) throws ResourceNotFoundException {
+        URI sm = Standards.getSecurityMethod(am);
+        return getAsyncURL(sm);
+    }
+    
+    @Deprecated
+    public URL getSyncURL(AuthMethod am) throws ResourceNotFoundException {
+        URI sm = Standards.getSecurityMethod(am);
+        return getSyncURL(sm);
+    }
+    
     /**
      * Generate a usable async endpoint URL. This method only considers the specified
      * authentication method when performing the lookup of the base URL.
