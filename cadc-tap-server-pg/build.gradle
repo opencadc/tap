@@ -3,6 +3,7 @@ plugins {
     id "maven"
     id 'maven-publish'
     id 'com.jfrog.bintray' version '1.8.4'
+    id 'checkstyle'
 }
 
 repositories {
