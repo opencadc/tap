@@ -68,6 +68,7 @@
 package org.opencadc.tap;
 
 import ca.nrc.cadc.dali.util.Format;
+import ca.nrc.cadc.io.ResourceIterator;
 import ca.nrc.cadc.tap.db.AsciiTableData;
 import ca.nrc.cadc.vosi.actions.TableContentHandler;
 import java.io.IOException;
@@ -80,29 +81,45 @@ import org.apache.log4j.Logger;
  *
  * @author pdowler
  */
-class TsvIterator<E> implements Iterator<E> {
+class TsvIterator<E> implements ResourceIterator<E> {
     private static final Logger log = Logger.getLogger(TsvIterator.class);
 
     private final TapRowMapper<E> mapper;
-    private final Iterator<List<Object>> rows;
-    
-    private long num = 0;
-    
+    private final AsciiTableData asciiTableData;
+
+
     public TsvIterator(TapRowMapper<E> mapper, List<Format> formatters, InputStream istream) throws IOException {
         this.mapper = mapper;
-        AsciiTableData atd = new AsciiTableData(istream, TableContentHandler.CONTENT_TYPE_TSV);
-        atd.setColumnFormats(formatters);
-        this.rows = atd.iterator();
+        this.asciiTableData = new AsciiTableData(istream, TableContentHandler.CONTENT_TYPE_TSV);
+        this.asciiTableData.setColumnFormats(formatters);
     }
 
     @Override
     public boolean hasNext() {
-        return rows.hasNext();
+        return asciiTableData.hasNext();
     }
 
     @Override
     public E next() {
-        List<Object> row = rows.next();
+        List<Object> row = asciiTableData.next();
         return mapper.mapRow(row);
+    }
+
+    /**
+     * Closes this stream and releases any system resources associated
+     * with it. If the stream is already closed then invoking this
+     * method has no effect.
+     *
+     * <p>As noted in {@link AutoCloseable#close()}, cases where the
+     * close may fail require careful attention. It is strongly advised
+     * to relinquish the underlying resources and to internally
+     * <em>mark</em> the {@code Closeable} as closed, prior to throwing
+     * the {@code IOException}.
+     *
+     * @throws IOException if an I/O error occurs
+     */
+    @Override
+    public void close() throws IOException {
+        asciiTableData.close();
     }
 }

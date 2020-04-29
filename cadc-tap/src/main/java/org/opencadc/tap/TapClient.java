@@ -80,9 +80,8 @@ import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
 import ca.nrc.cadc.dali.util.Format;
 import ca.nrc.cadc.dali.util.FormatFactory;
 import ca.nrc.cadc.io.ByteLimitExceededException;
-import ca.nrc.cadc.net.ExpectationFailedException;
+import ca.nrc.cadc.io.ResourceIterator;
 import ca.nrc.cadc.net.HttpPost;
-import ca.nrc.cadc.net.PreconditionFailedException;
 import ca.nrc.cadc.net.ResourceAlreadyExistsException;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.net.TransientException;
@@ -99,7 +98,6 @@ import java.net.URI;
 import java.net.URL;
 import java.security.AccessControlException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -160,13 +158,7 @@ public class TapClient<E> {
         URI sm = Standards.getSecurityMethod(am);
         return getAsyncURL(sm);
     }
-    
-    @Deprecated
-    public URL getSyncURL(AuthMethod am) throws ResourceNotFoundException {
-        URI sm = Standards.getSecurityMethod(am);
-        return getSyncURL(sm);
-    }
-    
+
     /**
      * Generate a usable async endpoint URL. This method only considers the specified
      * authentication method when performing the lookup of the base URL.
@@ -188,7 +180,13 @@ public class TapClient<E> {
             throw new RuntimeException("FAIL: appending /async to " + base + " gave invalid URL", ex);
         }
     }
-    
+
+    @Deprecated
+    public URL getSyncURL(AuthMethod am) throws ResourceNotFoundException {
+        URI sm = Standards.getSecurityMethod(am);
+        return getSyncURL(sm);
+    }
+
     /**
      * Generate a usable sync endpoint URL. This method only considers the specified
      * authentication method when performing the lookup of the base URL.
@@ -216,7 +214,7 @@ public class TapClient<E> {
      * 
      * @param query ADQL query to execute
      * @param mapper TapRowMapper to convert row data to domain object
-     * @return domain object of type E
+     * @return ResourceIterator over domain objects of type E
      * @throws AccessControlException permission denied
      * @throws NotAuthenticatedException authentication attempt failed or rejected
      * @throws ByteLimitExceededException input or output limit exceeded
@@ -226,7 +224,7 @@ public class TapClient<E> {
      * @throws IOException failure to send or read data stream
      * @throws InterruptedException thread interrupted
      */
-    public Iterator<E> execute(String query, TapRowMapper<E> mapper) 
+    public ResourceIterator<E> execute(String query, TapRowMapper<E> mapper)
         throws AccessControlException, NotAuthenticatedException,
             ByteLimitExceededException, IllegalArgumentException,
             ResourceNotFoundException, 
@@ -240,7 +238,7 @@ public class TapClient<E> {
     }
     
     // extraneous: ResourceAlreadyExistsException
-    private Iterator<E> executeImpl(String query, TapRowMapper<E> mapper) 
+    private ResourceIterator<E> executeImpl(String query, TapRowMapper<E> mapper)
         throws AccessControlException, NotAuthenticatedException,
             ByteLimitExceededException, IllegalArgumentException,
             ResourceAlreadyExistsException, ResourceNotFoundException, 
@@ -297,7 +295,7 @@ public class TapClient<E> {
         stream.prepare();
         InputStream istream = stream.getInputStream();
         if (istream != null) {
-            return new TsvIterator<E>(mapper, formatters, istream);
+            return new TsvIterator<>(mapper, formatters, istream);
         }
 
         throw new RuntimeException("BUG: query response had InputStream: null");

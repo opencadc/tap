@@ -67,6 +67,7 @@
 
 package org.opencadc.tap;
 
+import ca.nrc.cadc.io.ResourceIterator;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.util.Log4jInit;
 import java.net.URI;
@@ -100,7 +101,7 @@ public class TapClientTest {
         String query = "select schema_name,table_name,description,utype,table_type,table_index"
                 + " from tap_schema.tables where schema_name='tap_schema'"
                 + " order by table_index";
-        Iterator<TableDesc> ti = tapClient.execute(query, new TapSchemaTablesRowMapper());
+        ResourceIterator<TableDesc> ti = tapClient.execute(query, new TapSchemaTablesRowMapper());
         Assert.assertNotNull(ti);
         while (ti.hasNext()) {
             TableDesc td = ti.next();
@@ -113,7 +114,7 @@ public class TapClientTest {
         String query = "select schema_name,table_name,description,utype,table_type,table_index"
                 + " from tap_schema.tables where schema_name='tap_schema'"
                 + " order by table_index";
-        Iterator<List<Object>> ti = tapClient.execute(query, new RawRowMapper());
+        ResourceIterator<List<Object>> ti = tapClient.execute(query, new RawRowMapper());
         Assert.assertNotNull(ti);
         
         while (ti.hasNext()) {
@@ -131,7 +132,7 @@ public class TapClientTest {
         String query = "select foo bar";
         
         try {
-            Iterator<TableDesc> ti = tapClient.execute(query, new TapSchemaTablesRowMapper());
+            ResourceIterator<TableDesc> ti = tapClient.execute(query, new TapSchemaTablesRowMapper());
         } catch (IllegalArgumentException expected) {
             log.info("caught expected exception: " + expected.getClass().getName());
             log.info(expected.getMessage());
