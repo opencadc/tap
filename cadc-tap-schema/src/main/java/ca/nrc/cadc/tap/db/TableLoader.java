@@ -78,6 +78,7 @@ import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.tap.PluginFactory;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
+import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
 import javax.sql.DataSource;
@@ -225,11 +226,15 @@ public class TableLoader {
         return totalInserts;
     }
     
+    // convert values that the JDBC driver won't accept
     private void convertValueObjects(List<Object> values) {
         for (int i=0; i < values.size(); i++) {
             Object v = values.get(i);
             if (v != null) {
-                if (v instanceof DoubleInterval) {
+                if (v instanceof URI) {
+                    String nv = ((URI) v).toASCIIString();
+                    values.set(i, nv);
+                } else if (v instanceof DoubleInterval) {
                     Object nv = ddType.getIntervalObject((DoubleInterval) v);
                     values.set(i, nv);
                 } else if (v instanceof LongInterval) {
