@@ -80,6 +80,7 @@ import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.uws.Job;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.AccessControlException;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
@@ -1647,11 +1648,15 @@ public class TapSchemaDAO {
             boolean isPublic = readAnon != 0;
             GroupURI readGroup = null;
             GroupURI readWriteGroup = null;
-            if (rog != null) {
-                readGroup = new GroupURI(rog);
-            }
-            if (rwg != null) {
-                readWriteGroup = new GroupURI(rwg);
+            try {
+                if (rog != null) {
+                    readGroup = new GroupURI(rog);
+                }
+                if (rwg != null) {
+                    readWriteGroup = new GroupURI(rwg);
+                }
+            } catch (IllegalArgumentException | URISyntaxException e) {
+                throw new IllegalStateException(e);
             }
 
             TapPermissions tapPermissions = new TapPermissions(owner, isPublic, readGroup, readWriteGroup);

@@ -1,10 +1,9 @@
-
 /*
  ************************************************************************
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2018.                            (c) 2018.
+ *  (c) 2020.                            (c) 2020.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,53 +68,55 @@
 
 package ca.nrc.cadc.tap.parser.converter;
 
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.Function;
-import net.sf.jsqlparser.statement.select.PlainSelect;
-import net.sf.jsqlparser.statement.select.SelectExpressionItem;
-import net.sf.jsqlparser.statement.select.SelectItem;
 import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
-import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
-import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
-import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
+import net.sf.jsqlparser.expression.Function;
+import org.apache.log4j.Logger;
 
-import java.util.List;
-
-public class OracleCeilingConverter extends SelectNavigator {
-
-    private static final String FUNC_NAME = "CEILING";
-    private static final String ORACLE_FUNC_NAME = "CEIL";
+import java.util.Map;
+import java.util.TreeMap;
 
 
-    public OracleCeilingConverter(ExpressionNavigator en, ReferenceNavigator rn, FromItemNavigator fn) {
-        super(en, rn, fn);
+public class OracleFunctionConverter extends ExpressionNavigator {
+
+    private static final Logger LOGGER = Logger.getLogger(OracleFunctionConverter.class);
+    private final Map<String, String> adqlToOracleFunctionNames = new TreeMap<>();
+
+
+    public OracleFunctionConverter() {
+        super();
+
+        adqlToOracleFunctionNames.put("TIMESTAMP", "TO_TIMESTAMP");
+        adqlToOracleFunctionNames.put("CEILING", "CEIL");
+        adqlToOracleFunctionNames.put("SUBSTRING", "SUBSTR");
     }
 
+    /**
+     * Add new entries to the function name map.
+     *
+     * @param adqlFunction a function name that should be replaced
+     * @param databaseFunction      the value that originalName should be replaced with
+     */
+    public void put(final String adqlFunction, String databaseFunction) {
+        adqlToOracleFunctionNames.put(adqlFunction, databaseFunction);
+    }
+
+    /**
+     * Case insensitive lookup for an ADQL function name.
+     * @param adqlFunction  The name to look up.
+     * @return  String Oracle function name, or null if none existent.
+     */
+    public String get(final String adqlFunction) {
+        return adqlToOracleFunctionNames.get(adqlFunction.toUpperCase());
+    }
 
     @Override
-    public void visit(final PlainSelect plainSelect) {
-        enterPlainSelect(plainSelect);
+    public void visit(final Function function) {
 
-        @SuppressWarnings("unchecked")
-        final List<SelectItem> selectItems = plainSelect.getSelectItems();
+        LOGGER.debug("visit(function)" + function);
 
-        if (selectItems != null) {
-            for (final SelectItem s : selectItems) {
-                if (s instanceof SelectExpressionItem) {
-
-                    final SelectExpressionItem se = (SelectExpressionItem) s;
-                    final Expression e = se.getExpression();
-
-                    if (e instanceof Function) {
-                        final Function f = (Function) e;
-                        if (f.getName().equalsIgnoreCase(FUNC_NAME)) {
-                            f.setName(ORACLE_FUNC_NAME);
-                        }
-                    }
-                }
-            }
+        final String oracleFunction = get(function.getName());
+        if (oracleFunction != null) {
+            function.setName(oracleFunction);
         }
-
-        leavePlainSelect();
     }
 }

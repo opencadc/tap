@@ -1,10 +1,9 @@
-
 /*
  ************************************************************************
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2018.                            (c) 2018.
+ *  (c) 2020.                            (c) 2020.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,89 +68,98 @@
 
 package ca.nrc.cadc.tap.parser.converter;
 
+import net.sf.jsqlparser.expression.DoubleValue;
+import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
-import net.sf.jsqlparser.statement.select.PlainSelect;
-import net.sf.jsqlparser.statement.select.SelectExpressionItem;
 import org.junit.Test;
-import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
-import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
-import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
+import org.junit.Assert;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.Assert.*;
 
 
-public class OracleCeilingConverterTest {
+public class OracleFunctionConverterTest {
+
     @Test
-    public void visit() {
-        final OracleCeilingConverter testSubject =
-            new OracleCeilingConverter(new ExpressionNavigator(), new ReferenceNavigator(), new FromItemNavigator());
+    public void visitSubstring() {
+        final OracleFunctionConverter testSubject = new OracleFunctionConverter();
+
+        final Table table = new Table("schema", "table");
+        final Column columnB = new Column(table, "B");
+
+        final List<Expression> substringParameters = new ArrayList<>();
+
+        substringParameters.add(columnB);
+        substringParameters.add(new DoubleValue("1"));
+        substringParameters.add(new DoubleValue("3"));
+
+        final ExpressionList expressionList = new ExpressionList(substringParameters);
+
+        final Function columnBFunction = new Function();
+        columnBFunction.setName("SUBSTRING");
+        columnBFunction.setParameters(expressionList);
+
+        testSubject.visit(columnBFunction);
+
+        Assert.assertEquals("Wrong function name.", "SUBSTR", columnBFunction.getName());
+    }
+
+    @Test
+    public void visitCeiling() {
+        final OracleFunctionConverter testSubject = new OracleFunctionConverter();
 
         final Table table = new Table("schema", "table");
         final Column columnA = new Column(table, "A");
-        final Column columnB = new Column(table, "B");
-        final Column columnC = new Column(table, "C");
 
-        final ExpressionList expressionList = new ExpressionList(Collections.singletonList(columnB));
+        final ExpressionList expressionList = new ExpressionList(Collections.singletonList(columnA));
 
-        final Function columnBFunction = new Function();
-        columnBFunction.setName("CEILING");
-        columnBFunction.setParameters(expressionList);
+        final Function columnAFunction = new Function();
+        columnAFunction.setName("CEILING");
+        columnAFunction.setParameters(expressionList);
 
-        final List<SelectExpressionItem> selectItems = new ArrayList<>();
-        final SelectExpressionItem selectExpressionItemA = new SelectExpressionItem();
-        selectExpressionItemA.setExpression(columnA);
-        selectItems.add(selectExpressionItemA);
+        testSubject.visit(columnAFunction);
 
-        final SelectExpressionItem selectExpressionItemB = new SelectExpressionItem();
-        selectExpressionItemB.setExpression(columnBFunction);
-        selectItems.add(selectExpressionItemB);
+        Assert.assertEquals("Wrong function name.", "CEIL", columnAFunction.getName());
+    }
 
-        final SelectExpressionItem selectExpressionItemC = new SelectExpressionItem();
-        selectExpressionItemC.setExpression(columnC);
-        selectItems.add(selectExpressionItemC);
+    @Test
+    public void visitTimestamp() {
+        final OracleFunctionConverter testSubject = new OracleFunctionConverter();
 
-        final PlainSelect plainSelect = new PlainSelect();
-        plainSelect.setSelectItems(selectItems);
+        final Table table = new Table("schema", "table");
+        final Column columnA = new Column(table, "A");
 
-        testSubject.visit(plainSelect);
+        final ExpressionList expressionList = new ExpressionList(Collections.singletonList(columnA));
 
-        final List<SelectExpressionItem> expectedSelectItems = new ArrayList<>();
-        final SelectExpressionItem expectedSelectExpressionItemA = new SelectExpressionItem();
-        expectedSelectExpressionItemA.setExpression(columnA);
-        expectedSelectItems.add(expectedSelectExpressionItemA);
+        final Function columnAFunction = new Function();
+        columnAFunction.setName("TIMESTAMP");
+        columnAFunction.setParameters(expressionList);
 
-        // New function.
-        final Function expectedColumnBFunction = new Function();
-        expectedColumnBFunction.setName("CEIL");
-        expectedColumnBFunction.setParameters(expressionList);
+        testSubject.visit(columnAFunction);
 
-        final SelectExpressionItem expectedSelectExpressionItemB = new SelectExpressionItem();
-        expectedSelectExpressionItemB.setExpression(expectedColumnBFunction);
-        expectedSelectItems.add(expectedSelectExpressionItemB);
+        Assert.assertEquals("Wrong function name.", "TO_TIMESTAMP", columnAFunction.getName());
+    }
 
-        final SelectExpressionItem expectedSelectExpressionItemC = new SelectExpressionItem();
-        expectedSelectExpressionItemC.setExpression(columnC);
-        expectedSelectItems.add(expectedSelectExpressionItemC);
+    @Test
+    public void visitUnmapped() {
+        final OracleFunctionConverter testSubject = new OracleFunctionConverter();
 
-        final SelectExpressionItem[] expecteds = expectedSelectItems.toArray(new SelectExpressionItem[0]);
-        final SelectExpressionItem[] actuals = (SelectExpressionItem[])
-            plainSelect.getSelectItems().toArray(new SelectExpressionItem[0]);
+        final Table table = new Table("schema", "table");
+        final Column columnA = new Column(table, "A");
 
-        assertEquals("Should be three.", 3, actuals.length);
-        assertEquals("Wrong length.", expecteds.length, actuals.length);
+        final ExpressionList expressionList = new ExpressionList(Collections.singletonList(columnA));
 
-        for (int i = 0, el = expecteds.length; i < el; i++) {
-            final SelectExpressionItem selectExpressionItem = expecteds[i];
-            final SelectExpressionItem actualExpressionItem = actuals[i];
+        final Function columnAFunction = new Function();
+        columnAFunction.setName("ABS");
+        columnAFunction.setParameters(expressionList);
 
-            assertEquals("Wrong item.", selectExpressionItem.toString(), actualExpressionItem.toString());
-        }
+        testSubject.visit(columnAFunction);
+
+        Assert.assertEquals("Wrong function name.", "ABS", columnAFunction.getName());
     }
 }

@@ -71,6 +71,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -206,13 +207,21 @@ public class PostPermissionsAction extends TablesAction {
                     if (emptyValue) {
                         params.put(RGROUP_KEY, null);
                     } else {
-                        params.put(RGROUP_KEY, new GroupURI(parts[1]));
+                        try {
+                            params.put(RGROUP_KEY, new GroupURI(parts[1]));
+                        } catch (URISyntaxException e) {
+                            throw new IOException(e);
+                        }
                     }
                 } else if (parts[0].equalsIgnoreCase(RWGROUP_KEY) ) {
                     if (emptyValue) {
                         params.put(RWGROUP_KEY, null);
                     } else {
-                        params.put(RWGROUP_KEY, new GroupURI(parts[1]));
+                        try {
+                            params.put(RWGROUP_KEY, new GroupURI(parts[1]));
+                        } catch (URISyntaxException e) {
+                            throw new IOException(e);
+                        }
                     }
                 } else {
                     throw new IllegalArgumentException("unknown permissions key: " + parts[0]);
