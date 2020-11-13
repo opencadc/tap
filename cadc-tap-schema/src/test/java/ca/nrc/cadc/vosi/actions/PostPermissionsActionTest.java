@@ -106,7 +106,7 @@ public class PostPermissionsActionTest {
             String content = TablesAction.PUBLIC_KEY + "=" + "true";
             ByteArrayInputStream in = new ByteArrayInputStream(content.getBytes());
 
-            PermissionsInlineContentHandler p = new PostPermissionsAction().new PermissionsInlineContentHandler();
+            PermissionsInlineContentHandler p = new PermissionsInlineContentHandler();
             p.accept(PostPermissionsAction.TAP_PERMISSIONS_CONTENT, "wrong/type", in);
 
             Assert.fail("expected an IllegalArgumentException");
@@ -125,7 +125,7 @@ public class PostPermissionsActionTest {
             String content = TablesAction.OWNER_KEY + "=" + "someone";
             ByteArrayInputStream in = new ByteArrayInputStream(content.getBytes());
 
-            PermissionsInlineContentHandler p = new PostPermissionsAction().new PermissionsInlineContentHandler();
+            PermissionsInlineContentHandler p = new PermissionsInlineContentHandler();
             p.accept(PostPermissionsAction.TAP_PERMISSIONS_CONTENT, TablesAction.PERMS_CONTENTTYPE, in);
 
             Assert.fail("expected an IllegalArgumentException");
@@ -145,7 +145,7 @@ public class PostPermissionsActionTest {
             ByteArrayInputStream in = new ByteArrayInputStream(content.getBytes());
 
             // attempts to clear are tolerated
-            PermissionsInlineContentHandler p = new PostPermissionsAction().new PermissionsInlineContentHandler();
+            PermissionsInlineContentHandler p = new PermissionsInlineContentHandler();
             Content c = p.accept(PostPermissionsAction.TAP_PERMISSIONS_CONTENT, TablesAction.PERMS_CONTENTTYPE, in);
             
             Assert.assertNull(c);
@@ -162,7 +162,7 @@ public class PostPermissionsActionTest {
             String content = TablesAction.PUBLIC_KEY + "=" + "true";
             ByteArrayInputStream in = new ByteArrayInputStream(content.getBytes());
 
-            PermissionsInlineContentHandler p = new PostPermissionsAction().new PermissionsInlineContentHandler();
+            PermissionsInlineContentHandler p = new PermissionsInlineContentHandler();
             Content c = p.accept(PostPermissionsAction.TAP_PERMISSIONS_CONTENT, TablesAction.PERMS_CONTENTTYPE, in);
             Map<String, Object> tp = (Map<String, Object>) c.value;
             Assert.assertTrue(tp.containsKey(TablesAction.PUBLIC_KEY));
@@ -181,7 +181,7 @@ public class PostPermissionsActionTest {
             String content = TablesAction.PUBLIC_KEY + "=" + "false";
             ByteArrayInputStream in = new ByteArrayInputStream(content.getBytes());
 
-            PermissionsInlineContentHandler p = new PostPermissionsAction().new PermissionsInlineContentHandler();
+            PermissionsInlineContentHandler p = new PermissionsInlineContentHandler();
             Content c = p.accept(PostPermissionsAction.TAP_PERMISSIONS_CONTENT, TablesAction.PERMS_CONTENTTYPE, in);
             Map<String, Object> tp = (Map<String, Object>) c.value;
             Assert.assertTrue(tp.containsKey(TablesAction.PUBLIC_KEY));
@@ -200,7 +200,7 @@ public class PostPermissionsActionTest {
             String content = TablesAction.PUBLIC_KEY + "=" + "yes";
             ByteArrayInputStream in = new ByteArrayInputStream(content.getBytes());
 
-            PermissionsInlineContentHandler p = new PostPermissionsAction().new PermissionsInlineContentHandler();
+            PermissionsInlineContentHandler p = new PermissionsInlineContentHandler();
             p.accept(PostPermissionsAction.TAP_PERMISSIONS_CONTENT, TablesAction.PERMS_CONTENTTYPE, in);
             
             Assert.fail("expected an IllegalArgumentException");
@@ -220,7 +220,7 @@ public class PostPermissionsActionTest {
             String content = TablesAction.RGROUP_KEY + "=" + testGroupURI;
             ByteArrayInputStream in = new ByteArrayInputStream(content.getBytes());
 
-            PermissionsInlineContentHandler p = new PostPermissionsAction().new PermissionsInlineContentHandler();
+            PermissionsInlineContentHandler p = new PermissionsInlineContentHandler();
             Content c = p.accept(PostPermissionsAction.TAP_PERMISSIONS_CONTENT, TablesAction.PERMS_CONTENTTYPE, in);
             Map<String, Object> tp = (Map<String, Object>) c.value;
             Assert.assertTrue(tp.containsKey(TablesAction.RGROUP_KEY));
@@ -239,7 +239,7 @@ public class PostPermissionsActionTest {
             String content = TablesAction.RWGROUP_KEY + "=" + testGroupURI;
             ByteArrayInputStream in = new ByteArrayInputStream(content.getBytes());
 
-            PermissionsInlineContentHandler p = new PostPermissionsAction().new PermissionsInlineContentHandler();
+            PermissionsInlineContentHandler p = new PermissionsInlineContentHandler();
             Content c = p.accept(PostPermissionsAction.TAP_PERMISSIONS_CONTENT, TablesAction.PERMS_CONTENTTYPE, in);
             Map<String, Object> tp = (Map<String, Object>) c.value;
             Assert.assertTrue(tp.containsKey(TablesAction.RWGROUP_KEY));
@@ -257,7 +257,7 @@ public class PostPermissionsActionTest {
             String content = TablesAction.RGROUP_KEY + "=";
             ByteArrayInputStream in = new ByteArrayInputStream(content.getBytes());
 
-            PermissionsInlineContentHandler p = new PostPermissionsAction().new PermissionsInlineContentHandler();
+            PermissionsInlineContentHandler p = new PermissionsInlineContentHandler();
             Content c = p.accept(PostPermissionsAction.TAP_PERMISSIONS_CONTENT, TablesAction.PERMS_CONTENTTYPE, in);
             Map<String, Object> tp = (Map<String, Object>) c.value;
             Assert.assertTrue(tp.containsKey(TablesAction.RGROUP_KEY));
@@ -275,7 +275,7 @@ public class PostPermissionsActionTest {
             String content = TablesAction.RWGROUP_KEY + "=";
             ByteArrayInputStream in = new ByteArrayInputStream(content.getBytes());
 
-            PermissionsInlineContentHandler p = new PostPermissionsAction().new PermissionsInlineContentHandler();
+            PermissionsInlineContentHandler p = new PermissionsInlineContentHandler();
             Content c = p.accept(PostPermissionsAction.TAP_PERMISSIONS_CONTENT, TablesAction.PERMS_CONTENTTYPE, in);
             Map<String, Object> tp = (Map<String, Object>) c.value;
             Assert.assertTrue(tp.containsKey(TablesAction.RWGROUP_KEY));
@@ -293,7 +293,7 @@ public class PostPermissionsActionTest {
             String content = TablesAction.RGROUP_KEY + "=" + "malformedURI";
             ByteArrayInputStream in = new ByteArrayInputStream(content.getBytes());
 
-            PermissionsInlineContentHandler p = new PostPermissionsAction().new PermissionsInlineContentHandler();
+            PermissionsInlineContentHandler p = new PermissionsInlineContentHandler();
             p.accept(PostPermissionsAction.TAP_PERMISSIONS_CONTENT, TablesAction.PERMS_CONTENTTYPE, in);
             
             Assert.fail("expected an IllegalArgumentException");
@@ -312,7 +312,7 @@ public class PostPermissionsActionTest {
             String content = TablesAction.RWGROUP_KEY + "=" + "malformedURI";
             ByteArrayInputStream in = new ByteArrayInputStream(content.getBytes());
 
-            PermissionsInlineContentHandler p = new PostPermissionsAction().new PermissionsInlineContentHandler();
+            PermissionsInlineContentHandler p = new PermissionsInlineContentHandler();
             p.accept(PostPermissionsAction.TAP_PERMISSIONS_CONTENT, TablesAction.PERMS_CONTENTTYPE, in);
             
             Assert.fail("expected an IllegalArgumentException");
@@ -335,7 +335,7 @@ public class PostPermissionsActionTest {
                              TablesAction.RWGROUP_KEY + "=" + testGroupURI2;
             ByteArrayInputStream in = new ByteArrayInputStream(content.getBytes());
 
-            PermissionsInlineContentHandler p = new PostPermissionsAction().new PermissionsInlineContentHandler();
+            PermissionsInlineContentHandler p = new PermissionsInlineContentHandler();
             Content c = p.accept(PostPermissionsAction.TAP_PERMISSIONS_CONTENT, TablesAction.PERMS_CONTENTTYPE, in);
             
             Map<String, Object> tp = (Map<String, Object>) c.value;

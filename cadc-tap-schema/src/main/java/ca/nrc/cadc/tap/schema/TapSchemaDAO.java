@@ -1648,10 +1648,10 @@ public class TapSchemaDAO {
             GroupURI readGroup = null;
             GroupURI readWriteGroup = null;
             if (rog != null) {
-                readGroup = new GroupURI(rog);
+                readGroup = new GroupURI(URI.create(rog));
             }
             if (rwg != null) {
-                readWriteGroup = new GroupURI(rwg);
+                readWriteGroup = new GroupURI(URI.create(rwg));
             }
 
             TapPermissions tapPermissions = new TapPermissions(owner, isPublic, readGroup, readWriteGroup);

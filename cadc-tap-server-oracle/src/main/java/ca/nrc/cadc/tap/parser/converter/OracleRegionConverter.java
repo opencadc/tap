@@ -331,7 +331,13 @@ public class OracleRegionConverter extends RegionFinder {
      */
     @Override
     protected Expression handleCircle(Expression coordsys, Expression ra, Expression dec, Expression radius) {
-        return new OracleCircle(ra, dec, radius);
+        final double parsedRadius = Double.parseDouble(radius.toString());
+        if (parsedRadius > 0.0D) {
+            return new OracleCircle(ra, dec, radius);
+        } else {
+            LOGGER.debug("Radius is missing or is 0.0.  Returning a POINT instead.");
+            return handlePoint(coordsys, ra, dec);
+        }
     }
 
     /**
