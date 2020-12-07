@@ -71,6 +71,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -160,7 +161,7 @@ public class PostPermissionsAction extends TablesAction {
         return new PermissionsInlineContentHandler();
     }
     
-    public class PermissionsInlineContentHandler implements InlineContentHandler {
+    public static class PermissionsInlineContentHandler implements InlineContentHandler {
 
         @Override
         public Content accept(String name, String contentType, InputStream inputStream)
@@ -174,7 +175,7 @@ public class PostPermissionsAction extends TablesAction {
             BufferedReader reader = new BufferedReader(isReader);
             String next = reader.readLine();
             
-            Map<String, Object> params = new HashMap<String, Object>(4);
+            Map<String, Object> params = new HashMap<>(4);
             
             while (next != null) {
                 
@@ -206,13 +207,13 @@ public class PostPermissionsAction extends TablesAction {
                     if (emptyValue) {
                         params.put(RGROUP_KEY, null);
                     } else {
-                        params.put(RGROUP_KEY, new GroupURI(parts[1]));
+                        params.put(RGROUP_KEY, new GroupURI(URI.create(parts[1])));
                     }
                 } else if (parts[0].equalsIgnoreCase(RWGROUP_KEY) ) {
                     if (emptyValue) {
                         params.put(RWGROUP_KEY, null);
                     } else {
-                        params.put(RWGROUP_KEY, new GroupURI(parts[1]));
+                        params.put(RWGROUP_KEY, new GroupURI(URI.create(parts[1])));
                     }
                 } else {
                     throw new IllegalArgumentException("unknown permissions key: " + parts[0]);

@@ -69,6 +69,7 @@
 
 package ca.nrc.cadc.tap.permissions;
 
+import java.net.URI;
 import java.security.AccessControlException;
 import java.security.PrivilegedExceptionAction;
 import java.security.cert.CertificateExpiredException;
@@ -141,8 +142,8 @@ public class TapSchemaReadAccessConverterTest {
     static long userIDWithGroups = 1L;
     static long userIDWithNoGroups = 2L;
     
-    static GroupURI group1 = new GroupURI("ivo://cadc.nrc.ca/gms?666");
-    static GroupURI group2 = new GroupURI("ivo://cadc.nrc.ca/gms?777");
+    static GroupURI group1 = new GroupURI(URI.create("ivo://cadc.nrc.ca/gms?666"));
+    static GroupURI group2 = new GroupURI(URI.create("ivo://cadc.nrc.ca/gms?777"));
     
     static String groupInExpr = "in ('" + group1.toString() + "', '" + group2.toString() + "')";
 
