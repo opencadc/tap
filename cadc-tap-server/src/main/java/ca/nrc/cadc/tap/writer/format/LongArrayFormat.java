@@ -129,6 +129,6 @@ public class LongArrayFormat extends AbstractResultSetFormat
         if (object instanceof long[])
             return fmt.format((long[]) object);
 
-        throw new IllegalArgumentException(object.getClass().getCanonicalName() + " not supported.");
+        throw new IllegalArgumentException(this.getClass().getSimpleName() + ": " + object.getClass().getCanonicalName() + " not supported.");
     }
 }

@@ -132,6 +132,6 @@ public class ShortArrayFormat  extends AbstractResultSetFormat
         if (object instanceof short[])
             return fmt.format((short[]) object);
 
-        throw new IllegalArgumentException(object.getClass().getCanonicalName() + " not supported.");
+        throw new IllegalArgumentException(this.getClass().getSimpleName() + ": " + object.getClass().getCanonicalName() + " not supported.");
     }
 }

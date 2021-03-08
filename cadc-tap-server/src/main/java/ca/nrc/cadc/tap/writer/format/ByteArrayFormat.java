@@ -126,7 +126,7 @@ public class ByteArrayFormat extends AbstractResultSetFormat
         if (object instanceof byte[])
             return object;
         
-        throw new IllegalArgumentException(object.getClass().getCanonicalName() + " not supported.");
+        throw new IllegalArgumentException(this.getClass().getSimpleName() + ": " + object.getClass().getCanonicalName() + " not supported.");
     }
 
     
