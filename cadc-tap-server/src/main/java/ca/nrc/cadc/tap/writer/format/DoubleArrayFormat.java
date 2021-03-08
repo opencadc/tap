@@ -136,6 +136,6 @@ public class DoubleArrayFormat extends AbstractResultSetFormat {
             return (double[]) object;
         }
 
-        throw new IllegalArgumentException(object.getClass().getCanonicalName() + " not supported.");
+        throw new IllegalArgumentException(this.getClass().getSimpleName() + ": " + object.getClass().getCanonicalName() + " not supported.");
     }
 }

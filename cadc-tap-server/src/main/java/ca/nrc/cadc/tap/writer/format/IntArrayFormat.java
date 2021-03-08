@@ -128,6 +128,6 @@ public class IntArrayFormat extends AbstractResultSetFormat
         if (object instanceof int[])
             return fmt.format((int[]) object);
         
-        throw new IllegalArgumentException(object.getClass().getCanonicalName() + " not supported.");
+        throw new IllegalArgumentException(this.getClass().getSimpleName() + ": " + object.getClass().getCanonicalName() + " not supported.");
     }
 }

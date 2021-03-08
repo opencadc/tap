@@ -128,6 +128,6 @@ public class FloatArrayFormat extends AbstractResultSetFormat
         if (object instanceof float[])
             return fmt.format((float[]) object);
 
-        throw new IllegalArgumentException(object.getClass().getCanonicalName() + " not supported.");
+        throw new IllegalArgumentException(this.getClass().getSimpleName() + ": " + object.getClass().getCanonicalName() + " not supported.");
     }
 }
