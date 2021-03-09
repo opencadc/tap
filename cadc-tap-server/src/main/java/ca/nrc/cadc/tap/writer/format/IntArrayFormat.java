@@ -76,58 +76,52 @@ import java.sql.SQLException;
  * Formats a int[] into a String.
  *
  */
-public class IntArrayFormat extends AbstractResultSetFormat
-{
-    private static final ca.nrc.cadc.dali.util.IntArrayFormat fmt 
+public class IntArrayFormat extends AbstractResultSetFormat {
+
+    private static final ca.nrc.cadc.dali.util.IntArrayFormat fmt
             = new ca.nrc.cadc.dali.util.IntArrayFormat();
-    
+
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
-            throws SQLException
-    {
+            throws SQLException {
         return resultSet.getObject(columnIndex);
     }
 
     /**
-     * Takes an int[] contained in a java.sql.Array and returns
-     * the default String representation.
+     * Format int[], unwrapping from java.sql.Array and java.lang.Number[] if necessary.
      *
-     * @param object to format.
-     * @return String represenetation of the int[].
-     * @throws IllegalArgumentException if the object is not an int[];
+     * @param object to format
+     * @return String representation of the int[]
+     * @throws IllegalArgumentException if the object is not convertible to int[]
      */
     @Override
-    public String format(Object object)
-    {
-        if (object == null)
+    public String format(Object object) {
+        if (object == null) {
             return "";
+        }
 
-        if (object instanceof java.sql.Array)
-        {
-            try
-            {
+        if (object instanceof java.sql.Array) {
+            try {
                 java.sql.Array array = (java.sql.Array) object;
                 object = array.getArray();
-            }
-            catch (SQLException e)
-            {
+            } catch (SQLException e) {
                 throw new IllegalArgumentException("Error accessing array data for " + object.getClass().getCanonicalName(), e);
             }
         }
-        
-        if (object instanceof Integer[])
-        {
-            Integer[] arr = (Integer[]) object;
+
+        if (object instanceof Number[]) {
+            Number[] arr = (Number[]) object;
             int[] tmp = new int[arr.length];
             for (int i = 0; i < arr.length; i++) {
-                tmp[i] = arr[i]; // unbox
+                tmp[i] = arr[i].intValue();
             }
             object = tmp;
         }
-        
-        if (object instanceof int[])
+
+        if (object instanceof int[]) {
             return fmt.format((int[]) object);
-        
+        }
+
         throw new IllegalArgumentException(this.getClass().getSimpleName() + ": " + object.getClass().getCanonicalName() + " not supported.");
     }
 }
