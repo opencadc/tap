@@ -63,10 +63,9 @@
 *                                       <http://www.gnu.org/licenses/>.
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.tap.writer.format;
-
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -76,61 +75,56 @@ import org.apache.log4j.Logger;
  *
  * @author pdowler
  */
-public class ShortArrayFormat  extends AbstractResultSetFormat
-{
+public class ShortArrayFormat extends AbstractResultSetFormat {
+
     private static final Logger log = Logger.getLogger(ShortArrayFormat.class);
 
-    private static final ca.nrc.cadc.dali.util.ShortArrayFormat fmt 
+    private static final ca.nrc.cadc.dali.util.ShortArrayFormat fmt
             = new ca.nrc.cadc.dali.util.ShortArrayFormat();
-    
-    public ShortArrayFormat() { }
-    
+
+    public ShortArrayFormat() {
+    }
+
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
-            throws SQLException
-    {
+            throws SQLException {
         return resultSet.getObject(columnIndex);
     }
 
     /**
-     * Takes an short[] contained in a java.sql.Array and returns
-     * the default String representation.
+     * Format short[], unwrapping from java.sql.Array and java.lang.Number[] if necessary.
      *
-     * @param object to format.
-     * @return String representation of the short[].
-     * @throws IllegalArgumentException if the object is not an short[];
+     * @param object to format
+     * @return String representation of the short[]
+     * @throws IllegalArgumentException if the object is not convertible to short[]
      */
     @Override
-    public String format(Object object)
-    {
-        if (object == null)
+    public String format(Object object) {
+        if (object == null) {
             return "";
+        }
 
-        if (object instanceof java.sql.Array)
-        {
-            try
-            {
+        if (object instanceof java.sql.Array) {
+            try {
                 java.sql.Array array = (java.sql.Array) object;
                 object = array.getArray();
-            }
-            catch (SQLException e)
-            {
+            } catch (SQLException e) {
                 throw new IllegalArgumentException("Error accessing array data for " + object.getClass().getCanonicalName(), e);
             }
         }
-        
-        if (object instanceof Short[])
-        {
-            Short[] arr = (Short[]) object;
+
+        if (object instanceof Number[]) {
+            Number[] arr = (Number[]) object;
             short[] tmp = new short[arr.length];
             for (int i = 0; i < arr.length; i++) {
-                tmp[i] = arr[i]; // unbox
+                tmp[i] = arr[i].shortValue();
             }
             object = tmp;
         }
-        
-        if (object instanceof short[])
+
+        if (object instanceof short[]) {
             return fmt.format((short[]) object);
+        }
 
         throw new IllegalArgumentException(this.getClass().getSimpleName() + ": " + object.getClass().getCanonicalName() + " not supported.");
     }

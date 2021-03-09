@@ -76,58 +76,51 @@ import java.sql.SQLException;
  *
  * @author pdowler
  */
-public class LongArrayFormat extends AbstractResultSetFormat
-{
+public class LongArrayFormat extends AbstractResultSetFormat {
 
-    private static final ca.nrc.cadc.dali.util.LongArrayFormat fmt 
+    private static final ca.nrc.cadc.dali.util.LongArrayFormat fmt
             = new ca.nrc.cadc.dali.util.LongArrayFormat();
 
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
-            throws SQLException
-    {
+            throws SQLException {
         return resultSet.getObject(columnIndex);
     }
 
     /**
-     * Takes an int[] contained in a java.sql.Array and returns
-     * the default String representation.
+     * Format long[], unwrapping from java.sql.Array and java.lang.Number[] if necessary.
      *
-     * @param object to format.
-     * @return String represenetation of the int[].
-     * @throws IllegalArgumentException if the object is not an int[];
+     * @param object to format
+     * @return String representation of the long[]
+     * @throws IllegalArgumentException if the object is not convertible to long[]
      */
     @Override
-    public String format(Object object)
-    {
-        if (object == null)
+    public String format(Object object) {
+        if (object == null) {
             return "";
+        }
 
-        if (object instanceof java.sql.Array)
-        {
-            try
-            {
+        if (object instanceof java.sql.Array) {
+            try {
                 java.sql.Array array = (java.sql.Array) object;
                 object = array.getArray();
-            }
-            catch (SQLException e)
-            {
+            } catch (SQLException e) {
                 throw new IllegalArgumentException("Error accessing array data for " + object.getClass().getCanonicalName(), e);
             }
         }
-        
-        if (object instanceof Long[])
-        {
-            Long[] arr = (Long[]) object;
+
+        if (object instanceof Number[]) {
+            Number[] arr = (Number[]) object;
             long[] tmp = new long[arr.length];
             for (int i = 0; i < arr.length; i++) {
-                tmp[i] = arr[i]; // unbox
+                tmp[i] = arr[i].longValue();
             }
             object = tmp;
         }
-        
-        if (object instanceof long[])
+
+        if (object instanceof long[]) {
             return fmt.format((long[]) object);
+        }
 
         throw new IllegalArgumentException(this.getClass().getSimpleName() + ": " + object.getClass().getCanonicalName() + " not supported.");
     }
