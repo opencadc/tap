@@ -3,12 +3,12 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2016.                            (c) 2016.
+*  (c) 2009.                            (c) 2009.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 *  All rights reserved                  Tous droits réservés
-*
+*                                       
 *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 *  expressed, implied, or               énoncée, implicite ou légale,
 *  statutory, of any kind with          de quelque nature que ce
@@ -31,10 +31,10 @@
 *  software without specific prior      de ce logiciel sans autorisation
 *  written permission.                  préalable et particulière
 *                                       par écrit.
-*
+*                                       
 *  This file is part of the             Ce fichier fait partie du projet
 *  OpenCADC project.                    OpenCADC.
-*
+*                                       
 *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 *  you can redistribute it and/or       vous pouvez le redistribuer ou le
 *  modify it under the terms of         modifier suivant les termes de
@@ -44,7 +44,7 @@
 *  either version 3 of the              : soit la version 3 de cette
 *  License, or (at your option)         licence, soit (à votre gré)
 *  any later version.                   toute version ultérieure.
-*
+*                                       
 *  OpenCADC is distributed in the       OpenCADC est distribué
 *  hope that it will be useful,         dans l’espoir qu’il vous
 *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -54,7 +54,7 @@
 *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 *  General Public License for           Générale Publique GNU Affero
 *  more details.                        pour plus de détails.
-*
+*                                       
 *  You should have received             Vous devriez avoir reçu une
 *  a copy of the GNU Affero             copie de la Licence Générale
 *  General Public License along         Publique GNU Affero avec
@@ -62,131 +62,100 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
+*  $Revision: 4 $
+*
 ************************************************************************
 */
 
+/**
+ * 
+ */
 package ca.nrc.cadc.tap.schema;
 
+import java.util.ArrayList;
 
-import ca.nrc.cadc.dali.tables.votable.VOTableUtil;
-import org.apache.log4j.Logger;
+import java.util.List;
 
 /**
- * TAP data type descriptor.
+ * Utility class solely for the purpose of testing.
  * 
- * @author pdowler
+ * @author Sailor Zhang
+ *
  */
-public class TapDataType
+public class TestUtil
 {
-    private static final Logger log = Logger.getLogger(TapDataType.class);
-
-    private String datatype;
-    public String arraysize;
-    public String xtype;
     
-    public TapDataType(String datatype) 
+    public static TapSchema createSimpleTapSchema(int tapVersion, int numSchemas, int numTables, int numColumns, int numFunctions)
     {
-        TapSchema.assertNotNull(TapDataType.class, "datatype", datatype);
-        this.datatype = datatype;
-    }
-    
-    public TapDataType(String datatype, String arraysize, String xtype)
-    {
-        this(datatype);
-        this.arraysize = arraysize;
-        this.xtype = xtype;
-    }
-
-    public String getDatatype()
-    {
-        return datatype;
-    }
-    
-    public boolean isVarSize()
-    {
-        return (arraysize != null && arraysize.indexOf('*') >= 0);
-    }
-    
-    @Override
-    public String toString()
-    {
-        StringBuilder sb = new StringBuilder();
-        sb.append("TapDataType[").append(datatype).append(",");
-        sb.append(arraysize).append(",");
-        sb.append(xtype).append("]");
-        return sb.toString();
-    }
-
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (obj != null && obj instanceof TapDataType)
+        TapSchema ret = new TapSchema();
+        for (int s=0; s<numSchemas; s++)
         {
-            TapDataType rhs = (TapDataType) obj;
-            if (!datatype.equals(rhs.datatype))
-                return false;
+            String sn = "schema" + s;
+            SchemaDesc sd = new SchemaDesc(sn);
             
-            if (xtype == null && rhs.xtype != null)
-                return false;
-            if (xtype != null && rhs.xtype == null)
-                return false;
-            if (xtype != null && !xtype.equals(rhs.xtype))
-                return false;
-            // both xtypes null
-            
-            if (arraysize == null && rhs.arraysize == null)
-                return true; // scalar
-            if (arraysize == null && rhs.arraysize != null)
-                return false;
-            if (arraysize != null && rhs.arraysize == null)
-                return false;
-            // both arraysize not null
-            
-            int[] shape = VOTableUtil.getArrayShape(arraysize);
-            int[] rshape = VOTableUtil.getArrayShape(rhs.arraysize);
-            if (shape.length != rshape.length)
-                return false;
-            for (int i=0; i<shape.length; i++)
+            for (int t=0; t<numTables; t++)
             {
-                if (shape[i] == -1 || rshape[i] == -1) // variable
-                    return true;
-                if (shape[i] != rshape[i])
-                    return false;
-            }
-            return true;
-        }
-        return false;
-    }
+                String tn = "table" + t;
+                TableDesc td = new TableDesc(sn, tn);
+                td.description = "this is " + tn;
+                
+                for (int c=0; c<numColumns; c++)
+                {
+                    
+                    String cn = "c_int" + c;
+                    String asz = null;
+                    if (c > 0)
+                        asz = Integer.toString(c);
+                    if (tapVersion == 10)
+                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("adql:INTEGER", asz, null)));
+                    else
+                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("int", asz, null)));
+                    
+                    cn = "c_double" + c;
+                    asz = null;
+                    if (tapVersion == 10)
+                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("adql:DOUBLE", asz, null)));
+                    else
+                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("double", asz, null)));
+                    
+                    cn = "c_char" + c;
+                    asz = null;
+                    if (tapVersion == 10)
+                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("adql:CHAR", asz, null)));
+                    else
+                        td.getColumnDescs().add(new ColumnDesc(tn, cn, new TapDataType("char", asz, null)));
+                }
+                String cn = "c_interval";
+                
+                ColumnDesc ci = new ColumnDesc(tn, cn, new TapDataType("double", "2", "interval"));
+                ci.description = "interval column";
+                td.getColumnDescs().add(ci);
 
-    @Override
-    public int hashCode()
-    {
-        return toString().hashCode();
+                cn = "c_polygon";
+                if (tapVersion == 10)
+                {
+                    ColumnDesc cp = new ColumnDesc(tn, cn, new TapDataType("adql:REGION", "*", null));
+                    cp.description = "region column";
+                    td.getColumnDescs().add(cp);
+                }
+                else
+                {
+                    ColumnDesc cp = new ColumnDesc(tn, cn, new TapDataType("double", "*", "polygon"));
+                    cp.description = "polygon column";
+                    td.getColumnDescs().add(cp);
+                }
+                sd.getTableDescs().add(td);
+            }
+            ret.getSchemaDescs().add(sd);
+        }
+        
+        List<FunctionDesc> fds = new ArrayList<FunctionDesc>();
+        for (int f=0; f<numFunctions; f++)
+        {
+            String s = "func" + f;
+            FunctionDesc fd = new FunctionDesc(s, new TapDataType("double"));
+        }
+        
+        return ret;
     }
-    
-    
-    
-    public static final TapDataType FUNCTION_ARG = new TapDataType("function-arg", null, null);
-    
-    // VOTable primitive types
-    public static final TapDataType BOOLEAN = new TapDataType("boolean");
-    public static final TapDataType SHORT = new TapDataType("short");
-    public static final TapDataType INTEGER = new TapDataType("int");
-    public static final TapDataType LONG = new TapDataType("long");
-    public static final TapDataType FLOAT = new TapDataType("float");
-    public static final TapDataType DOUBLE = new TapDataType("double");
-    public static final TapDataType CHAR = new TapDataType("char");
-    
-    public static final TapDataType STRING = new TapDataType("char", "*", null);
-    
-    // DALI types
-    public static final TapDataType TIMESTAMP = new TapDataType("char", "*", "timestamp");
-    public static final TapDataType INTERVAL = new TapDataType("double", "2", "interval");
-    public static final TapDataType POINT = new TapDataType("double", "2", "point");
-    public static final TapDataType CIRCLE = new TapDataType("double", "3", "circle");
-    public static final TapDataType POLYGON = new TapDataType("double", "*", "polygon");
-    
-    // ADQL types
-    public static final TapDataType BLOB = new TapDataType("byte", "*", "blob");
-    public static final TapDataType CLOB = new TapDataType("char", "*", "clob");
 }

@@ -65,20 +65,16 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.db;
+package org.opencadc.tap.io;
 
-import ca.nrc.cadc.dali.tables.TableData;
 import ca.nrc.cadc.tap.schema.TableDesc;
 
-/**
- *
- * @author pdowler, majorb
- */
-public interface TableDataStream extends TableData {
-    
+public interface TableDataInputStream extends TableDataStream {
+
     /**
-     * Safely close the stream.
+     * Accept the target table description and return the one
+     * modified for this data.
      */
-    public void close();
+    public TableDesc acceptTargetTableDesc(TableDesc desc);
     
 }

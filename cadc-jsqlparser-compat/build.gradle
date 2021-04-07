@@ -2,22 +2,24 @@ plugins {
     id 'java'
     id 'maven'
     id 'maven-publish'
-    id 'com.jfrog.bintray' version '1.8.4'
 }
 
 repositories {
-    jcenter()
+    mavenCentral()
     mavenLocal()
 }
 
-sourceCompatibility = 1.7
+sourceCompatibility = 1.8
 
 group = 'org.opencadc'
 
 version = '0.6.4'
 
+description = 'OpenCADC jsqlparser library (fork)'
+def git_url = 'https://github.com/opencadc/tap'
+
 dependencies {
-    compile 'log4j:log4j:1.2.+'
+    compile 'log4j:log4j:[1.2,)'
     
-    testCompile 'junit:junit:4.+'
+    testCompile 'junit:junit:4.13'
 }

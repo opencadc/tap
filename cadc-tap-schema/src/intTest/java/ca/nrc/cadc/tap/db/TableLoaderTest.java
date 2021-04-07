@@ -19,6 +19,7 @@ import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.util.Log4jInit;
+import org.opencadc.tap.io.AsciiTableData;
 
 public class TableLoaderTest {
 

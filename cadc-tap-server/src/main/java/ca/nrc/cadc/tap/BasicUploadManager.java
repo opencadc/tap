@@ -72,8 +72,6 @@ package ca.nrc.cadc.tap;
 import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.tap.db.DatabaseDataType;
 import ca.nrc.cadc.tap.db.TableCreator;
-import ca.nrc.cadc.tap.db.TableDataInputStream;
-import ca.nrc.cadc.tap.db.TableDataStream;
 import ca.nrc.cadc.tap.db.TableLoader;
 import ca.nrc.cadc.tap.db.TapConstants;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
@@ -94,6 +92,7 @@ import java.util.List;
 import java.util.Map;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
+import org.opencadc.tap.io.TableDataInputStream;
 
 /**
  *

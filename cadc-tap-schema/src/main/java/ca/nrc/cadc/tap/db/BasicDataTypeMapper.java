@@ -130,6 +130,7 @@ public class BasicDataTypeMapper implements DatabaseDataType {
 
         dataTypes.put(TapDataType.STRING, new TypePair("CHAR", Types.CHAR));
         dataTypes.put(TapDataType.TIMESTAMP, new TypePair("TIMESTAMP", Types.TIMESTAMP));
+        dataTypes.put(TapDataType.URI, new TypePair("CHAR", Types.CHAR));
     }
 
     /**
