@@ -70,7 +70,6 @@ package ca.nrc.cadc.tap.pg;
 import ca.nrc.cadc.db.ConnectionConfig;
 import ca.nrc.cadc.db.DBConfig;
 import ca.nrc.cadc.db.DBUtil;
-import ca.nrc.cadc.tap.db.AsciiTableData;
 import ca.nrc.cadc.tap.db.TableCreator;
 import ca.nrc.cadc.tap.db.TableLoader;
 import ca.nrc.cadc.tap.pg.TableCreatorTest.SimpleRowMapper;
@@ -85,6 +84,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
+import org.opencadc.tap.io.AsciiTableData;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 public class TableLoaderTest {

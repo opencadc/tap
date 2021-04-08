@@ -65,22 +65,19 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.db;
+package org.opencadc.tap.io;
 
+import ca.nrc.cadc.dali.tables.ascii.AsciiTableWriter;
 import ca.nrc.cadc.dali.tables.votable.VOTableField;
 import ca.nrc.cadc.dali.util.Format;
 import ca.nrc.cadc.dali.util.FormatFactory;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaUtil;
-import ca.nrc.cadc.vosi.actions.TableContentHandler;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -112,15 +109,12 @@ public class AsciiTableData implements TableDataInputStream, Iterator<List<Objec
      * @throws IOException If a data handling error occurs
      */
     public AsciiTableData(InputStream in, String contentType) throws IOException {
-        char delimiter = ',';
-        if (contentType.equals(TableContentHandler.CONTENT_TYPE_TSV)) {
-            delimiter = '\t';
-        }
         InputStreamReader ir = new InputStreamReader(in);
-        
-        if (TableContentHandler.CONTENT_TYPE_TSV.equals(contentType)) {
+        if (AsciiTableWriter.CONTENT_TYPE_TSV.equals(contentType)) {
             this.reader = new CSVParser(ir, CSVFormat.TDF.withFirstRecordAsHeader());
-        } else if (TableContentHandler.CONTENT_TYPE_CSV.equals(contentType)) {
+        } else if (AsciiTableWriter.CONTENT_TYPE_CSV_HDR.equals(contentType) || "text/csv".equals(contentType)) {
+            // this is wrong, but preserve current behaviour:
+            // accept text/csv and assume header is present (see TableContentHandler in cadc-tap-schema)
             this.reader = new CSVParser(ir, CSVFormat.DEFAULT.withFirstRecordAsHeader());
         } else {
             throw new UnsupportedOperationException("contentType: " + contentType);

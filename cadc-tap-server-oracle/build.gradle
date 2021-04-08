@@ -2,17 +2,21 @@ plugins {
     id "java"
     id "maven"
     id 'maven-publish'
-    id 'com.jfrog.bintray' version '1.8.4'
 }
 
 repositories {
+    mavenCentral()
     mavenLocal()
+    // tmp to resolve uk.ac.starlink
     jcenter()
 }
 
 sourceCompatibility = 1.8
 group = 'org.opencadc'
 version = '1.2.5'
+
+description = 'OpenCADC TAP-1.1 tap server plugin (Oracle)'
+def git_url = 'https://github.com/opencadc/tap'
 
 dependencies {
     compile 'org.opencadc:cadc-tap-server:[1.1.5, )'

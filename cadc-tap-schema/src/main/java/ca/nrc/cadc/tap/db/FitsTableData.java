@@ -87,6 +87,7 @@ import ca.nrc.cadc.dali.util.FormatFactory;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaUtil;
+import org.opencadc.tap.io.TableDataInputStream;
 import uk.ac.starlink.fits.FitsTableBuilder;
 import uk.ac.starlink.table.ColumnInfo;
 import uk.ac.starlink.table.StarTable;

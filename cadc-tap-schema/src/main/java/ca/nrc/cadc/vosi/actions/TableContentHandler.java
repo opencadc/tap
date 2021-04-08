@@ -70,15 +70,15 @@ package ca.nrc.cadc.vosi.actions;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.InlineContentException;
 import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.tap.db.AsciiTableData;
 import ca.nrc.cadc.tap.db.FitsTableData;
-import ca.nrc.cadc.tap.db.TableDataInputStream;
 import ca.nrc.cadc.tap.db.TableLoader;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import java.io.IOException;
 import java.io.InputStream;
 import org.apache.log4j.Logger;
+import org.opencadc.tap.io.AsciiTableData;
+import org.opencadc.tap.io.TableDataInputStream;
 
 /**
  * ContentHandler for SyncLoadAction.

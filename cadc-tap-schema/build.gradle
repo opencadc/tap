@@ -2,13 +2,14 @@ plugins {
     id "java"
     id "maven"
     id 'maven-publish'
-    id 'com.jfrog.bintray' version '1.8.4'
     id 'checkstyle'
 }
 
 repositories {
-    jcenter()
+    mavenCentral()
     mavenLocal()
+    // tmp to resolve uk.ac.starlink
+    jcenter()
 }
 
 apply from: '../opencadc.gradle'
@@ -17,14 +18,16 @@ sourceCompatibility = 1.8
 
 group = 'org.opencadc'
 
-version = '1.1.27'
+version = '1.1.28'
+
+description = 'OpenCADC TAP-1.1 tap schema server library'
+def git_url = 'https://github.com/opencadc/tap'
 
 dependencies {
     compile 'log4j:log4j:[1.2,2.0)'
     compile 'org.jdom:jdom2:[2.0,)'
     compile 'org.springframework:spring-jdbc:2.5.6.SEC01'
     compile 'javax.servlet:javax.servlet-api:[3.1,4.0)'
-    compile 'org.apache.commons:commons-csv:[1.6,1.7)'
 
     compile 'org.opencadc:cadc-util:[1.2.25,)'
     compile 'org.opencadc:cadc-log:[1.1.0,)'
@@ -35,10 +38,11 @@ dependencies {
     compile 'org.opencadc:cadc-cdp:[1.2.3,)'
     compile 'org.opencadc:cadc-gms:[1.0,)'
     compile 'org.opencadc:cadc-rest:[1.2.10,)'
+    compile 'org.opencadc:cadc-tap:[1.1.0,1.2)'
     compile 'uk.ac.starlink:jcdf:1.2.3'
     compile 'uk.ac.starlink:stil-io:3.3.2'
 
     testCompile 'junit:junit:[4.0,5.0)'
     testCompile 'xerces:xercesImpl:[2.0,)'
-    testRuntime 'org.postgresql:postgresql:9.4.1209.jre7'
+    testRuntime 'org.postgresql:postgresql:[42.2.8,)'
 }

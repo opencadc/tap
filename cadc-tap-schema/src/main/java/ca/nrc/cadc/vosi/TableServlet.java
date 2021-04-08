@@ -99,7 +99,8 @@ import javax.servlet.ServletConfig;
 
 /**
  * Simple servlet that reads metadata using <code>ca.nrc.cadc.tap.schema</code>
- * and writes it in XML.
+ * and writes it in XML. This code is obsolete: use the 
+ * <code>ca.nrc.cadc.vosi.actions.GetAction</code> class for equivalent functionality.
  * 
  * @author pdowler, Sailor Zhang
  */

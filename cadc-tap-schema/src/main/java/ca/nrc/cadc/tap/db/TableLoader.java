@@ -73,17 +73,27 @@ import ca.nrc.cadc.dali.Interval;
 import ca.nrc.cadc.dali.LongInterval;
 import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.dali.Polygon;
+import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.tap.PluginFactory;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
 import java.net.URI;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
+import org.opencadc.tap.io.TableDataInputStream;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementCreator;
 
 /**
  * Utility to bulk load content into a table.
@@ -217,6 +227,30 @@ public class TableLoader {
         sb.append(")");
 
         return sb.toString();
+    }
+    
+    private class BulkInsertStatement implements PreparedStatementCreator {
+        private final Calendar utc = Calendar.getInstance(DateUtil.UTC);
+        private TableDesc tableDesc;
+        Object[] row;
+        
+        @Override
+        public PreparedStatement createPreparedStatement(Connection con) throws SQLException {
+            String sql = generateInsertSQL(tableDesc);
+            PreparedStatement ret = con.prepareStatement(sql);
+            
+            for (int i = 0; i < tableDesc.getColumnDescs().size(); i++) {
+                ColumnDesc cd = tableDesc.getColumnDescs().get(i);
+                Object val = row[i];
+                if (val != null && val instanceof Date && TapDataType.TIMESTAMP.equals(cd.getDatatype())) {
+                    Date d = (Date) val;
+                    ret.setTimestamp(i + 1, new Timestamp(d.getTime()), utc);
+                } else {
+                    ret.setObject(i + 1, val);
+                }
+            }
+            return ret;
+        }
     }
     
     /**

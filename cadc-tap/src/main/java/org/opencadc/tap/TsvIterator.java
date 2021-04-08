@@ -69,13 +69,11 @@ package org.opencadc.tap;
 
 import ca.nrc.cadc.dali.util.Format;
 import ca.nrc.cadc.io.ResourceIterator;
-import ca.nrc.cadc.tap.db.AsciiTableData;
-import ca.nrc.cadc.vosi.actions.TableContentHandler;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Iterator;
 import java.util.List;
 import org.apache.log4j.Logger;
+import org.opencadc.tap.io.AsciiTableData;
 
 /**
  *
@@ -90,7 +88,7 @@ class TsvIterator<E> implements ResourceIterator<E> {
 
     public TsvIterator(TapRowMapper<E> mapper, List<Format> formatters, InputStream istream) throws IOException {
         this.mapper = mapper;
-        this.asciiTableData = new AsciiTableData(istream, TableContentHandler.CONTENT_TYPE_TSV);
+        this.asciiTableData = new AsciiTableData(istream, "text/tab-separated-values");
         this.asciiTableData.setColumnFormats(formatters);
     }
 
