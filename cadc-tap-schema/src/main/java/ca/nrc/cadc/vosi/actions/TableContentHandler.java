@@ -108,7 +108,7 @@ public class TableContentHandler implements InlineContentHandler {
         String tableName = parent.getTableName();
         log.debug("TableContentHandler: " + tableName);
         
-        parent.checkWritable();
+        parent.checkWritableImpl();
         
         if (tableName == null) {
             throw new IllegalArgumentException("Missing table name in path");
