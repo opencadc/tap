@@ -114,14 +114,8 @@ public abstract class TablesAction extends RestAction {
     }
     
     // package access so InlineContentHandler could call it via ref to parent action
-    void checkWritable() {
-        if (!writable) {
-            String cause = RestAction.STATE_OFFLINE_MSG;
-            if (readable) {
-                cause = RestAction.STATE_READ_ONLY_MSG;
-            }
-            throw new AccessControlException(cause);
-        }
+    void checkWritableImpl() {
+        super.checkWritable();
     }
     
     
