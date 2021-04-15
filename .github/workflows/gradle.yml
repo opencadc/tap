@@ -1,6 +1,3 @@
-# This workflow will build a Java project with Gradle
-# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-gradle
-
 name: Java CI
 
 on:
@@ -20,29 +17,29 @@ jobs:
         java-version: 1.8
     
     - name: build and test cadc-tap-schema
-      run: cd cadc-tap-schema && gradle --info clean build javadoc install
+      run: cd cadc-tap-schema && ../gradlew --info clean build javadoc install
       
     - name: build and test cadc-tap
-      run: cd cadc-tap && gradle --info clean build javadoc install
+      run: cd cadc-tap && ../gradlew --info clean build javadoc install
       
     - name: build and test cadc-tap-server
-      run: cd cadc-tap-server && gradle --info clean build javadoc install
+      run: cd cadc-tap-server && ../gradlew --info clean build javadoc install
       
     - name: build and test cadc-tap-server-pg
-      run: cd cadc-adql && gradle --info clean build javadoc install
+      run: cd cadc-adql && ../gradlew --info clean build javadoc install
       
     - name: build and test cadc-tap-server-oracle
-      run: cd cadc-adql && gradle --info clean build javadoc install
+      run: cd cadc-adql && ../gradlew --info clean build javadoc install
       
     - name: build and test cadc-jsqlparser-compat
-      run: cd cadc-jsqlparser-compat && gradle --info clean build javadoc install
+      run: cd cadc-jsqlparser-compat && ../gradlew --info clean build javadoc install
       
     - name: build and test cadc-adql
-      run: cd cadc-adql && gradle --info clean build javadoc install
+      run: cd cadc-adql && ../gradlew --info clean build javadoc install
       
     - name: build and test cadc-test-tap
-      run: cd cadc-test-tap && gradle --info clean build javadoc install
+      run: cd cadc-test-tap && ../gradlew --info clean build javadoc install
 
     - name: build example-tap
-      run: cd example-tap && gradle --info clean build
+      run: cd example-tap && ../gradlew --info clean build
     
