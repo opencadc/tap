@@ -81,6 +81,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -128,7 +129,7 @@ public class AsciiTableData implements TableDataInputStream, Iterator<List<Objec
             log.debug("found column: " + s);
         }
         if (columnNames.isEmpty()) {
-            throw new IllegalArgumentException("No data columns.");
+            throw new IOException("No data columns.");
         }
     }
 
@@ -165,29 +166,21 @@ public class AsciiTableData implements TableDataInputStream, Iterator<List<Objec
     @Override
     public List<Object> next() {
         if (!hasNext()) {
-            throw new IllegalStateException("No more data to read.");
+            throw new NoSuchElementException("No more data to read.");
         }
         
         CSVRecord rec = rowIterator.next();
-        if (rec.size() != columnNames.size()) {
-            throw new IllegalArgumentException("wrong number of columns (" 
-                    + rec.size() + ") expected " + columnNames.size());
+        List<Object> row = new ArrayList<Object>(columnNames.size());
+        String cell = null;
+        Object value = null;
+        Format format = null;
+        for (int i = 0; i < columnNames.size(); i++) {
+            cell = rec.get(i);
+            format = columnFormats.get(i);
+            value = format.parse(cell);
+            row.add(value);
         }
-        try {
-            List<Object> row = new ArrayList<Object>(columnNames.size());
-            String cell = null;
-            Object value = null;
-            Format format = null;
-            for (int i = 0; i < rec.size(); i++) {
-                cell = rec.get(i);
-                format = columnFormats.get(i);
-                value = format.parse(cell);
-                row.add(value);
-            }
-            return row;
-        } catch (NumberFormatException ex) {
-            throw new IllegalArgumentException("invalid number: " + ex.getMessage());
-        }
+        return row;
     }
 
     @Override
