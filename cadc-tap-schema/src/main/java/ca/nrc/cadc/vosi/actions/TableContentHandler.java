@@ -68,6 +68,7 @@
 package ca.nrc.cadc.vosi.actions;
 
 import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.rest.InlineContentException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.tap.db.FitsTableData;
@@ -104,7 +105,7 @@ public class TableContentHandler implements InlineContentHandler {
 
     @Override
     public Content accept(String name, String contentType, InputStream inputStream)
-            throws InlineContentException, IOException, ResourceNotFoundException {
+            throws InlineContentException, IOException, ResourceNotFoundException, TransientException {
         String tableName = parent.getTableName();
         log.debug("TableContentHandler: " + tableName);
         
