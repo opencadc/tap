@@ -211,7 +211,11 @@ public class TapClient<E> {
     
     /**
      * Synchronous TAP query with streaming output.
-     * 
+     *
+     * The returned Iterator can throw exceptions when processing a row of data from the query:
+     * - NoSuchElementException if the end of the data stream has been reached
+     * - IndexOutOfBoundsException if the row does not have the expected number of values
+     *
      * @param query ADQL query to execute
      * @param mapper TapRowMapper to convert row data to domain object
      * @return ResourceIterator over domain objects of type E
