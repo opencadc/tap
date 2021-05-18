@@ -243,16 +243,14 @@ public class TableSetReaderWriterTest
 
         Iterator<SchemaDesc> esi = expected.getSchemaDescs().iterator();
         Iterator<SchemaDesc> asi = actual.getSchemaDescs().iterator();
-        while ( esi.hasNext() )
-        {
+        while (esi.hasNext()) {
             SchemaDesc esd = esi.next();
             SchemaDesc asd = asi.next();
             Assert.assertEquals(esd.getSchemaName(), asd.getSchemaName());
             Assert.assertEquals("num tables in " + esd.getSchemaName(), esd.getTableDescs().size(), asd.getTableDescs().size());
             Iterator<TableDesc> eti = esd.getTableDescs().iterator();
             Iterator<TableDesc> ati = asd.getTableDescs().iterator();
-            while (eti.hasNext())
-            {
+            while (eti.hasNext()) {
                 TableDesc etd = eti.next();
                 TableDesc atd = ati.next();
                 Assert.assertEquals(etd.getTableName(), atd.getTableName());
@@ -261,8 +259,7 @@ public class TableSetReaderWriterTest
                 
                 Iterator<ColumnDesc> eci = etd.getColumnDescs().iterator();
                 Iterator<ColumnDesc> aci = atd.getColumnDescs().iterator();
-                while(eci.hasNext())
-                {
+                while(eci.hasNext()) {
                     ColumnDesc ecd = eci.next();
                     ColumnDesc acd = aci.next();
                     Assert.assertEquals(ecd.getTableName(), acd.getTableName());
@@ -271,10 +268,14 @@ public class TableSetReaderWriterTest
                     TapDataType adt = acd.getDatatype();
                     Assert.assertEquals(edt.getDatatype(), adt.getDatatype());
                     Assert.assertEquals(ecd.description, acd.description);
+                    Assert.assertEquals(ecd.ucd, acd.ucd);
+                    Assert.assertEquals(ecd.unit, acd.unit);
+                    Assert.assertEquals(ecd.utype, acd.utype);
                     
                     String expArraySize = edt.arraysize;
-                    if (edt.arraysize == null && !edt.isVarSize() && ver >= 11)
+                    if (edt.arraysize == null && !edt.isVarSize() && ver >= 11) {
                         expArraySize = "1"; // VODataService XSD default value for VOtableType
+                    }
                     Assert.assertEquals(ecd.getColumnName(), expArraySize, adt.arraysize);
                     Assert.assertEquals(ecd.getColumnName(), edt.isVarSize(), adt.isVarSize());
                     Assert.assertEquals(ecd.getColumnName(), edt.xtype, adt.xtype);

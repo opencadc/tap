@@ -165,6 +165,10 @@ public class TableReader extends TableSetParser
             TapDataType tt = new TapDataType(dtv, arraysize, xtype);
             ColumnDesc cd = new ColumnDesc(tn, cn, tt);
             cd.description = ce.getChildTextTrim("description");
+            cd.ucd = ce.getChildTextTrim("ucd");
+            cd.unit = ce.getChildTextTrim("unit");
+            cd.utype = ce.getChildTextTrim("utype");
+            //cd.indexed = "indexed".equals(ce.getChildTextTrim("flag"));
             td.getColumnDescs().add(cd);
         }
         

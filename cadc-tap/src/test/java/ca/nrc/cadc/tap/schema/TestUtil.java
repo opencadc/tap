@@ -144,6 +144,16 @@ public class TestUtil
                     cp.description = "polygon column";
                     td.getColumnDescs().add(cp);
                 }
+                
+                // one column with the optional metadata
+                cn = "c_ocd";
+                ColumnDesc ocd = new ColumnDesc(tn, cn, new TapDataType("double", "64*", null));
+                ocd.description = "something foo";
+                ocd.ucd = "foo;bar";
+                ocd.unit = "deg";
+                ocd.utype = "foo:Bar.baz";
+                td.getColumnDescs().add(ocd);
+                
                 sd.getTableDescs().add(td);
             }
             ret.getSchemaDescs().add(sd);
