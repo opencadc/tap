@@ -70,6 +70,7 @@ package ca.nrc.cadc.vosi.actions;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.log.WebServiceLogInfo;
 import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.rest.InlineContentHandler;
@@ -114,7 +115,7 @@ public abstract class TablesAction extends RestAction {
     }
     
     // package access so InlineContentHandler could call it via ref to parent action
-    void checkWritableImpl() {
+    void checkWritableImpl() throws TransientException {
         super.checkWritable();
     }
     
