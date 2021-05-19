@@ -162,30 +162,42 @@ public class TableLoader {
                 totalInserts += count;
                 done = !dataIterator.hasNext();
             }
-            
-        } catch (Throwable t) {
+        } catch (IllegalArgumentException | IndexOutOfBoundsException ex) {
             try {
                 data.close();
                 prof.checkpoint("close-input");
-            } catch (Exception ex) {
-                log.error("unexpected exception trying to close input stream", ex);
+            } catch (Exception oops) {
+                log.error("unexpected exception trying to close input stream", oops);
             }
             try {
                 if (tm.isOpen()) {
                     tm.rollbackTransaction();
                     prof.checkpoint("rollback-transaction");
                 }
-            } catch (Throwable t2) {
-                log.error("Unexpected: could not rollback transaction", t2);
+            } catch (Exception oops) {
+                log.error("Unexpected: could not rollback transaction", oops);
             }
-            // This could be a database error or user data error... 
-            if (t instanceof IllegalArgumentException) {
-                throw new IllegalArgumentException("Inserted " + totalInserts + " rows. " +
-                    "Current batch failed with: " + t.getMessage() + " on line " + (totalInserts + count));
+            throw new IllegalArgumentException("Inserted " + totalInserts + " rows. " +
+                    "Current batch failed with: " + ex.getMessage() + " on line " + (totalInserts + count));
+        } catch (Throwable t) {
+            try {
+                data.close();
+                prof.checkpoint("close-input");
+            } catch (Exception oops) {
+                log.error("unexpected exception trying to close input stream", oops);
             }
+            try {
+                if (tm.isOpen()) {
+                    tm.rollbackTransaction();
+                    prof.checkpoint("rollback-transaction");
+                }
+            } catch (Throwable oops) {
+                log.error("Unexpected: could not rollback transaction", oops);
+            }
+
             log.debug("Batch insert failure", t);
-            throw new RuntimeException("Inserted " + totalInserts + " rows. " +
-                "Current batch of " + batchSize + " failed with: " + t.getMessage(), t);
+            throw new RuntimeException("Inserted " + totalInserts + " rows. "
+                + "Current batch of " + batchSize + " failed with: " + t.getMessage(), t);
             
         } finally {
             if (tm.isOpen()) {
@@ -193,8 +205,7 @@ public class TableLoader {
                 try {
                     tm.rollbackTransaction();
                     prof.checkpoint("rollback-transaction");
-                }
-                catch (Throwable t) {
+                } catch (Throwable t) {
                     log.error("Unexpected: could not rollback transaction", t);
                 }
             }
