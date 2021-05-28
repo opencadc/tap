@@ -90,8 +90,8 @@ abstract class AbstractFunctionTest {
 
         assertEquals("Wrong function names.", expectedFunction.getName(), resultFunction.getName());
         assertEquals("Wrong toString output.", expectedExp.toString(), resultExp.toString());
-        assertEquals("Wrong expression size.", expectedFunction.getParameters().getExpressions().size(),
-                     resultFunction.getParameters().getExpressions().size());
+        assertResultExpressions(expectedFunction.getParameters().getExpressions(),
+                                resultFunction.getParameters().getExpressions());
     }
 
     void assertResultExpressions(final List<Expression> expected, final List<Expression> results) {
@@ -103,8 +103,8 @@ abstract class AbstractFunctionTest {
                 final Function resultFunction = (Function) resultExpression;
                 assertFunctionsMatch((Function) nextExpression, resultFunction);
             } else {
-                assertEquals("Expressions don't match.", resultExpression.toString(),
-                             nextExpression.toString());
+                assertEquals("Expressions don't match.", nextExpression.toString(),
+                             resultExpression.toString());
             }
         }
     }
@@ -112,7 +112,7 @@ abstract class AbstractFunctionTest {
     @SuppressWarnings("unchecked")
     Function getElemInfoFunction(final String oracleType) {
         final Function elemInfoFunction = new Function();
-        final ExpressionList elemInfoFunctionParams = new ExpressionList(new ArrayList());
+        final ExpressionList elemInfoFunctionParams = new ExpressionList(new ArrayList<>());
         elemInfoFunction.setName(OraclePolygon.ELEM_INFO_FUNCTION_NAME);
         elemInfoFunction.setParameters(elemInfoFunctionParams);
         elemInfoFunctionParams.getExpressions().addAll(

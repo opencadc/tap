@@ -75,11 +75,10 @@ import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 
 
 public class OracleBox extends OracleGeometricFunction {
-
     private static final Expression[] ORACLE_ELEMENT_INFO = new Expression[] {
-            new LongValue("1"),
-            new LongValue("1003"),
-            new LongValue("3")
+        new LongValue("1"),
+        new LongValue("2003"),
+        new LongValue("3")
     };   // Outer Rectangle element
 
     private final Expression lon1;

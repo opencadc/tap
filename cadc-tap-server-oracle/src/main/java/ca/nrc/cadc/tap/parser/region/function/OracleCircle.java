@@ -69,99 +69,58 @@
 
 package ca.nrc.cadc.tap.parser.region.function;
 
-import net.sf.jsqlparser.expression.DoubleValue;
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.LongValue;
-import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import ca.nrc.cadc.dali.Circle;
+import ca.nrc.cadc.tap.parser.converter.OracleRegionConverter;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+
+import net.sf.jsqlparser.expression.DoubleValue;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+
+import org.apache.log4j.Logger;
 
 
-public class OracleCircle extends OracleGeometricFunction {
+public class OracleCircle extends Function {
 
-    private static final int[] ORACLE_ELEMENT_INFO_VALUES = new int[] {
-            1, 1003, 4
-    };
+    private static final Logger LOGGER = Logger.getLogger(OracleRegionConverter.class);
 
-    private static final Expression[] ORACLE_ELEMENT_INFO = new Expression[ORACLE_ELEMENT_INFO_VALUES.length];
-
-    static {
-        for (int i = 0; i < ORACLE_ELEMENT_INFO_VALUES.length; i++) {
-            ORACLE_ELEMENT_INFO[i] = new LongValue(Long.toString(ORACLE_ELEMENT_INFO_VALUES[i]));
-        }
-    }
-
-    private final Expression ra;
-    private final Expression dec;
-    private final Expression radius;
+    public static final String FUNCTION_NAME = "SDO_UTIL.CIRCLE_POLYGON";
+    public static final double DEFAULT_ARC_TOLERANCE = 0.005D;
+    public static final double TO_METRES_ON_EARTH = 2.0D * Math.PI * 6371000.0D / 360.0D;
 
 
-    public OracleCircle(final Expression ra, final Expression dec, final Expression radius) {
-        super(ORACLE_ELEMENT_INFO);
-        this.ra = ra;
-        this.dec = dec;
-        this.radius = radius;
+    public OracleCircle(final Expression ra, final Expression dec, final Expression radiusInDegrees) {
+        super();
 
-        processOrdinateParameters();
+        setName(FUNCTION_NAME);
+
+        setParameters(new ExpressionList(new ArrayList<>()));
+
+        // Oracle GEO CIRCLE
+        final List<Expression> expressions = getParameters().getExpressions();
+
+        // Longitude
+        expressions.add(ra);
+
+        // Latitude
+        expressions.add(dec);
+
+        // Radius in metres
+        expressions.add(new DoubleValue(Double.toString(Double.parseDouble(radiusInDegrees.toString())
+                                                        * TO_METRES_ON_EARTH)));
+
+        // Arc tolerance
+        expressions.add(new DoubleValue(Double.toString(DEFAULT_ARC_TOLERANCE)));
     }
 
     public OracleCircle(final Circle circle) {
         this(new DoubleValue(Double.toString(circle.getCenter().getLongitude())),
              new DoubleValue(Double.toString(circle.getCenter().getLatitude())),
              new DoubleValue(Double.toString(circle.getRadius())));
-    }
-
-    /**
-     * Map this shape's values to ORACLE ORDINATE function parameters.  For Oracle CIRCLEs, we need to calculate three
-     * points along the circle's circumference.
-     *
-     * @param parameterList The ExpressionList to add parameters to.
-     */
-    @Override
-    @SuppressWarnings("unchecked")
-    void mapValues(final ExpressionList parameterList) {
-        // Oracle GEO CIRCLE
-        final List<Expression> expressions = parameterList.getExpressions();
-
-        // First point (x - radius, y)
-        expressions.add(calculateXPointOne());
-        expressions.add(dec);
-
-        // Second point (x, y + radius)
-        expressions.add(ra);
-        expressions.add(calculateYPointOne());
-
-        // Third point (x + radius, y)
-        expressions.add(calculateXPointTwo());
-        expressions.add(dec);
-    }
-
-    Expression calculateXPointOne() {
-        return new DoubleValue(Double.toString(parseRA() - parseRadius()));
-    }
-
-    Expression calculateYPointOne() {
-        return new DoubleValue(Double.toString(parseDec() + parseRadius()));
-    }
-
-    Expression calculateXPointTwo() {
-        return new DoubleValue(Double.toString(parseRA() + parseRadius()));
-    }
-
-    double parseRadius() {
-        return Double.parseDouble(radius.toString());
-    }
-
-    double parseRA() {
-        return Double.parseDouble(ra.toString());
-    }
-
-    double parseDec() {
-        return Double.parseDouble(dec.toString());
     }
 
     /**
@@ -172,9 +131,6 @@ public class OracleCircle extends OracleGeometricFunction {
      * @return True if the numbers match, False otherwise.
      */
     public static boolean structMatches(final BigDecimal[] structTypeArray) {
-        final List<Integer> currValues = Arrays.stream(ORACLE_ELEMENT_INFO_VALUES).boxed().collect(Collectors.toList());
-        final List<Integer> structValues = Arrays.stream(structTypeArray).map(BigDecimal::intValue).collect(
-                Collectors.toList());
-        return structValues.containsAll(currValues);
+        return structTypeArray == null;
     }
 }

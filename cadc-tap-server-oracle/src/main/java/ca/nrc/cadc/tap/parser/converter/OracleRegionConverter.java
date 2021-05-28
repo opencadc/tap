@@ -69,22 +69,6 @@
 
 package ca.nrc.cadc.tap.parser.converter;
 
-import net.sf.jsqlparser.expression.BinaryExpression;
-import net.sf.jsqlparser.expression.DoubleValue;
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.Function;
-import net.sf.jsqlparser.expression.LongValue;
-import net.sf.jsqlparser.expression.NullValue;
-import net.sf.jsqlparser.expression.StringValue;
-import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
-import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
-import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
-import net.sf.jsqlparser.expression.operators.relational.GreaterThanEquals;
-import net.sf.jsqlparser.expression.operators.relational.MinorThan;
-import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
-import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
-import net.sf.jsqlparser.schema.Column;
-import org.apache.log4j.Logger;
 import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.stc.Box;
 import ca.nrc.cadc.stc.CoordPair;
@@ -102,6 +86,24 @@ import ca.nrc.cadc.tap.parser.region.function.OraclePolygon;
 
 import java.util.Arrays;
 import java.util.List;
+
+import net.sf.jsqlparser.expression.BinaryExpression;
+import net.sf.jsqlparser.expression.DoubleValue;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.expression.NullValue;
+import net.sf.jsqlparser.expression.StringValue;
+import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
+import net.sf.jsqlparser.expression.operators.relational.GreaterThanEquals;
+import net.sf.jsqlparser.expression.operators.relational.MinorThan;
+import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
+import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
+import net.sf.jsqlparser.schema.Column;
+
+import org.apache.log4j.Logger;
 
 
 public class OracleRegionConverter extends RegionFinder {
@@ -130,8 +132,7 @@ public class OracleRegionConverter extends RegionFinder {
     public Expression convertToImplementation(Function func) {
         final Expression implExpr = super.convertToImplementation(func);
 
-        if ((implExpr == func) && RANGE_S2D.equalsIgnoreCase(func.getName())) // not handled
-        {
+        if ((implExpr == func) && RANGE_S2D.equalsIgnoreCase(func.getName())) { // not handled
             final ExpressionList exprList = func.getParameters();
             if (exprList == null) {
                 throw new IllegalArgumentException("RANGE_S2D requires long1, long2, lat1, lat2");
@@ -167,28 +168,28 @@ public class OracleRegionConverter extends RegionFinder {
     /**
      * This method is called when a REGION PREDICATE function is one of the arguments in a binary expression,
      * and after the direct function conversion.
-     * <p>
-     * Supported functions: CONTAINS, INTERSECTS
-     * <p>
-     * Examples:
-     * <p>
-     * CONTAINS() = 0
+     *
+     * <p>Supported functions: CONTAINS, INTERSECTS
+     *
+     * <p>Examples:
+     *
+     * <p>CONTAINS() = 0
      * CONTAINS() = 1
      * 1 = CONTAINS()
      * 0 = CONTAINS()
-     * <p>
-     * Supported comparison operators are =, !=, &#60;, &#62;, &#60;=, &#62;=
+     *
+     * <p>Supported comparison operators are =, !=, &#60;, &#62;, &#60;=, &#62;=
      */
     @Override
     protected Expression handleRegionPredicate(final BinaryExpression binaryExpression) {
         LOGGER.debug("handleRegionPredicate(" + binaryExpression.getClass().getSimpleName() + "): " + binaryExpression);
 
-        if (!(binaryExpression instanceof EqualsTo ||
-                binaryExpression instanceof NotEqualsTo ||
-                binaryExpression instanceof MinorThan ||
-                binaryExpression instanceof GreaterThan ||
-                binaryExpression instanceof MinorThanEquals ||
-                binaryExpression instanceof GreaterThanEquals)) {
+        if (!(binaryExpression instanceof EqualsTo
+              || binaryExpression instanceof NotEqualsTo
+              || binaryExpression instanceof MinorThan
+              || binaryExpression instanceof GreaterThan
+              || binaryExpression instanceof MinorThanEquals
+              || binaryExpression instanceof GreaterThanEquals)) {
             return binaryExpression;
         }
 
@@ -212,7 +213,7 @@ public class OracleRegionConverter extends RegionFinder {
 
         // Should always be true, but just in case...
         if (function.getName().equals(RELATE_FUNCTION_NAME) || function.getName().equals(CONTAINS_FUNCTION_NAME)
-                || function.getName().equals(ANYINTERACT_FUNCTION_NAME)) {
+            || function.getName().equals(ANYINTERACT_FUNCTION_NAME)) {
             if (!(binaryExpression instanceof EqualsTo || binaryExpression instanceof NotEqualsTo)) {
                 throw new UnsupportedOperationException(
                         "Use Equals (=) or NotEquals (!=) with CONTAINS and INTERSECTS.");
@@ -225,7 +226,7 @@ public class OracleRegionConverter extends RegionFinder {
                 final String maskType = getRegionPredicateFunctionType(function);
                 returnCompareExpression = new StringValue(
                         String.format("'%s'", maskType.equals(CONTAINS_RELATE_MASK)
-                                ? CONTAINS_TRUE_VALUE : TRUE_VALUE));
+                                              ? CONTAINS_TRUE_VALUE : TRUE_VALUE));
             } else {
                 returnCompareExpression = new StringValue(String.format("'%s'", TRUE_VALUE));
             }
@@ -391,8 +392,8 @@ public class OracleRegionConverter extends RegionFinder {
 
     /**
      * Convert ADQL BOX to PGS spoly.
-     * <p>
-     * Only handle BOX() with constant parameters.
+     *
+     * <p>Only handle BOX() with constant parameters.
      */
     @Override
     protected Expression handleBox(Function adqlFunction) {
