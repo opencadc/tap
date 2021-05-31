@@ -79,11 +79,15 @@ import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Struct;
+import java.util.Arrays;
+
+import org.apache.log4j.Logger;
 
 
 public class OracleRegionFormat extends AbstractResultSetFormat {
 
-    private final static int EXPECTED_ARGUMENT_LENGTH = 5;
+    private static final Logger LOGGER = Logger.getLogger(OracleRegionFormat.class);
+    private static final int EXPECTED_ARGUMENT_LENGTH = 5;
 
     @Override
     public Object extract(ResultSet resultSet, int i) throws SQLException {
@@ -123,6 +127,10 @@ public class OracleRegionFormat extends AbstractResultSetFormat {
                 final BigDecimal pointOrPolygonType = (BigDecimal) functionAttributes[0];
                 final int typeValue = pointOrPolygonType.intValue();
 
+                LOGGER.debug("Function name: " + functionName + ".");
+                LOGGER.debug("Function attributes: " + Arrays.toString(functionAttributes) + ".");
+                LOGGER.debug("Function type value: " + typeValue);
+
                 // Circle, Polygon, or Union.
                 if (typeValue == OracleGeometricFunction.POLYGON_GEO_TYPE) {
                     return polygonToString(toBigDecimalArray(functionAttributes[3]),
@@ -144,7 +152,8 @@ public class OracleRegionFormat extends AbstractResultSetFormat {
     }
 
     String polygonToString(final BigDecimal[] structTypeArray, final BigDecimal[] structVerticesArray) {
-        if (OracleCircle.structMatches(structTypeArray)) {
+        // For a 3-length vertice structure, it's a Circle.
+        if (structVerticesArray.length == 3) {
             return new OracleCircleFormat().format(structVerticesArray);
         } else if (OraclePolygon.structMatches(structTypeArray)) {
             return new OraclePolygonFormat().format(structVerticesArray);

@@ -116,7 +116,7 @@ public class OraclePolygonFormat extends AbstractResultSetFormat {
         } else {
             final Polygon polygon = new Polygon();
 
-            for (int i = 0; i < structVerticeValues.length; i = i+2) {
+            for (int i = 0; i < structVerticeValues.length; i = i + 2) {
                 final BigDecimal xPoint = structVerticeValues[i];
                 final BigDecimal yPoint = structVerticeValues[i + 1];
 

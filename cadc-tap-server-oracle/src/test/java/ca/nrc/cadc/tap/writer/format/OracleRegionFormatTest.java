@@ -70,21 +70,12 @@
 package ca.nrc.cadc.tap.writer.format;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.Assert;
 import ca.nrc.cadc.dali.Circle;
 import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.dali.Polygon;
-import ca.nrc.cadc.stc.CoordPair;
-import ca.nrc.cadc.stc.Flavor;
-import ca.nrc.cadc.stc.Frame;
-import ca.nrc.cadc.stc.ReferencePosition;
-import ca.nrc.cadc.stc.Region;
-import ca.nrc.cadc.stc.Union;
 
 
 public class OracleRegionFormatTest {
@@ -94,24 +85,15 @@ public class OracleRegionFormatTest {
         final OracleRegionFormat testSubject = new OracleRegionFormat();
 
         final BigDecimal[] points = new BigDecimal[] {
-                new BigDecimal(3.4D - 0.7D),
-                new BigDecimal(88.5D),
-                new BigDecimal(3.4D),
-                new BigDecimal(88.5D + 0.7D),
-                new BigDecimal(3.4D + 0.7D),
-                new BigDecimal(88.5D)
-        };
-
-        final BigDecimal[] typeValues = new BigDecimal[] {
-                new BigDecimal(1),
-                new BigDecimal(1003),
-                new BigDecimal(4)
+                BigDecimal.valueOf(3.4D),
+                BigDecimal.valueOf(88.5D),
+                BigDecimal.valueOf(0.6999999999999997D)
         };
 
         final Circle comparisonCircle = new Circle(new Point(3.4D, 88.5D), 0.6999999999999997D);
         final String comparisonCircleString = new OracleCircleFormat().format(comparisonCircle);
 
-        final String asString = testSubject.polygonToString(typeValues, points);
+        final String asString = testSubject.polygonToString(null, points);
         Assert.assertEquals("Wrong output.", comparisonCircleString, asString);
     }
 
@@ -125,7 +107,7 @@ public class OracleRegionFormatTest {
         final BigDecimal[] structPoints = new BigDecimal[points.length];
 
         for (int i = 0; i < points.length; i++) {
-            structPoints[i] = new BigDecimal(points[i]);
+            structPoints[i] = BigDecimal.valueOf(points[i]);
         }
 
         comparisonPolygon.getVertices().add(new Point(0.9D, 4.6D));
@@ -135,7 +117,7 @@ public class OracleRegionFormatTest {
 
         final BigDecimal[] typeValues = new BigDecimal[] {
                 new BigDecimal(1),
-                new BigDecimal(1003),
+                new BigDecimal(2003),
                 new BigDecimal(1)
         };
 
@@ -143,31 +125,5 @@ public class OracleRegionFormatTest {
 
         final String asString = testSubject.polygonToString(typeValues, structPoints);
         Assert.assertEquals("Wrong output.", comparisonPolygonString, asString);
-    }
-
-    @Test
-    @Ignore("Just trying Unions...")
-    public void formatUnion() {
-        final OracleRegionFormat testSubject = new OracleRegionFormat();
-        final List<Region> regionList = new ArrayList<>();
-
-        final List<CoordPair> coordPairs = new ArrayList<>();
-
-        coordPairs.add(new CoordPair(0.9D, 4.6D));
-        coordPairs.add(new CoordPair(9.0D, 10.2D));
-        coordPairs.add(new CoordPair(3.3D, 8.7D));
-        coordPairs.add(new CoordPair(12.9D, 45.6D));
-
-        final ca.nrc.cadc.stc.Polygon comparisonPolygon =
-                new ca.nrc.cadc.stc.Polygon(Frame.ICRS, ReferencePosition.UNKNOWNREFPOS, Flavor.CARTESIAN2, coordPairs);
-
-        //comparisonPolygon.getVertices().add(new Point(0.9D, 4.6D));
-        //comparisonPolygon.getVertices().add(new Point(9.0D, 10.2D));
-        //comparisonPolygon.getVertices().add(new Point(3.3D, 8.7D));
-        //comparisonPolygon.getVertices().add(new Point(12.9D, 45.6D));
-
-        regionList.add(comparisonPolygon);
-
-        final Union union = new Union(Frame.ICRS, ReferencePosition.UNKNOWNREFPOS, Flavor.CARTESIAN2, regionList);
     }
 }

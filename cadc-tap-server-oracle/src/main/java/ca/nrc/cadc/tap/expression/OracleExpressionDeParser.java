@@ -69,8 +69,9 @@
 
 package ca.nrc.cadc.tap.expression;
 
-import net.sf.jsqlparser.statement.select.SelectVisitor;
 import ca.nrc.cadc.tap.parser.BaseExpressionDeParser;
+
+import net.sf.jsqlparser.statement.select.SelectVisitor;
 
 public class OracleExpressionDeParser extends BaseExpressionDeParser {
     public OracleExpressionDeParser(SelectVisitor selectVisitor, StringBuffer buffer) {

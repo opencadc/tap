@@ -94,11 +94,11 @@ public class OracleBoxTest extends AbstractFunctionTest {
         final List<Expression> expectedExpressions = new ArrayList<>();
 
         final Function expectedOrdinateArrayFunction = new Function();
-        final ExpressionList expectedOrdinateArrayFunctionParams = new ExpressionList(new ArrayList());
+        final ExpressionList expectedOrdinateArrayFunctionParams = new ExpressionList(new ArrayList<>());
         expectedOrdinateArrayFunction.setName(OraclePolygon.ORDINATE_ARRAY_FUNCTION_NAME);
         expectedOrdinateArrayFunctionParams.getExpressions().addAll(Arrays.asList(new DoubleValue("1"),
-                                                                                  new DoubleValue("13"),
                                                                                   new DoubleValue("44"),
+                                                                                  new DoubleValue("13"),
                                                                                   new DoubleValue("88")));
         expectedOrdinateArrayFunction.setParameters(expectedOrdinateArrayFunctionParams);
 

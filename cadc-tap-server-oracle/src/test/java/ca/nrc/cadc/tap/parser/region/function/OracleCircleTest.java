@@ -71,15 +71,12 @@ package ca.nrc.cadc.tap.parser.region.function;
 
 import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.Function;
-import net.sf.jsqlparser.expression.LongValue;
-import net.sf.jsqlparser.expression.NullValue;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import ca.nrc.cadc.dali.Circle;
@@ -90,29 +87,21 @@ public class OracleCircleTest extends AbstractFunctionTest {
     @Test
     @SuppressWarnings("unchecked")
     public void convertParameters() {
-        final OracleCircle testSubject = new OracleCircle(new DoubleValue("3.4"), new DoubleValue("88.5"),
-                                                          new DoubleValue("0.7"));
+        final Expression longitude = new DoubleValue(Double.toString(3.4D));
+        final Expression latitude = new DoubleValue(Double.toString(88.5D));
+        final Expression radiusInDegrees = new DoubleValue(Double.toString(0.7D));
+        final OracleCircle testSubject = new OracleCircle(longitude, latitude, radiusInDegrees);
+
         final ExpressionList result = testSubject.getParameters();
         final List<Expression> resultExpressions = result.getExpressions();
         final List<Expression> expectedExpressions = new ArrayList<>();
 
-        final Function expectedOrdinateArrayFunction = new Function();
-        final ExpressionList expectedOrdinateArrayFunctionParams = new ExpressionList(new ArrayList<>());
-        expectedOrdinateArrayFunction.setName(OraclePolygon.ORDINATE_ARRAY_FUNCTION_NAME);
-        expectedOrdinateArrayFunctionParams.getExpressions().addAll(Arrays.asList(new DoubleValue("" + (3.4D - 0.7D)),
-                                                                                  new DoubleValue("88.5"),
-                                                                                  new DoubleValue("3.4"),
-                                                                                  new DoubleValue("" + (88.5D + 0.7D)),
-                                                                                  new DoubleValue("" + (3.4D + 0.7D)),
-                                                                                  new DoubleValue("88.5")));
-        expectedOrdinateArrayFunction.setParameters(expectedOrdinateArrayFunctionParams);
+        expectedExpressions.add(longitude);
+        expectedExpressions.add(latitude);
+        expectedExpressions.add(new DoubleValue(Double.toString(OracleCircle.TO_METRES_ON_EARTH * 0.7D)));
+        expectedExpressions.add(new DoubleValue(Double.toString(OracleCircle.DEFAULT_ARC_TOLERANCE)));
 
-        expectedExpressions.add(new LongValue("" + OracleGeometricFunction.POLYGON_GEO_TYPE));
-        expectedExpressions.add(new NullValue());
-        expectedExpressions.add(new NullValue());
-        expectedExpressions.add(getElemInfoFunction("4"));
-        expectedExpressions.add(expectedOrdinateArrayFunction);
-
+        Assert.assertEquals("Wrong name.", OracleCircle.FUNCTION_NAME, testSubject.getName());
         assertResultExpressions(expectedExpressions, resultExpressions);
     }
 
@@ -129,23 +118,12 @@ public class OracleCircleTest extends AbstractFunctionTest {
         final List<Expression> resultExpressions = result.getExpressions();
         final List<Expression> expectedExpressions = new ArrayList<>();
 
-        final Function ordinateArrayFunction = new Function();
-        final ExpressionList ordinateArrayFunctionParams = new ExpressionList(new ArrayList<>());
-        ordinateArrayFunction.setName(OraclePolygon.ORDINATE_ARRAY_FUNCTION_NAME);
-        ordinateArrayFunctionParams.getExpressions().addAll(Arrays.asList(new DoubleValue(Double.toString(longitude - radius)),
-                                                                          new DoubleValue(Double.toString(latitude)),
-                                                                          new DoubleValue(Double.toString(longitude)),
-                                                                          new DoubleValue(Double.toString(latitude + radius)),
-                                                                          new DoubleValue(Double.toString(longitude + radius)),
-                                                                          new DoubleValue(Double.toString(latitude))));
-        ordinateArrayFunction.setParameters(ordinateArrayFunctionParams);
+        expectedExpressions.add(new DoubleValue(Double.toString(longitude)));
+        expectedExpressions.add(new DoubleValue(Double.toString(latitude)));
+        expectedExpressions.add(new DoubleValue(Double.toString(OracleCircle.TO_METRES_ON_EARTH * 5.0D)));
+        expectedExpressions.add(new DoubleValue(Double.toString(OracleCircle.DEFAULT_ARC_TOLERANCE)));
 
-        expectedExpressions.add(new LongValue("" + OracleGeometricFunction.POLYGON_GEO_TYPE));
-        expectedExpressions.add(new NullValue());
-        expectedExpressions.add(new NullValue());
-        expectedExpressions.add(getElemInfoFunction(Integer.toString(4)));
-        expectedExpressions.add(ordinateArrayFunction);
-
+        Assert.assertEquals("Wrong name.", OracleCircle.FUNCTION_NAME, testSubject.getName());
         assertResultExpressions(expectedExpressions, resultExpressions);
     }
 
@@ -158,23 +136,12 @@ public class OracleCircleTest extends AbstractFunctionTest {
         final List<Expression> resultExpressions = result.getExpressions();
         final List<Expression> expectedExpressions = new ArrayList<>();
 
-        final Function ordinateArrayFunction = new Function();
-        final ExpressionList ordinateArrayFunctionParams = new ExpressionList(new ArrayList<>());
-        ordinateArrayFunction.setName(OraclePolygon.ORDINATE_ARRAY_FUNCTION_NAME);
-        ordinateArrayFunctionParams.getExpressions().addAll(Arrays.asList(new DoubleValue("" + (65.78D - 0.15D)),
-                                                                          new DoubleValue("34.56"),
-                                                                          new DoubleValue("65.78"),
-                                                                          new DoubleValue("" + (34.56D + 0.15D)),
-                                                                          new DoubleValue("" + (65.78D + 0.15D)),
-                                                                          new DoubleValue("34.56")));
-        ordinateArrayFunction.setParameters(ordinateArrayFunctionParams);
+        expectedExpressions.add(new DoubleValue(Double.toString(65.78D)));
+        expectedExpressions.add(new DoubleValue(Double.toString(34.56D)));
+        expectedExpressions.add(new DoubleValue(Double.toString(OracleCircle.TO_METRES_ON_EARTH * 0.15D)));
+        expectedExpressions.add(new DoubleValue(Double.toString(OracleCircle.DEFAULT_ARC_TOLERANCE)));
 
-        expectedExpressions.add(new LongValue("" + OracleGeometricFunction.POLYGON_GEO_TYPE));
-        expectedExpressions.add(new NullValue());
-        expectedExpressions.add(new NullValue());
-        expectedExpressions.add(getElemInfoFunction("4"));
-        expectedExpressions.add(ordinateArrayFunction);
-
+        Assert.assertEquals("Wrong name.", OracleCircle.FUNCTION_NAME, testSubject.getName());
         assertResultExpressions(expectedExpressions, resultExpressions);
     }
 }

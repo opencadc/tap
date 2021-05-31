@@ -97,8 +97,8 @@ public class KeywordExpression implements Expression {
      * be a concise but informative representation that is easy for a
      * person to read.
      * It is recommended that all subclasses override this method.
-     * <p>
-     * The {@code toString} method for class {@code Object}
+     *
+     * <p>The {@code toString} method for class {@code Object}
      * returns a string consisting of the name of the class of which the
      * object is an instance, the at-sign character `{@code @}', and
      * the unsigned hexadecimal representation of the hash code of the

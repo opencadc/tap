@@ -69,11 +69,11 @@
 
 package ca.nrc.cadc.tap.parser.region.function;
 
+import ca.nrc.cadc.dali.Point;
+
 import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
-import ca.nrc.cadc.dali.Point;
-
 
 
 public class OraclePoint extends OracleGeometricFunction {
