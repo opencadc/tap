@@ -69,12 +69,6 @@
 
 package ca.nrc.cadc.tap.parser.region.function;
 
-import net.sf.jsqlparser.expression.DoubleValue;
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.LongValue;
-import net.sf.jsqlparser.expression.StringValue;
-import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
-
 import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.dali.Polygon;
 import ca.nrc.cadc.tap.parser.RegionFinder;
@@ -83,16 +77,19 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.IntPredicate;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import net.sf.jsqlparser.expression.DoubleValue;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.expression.StringValue;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 
 
 public class OraclePolygon extends OracleGeometricFunction {
 
     private static final int[] ORACLE_ELEMENT_INFO_VALUES = new int[] {
-            1, 1003, 1
+        1, 2003, 1
     };
 
     // Outer Polygon element
@@ -149,8 +146,8 @@ public class OraclePolygon extends OracleGeometricFunction {
     void addNumericExpression(final Expression expression, final ExpressionList parameterList) {
         if (!(expression instanceof DoubleValue) && !(expression instanceof LongValue)) {
             throw new UnsupportedOperationException(
-                    String.format("Cannot use non-constant coordinates in Polygon.  Expected Double or Long but found" +
-                                  " '%s'", expression.toString()));
+                    String.format("Cannot use non-constant coordinates in Polygon.  Expected Double or Long but found"
+                                  + " '%s'", expression.toString()));
         } else {
             parameterList.getExpressions().add(expression);
         }

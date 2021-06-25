@@ -109,8 +109,8 @@ public class OracleRegionConverterTest {
 
         final String resultFunctionSource = resultFunction.toString();
         Assert.assertEquals("Wrong output.",
-                            "SDO_GEOM.RELATE(SDO_GEOMETRY(2003, NULL, NULL, SDO_ELEM_INFO_ARRAY(1, 1003, 4), " +
-                            "SDO_ORDINATE_ARRAY(87.2, 12.0, 88.0, 12.8, 88.8, 12.0)), 'contains', " +
+                            "SDO_GEOM.RELATE(SDO_UTIL.CIRCLE_POLYGON(88.0, 12.0, "
+                            + 0.8D * OracleCircle.TO_METRES_ON_EARTH + ", 0.005), 'contains', " +
                             "SDO_GEOMETRY(2001, NULL, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005)",
                             resultFunctionSource);
     }
@@ -140,10 +140,10 @@ public class OracleRegionConverterTest {
 
         final String resultFunctionSource = equalsFunction.toString();
         Assert.assertEquals("Wrong output.",
-                            "SDO_GEOM.RELATE(SDO_GEOMETRY(2003, NULL, NULL, SDO_ELEM_INFO_ARRAY(1, 1003, 4), " +
-                            "SDO_ORDINATE_ARRAY(87.2, 12.0, 88.0, 12.8, 88.8, 12.0)), 'contains', " +
-                            "SDO_GEOMETRY" +
-                            "(2001, NULL, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005) = 'CONTAINS'",
+                            "SDO_GEOM.RELATE(SDO_UTIL.CIRCLE_POLYGON(88.0, 12.0, "
+                            + 0.8D * OracleCircle.TO_METRES_ON_EARTH + ", 0.005), 'contains', " +
+                            "SDO_GEOMETRY"
+                            + "(2001, NULL, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005) = 'CONTAINS'",
                             resultFunctionSource);
     }
 
@@ -180,8 +180,7 @@ public class OracleRegionConverterTest {
 
         Assert.assertEquals("Wrong SQL DISTANCE output.",
                             "SDO_GEOM.SDO_DISTANCE(SDO_GEOMETRY(2001, NULL, SDO_POINT_TYPE(ra, dec, NULL), NULL, " +
-                            "NULL), SDO_GEOMETRY(2003, NULL, NULL, SDO_ELEM_INFO_ARRAY(1, 1003, 4), " +
-                            "SDO_ORDINATE_ARRAY(87.2, 12.0, 88.0, 12.8, 88.8, 12.0)), 0.005)",
+                            "NULL), SDO_UTIL.CIRCLE_POLYGON(88.0, 12.0, " + 0.8D * OracleCircle.TO_METRES_ON_EARTH + ", 0.005), 0.005)",
                             distanceFunction.toString());
     }
 
@@ -210,8 +209,8 @@ public class OracleRegionConverterTest {
 
         final String resultFunctionSource = equalsFunction.toString();
         Assert.assertEquals("Wrong output.",
-                            "SDO_GEOM.RELATE(SDO_GEOMETRY(2003, NULL, NULL, SDO_ELEM_INFO_ARRAY(1, 1003, 4), " +
-                            "SDO_ORDINATE_ARRAY(87.2, 12.0, 88.0, 12.8, 88.8, 12.0)), " +
+                            "SDO_GEOM.RELATE(SDO_UTIL.CIRCLE_POLYGON(88.0, 12.0, "
+                            + 0.8D * OracleCircle.TO_METRES_ON_EARTH + ", 0.005), " +
                             "'anyinteract', " +
                             "SDO_GEOMETRY(2001, NULL, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005) " +
                             "<> 'TRUE'",
@@ -298,9 +297,8 @@ public class OracleRegionConverterTest {
         assert distanceFunction instanceof Function;
 
         Assert.assertEquals("Wrong SQL DISTANCE output.",
-                            "SDO_GEOM.SDO_DISTANCE(SDO_GEOMETRY(2003, NULL, NULL, " +
-                            "SDO_ELEM_INFO_ARRAY(1, 1003, 4), " +
-                            "SDO_ORDINATE_ARRAY(87.2, 12.0, 88.0, 12.8, 88.8, 12.0)), " +
+                            "SDO_GEOM.SDO_DISTANCE(SDO_UTIL.CIRCLE_POLYGON(88.0, 12.0, "
+                            + 0.8D * OracleCircle.TO_METRES_ON_EARTH + ", 0.005), " +
                             "SDO_GEOMETRY(2001, NULL, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005)",
                             distanceFunction.toString());
     }

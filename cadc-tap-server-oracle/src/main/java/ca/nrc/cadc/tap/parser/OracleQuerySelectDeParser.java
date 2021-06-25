@@ -69,6 +69,12 @@
 
 package ca.nrc.cadc.tap.parser;
 
+import ca.nrc.cadc.tap.expression.OracleColumnAliasSelectItem;
+import ca.nrc.cadc.tap.expression.OracleTopExpression;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.ExpressionVisitor;
 import net.sf.jsqlparser.expression.LongValue;
@@ -79,12 +85,6 @@ import net.sf.jsqlparser.statement.select.SelectExpressionItem;
 import net.sf.jsqlparser.statement.select.SelectItem;
 import net.sf.jsqlparser.statement.select.SubSelect;
 import net.sf.jsqlparser.statement.select.Top;
-
-import ca.nrc.cadc.tap.expression.OracleColumnAliasSelectItem;
-import ca.nrc.cadc.tap.expression.OracleTopExpression;
-
-import java.util.ArrayList;
-import java.util.List;
 
 
 public class OracleQuerySelectDeParser extends QuerySelectDeParser {

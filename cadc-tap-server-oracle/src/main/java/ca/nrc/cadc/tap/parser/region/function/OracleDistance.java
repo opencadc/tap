@@ -69,13 +69,13 @@
 
 package ca.nrc.cadc.tap.parser.region.function;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
-
-import java.util.ArrayList;
-import java.util.List;
 
 
 public class OracleDistance extends Function {
@@ -91,7 +91,7 @@ public class OracleDistance extends Function {
         this.tolerance = tolerance;
 
         setName(ORACLE_FUNCTION_NAME);
-        setParameters(new ExpressionList(new ArrayList()));
+        setParameters(new ExpressionList(new ArrayList<>()));
 
         mapValues();
     }

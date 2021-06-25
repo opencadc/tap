@@ -69,16 +69,16 @@
 
 package ca.nrc.cadc.tap.parser.region.function;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.LongValue;
 import net.sf.jsqlparser.expression.NullValue;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 
 
 /**
@@ -103,7 +103,7 @@ public abstract class OracleGeometricFunction extends Function {
         this.elementInfoValues.addAll(elementInfoValues);
 
         setName(ORACLE_GEOMETRY_FUNCTION_NAME);
-        setParameters(new ExpressionList(new ArrayList()));
+        setParameters(new ExpressionList(new ArrayList<>()));
     }
 
     @SuppressWarnings("unchecked")
@@ -116,7 +116,7 @@ public abstract class OracleGeometricFunction extends Function {
         final Function pointFunction = new Function();
         pointFunction.setName(POINT_FUNCTION_NAME);
 
-        final ExpressionList parameters = new ExpressionList(new ArrayList());
+        final ExpressionList parameters = new ExpressionList(new ArrayList<>());
         parameters.getExpressions().add(ra);
         parameters.getExpressions().add(dec);
         parameters.getExpressions().add(new NullValue());
@@ -142,7 +142,7 @@ public abstract class OracleGeometricFunction extends Function {
             addParameter(new NullValue());
         } else {
             final Function elemInfoFunction = new Function();
-            final ExpressionList elemInfoFunctionParameters = new ExpressionList(new ArrayList());
+            final ExpressionList elemInfoFunctionParameters = new ExpressionList(new ArrayList<>());
             elemInfoFunctionParameters.getExpressions().addAll(elementInfoValues);
             elemInfoFunction.setName(ELEM_INFO_FUNCTION_NAME);
             elemInfoFunction.setParameters(elemInfoFunctionParameters);
@@ -158,7 +158,7 @@ public abstract class OracleGeometricFunction extends Function {
     void processOrdinateParameters() {
         final Function ordinateArrayFunction = new Function();
         ordinateArrayFunction.setName(ORDINATE_ARRAY_FUNCTION_NAME);
-        final ExpressionList ordinateArrayFunctionParameters = new ExpressionList(new ArrayList());
+        final ExpressionList ordinateArrayFunctionParameters = new ExpressionList(new ArrayList<>());
         mapValues(ordinateArrayFunctionParameters);
         ordinateArrayFunction.setParameters(ordinateArrayFunctionParameters);
         addParameter(ordinateArrayFunction);

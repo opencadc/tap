@@ -109,23 +109,21 @@ public class OracleCircleFormat extends AbstractResultSetFormat {
     }
 
     private String fromStruct(final BigDecimal[] structVerticeValues) {
-        if (structVerticeValues.length != 6) {
+        if (structVerticeValues.length != 3) {
             throw new IllegalArgumentException(
-                    String.format("Should have six (6) values from the database, but has %d.",
+                    String.format("Should have six (3) values from the database, but has %d.",
                                   structVerticeValues.length));
         } else {
-            // X - Radius
-            final double pointOneX = structVerticeValues[0].doubleValue();
+            // X
+            final double longitude = structVerticeValues[0].doubleValue();
 
             // Y
-            final double pointOneY = structVerticeValues[1].doubleValue();
+            final double latitude = structVerticeValues[1].doubleValue();
 
-            // X
-            final double pointTwoX = structVerticeValues[2].doubleValue();
+            // Radius
+            final double radius = structVerticeValues[2].doubleValue();
 
-            final double radius = pointTwoX - pointOneX;
-
-            return format(new Circle(new Point(pointTwoX, pointOneY), radius));
+            return format(new Circle(new Point(longitude, latitude), radius));
         }
     }
 
