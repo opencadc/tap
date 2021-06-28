@@ -170,6 +170,13 @@ public class AsciiTableData implements TableDataInputStream, Iterator<List<Objec
         }
         
         CSVRecord rec = rowIterator.next();
+        if (!rec.isConsistent()) {
+            if (rowIterator.hasNext()) {
+                throw new InconsistentTableDataException("truncated row: " + rec);
+            }
+            throw new InconsistentTableDataException("truncated stream");
+        }
+        
         List<Object> row = new ArrayList<Object>(columnNames.size());
         String cell = null;
         Object value = null;

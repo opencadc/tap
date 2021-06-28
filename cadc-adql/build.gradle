@@ -7,8 +7,6 @@ plugins {
 repositories {
     mavenCentral()
     mavenLocal()
-    // tmp to resolve uk.ac.starlink
-    jcenter()
 }
 
 sourceCompatibility = 1.8

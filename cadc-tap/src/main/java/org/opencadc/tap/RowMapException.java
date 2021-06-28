@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2020.                            (c) 2020.
+*  (c) 2021.                            (c) 2021.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,68 +67,21 @@
 
 package org.opencadc.tap;
 
-import ca.nrc.cadc.dali.util.Format;
-import ca.nrc.cadc.io.ResourceIterator;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
 import org.apache.log4j.Logger;
-import org.opencadc.tap.io.AsciiTableData;
 
 /**
- *
+ * Exception when a supplied RowMapper implementation throws an exception from mapRow.
  * @author pdowler
  */
-class TsvIterator<E> implements ResourceIterator<E> {
-    private static final Logger log = Logger.getLogger(TsvIterator.class);
+public class RowMapException extends RuntimeException {
+    private static final Logger log = Logger.getLogger(RowMapException.class);
 
-    private final TapRowMapper<E> mapper;
-    private final AsciiTableData asciiTableData;
-
-
-    public TsvIterator(TapRowMapper<E> mapper, List<Format> formatters, InputStream istream) throws IOException {
-        this.mapper = mapper;
-        this.asciiTableData = new AsciiTableData(istream, "text/tab-separated-values");
-        this.asciiTableData.setColumnFormats(formatters);
+    public RowMapException(String msg, Throwable cause) {
+        super(msg, cause);
     }
 
     @Override
-    public boolean hasNext() {
-        return asciiTableData.hasNext();
-    }
-
-    @Override
-    public E next() {
-        boolean map = false;
-        int rowlen = -1;
-        try {
-            List<Object> row = asciiTableData.next();
-            rowlen = row.size();
-            map = true;
-            return mapper.mapRow(row);
-        } catch (Exception ex) {
-            if (map) {
-                throw new RowMapException("RowMapper " + mapper.getClass().getName() + " failed to map row[" + rowlen + "]", ex);
-            }
-            throw new RowMapException("Format objects failed to parse column value", ex);
-        }
-    }
-
-    /**
-     * Closes this stream and releases any system resources associated
-     * with it. If the stream is already closed then invoking this
-     * method has no effect.
-     *
-     * <p>As noted in {@link AutoCloseable#close()}, cases where the
-     * close may fail require careful attention. It is strongly advised
-     * to relinquish the underlying resources and to internally
-     * <em>mark</em> the {@code Closeable} as closed, prior to throwing
-     * the {@code IOException}.
-     *
-     * @throws IOException if an I/O error occurs
-     */
-    @Override
-    public void close() throws IOException {
-        asciiTableData.close();
+    public String toString() {
+        return "RowMapException: " + super.getMessage() + " cause: " + super.getCause();
     }
 }
