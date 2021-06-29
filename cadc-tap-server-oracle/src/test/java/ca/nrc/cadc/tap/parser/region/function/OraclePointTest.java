@@ -94,7 +94,7 @@ public class OraclePointTest extends AbstractFunctionTest {
         final Function pointFunction = new Function();
         pointFunction.setName(OracleGeometricFunction.POINT_FUNCTION_NAME);
 
-        final ExpressionList pointFunctionParameters = new ExpressionList(new ArrayList());
+        final ExpressionList pointFunctionParameters = new ExpressionList(new ArrayList<>());
         pointFunctionParameters.getExpressions().add(new DoubleValue("13.4"));
         pointFunctionParameters.getExpressions().add(new DoubleValue("70.49"));
         pointFunctionParameters.getExpressions().add(new NullValue());
@@ -102,7 +102,7 @@ public class OraclePointTest extends AbstractFunctionTest {
         pointFunction.setParameters(pointFunctionParameters);
 
         expectedExpressions.add(new LongValue("" + OracleGeometricFunction.POINT_GEO_TYPE));
-        expectedExpressions.add(new NullValue());
+        expectedExpressions.add(new LongValue(Long.toString(OracleGeometricFunction.SRID_VALUE)));
         expectedExpressions.add(pointFunction);
         expectedExpressions.add(new NullValue());
         expectedExpressions.add(new NullValue());
@@ -121,7 +121,7 @@ public class OraclePointTest extends AbstractFunctionTest {
         final Function pointFunction = new Function();
         pointFunction.setName(OracleGeometricFunction.POINT_FUNCTION_NAME);
 
-        final ExpressionList pointFunctionParameters = new ExpressionList(new ArrayList());
+        final ExpressionList pointFunctionParameters = new ExpressionList(new ArrayList<>());
         pointFunctionParameters.getExpressions().add(new DoubleValue("77.0"));
         pointFunctionParameters.getExpressions().add(new DoubleValue("88.99"));
         pointFunctionParameters.getExpressions().add(new NullValue());
@@ -129,7 +129,7 @@ public class OraclePointTest extends AbstractFunctionTest {
         pointFunction.setParameters(pointFunctionParameters);
 
         expectedExpressions.add(new LongValue("" + OracleGeometricFunction.POINT_GEO_TYPE));
-        expectedExpressions.add(new NullValue());
+        expectedExpressions.add(new LongValue(Long.toString(OracleGeometricFunction.SRID_VALUE)));
         expectedExpressions.add(pointFunction);
         expectedExpressions.add(new NullValue());
         expectedExpressions.add(new NullValue());

@@ -69,10 +69,14 @@
 
 package ca.nrc.cadc.tap.parser;
 
+import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.ExpressionVisitor;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.expression.NullValue;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.PlainSelect;
@@ -125,7 +129,45 @@ public class OracleQuerySelectDeParserTest {
         testSubject.visit(plainSelect);
 
         Assert.assertEquals("Wrong query output",
-                            "SELECT x, y FROM (SELECT t.x, t.y FROM t WHERE f() = 5) WHERE ROWNUM <= 88",
+                            "SELECT * FROM (SELECT t.x, t.y FROM t WHERE f() = 5) WHERE ROWNUM <= 88",
+                            buffer.toString());
+    }
+
+    @Test
+    public void visitTopWithFunction() {
+        final StringBuffer buffer = new StringBuffer();
+        final ExpressionVisitor expressionVisitor = new OracleExpressionDeParser(null, buffer);
+        final OracleQuerySelectDeParser testSubject = new OracleQuerySelectDeParser(expressionVisitor, buffer);
+        final PlainSelect plainSelect = new PlainSelect();
+        final Table table = new Table(null, "t");
+        final Top top = new Top();
+        top.setRowCount(1000);
+
+        final List<SelectItem> selectItemList = new ArrayList<>();
+
+        final SelectExpressionItem itemY = new SelectExpressionItem();
+        final Function abs = new Function();
+        abs.setName("abs");
+        final List<Expression> absArgumentList = new ArrayList<>();
+        absArgumentList.add(new Column(table, "y"));
+        final ExpressionList absArguments = new ExpressionList(absArgumentList);
+        abs.setParameters(absArguments);
+        itemY.setExpression(abs);
+
+        selectItemList.add(itemY);
+
+        final NotEqualsTo whereClause = new NotEqualsTo();
+        whereClause.setLeftExpression(new Column(table, "y"));
+        whereClause.setRightExpression(new NullValue());
+
+        plainSelect.setSelectItems(selectItemList);
+        plainSelect.setFromItem(table);
+        plainSelect.setTop(top);
+        plainSelect.setWhere(whereClause);
+        testSubject.visit(plainSelect);
+
+        Assert.assertEquals("Wrong query output",
+                            "SELECT * FROM (SELECT abs(t.y) FROM t WHERE t.y <> NULL) WHERE ROWNUM <= 1000",
                             buffer.toString());
     }
 }

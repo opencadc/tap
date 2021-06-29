@@ -103,7 +103,7 @@ public class OracleBoxTest extends AbstractFunctionTest {
         expectedOrdinateArrayFunction.setParameters(expectedOrdinateArrayFunctionParams);
 
         expectedExpressions.add(new LongValue("" + OracleGeometricFunction.POLYGON_GEO_TYPE));
-        expectedExpressions.add(new NullValue());
+        expectedExpressions.add(new LongValue(Long.toString(OracleGeometricFunction.SRID_VALUE)));
         expectedExpressions.add(new NullValue());
         expectedExpressions.add(getElemInfoFunction("3"));
         expectedExpressions.add(expectedOrdinateArrayFunction);

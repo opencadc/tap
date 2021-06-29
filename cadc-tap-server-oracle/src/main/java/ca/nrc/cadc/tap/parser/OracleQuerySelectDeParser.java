@@ -75,11 +75,9 @@ import ca.nrc.cadc.tap.expression.OracleTopExpression;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.ExpressionVisitor;
 import net.sf.jsqlparser.expression.LongValue;
-import net.sf.jsqlparser.schema.Column;
-import net.sf.jsqlparser.schema.Table;
+import net.sf.jsqlparser.statement.select.AllColumns;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.SelectExpressionItem;
 import net.sf.jsqlparser.statement.select.SelectItem;
@@ -103,7 +101,6 @@ public class OracleQuerySelectDeParser extends QuerySelectDeParser {
      * @param plainSelect The plain SELECT to visit.
      */
     @Override
-    @SuppressWarnings("unchecked")
     public void visit(final PlainSelect plainSelect) {
         final Top top = plainSelect.getTop();
 
@@ -113,7 +110,6 @@ public class OracleQuerySelectDeParser extends QuerySelectDeParser {
             // Remove the top as we will be adding it to the outer SELECT.
             plainSelect.setTop(null);
 
-            final List<SelectItem> selectItemList = plainSelect.getSelectItems();
             final PlainSelect outerPlainSelect = new PlainSelect();
 
             final SubSelect subSelect = new SubSelect();
@@ -122,26 +118,9 @@ public class OracleQuerySelectDeParser extends QuerySelectDeParser {
             final OracleTopExpression topWhereClause = new OracleTopExpression();
             topWhereClause.setRightExpression(new LongValue(Long.toString(top.getRowCount())));
 
+            // Outer select should just pull all (*) from the inner sub select.
             final List<SelectItem> outerSelectItems = new ArrayList<>();
-            for (final SelectItem selectItem : selectItemList) {
-                if (selectItem instanceof SelectExpressionItem) {
-                    final SelectExpressionItem selectExpressionItem = (SelectExpressionItem) selectItem;
-                    final Expression selectExpression = selectExpressionItem.getExpression();
-                    final SelectExpressionItem outerSelectItem;
-
-                    if (selectExpression instanceof Column) {
-                        final Column outerColumn = new Column(new Table(), ((Column) selectExpression).getColumnName());
-                        outerSelectItem = new SelectExpressionItem();
-                        outerSelectItem.setExpression(outerColumn);
-                    } else {
-                        outerSelectItem = selectExpressionItem;
-                    }
-
-                    outerSelectItems.add(new OracleColumnAliasSelectItem(outerSelectItem));
-                } else {
-                    outerSelectItems.add(selectItem);
-                }
-            }
+            outerSelectItems.add(new AllColumns());
 
             outerPlainSelect.setSelectItems(outerSelectItems);
             outerPlainSelect.setFromItem(subSelect);
@@ -154,7 +133,7 @@ public class OracleQuerySelectDeParser extends QuerySelectDeParser {
     @Override
     public void visit(SelectExpressionItem selectExpressionItem) {
         if (selectExpressionItem instanceof OracleColumnAliasSelectItem) {
-            getBuffer().append(selectExpressionItem.toString());
+            getBuffer().append(selectExpressionItem);
         } else {
             super.visit(selectExpressionItem);
         }
