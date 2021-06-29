@@ -110,7 +110,7 @@ public class OraclePolygonTest extends AbstractFunctionTest {
         ordinateArrayFunction.setParameters(ordinateArrayFunctionParams);
 
         expectedExpressions.add(new LongValue("2003"));
-        expectedExpressions.add(new NullValue());
+        expectedExpressions.add(new LongValue(Long.toString(OracleGeometricFunction.SRID_VALUE)));
         expectedExpressions.add(new NullValue());
         expectedExpressions.add(getElemInfoFunction("1"));
         expectedExpressions.add(ordinateArrayFunction);
@@ -146,7 +146,7 @@ public class OraclePolygonTest extends AbstractFunctionTest {
         ordinateArrayFunction.setParameters(ordinageArrayFunctionParams);
 
         expectedExpressions.add(new LongValue("2003"));
-        expectedExpressions.add(new NullValue());
+        expectedExpressions.add(new LongValue(Long.toString(OracleGeometricFunction.SRID_VALUE)));
         expectedExpressions.add(new NullValue());
         expectedExpressions.add(getElemInfoFunction("1"));
         expectedExpressions.add(ordinateArrayFunction);

@@ -111,7 +111,7 @@ public class OracleRegionConverterTest {
         Assert.assertEquals("Wrong output.",
                             "SDO_GEOM.RELATE(SDO_UTIL.CIRCLE_POLYGON(88.0, 12.0, "
                             + 0.8D * OracleCircle.TO_METRES_ON_EARTH + ", 0.005), 'contains', " +
-                            "SDO_GEOMETRY(2001, NULL, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005)",
+                            "SDO_GEOMETRY(2001, 8307, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005)",
                             resultFunctionSource);
     }
 
@@ -143,7 +143,7 @@ public class OracleRegionConverterTest {
                             "SDO_GEOM.RELATE(SDO_UTIL.CIRCLE_POLYGON(88.0, 12.0, "
                             + 0.8D * OracleCircle.TO_METRES_ON_EARTH + ", 0.005), 'contains', " +
                             "SDO_GEOMETRY"
-                            + "(2001, NULL, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005) = 'CONTAINS'",
+                            + "(2001, 8307, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005) = 'CONTAINS'",
                             resultFunctionSource);
     }
 
@@ -161,7 +161,7 @@ public class OracleRegionConverterTest {
 
         Assert.assertEquals("Wrong SQL DISTANCE output.",
                             "SDO_CONTAINS(s_region, " +
-                            "SDO_GEOMETRY(2001, NULL, SDO_POINT_TYPE(88.0, 12.0, NULL), NULL, NULL))",
+                            "SDO_GEOMETRY(2001, 8307, SDO_POINT_TYPE(88.0, 12.0, NULL), NULL, NULL))",
                             distanceFunction.toString());
     }
 
@@ -179,7 +179,7 @@ public class OracleRegionConverterTest {
         assert distanceFunction instanceof Function;
 
         Assert.assertEquals("Wrong SQL DISTANCE output.",
-                            "SDO_GEOM.SDO_DISTANCE(SDO_GEOMETRY(2001, NULL, SDO_POINT_TYPE(ra, dec, NULL), NULL, " +
+                            "SDO_GEOM.SDO_DISTANCE(SDO_GEOMETRY(2001, 8307, SDO_POINT_TYPE(ra, dec, NULL), NULL, " +
                             "NULL), SDO_UTIL.CIRCLE_POLYGON(88.0, 12.0, " + 0.8D * OracleCircle.TO_METRES_ON_EARTH + ", 0.005), 0.005)",
                             distanceFunction.toString());
     }
@@ -212,7 +212,7 @@ public class OracleRegionConverterTest {
                             "SDO_GEOM.RELATE(SDO_UTIL.CIRCLE_POLYGON(88.0, 12.0, "
                             + 0.8D * OracleCircle.TO_METRES_ON_EARTH + ", 0.005), " +
                             "'anyinteract', " +
-                            "SDO_GEOMETRY(2001, NULL, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005) " +
+                            "SDO_GEOMETRY(2001, 8307, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005) " +
                             "<> 'TRUE'",
                             resultFunctionSource);
     }
@@ -243,7 +243,7 @@ public class OracleRegionConverterTest {
         final String resultFunctionSource = equalsFunction.toString();
         Assert.assertEquals("Wrong output.",
                             "SDO_ANYINTERACT(ora.table.shape, " +
-                            "SDO_GEOMETRY(2001, NULL, SDO_POINT_TYPE(88.0, 12.0, NULL), NULL, NULL)) <> 'TRUE'",
+                            "SDO_GEOMETRY(2001, 8307, SDO_POINT_TYPE(88.0, 12.0, NULL), NULL, NULL)) <> 'TRUE'",
                             resultFunctionSource);
     }
 
@@ -279,7 +279,7 @@ public class OracleRegionConverterTest {
 
         final String resultFunctionSource = equalsFunction.toString();
         Assert.assertEquals("Wrong output.",
-                            "SDO_ANYINTERACT(ora.table.region, SDO_GEOMETRY(2001, NULL, "
+                            "SDO_ANYINTERACT(ora.table.region, SDO_GEOMETRY(2001, 8307, "
                             + "SDO_POINT_TYPE(204.25382917, -29.86576111, NULL), NULL, NULL)) <> 'TRUE'",
                             resultFunctionSource);
     }
@@ -299,7 +299,7 @@ public class OracleRegionConverterTest {
         Assert.assertEquals("Wrong SQL DISTANCE output.",
                             "SDO_GEOM.SDO_DISTANCE(SDO_UTIL.CIRCLE_POLYGON(88.0, 12.0, "
                             + 0.8D * OracleCircle.TO_METRES_ON_EARTH + ", 0.005), " +
-                            "SDO_GEOMETRY(2001, NULL, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005)",
+                            "SDO_GEOMETRY(2001, 8307, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005)",
                             distanceFunction.toString());
     }
 }

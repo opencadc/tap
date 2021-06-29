@@ -91,6 +91,7 @@ public abstract class OracleGeometricFunction extends Function {
     public static final long POINT_GEO_TYPE = 2001;
     public static final long POLYGON_GEO_TYPE = 2003;
     public static final long UNION_GEO_TYPE = 2004;
+    public static final long SRID_VALUE = 8307;
 
     static final String ORDINATE_ARRAY_FUNCTION_NAME = "SDO_ORDINATE_ARRAY";
     static final String ELEM_INFO_FUNCTION_NAME = "SDO_ELEM_INFO_ARRAY";
@@ -111,7 +112,7 @@ public abstract class OracleGeometricFunction extends Function {
         this(Collections.EMPTY_LIST);
 
         addParameter(new LongValue(Long.toString(POINT_GEO_TYPE)));
-        addParameter(new NullValue());
+        addParameter(new LongValue(Long.toString(SRID_VALUE)));
 
         final Function pointFunction = new Function();
         pointFunction.setName(POINT_FUNCTION_NAME);
@@ -131,7 +132,7 @@ public abstract class OracleGeometricFunction extends Function {
     OracleGeometricFunction(final Expression[] elementInfoValues) {
         this(Arrays.asList(elementInfoValues));
         addParameter(new LongValue(Long.toString(POLYGON_GEO_TYPE)));
-        addParameter(new NullValue());
+        addParameter(new LongValue(Long.toString(SRID_VALUE)));
         addParameter(new NullValue());
         addElemInfoFunction();
     }
