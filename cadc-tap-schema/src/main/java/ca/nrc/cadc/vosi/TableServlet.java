@@ -103,7 +103,9 @@ import javax.servlet.ServletConfig;
  * <code>ca.nrc.cadc.vosi.actions.GetAction</code> class for equivalent functionality.
  * 
  * @author pdowler, Sailor Zhang
+ * @deprecated use RestServlet with a ca.nrc.cadc.vosi.actions.GetAction
  */
+@Deprecated
 public class TableServlet extends HttpServlet
 {
     private static Logger log = Logger.getLogger(TableServlet.class);
