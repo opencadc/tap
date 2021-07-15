@@ -199,7 +199,7 @@ public class AdqlQueryTest
         selectList = doit();
         assertTrue(selectList.size() == 2);
         tsi = selectList.get(1);
-        assertEquals("count", tsi.getName().toLowerCase());
+        assertEquals("count2", tsi.getName().toLowerCase());
         assertEquals("long", tsi.getDatatype().getDatatype());
 
         _query = "select schema_name, (select count(*) from tap_schema.alldatatypes) from tap_schema.tables";
@@ -207,7 +207,7 @@ public class AdqlQueryTest
         selectList = doit();
         assertTrue(selectList.size() == 2);
         tsi = selectList.get(1);
-        assertEquals("count", tsi.getName().toLowerCase());
+        assertEquals("count2", tsi.getName().toLowerCase());
         assertEquals("long", tsi.getDatatype().getDatatype());
     }
 
