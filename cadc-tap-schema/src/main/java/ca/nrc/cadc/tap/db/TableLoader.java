@@ -91,6 +91,7 @@ import java.util.Iterator;
 import java.util.List;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
+import org.opencadc.tap.io.InconsistentTableDataException;
 import org.opencadc.tap.io.TableDataInputStream;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementCreator;
@@ -162,7 +163,7 @@ public class TableLoader {
                 totalInserts += count;
                 done = !dataIterator.hasNext();
             }
-        } catch (IllegalArgumentException | IndexOutOfBoundsException ex) {
+        } catch (IllegalArgumentException | IndexOutOfBoundsException | InconsistentTableDataException ex) {
             try {
                 data.close();
                 prof.checkpoint("close-input");
