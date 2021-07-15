@@ -80,8 +80,16 @@ import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import java.util.ArrayList;
 import java.util.List;
+import net.sf.jsqlparser.expression.BinaryExpression;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.expression.DoubleValue;
+import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.expression.Parenthesis;
+import net.sf.jsqlparser.expression.operators.arithmetic.Addition;
+import net.sf.jsqlparser.expression.operators.arithmetic.Division;
+import net.sf.jsqlparser.expression.operators.arithmetic.Multiplication;
+import net.sf.jsqlparser.expression.operators.arithmetic.Subtraction;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.statement.select.AllColumns;
@@ -139,35 +147,12 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
     public void visit(SelectExpressionItem selectExpressionItem)
     {
         log.debug("visit(selectExpressionItem)" + selectExpressionItem);
-        
+
         TapSelectItem paramDesc = null;
         PlainSelect plainSelect = selectNavigator.getPlainSelect();
-        String alias = selectExpressionItem.getAlias();
-        if (alias != null && alias.isEmpty())
-            alias = null;
-        
+
         Expression expression = selectExpressionItem.getExpression();
-        if (expression instanceof Column)
-        {
-            Column column = (Column) expression;
-            ColumnDesc columnDesc = TapSchemaUtil.findColumnDesc(tapSchema, plainSelect, column);
-            log.debug("visit(column) " + column + "found: " + columnDesc);
-            if (alias != null)
-                paramDesc = new TapSelectItem(alias, columnDesc);
-            else
-                paramDesc = new TapSelectItem(column.getColumnName(), columnDesc);
-        }
-        else if (expression instanceof Function)
-        {
-            Function function = (Function) expression;
-            FunctionDesc functionDesc = getFunctionDesc(function, plainSelect);
-            log.debug("visit(function) " + function + " found: " + functionDesc);
-            if (alias != null)
-                paramDesc = new TapSelectItem(alias, functionDesc.getDatatype());
-            else
-                paramDesc = new TapSelectItem(function.getName(), functionDesc.getDatatype());
-        }
-        else if (expression instanceof SubSelect)
+        if (expression instanceof SubSelect)
         {
             SubSelect subSelect = (SubSelect) expression;
             log.debug("visit(subSelect) " + subSelect);
@@ -187,11 +172,11 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
         }
         else
         {
-            TapDataType datatype = getDatatypeFromExpression(expression);
-            if (alias != null)
-                paramDesc = new TapSelectItem(alias, datatype);
-            else
-                paramDesc = new TapSelectItem(expression.toString(), datatype);
+            String alias = selectExpressionItem.getAlias();
+            if (alias != null && alias.isEmpty())
+                alias = null;
+
+            paramDesc = getItemFromExpression(expression, plainSelect, alias);
         }
         log.debug("select item: " + paramDesc.getColumnName() + " " + paramDesc.getDatatype());
         selectList.add(paramDesc);
@@ -217,67 +202,99 @@ public class SelectListExpressionExtractor extends ExpressionNavigator
         this.tapSchema = tapSchema;
     }
 
-    private FunctionDesc getFunctionDesc(Function function, PlainSelect plainSelect)
+    private TapSelectItem getFunctionItem(Function function, PlainSelect plainSelect, String alias)
     {
         FunctionDesc functionDesc = TapSchemaUtil.findFunctionDesc(tapSchema, function);
+        String name = function.getName();
+        if (alias != null)
+            name = alias;
+
         log.debug("getFunctionDesc: " + function.getName() + " -> " + functionDesc);
         if (functionDesc == null)
             throw new UnsupportedOperationException("invalid function: " + function.getName());
 
         if ( TapDataType.FUNCTION_ARG.equals(functionDesc.getDatatype()) )
         {
-            TapDataType datatype = null;
-            ExpressionList parameters = function.getParameters();
-            for (Object parameter : parameters.getExpressions())
+            // Some functions return the type of their arguments rather than a
+            // static type.
+            for (Object parameter : function.getParameters().getExpressions())
             {
-                if (parameter instanceof Column)
-                {
-                    ColumnDesc columnDesc = TapSchemaUtil.findColumnDesc(tapSchema, plainSelect, (Column) parameter);
-                    if (columnDesc != null)
-                    {
-                        datatype = columnDesc.getDatatype();
-                        //arg = columnDesc;
-                    }
-                }
-                else if (parameter instanceof Function)
-                {
-                    Function nestedFunction = (Function) parameter;
-                    log.debug("vist(nested Function " + nestedFunction);
-                    FunctionDesc nestedFunctionDesc = TapSchemaUtil.findFunctionDesc(tapSchema, (Function) parameter);
-                    if ( TapDataType.FUNCTION_ARG.equals(nestedFunctionDesc.getDatatype()) )
-                    {
-                        FunctionDesc recursiveFunctionDesc = getFunctionDesc(nestedFunction, plainSelect);
-                        if (recursiveFunctionDesc != null)
-                        {
-                            datatype = recursiveFunctionDesc.getDatatype();
-                            //arg = recursiveFunctionDesc.arg;
-                        }
-                    }
-                    else
-                    {
-                        datatype = nestedFunctionDesc.getDatatype();
-                        //arg = nestedFunctionDesc.arg;
-                    }
-                }
-                else
-                {
-                    datatype = getDatatypeFromExpression((Expression) parameter);
-                }
-
-                if (datatype != null)
-                {
-                    return new FunctionDesc(functionDesc.getName(), datatype);
-                }
+                TapSelectItem item = getItemFromExpression((Expression) parameter, plainSelect, alias);
+                return new TapSelectItem(name, item.getDatatype());
             }
         }
-        log.debug("getFunctionDesc: " + function.getName() + " -> " + functionDesc);
-        return functionDesc;
+
+        return new TapSelectItem(name, functionDesc.getDatatype());
     }
 
-    private TapDataType getDatatypeFromExpression(Expression expression)
+    private TapSelectItem getItemFromExpression(Expression expression, PlainSelect ps, String alias)
     {
-        // TODO: could check constant types instead iof lazy string
-        return new TapDataType("char", "*", null);
+        if (expression instanceof Column)
+        {
+            Column column = (Column)expression;
+            String name = column.getColumnName();
+            if (alias != null)
+                name = alias;
+
+            ColumnDesc columnDesc = TapSchemaUtil.findColumnDesc(tapSchema, ps, column);
+            return new TapSelectItem(name, columnDesc);
+        }
+        else if (expression instanceof Function)
+        {
+            return getFunctionItem((Function)expression, ps, alias);
+        }
+        else if (expression instanceof Parenthesis)
+        {
+            Parenthesis parenthesis = (Parenthesis)expression;
+            return getItemFromExpression(parenthesis.getExpression(), ps, alias);
+        }
+
+        // If all else fails, defaults to string type with the name being
+        // the original expression.
+        TapDataType datatype = TapDataType.STRING;
+        String name = expression.toString();
+
+        if (expression instanceof DoubleValue)
+            datatype = TapDataType.DOUBLE;
+        else if (expression instanceof LongValue)
+            datatype = TapDataType.LONG;
+        else if (expression instanceof Addition ||
+                 expression instanceof Division ||
+                 expression instanceof Subtraction ||
+                 expression instanceof Multiplication)
+        {
+            BinaryExpression binaryExpression = (BinaryExpression)expression;
+            TapSelectItem left = getItemFromExpression(binaryExpression.getLeftExpression(), ps, alias);
+            TapSelectItem right = getItemFromExpression(binaryExpression.getRightExpression(), ps, alias);
+            TapDataType leftType = left.getDatatype();
+            TapDataType rightType = right.getDatatype();
+
+            log.info("leftType: " + leftType + " rightType: " + rightType);
+
+            datatype = TapDataType.LONG;
+
+            if (leftType.equals(TapDataType.FLOAT) || rightType.equals(TapDataType.FLOAT))
+                datatype = TapDataType.FLOAT;
+            else if (leftType.equals(TapDataType.DOUBLE) || rightType.equals(TapDataType.DOUBLE))
+                datatype = TapDataType.DOUBLE;
+
+            if (expression instanceof Division)
+            {
+                // Since we don't know if there's a remainder, force double.
+                name = "division";
+                datatype = TapDataType.DOUBLE;
+            }
+            else if (expression instanceof Addition)
+                name = "addition";
+            else if (expression instanceof Subtraction)
+                name = "subtraction";
+            else if (expression instanceof Multiplication)
+                name = "multiplication";
+        }
+
+        if (alias != null)
+            name = alias;
+
+        return new TapSelectItem(name, datatype);
     }
-    
 }

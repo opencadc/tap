@@ -312,7 +312,7 @@ public class ExtractorTest
         String query = "select 1 from caom.siav1";
 
         List<TapSelectItem> expectedList = new ArrayList<>();
-        TapSelectItem paramDesc = new TapSelectItem("1", new TapDataType("char", "*", null));
+        TapSelectItem paramDesc = new TapSelectItem("1", new TapDataType("long", null, null));
         expectedList.add(paramDesc);
 
         doit(query, expectedList);
@@ -324,7 +324,7 @@ public class ExtractorTest
         String query = "select 1 as one from caom.siav1";
 
         List<TapSelectItem> expectedList = new ArrayList<TapSelectItem>();
-        TapSelectItem paramDesc = new TapSelectItem("one", new TapDataType("char", "*", null));
+        TapSelectItem paramDesc = new TapSelectItem("one", new TapDataType("long", null, null));
         expectedList.add(paramDesc);
 
         doit(query, expectedList);
@@ -336,7 +336,7 @@ public class ExtractorTest
         String query = "select max(1) from caom.siav1";
 
         List<TapSelectItem> expectedList = new ArrayList<TapSelectItem>();
-        TapSelectItem paramDesc = new TapSelectItem("max", new TapDataType("char", "*", null));
+        TapSelectItem paramDesc = new TapSelectItem("max", new TapDataType("long", null, null));
         expectedList.add(paramDesc);
 
         doit(query, expectedList);
@@ -348,7 +348,7 @@ public class ExtractorTest
         String query = "select max(1) as foo from caom.siav1";
 
         List<TapSelectItem> expectedList = new ArrayList<TapSelectItem>();
-        TapSelectItem paramDesc = new TapSelectItem("foo", new TapDataType("char", "*", null));
+        TapSelectItem paramDesc = new TapSelectItem("foo", new TapDataType("long", null, null));
         expectedList.add(paramDesc);
 
         doit(query, expectedList);
