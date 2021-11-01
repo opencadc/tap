@@ -111,6 +111,7 @@ public class OracleRegionConverter extends RegionFinder {
     private static final String TRUE_VALUE = "TRUE";
     private static final String RELATE_FUNCTION_NAME = "SDO_GEOM.RELATE";
     private static final String CONTAINS_FUNCTION_NAME = "SDO_CONTAINS";
+    private static final String INSIDE_FUNCTION_NAME = "SDO_INSIDE";
     private static final String CONTAINS_RELATE_MASK = "contains";
     private static final String CONTAINS_TRUE_VALUE = CONTAINS_RELATE_MASK.toUpperCase();
     private static final String ANYINTERACT_FUNCTION_NAME = "SDO_ANYINTERACT";
@@ -273,22 +274,38 @@ public class OracleRegionConverter extends RegionFinder {
      * This could occur if the query had CONTAINS(...) in the select list or as
      * part of an arithmetic expression or aggregate function (since CONTAINS
      * returns a numeric value).
-     * In Oracle, we need to switch the arguments.
+     * The order is where left is contained within right.
+     * In Oracle, the first argument is expected to be an indexed column, so switch the arguments where necessary.
+     *
+     * @param left  The Expression to check if it is wholly contained within right.
+     * @param right The "containing" object to check if left is wholly contained within.
      */
     @Override
     protected Expression handleContains(final Expression left, final Expression right) {
         if (right instanceof Column) {
-            return handleContains(left, (Column) right);
+            return handleContains((Column) right, left);
+        } else if (left instanceof Column) {
+            return handleInside((Column) left, right);
         } else {
             return handleRelate(left, right, CONTAINS_RELATE_MASK);
         }
     }
 
-    private Expression handleContains(final Expression left, final Column right) {
+    private Expression handleContains(final Column left, final Expression right) {
         final Function containsFunction = new Function();
-        final ExpressionList parameters = new ExpressionList(Arrays.asList(right, left));
+        final ExpressionList parameters = new ExpressionList(Arrays.asList(left, right));
 
         containsFunction.setName(CONTAINS_FUNCTION_NAME);
+        containsFunction.setParameters(parameters);
+
+        return containsFunction;
+    }
+
+    private Expression handleInside(final Column left, final Expression right) {
+        final Function containsFunction = new Function();
+        final ExpressionList parameters = new ExpressionList(Arrays.asList(left, right));
+
+        containsFunction.setName(INSIDE_FUNCTION_NAME);
         containsFunction.setParameters(parameters);
 
         return containsFunction;
@@ -302,16 +319,28 @@ public class OracleRegionConverter extends RegionFinder {
      */
     @Override
     protected Expression handleIntersects(Expression left, Expression right) {
-        if (right instanceof Column) {
+        if (left instanceof Column) {
+            return handleIntersects((Column) left, right);
+        } else if (right instanceof Column) {
             return handleIntersects(left, (Column) right);
         } else {
             return handleRelate(left, right, ANYINTERACT_RELATE_MASK);
         }
     }
 
-    private Expression handleIntersects(final Expression left, final Column right) {
+    protected Expression handleIntersects(final Expression left, final Column right) {
         final Function containsFunction = new Function();
         final ExpressionList parameters = new ExpressionList(Arrays.asList(right, left));
+
+        containsFunction.setName(ANYINTERACT_FUNCTION_NAME);
+        containsFunction.setParameters(parameters);
+
+        return containsFunction;
+    }
+
+    protected Expression handleIntersects(final Column left, final Expression right) {
+        final Function containsFunction = new Function();
+        final ExpressionList parameters = new ExpressionList(Arrays.asList(left, right));
 
         containsFunction.setName(ANYINTERACT_FUNCTION_NAME);
         containsFunction.setParameters(parameters);
