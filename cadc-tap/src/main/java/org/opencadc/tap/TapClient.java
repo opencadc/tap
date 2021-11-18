@@ -98,6 +98,7 @@ import java.net.URI;
 import java.net.URL;
 import java.security.AccessControlException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -123,6 +124,9 @@ public class TapClient<E> {
     private static final String QUERY_STATUS_OK = "OK";
     private static final String QUERY_STATUS_ERROR = "ERROR";
     private static final String QUERY_STATUS_OVERFLOW = "OVERFLOW";
+    
+    // package access for TapClientTest
+    static final int VOTABLE_MAXREC = 100;
     
     private final URI resourceID;
     private final Capabilities caps;
@@ -227,22 +231,82 @@ public class TapClient<E> {
      * @throws TransientException temporary failure of TAP service: same call could work in future
      * @throws IOException failure to send or read data stream
      * @throws InterruptedException thread interrupted
+     * @deprecated use query(String, TapRowMapper) instead
      */
+    @Deprecated
     public ResourceIterator<E> execute(String query, TapRowMapper<E> mapper)
+        throws AccessControlException, NotAuthenticatedException,
+            ByteLimitExceededException, IllegalArgumentException,
+            ResourceNotFoundException, 
+            TransientException, IOException, InterruptedException {
+        return query(query, mapper);
+    }
+    
+    /**
+     * Synchronous TAP query for a single (1-row) object. If the query returns multiple rows
+     * it is considered invalid (throws IllegalArgumentException).
+     *
+     * @param query ADQL query to execute
+     * @param mapper TapRowMapper to convert row data to domain object
+     * @return ResourceIterator over domain objects of type E
+     * @throws AccessControlException permission denied
+     * @throws NotAuthenticatedException authentication attempt failed or rejected
+     * @throws ByteLimitExceededException input or output limit exceeded
+     * @throws IllegalArgumentException null method arguments or invalid query
+     * @throws ResourceNotFoundException remote resource not found
+     * @throws TransientException temporary failure of TAP service: same call could work in future
+     * @throws IOException failure to send or read data stream
+     * @throws InterruptedException thread interrupted
+     */
+    public E queryForObject(String query, TapRowMapper<E> mapper)
         throws AccessControlException, NotAuthenticatedException,
             ByteLimitExceededException, IllegalArgumentException,
             ResourceNotFoundException, 
             TransientException, IOException, InterruptedException {
         // this method avoids extraneous checked exceptions in the method declaration
         try {
-            return executeImpl(query, mapper);
+            return objectQueryImpl(query, mapper);
+        } catch (ResourceAlreadyExistsException ex) {
+            throw new RuntimeException("BUG: unexpected " + ex.toString(), ex);
+        }
+    }
+    
+    /**
+     * Synchronous TAP query with streaming output. This for executes the query with
+     * MAXREC=0 to get metadata (from result VOTable) and then executes the query a
+     * second time with RESPONSEFORMAT=tsv to stream the result via the iterator.
+     * <p>
+     * The returned Iterator can throw exceptions when processing a row of data from the query:
+     * - NoSuchElementException if the end of the data stream has been reached
+     * - IndexOutOfBoundsException if the row does not have the expected number of values
+     *
+     * @param query ADQL query to execute
+     * @param mapper TapRowMapper to convert row data to domain object
+     * @return ResourceIterator over domain objects of type E
+     * @throws AccessControlException permission denied
+     * @throws NotAuthenticatedException authentication attempt failed or rejected
+     * @throws ByteLimitExceededException input or output limit exceeded
+     * @throws IllegalArgumentException null method arguments or invalid query
+     * @throws ResourceNotFoundException remote resource not found
+     * @throws TransientException temporary failure of TAP service: same call could work in future
+     * @throws IOException failure to send or read data stream
+     * @throws InterruptedException thread interrupted
+     */
+    public ResourceIterator<E> query(String query, TapRowMapper<E> mapper)
+        throws AccessControlException, NotAuthenticatedException,
+            ByteLimitExceededException, IllegalArgumentException,
+            ResourceNotFoundException, 
+            TransientException, IOException, InterruptedException {
+        // this method avoids extraneous checked exceptions in the method declaration
+        try {
+            return iteratorQueryImpl(query, mapper);
         } catch (ResourceAlreadyExistsException ex) {
             throw new RuntimeException("BUG: unexpected " + ex.toString(), ex);
         }
     }
     
     // extraneous: ResourceAlreadyExistsException
-    private ResourceIterator<E> executeImpl(String query, TapRowMapper<E> mapper)
+    private E objectQueryImpl(String query, TapRowMapper<E> mapper)
         throws AccessControlException, NotAuthenticatedException,
             ByteLimitExceededException, IllegalArgumentException,
             ResourceAlreadyExistsException, ResourceNotFoundException, 
@@ -265,7 +329,63 @@ public class TapClient<E> {
         params.put("LANG", "ADQL");
         params.put("QUERY", query);
         params.put("RESPONSEFORMAT", VOTableWriter.CONTENT_TYPE);
-        params.put("MAXREC", 0);
+        params.put("MAXREC", 1);
+        log.debug("object query: " + syncURL + " " + query);
+        HttpPost post = new HttpPost(syncURL, params, true);
+        try {
+            post.prepare();
+        } catch (IllegalArgumentException ex) {
+            extractTapError(post.getContentType(), ex);
+        }
+        
+        if (!VOTableWriter.CONTENT_TYPE.equals(post.getContentType())) {
+            throw new RuntimeException("unexpected response: " + post.getContentType() 
+                    + " expected: " + VOTableWriter.CONTENT_TYPE);
+        }
+        
+        VOTableReader r = new VOTableReader();
+        VOTableDocument doc = r.read(post.getInputStream());
+        VOTableResource vr = doc.getResourceByType("results");
+        for (VOTableInfo i : vr.getInfos()) {
+            log.warn("info: " + i);
+            if (QUERY_STATUS.equalsIgnoreCase(i.getName()) && QUERY_STATUS_OVERFLOW.equalsIgnoreCase(i.getValue())) {
+                throw new IllegalArgumentException("query returned multiple rows: " + query);
+            }
+        }
+        VOTableTable vt = vr.getTable();
+        Iterator<List<Object>> rows = vt.getTableData().iterator();
+        log.warn("hasNext: " + rows.hasNext());
+        if (rows.hasNext()) {
+            return mapper.mapRow(rows.next());
+        }
+        return null;
+    }
+    
+    // extraneous: ResourceAlreadyExistsException
+    private ResourceIterator<E> iteratorQueryImpl(String query, TapRowMapper<E> mapper)
+        throws AccessControlException, NotAuthenticatedException,
+            ByteLimitExceededException, IllegalArgumentException,
+            ResourceAlreadyExistsException, ResourceNotFoundException, 
+            TransientException, IOException, InterruptedException {
+        if (query == null) {
+            throw new IllegalArgumentException("query: null");
+        }
+        if (mapper == null) {
+            throw new IllegalArgumentException("rowMapper: null");
+        }
+        
+        Subject s = AuthenticationUtil.getCurrentSubject();
+        AuthMethod am = AuthenticationUtil.getAuthMethodFromCredentials(s);
+        URI sm = Standards.getSecurityMethod(am);
+        final URL syncURL = getSyncURL(sm);
+        
+        // execute MAXREC=0 query to get VOTable field metadata
+        // and create formatter for each column
+        Map<String,Object> params = new TreeMap<>();
+        params.put("LANG", "ADQL");
+        params.put("QUERY", query);
+        params.put("RESPONSEFORMAT", VOTableWriter.CONTENT_TYPE);
+        params.put("MAXREC", VOTABLE_MAXREC);
         log.debug("meta query: " + syncURL + " " + query);
         HttpPost meta = new HttpPost(syncURL, params, true);
         try {
@@ -283,6 +403,19 @@ public class TapClient<E> {
         VOTableDocument doc = r.read(meta.getInputStream());
         VOTableResource vr = doc.getResourceByType("results");
         VOTableTable vt = vr.getTable();
+        boolean complete = true;
+        for (VOTableInfo i : vr.getInfos()) {
+            log.warn("info: " + i);
+            if (QUERY_STATUS.equalsIgnoreCase(i.getName()) && QUERY_STATUS_OVERFLOW.equalsIgnoreCase(i.getValue())) {
+                complete = false;
+            }
+        }
+        
+        if (complete) {
+            return new TableDataIterator<E>(mapper, vt.getTableData().iterator());
+        }
+        
+        // VOTable was truncated: repeat query in more streamble TSV format
         FormatFactory formatFactory = new FormatFactory();
         List<Format> formatters = new ArrayList<>();
         for (VOTableField f : vt.getFields()) {
