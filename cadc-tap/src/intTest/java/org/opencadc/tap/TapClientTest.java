@@ -90,19 +90,44 @@ public class TapClientTest {
         Log4jInit.setLevel("ca.nrc.cadc.net", Level.INFO);
     }
     
+    URI resourceID = URI.create("ivo://cadc.nrc.ca/argus");
     TapClient tapClient;
     
     public TapClientTest() throws Exception { 
-        this.tapClient = new TapClient(URI.create("ivo://cadc.nrc.ca/argus"));
+        this.tapClient = new TapClient(resourceID);
     }
     
     @Test
-    public void testSyncOK() throws Exception {
+    public void testObjectQueryOK() throws Exception {
+        String query = "select schema_name,table_name,description,utype,table_type,table_index"
+                + " from tap_schema.tables where table_name='tap_schema.tables'";
+        TapClient<TableDesc> tc = new TapClient(resourceID);
+        TableDesc td = tc.queryForObject(query, new TapSchemaTablesRowMapper());
+        Assert.assertNotNull(td);
+        Assert.assertEquals("tap_schema.tables", td.getTableName());
+    }
+    
+    @Test
+    public void testObjectQueryFAIL() throws Exception {
+        String query = "select schema_name,table_name,description,utype,table_type,table_index"
+                + " from tap_schema.tables";
+        TapClient<TableDesc> tc = new TapClient(resourceID);
+        try {
+            TableDesc td = tc.queryForObject(query, new TapSchemaTablesRowMapper());
+            Assert.fail("expected IllegalArgumentException, got: " + td);
+        } catch (IllegalArgumentException expected) {
+            log.info("caught expected: " + expected);
+        }
+    }
+    
+    @Test
+    public void testIteratorQueryOK() throws Exception {
         String query = "select schema_name,table_name,description,utype,table_type,table_index"
                 + " from tap_schema.tables where schema_name='tap_schema'"
                 + " order by table_index";
-        ResourceIterator<TableDesc> ti = tapClient.execute(query, new TapSchemaTablesRowMapper());
+        ResourceIterator<TableDesc> ti = tapClient.query(query, new TapSchemaTablesRowMapper());
         Assert.assertNotNull(ti);
+        log.info("iterator impl: " + ti.getClass().getName());
         while (ti.hasNext()) {
             TableDesc td = ti.next();
             log.info(td);
@@ -110,13 +135,23 @@ public class TapClientTest {
     }
     
     @Test
+    public void testIteratorQueryOK_ForceTSV() throws Exception {
+        String query = "select top " + TapClient.VOTABLE_MAXREC + 10 + " collection, observationID"
+                + " from caom2.Observation";
+        ResourceIterator<TableDesc> ti = tapClient.query(query, new RawRowMapper());
+        Assert.assertNotNull(ti);
+        Assert.assertEquals(TsvIterator.class.getName(), ti.getClass().getName());
+        ti.close();
+    }
+    
+    @Test
     public void testSyncRawOK() throws Exception {
         String query = "select schema_name,table_name,description,utype,table_type,table_index"
                 + " from tap_schema.tables where schema_name='tap_schema'"
                 + " order by table_index";
-        ResourceIterator<List<Object>> ti = tapClient.execute(query, new RawRowMapper());
+        ResourceIterator<List<Object>> ti = tapClient.query(query, new RawRowMapper());
         Assert.assertNotNull(ti);
-        
+        log.info("iterator impl: " + ti.getClass().getName());
         while (ti.hasNext()) {
             List<Object> row = ti.next();
             StringBuilder sb = new StringBuilder();
@@ -132,9 +167,10 @@ public class TapClientTest {
         String query = "select foo bar";
         
         try {
-            ResourceIterator<TableDesc> ti = tapClient.execute(query, new TapSchemaTablesRowMapper());
+            ResourceIterator<TableDesc> ti = tapClient.query(query, new TapSchemaTablesRowMapper());
+            Assert.fail("expected IllegalArgumentException, got: " + ti.getClass().getName());
         } catch (IllegalArgumentException expected) {
-            log.info("caught expected exception: " + expected.getClass().getName());
+            log.info("caught expected: " + expected.getClass().getName());
             log.info(expected.getMessage());
         }
         
