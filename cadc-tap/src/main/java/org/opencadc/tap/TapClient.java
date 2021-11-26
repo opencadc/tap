@@ -347,14 +347,14 @@ public class TapClient<E> {
         VOTableDocument doc = r.read(post.getInputStream());
         VOTableResource vr = doc.getResourceByType("results");
         for (VOTableInfo i : vr.getInfos()) {
-            log.warn("info: " + i);
+            log.debug("info: " + i);
             if (QUERY_STATUS.equalsIgnoreCase(i.getName()) && QUERY_STATUS_OVERFLOW.equalsIgnoreCase(i.getValue())) {
                 throw new IllegalArgumentException("query returned multiple rows: " + query);
             }
         }
         VOTableTable vt = vr.getTable();
         Iterator<List<Object>> rows = vt.getTableData().iterator();
-        log.warn("hasNext: " + rows.hasNext());
+        log.debug("hasNext: " + rows.hasNext());
         if (rows.hasNext()) {
             return mapper.mapRow(rows.next());
         }
@@ -405,7 +405,7 @@ public class TapClient<E> {
         VOTableTable vt = vr.getTable();
         boolean complete = true;
         for (VOTableInfo i : vr.getInfos()) {
-            log.warn("info: " + i);
+            log.debug("info: " + i);
             if (QUERY_STATUS.equalsIgnoreCase(i.getName()) && QUERY_STATUS_OVERFLOW.equalsIgnoreCase(i.getValue())) {
                 complete = false;
             }
