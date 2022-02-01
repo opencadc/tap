@@ -135,6 +135,20 @@ public class TapClientTest {
     }
     
     @Test
+    public void testIteratorQueryOK_assumeLargeResult() throws Exception {
+        String query = "select schema_name,table_name,description,utype,table_type,table_index"
+                + " from tap_schema.tables where schema_name='tap_schema'"
+                + " order by table_index";
+        ResourceIterator<TableDesc> ti = tapClient.query(query, new TapSchemaTablesRowMapper(), true);
+        Assert.assertNotNull(ti);
+        log.info("iterator impl: " + ti.getClass().getName());
+        while (ti.hasNext()) {
+            TableDesc td = ti.next();
+            log.info(td);
+        }
+    }
+    
+    @Test
     public void testIteratorQueryOK_ForceTSV() throws Exception {
         String query = "select top " + TapClient.VOTABLE_MAXREC + 10 + " collection, observationID"
                 + " from caom2.Observation";

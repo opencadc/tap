@@ -119,10 +119,10 @@ public class ResultSetIterator implements Iterator<List<Object>>
         {
             this.hasNext = rs.next();
         }
-        catch(SQLException e)
+        catch(SQLException ex)
         {
             hasNext = false;
-            throw new RuntimeException(e.getMessage());
+            throw new RuntimeException("initial ResultSet.next() failed: " + ex.getMessage(), ex);
         }
     }
 
@@ -176,7 +176,13 @@ public class ResultSetIterator implements Iterator<List<Object>>
             }
             
             // Get the next row.
-            hasNext = rs.next();
+            try {
+                hasNext = rs.next();
+            } catch(SQLException ex) {
+                hasNext = false;
+                throw new RuntimeException("ResultSet.next() failed: " + ex.getMessage(), ex);
+            }
+            
             numRows++;
             SQLWarning sw = rs.getWarnings();
             while (sw != null)
@@ -193,7 +199,11 @@ public class ResultSetIterator implements Iterator<List<Object>>
             {
                 long dr = numRows - prevRows;
                 double rate = 1000.0 * ((double) dr) / ((double) dt); // rows/sec
-                log.debug("row output: " + dr + " rows in " + dt + "ms = " + rate + " rows/sec " + numRows);
+                StringBuilder sb = new StringBuilder();
+                sb.append("row output: ");
+                sb.append(dr).append(" rows in ").append(dt).append("ms");
+                sb.append(" = ").append(rate).append(" rows/sec ").append(numRows);
+                log.debug(sb.toString());
              
                 prevRows = numRows;
                 prevTime = t1;
@@ -205,7 +215,7 @@ public class ResultSetIterator implements Iterator<List<Object>>
         catch (SQLException e)
         {
             hasNext = false;
-            throw new RuntimeException(e.getMessage());
+            throw new RuntimeException("failed to process row " + numRows + " from ResultSet: " + e.getMessage(), e);
         }
     }
 
