@@ -108,9 +108,22 @@ public class TapClientTest {
     }
     
     @Test
-    public void testObjectQueryFAIL() throws Exception {
+    public void testObjectQueryFAIL_rowcount() throws Exception {
         String query = "select schema_name,table_name,description,utype,table_type,table_index"
                 + " from tap_schema.tables";
+        TapClient<TableDesc> tc = new TapClient(resourceID);
+        try {
+            TableDesc td = tc.queryForObject(query, new TapSchemaTablesRowMapper());
+            Assert.fail("expected IllegalArgumentException, got: " + td);
+        } catch (IllegalArgumentException expected) {
+            log.info("caught expected: " + expected);
+        }
+    }
+    
+    @Test
+    public void testObjectQueryFAIL_invalid() throws Exception {
+        String query = "select X,schema_name,table_name,description,utype,table_type,table_index"
+                + " from tap_schema.tables where table_name='tap_schema.tables'";
         TapClient<TableDesc> tc = new TapClient(resourceID);
         try {
             TableDesc td = tc.queryForObject(query, new TapSchemaTablesRowMapper());
@@ -187,8 +200,6 @@ public class TapClientTest {
             log.info("caught expected: " + expected.getClass().getName());
             log.info(expected.getMessage());
         }
-        
-        
     }
     
     

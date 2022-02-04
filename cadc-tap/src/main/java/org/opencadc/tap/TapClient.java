@@ -81,6 +81,7 @@ import ca.nrc.cadc.dali.util.Format;
 import ca.nrc.cadc.dali.util.FormatFactory;
 import ca.nrc.cadc.io.ByteLimitExceededException;
 import ca.nrc.cadc.io.ResourceIterator;
+import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.net.HttpPost;
 import ca.nrc.cadc.net.RemoteServiceException;
 import ca.nrc.cadc.net.ResourceAlreadyExistsException;
@@ -352,7 +353,7 @@ public class TapClient<E> {
         throws AccessControlException, NotAuthenticatedException,
             ByteLimitExceededException, IllegalArgumentException,
             ResourceAlreadyExistsException, ResourceNotFoundException, 
-            TransientException, IOException, InterruptedException {
+            TransientException, InterruptedException {
         if (query == null) {
             throw new IllegalArgumentException("query: null");
         }
@@ -373,36 +374,60 @@ public class TapClient<E> {
         params.put("RESPONSEFORMAT", VOTableWriter.CONTENT_TYPE);
         params.put("MAXREC", 1);
         log.debug("object query: " + syncURL + " " + query);
-        HttpPost post = new HttpPost(syncURL, params, true);
+        HttpPost post = new HttpPost(syncURL, params, false);
+        //post.setConnectionTimeout(6000);
+        //post.setReadTimeout(12000);
         try {
             post.prepare();
-        } catch (IllegalArgumentException ex) {
+        }  catch (IllegalArgumentException ex) {
             extractTapError(post.getContentType(), ex);
         } catch (IOException ex) {
-            // usually non-xml content due to unexpected fail
-            throw new TransientException("queryForObject query failed", ex);
+            throw new TransientException("queryForObject create query failed: " + ex.getMessage(), ex);
         }
+            
+        URL execURL = post.getRedirectURL();
+        String jobID = getJobID(syncURL, execURL);
         
-        if (!VOTableWriter.CONTENT_TYPE.equals(post.getContentType())) {
-            throw new RuntimeException("unexpected response: " + post.getContentType() 
+        HttpGet exec = new HttpGet(execURL, true);
+        //exec.setConnectionTimeout(6000);
+        //exec.setReadTimeout(12000);
+        try {
+            exec.prepare();
+        } catch (IllegalArgumentException ex) {
+            log.debug("content-type: " + exec.getContentType() + " " + exec.getResponseCode(), ex);
+            extractTapError(exec.getContentType(), ex);
+        } catch (IOException ex) {
+            // usually corrupted or non-xml content due to unexpected network fail
+            throw new TransientException("jobID=" + jobID + " queryForObject execute query failed: " + ex.getMessage(), ex);
+        }
+
+        if (!VOTableWriter.CONTENT_TYPE.equals(exec.getContentType())) {
+            throw new RuntimeException("jobID=" + jobID + " unexpected response: " + exec.getContentType() 
                     + " expected: " + VOTableWriter.CONTENT_TYPE);
         }
-        
-        VOTableReader r = new VOTableReader();
-        VOTableDocument doc = r.read(post.getInputStream());
-        VOTableResource vr = doc.getResourceByType("results");
-        for (VOTableInfo i : vr.getInfos()) {
-            log.debug("info: " + i);
-            if (QUERY_STATUS.equalsIgnoreCase(i.getName()) && QUERY_STATUS_OVERFLOW.equalsIgnoreCase(i.getValue())) {
-                throw new IllegalArgumentException("query returned multiple rows: " + query);
+
+        try {
+            VOTableReader r = new VOTableReader();
+            VOTableDocument doc = r.read(exec.getInputStream());
+            VOTableResource vr = doc.getResourceByType("results");
+            for (VOTableInfo i : vr.getInfos()) {
+                log.debug("info: " + i);
+                if (QUERY_STATUS.equalsIgnoreCase(i.getName()) && QUERY_STATUS_OVERFLOW.equalsIgnoreCase(i.getValue())) {
+                    throw new IllegalArgumentException("jobID=" + jobID + " queryForObject query returned multiple rows: " + query);
+                }
             }
-        }
-        VOTableTable vt = vr.getTable();
-        Iterator<List<Object>> rows = vt.getTableData().iterator();
-        log.debug("hasNext: " + rows.hasNext());
-        if (rows.hasNext()) {
-            return mapper.mapRow(rows.next());
-        }
+            VOTableTable vt = vr.getTable();
+            Iterator<List<Object>> rows = vt.getTableData().iterator();
+            log.debug("hasNext: " + rows.hasNext());
+            if (rows.hasNext()) {
+                return mapper.mapRow(rows.next());
+            }
+        } catch (IOException ex) {
+            // usually corrupted or non-xml content due to unexpected network fail
+            throw new TransientException("jobID=" + jobID + " queryForObject execute query failed: " + ex.getMessage(), ex);
+        }   
+        
+        
         return null;
     }
     
@@ -438,11 +463,31 @@ public class TapClient<E> {
             params.put("MAXREC", VOTABLE_MAXREC);
         }
         log.debug("meta query: " + syncURL + " " + query + " MAXREC=" + params.get("MAXREC"));
-        HttpPost meta = new HttpPost(syncURL, params, true);
+        HttpPost post = new HttpPost(syncURL, params, false);
+        //post.setConnectionTimeout(6000);
+        //post.setReadTimeout(12000);
+        try {
+            post.prepare();
+        }  catch (IllegalArgumentException ex) {
+            extractTapError(post.getContentType(), ex);
+        } catch (IOException ex) {
+            throw new TransientException("queryForIterator create query failed: " + ex.getMessage(), ex);
+        }
+            
+        URL execURL = post.getRedirectURL();
+        String jobID = getJobID(syncURL, execURL);
+        
+        HttpGet meta = new HttpGet(execURL, true);
+        //exec.setConnectionTimeout(6000);
+        //exec.setReadTimeout(12000);
         try {
             meta.prepare();
         } catch (IllegalArgumentException ex) {
+            log.debug("content-type: " + meta.getContentType() + " " + meta.getResponseCode(), ex);
             extractTapError(meta.getContentType(), ex);
+        } catch (IOException ex) {
+            // usually corrupted or non-xml content due to unexpected network fail
+            throw new TransientException("jobID=" + jobID + " queryForIterator execute query failed: " + ex.getMessage(), ex);
         }
         
         if (!VOTableWriter.CONTENT_TYPE.equals(meta.getContentType())) {
@@ -455,7 +500,7 @@ public class TapClient<E> {
         try {
             doc = r.read(meta.getInputStream());
         }  catch (IOException ex) {
-            // usually non-xml content due to unexpected fail
+            // usually corrupted or non-xml content due to unexpected network fail
             throw new TransientException("queryForIterator meta query failed: " + ex, ex);
         }
         VOTableResource vr = doc.getResourceByType("results");
@@ -519,5 +564,13 @@ public class TapClient<E> {
             throw new RuntimeException("failed to extract TAP error message", ex2);
         }
         throw ex;
+    }
+    
+    private String getJobID(URL sync, URL run) {
+        // assumes redirect from {sync} -> {sync}/{jobid}/...
+        int slen = sync.toExternalForm().length();
+        String path = run.toExternalForm().substring(slen);
+        String[] parts = path.split("/");
+        return parts[1];
     }
 }
