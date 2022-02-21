@@ -13,17 +13,17 @@ repositories {
 apply from: '../opencadc.gradle'
 sourceCompatibility = 1.8
 group = 'org.opencadc'
-version = '1.2.7'
+version = '1.2.8'
 
 description = 'OpenCADC TAP-1.1 tap server plugin (Oracle)'
 def git_url = 'https://github.com/opencadc/tap'
 
 dependencies {
-    implementation 'org.opencadc:cadc-tap-server:[1.1.5, )'
+    implementation 'org.opencadc:cadc-tap-server:[1.1.17, )'
     implementation 'org.opencadc:cadc-adql:[1.1.4, )'
 
-    testImplementation 'junit:junit:[4.12,)'
-    testImplementation 'org.opencadc:cadc-util:[1.2,)'
+    testImplementation 'junit:junit:[4.12,5.0)'
+    testImplementation 'org.opencadc:cadc-util:[1.5.11,)'
     testImplementation 'xerces:xercesImpl:[2.12,)'
     testImplementation 'org.jdom:jaxen-jdom:1.0-FCS'
 }

@@ -109,9 +109,9 @@ public class OracleRegionConverterTest {
 
         final String resultFunctionSource = resultFunction.toString();
         Assert.assertEquals("Wrong output.",
-                            "SDO_GEOM.RELATE(SDO_UTIL.CIRCLE_POLYGON(88.0, 12.0, "
-                            + 0.8D * OracleCircle.TO_METRES_ON_EARTH + ", 0.005), 'contains', " +
-                            "SDO_GEOMETRY(2001, 8307, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005)",
+                            "SDO_CONTAINS(SDO_UTIL.CIRCLE_POLYGON(88.0, 12.0, "
+                            + 0.8D * OracleCircle.TO_METRES_ON_EARTH + ", 0.005), " +
+                            "SDO_GEOMETRY(2001, 8307, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL))",
                             resultFunctionSource);
     }
 
@@ -140,10 +140,10 @@ public class OracleRegionConverterTest {
 
         final String resultFunctionSource = equalsFunction.toString();
         Assert.assertEquals("Wrong output.",
-                            "SDO_GEOM.RELATE(SDO_UTIL.CIRCLE_POLYGON(88.0, 12.0, "
-                            + 0.8D * OracleCircle.TO_METRES_ON_EARTH + ", 0.005), 'contains', " +
+                            "SDO_CONTAINS(SDO_UTIL.CIRCLE_POLYGON(88.0, 12.0, "
+                            + 0.8D * OracleCircle.TO_METRES_ON_EARTH + ", 0.005), " +
                             "SDO_GEOMETRY"
-                            + "(2001, 8307, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005) = 'CONTAINS'",
+                            + "(2001, 8307, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL)) = 'TRUE'",
                             resultFunctionSource);
     }
 

@@ -199,28 +199,28 @@ public class OracleRegionConverter extends RegionFinder {
 
         final Function function;
         final boolean replaceLeft;
-        final long value;
+        final BinaryExpression returnExpression;
         if (isFunction(left) && ParserUtil.isBinaryValue(right)) {
             function = (Function) left;
-            value = ((LongValue) right).getValue();
+            returnExpression = ((LongValue) right).getValue() == 1 ? new EqualsTo() : new NotEqualsTo();
             replaceLeft = false;
         } else if (ParserUtil.isBinaryValue(left) && isFunction(right)) {
             function = (Function) right;
-            value = ((LongValue) left).getValue();
+            returnExpression = ((LongValue) left).getValue() == 1 ? new EqualsTo() : new NotEqualsTo();
             replaceLeft = true;
         } else {
             return binaryExpression;
         }
 
         // Should always be true, but just in case...
-        if (function.getName().equals(RELATE_FUNCTION_NAME) || function.getName().equals(CONTAINS_FUNCTION_NAME)
-            || function.getName().equals(ANYINTERACT_FUNCTION_NAME)) {
+        final String functionName = function.getName();
+        if (functionName.equals(RELATE_FUNCTION_NAME) || functionName.equals(CONTAINS_FUNCTION_NAME)
+            || functionName.equals(ANYINTERACT_FUNCTION_NAME) || functionName.equals(INSIDE_FUNCTION_NAME)) {
             if (!(binaryExpression instanceof EqualsTo || binaryExpression instanceof NotEqualsTo)) {
                 throw new UnsupportedOperationException(
                         "Use Equals (=) or NotEquals (!=) with CONTAINS and INTERSECTS.");
             }
 
-            final BinaryExpression returnExpression = (value == 0) ? new NotEqualsTo() : new EqualsTo();
             final Expression returnCompareExpression;
 
             if (function.getName().equals(RELATE_FUNCTION_NAME)) {
@@ -282,23 +282,17 @@ public class OracleRegionConverter extends RegionFinder {
      */
     @Override
     protected Expression handleContains(final Expression left, final Expression right) {
-        if (right instanceof Column) {
-            return handleContains((Column) right, left);
-        } else if (left instanceof Column) {
+        if (left instanceof Column) {
             return handleInside((Column) left, right);
         } else {
-            return handleRelate(left, right, CONTAINS_RELATE_MASK);
+            final Function containsFunction = new Function();
+            final ExpressionList parameters = new ExpressionList(Arrays.asList(right, left));
+
+            containsFunction.setName(CONTAINS_FUNCTION_NAME);
+            containsFunction.setParameters(parameters);
+
+            return containsFunction;
         }
-    }
-
-    private Expression handleContains(final Column left, final Expression right) {
-        final Function containsFunction = new Function();
-        final ExpressionList parameters = new ExpressionList(Arrays.asList(left, right));
-
-        containsFunction.setName(CONTAINS_FUNCTION_NAME);
-        containsFunction.setParameters(parameters);
-
-        return containsFunction;
     }
 
     private Expression handleInside(final Column left, final Expression right) {
