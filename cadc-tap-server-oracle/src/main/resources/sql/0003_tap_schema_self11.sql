@@ -96,7 +96,7 @@ INSERT ALL
   INTO TAP_SCHEMA.columns11 (table_name, column_name, description, utype, ucd, unit, datatype, arraysize, xtype, principal, indexed, std, column_index)
   VALUES ('TAP_SCHEMA.columns', 'datatype', 'lists the ADQL datatype of columns in the tableset', NULL, NULL, NULL, 'char', '64*', NULL, 1, 0, 0, 7)
   INTO TAP_SCHEMA.columns11 (table_name, column_name, description, utype, ucd, unit, datatype, arraysize, xtype, principal, indexed, std, column_index)
-  VALUES ('TAP_SCHEMA.columns', 'arraysize', 'lists the size of variable-length columns in the tableset', NULL, NULL, NULL, 'int', NULL, NULL, 1, 0, 0, 8)
+  VALUES ('TAP_SCHEMA.columns', 'arraysize', 'lists the size of variable-length columns in the tableset', NULL, NULL, NULL, 'char', '64*', NULL, 1, 0, 0, 8)
   INTO TAP_SCHEMA.columns11 (table_name, column_name, description, utype, ucd, unit, datatype, arraysize, xtype, principal, indexed, std, column_index)
   VALUES ('TAP_SCHEMA.columns', 'xtype', 'a DALI or custom extended type annotation', NULL, NULL, NULL, 'char', '64*', NULL, 1, 0, 0, 7)
   INTO TAP_SCHEMA.columns11 (table_name, column_name, description, utype, ucd, unit, datatype, arraysize, xtype, principal, indexed, std, column_index)
