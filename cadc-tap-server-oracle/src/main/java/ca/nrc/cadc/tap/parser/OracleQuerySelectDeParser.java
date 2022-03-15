@@ -88,10 +88,12 @@ import net.sf.jsqlparser.statement.select.Top;
 public class OracleQuerySelectDeParser extends QuerySelectDeParser {
 
     public OracleQuerySelectDeParser() {
+        this.setTableAliasWithAS(false);
     }
 
     public OracleQuerySelectDeParser(ExpressionVisitor expressionVisitor, StringBuffer buffer) {
         super(expressionVisitor, buffer);
+        setTableAliasWithAS(false);
     }
 
     /**
