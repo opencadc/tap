@@ -230,9 +230,9 @@ public abstract class TempStorageManager implements ResultStore, UWSInlineConten
      * Example:
      *
      * <code>
-     * -> PUT myfile.txt
-     * <- getBaseURL() ==> https://mysite.com/myservice
-     * <- https://mysite.com/myservice/files/myfile.txt
+     * PUT myfile.txt
+     * getBaseURL() = https://mysite.com/myservice
+     * https://mysite.com/myservice/files/myfile.txt
      * </code>
      *
      * @return  String configured base URL.  Never null.
