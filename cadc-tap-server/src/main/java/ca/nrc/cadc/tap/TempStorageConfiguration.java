@@ -1,10 +1,9 @@
-
 /*
  ************************************************************************
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2019.                            (c) 2019.
+ *  (c) 2022.                            (c) 2022.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,35 +66,110 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.oracle;
+package ca.nrc.cadc.tap;
 
-import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
-import ca.nrc.cadc.tap.schema.TapDataType;
+import ca.nrc.cadc.util.MultiValuedProperties;
+import ca.nrc.cadc.util.PropertiesReader;
+import org.apache.log4j.Logger;
 
-import java.sql.Types;
-
-public class OracleDataTypeMapper extends BasicDataTypeMapper {
-    // HACK: arbitrary sensible limit.  Maximum is 4000 for Oracle.
-    private static final String DEFAULT_VARCHAR2_QUANTIFIER = "(3072)";
+import java.io.File;
 
 
-    public OracleDataTypeMapper() {
-        super();
-        dataTypes.put(TapDataType.POINT, new TypePair("POINT", null));
-        dataTypes.put(TapDataType.CIRCLE, new TypePair("CIRCLE", null));
-        dataTypes.put(TapDataType.POLYGON, new TypePair("POLYGON", null));
-        dataTypes.put(TapDataType.INTEGER, new TypePair("INT", Types.INTEGER));
-        dataTypes.put(TapDataType.CLOB, new TypePair("CHAR", Types.INTEGER));
-        dataTypes.put(TapDataType.LONG, new TypePair("NUMBER(38)", Types.BIGINT));
+/**
+ * Configuration for the temporary storage in TAP for results and upload storage.
+ */
+public class TempStorageConfiguration {
+    private static final Logger LOGGER = Logger.getLogger(TempStorageConfiguration.class);
+
+    private static final String CONFIG_KEY = "org.opencadc.tap";
+
+    private static final String DEFAULT_CONFIG_FILE = CONFIG_KEY + ".properties";
+    private static final String BASE_DIR_KEY = CONFIG_KEY + ".baseStorageDir";
+    private static final String BASE_URL_KEY = CONFIG_KEY + ".baseURL";
+
+    public static final String DOWNLOAD_ENDPOINT = "/files";
+
+    private final File baseDir;
+    private String baseURL;
+
+
+    /**
+     * Constructore for configuration.
+     * @param baseDir   Required base directory.
+     * @param baseURL   Optional base URL.  Will assume current request URL.
+     */
+    TempStorageConfiguration(final File baseDir, final String baseURL) {
+        this.baseDir = baseDir;
+        this.baseURL = baseURL;
     }
 
-    @Override
-    protected String getVarCharType() {
-        return "VARCHAR2";
+    public File getBaseDir() {
+        return baseDir;
     }
 
-    @Override
-    protected String getDefaultCharlimit() {
-        return DEFAULT_VARCHAR2_QUANTIFIER;
+    public String getBaseURL() {
+        return baseURL;
+    }
+
+    public void setBaseURL(String baseURL) {
+        this.baseURL = baseURL;
+    }
+
+    /**
+     * Load a new configuration with the default configuration file location.
+     *
+     * @return  TempStorageConfiguration instance.  Never null.
+     */
+    public static TempStorageConfiguration load() {
+        return TempStorageConfiguration.load(DEFAULT_CONFIG_FILE);
+    }
+
+    /**
+     * Load the given configuration file to populate this configuration.
+     * @param configurationFileName     The configuration file located in ${user.home}/config or in the
+     *                                  ${env.DEFAULT_CONFIG_DIR} folder.
+     * @return  A new TempStorageConfiguration instance.  Never null.
+     */
+    public static TempStorageConfiguration load(final String configurationFileName) {
+        final PropertiesReader r = new PropertiesReader(configurationFileName);
+        final MultiValuedProperties props = r.getAllProperties();
+
+        if (LOGGER.isDebugEnabled()) {
+            for (final String s : props.keySet()) {
+                LOGGER.debug("props: " + s + "=" + props.getProperty(s));
+            }
+        }
+
+        final String baseURL;
+
+        if (!props.keySet().contains(BASE_DIR_KEY)) {
+            final String message = "CONFIG: incomplete: " + BASE_DIR_KEY + " is required in the <init-param> section.";
+            LOGGER.error(message);
+            throw new RuntimeException(message);
+        } else if (!props.keySet().contains(BASE_URL_KEY)) {
+            LOGGER.warn(BASE_URL_KEY + " is missing.  The request URL will be used instead at runtime.");
+            baseURL = null;
+        } else {
+            // TODO: /files has to match servlet-mapping for this in web.xml
+            baseURL = props.getFirstPropertyValue(BASE_URL_KEY) + TempStorageConfiguration.DOWNLOAD_ENDPOINT;
+        }
+
+        final File baseDir = new File(props.getFirstPropertyValue(BASE_DIR_KEY));
+
+        if (!baseDir.exists()) {
+            final boolean successful = baseDir.mkdirs();
+            LOGGER.debug(baseDir.getPath() + " successfully created?: " + (successful ? "OK" : "FAILED"));
+        }
+        if (!baseDir.exists()) {
+            throw new RuntimeException(BASE_DIR_KEY + "=" + baseDir + " does not exist, cannot create");
+        }
+        if (!baseDir.isDirectory()) {
+            throw new RuntimeException(BASE_DIR_KEY + "=" + baseDir + " is not a directory");
+        }
+        if (!baseDir.canRead() || !baseDir.canWrite()) {
+            throw new RuntimeException(BASE_DIR_KEY + "=" + baseDir + " is not readable && writable");
+        }
+
+        return new TempStorageConfiguration(baseDir, baseURL);
     }
 }
