@@ -87,6 +87,10 @@ public class OracleDataTypeMapper extends BasicDataTypeMapper {
         dataTypes.put(TapDataType.INTEGER, new TypePair("INT", Types.INTEGER));
         dataTypes.put(TapDataType.CLOB, new TypePair("CHAR", Types.INTEGER));
         dataTypes.put(TapDataType.LONG, new TypePair("NUMBER(38)", Types.BIGINT));
+
+        // Allow "timestamp" as well as "adql:TIMESTAMP" as an xtype value.
+        dataTypes.put(new TapDataType("char", "*", "adql:TIMESTAMP"),
+                      new TypePair("TIMESTAMP", Types.TIMESTAMP));
     }
 
     @Override
