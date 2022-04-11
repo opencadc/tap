@@ -62,103 +62,60 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap;
+package org.openadc.tap.tmp;
 
+import ca.nrc.cadc.rest.InitAction;
 import ca.nrc.cadc.util.MultiValuedProperties;
 import ca.nrc.cadc.util.PropertiesReader;
-import org.apache.log4j.Logger;
 
 import java.io.File;
 
+import org.apache.log4j.Logger;
 
 /**
- * Configuration for the temporary storage in TAP for results and upload storage.
+ * Optional Initialization Action to check configuration for the /files endpoint servlet.
+ *
+ * @author pdowler
  */
-public class TempStorageConfiguration {
-    private static final Logger LOGGER = Logger.getLogger(TempStorageConfiguration.class);
+public class TempStorageInitAction extends InitAction {
+    private static final Logger log = Logger.getLogger(TempStorageInitAction.class);
 
+    public static final String CONFIG_FILE_INIT_PARAMETER_NAME = "temp-storage-config-file";
     private static final String CONFIG_KEY = "org.opencadc.tap";
 
-    private static final String DEFAULT_CONFIG_FILE = CONFIG_KEY + ".properties";
-    private static final String BASE_DIR_KEY = CONFIG_KEY + ".baseStorageDir";
-    private static final String BASE_URL_KEY = CONFIG_KEY + ".baseURL";
+    static final String DEFAULT_CONFIG_FILE = CONFIG_KEY + ".properties";
+    static final String BASE_DIR_KEY = CONFIG_KEY + ".baseStorageDir";
+    static final String BASE_URL_KEY = CONFIG_KEY + ".baseURL";
 
-    public static final String DOWNLOAD_ENDPOINT = "/files";
-
-    private final File baseDir;
-    private String baseURL;
-
-
-    /**
-     * Constructore for configuration.
-     * @param baseDir   Required base directory.
-     * @param baseURL   Optional base URL.  Will assume current request URL.
-     */
-    TempStorageConfiguration(final File baseDir, final String baseURL) {
-        this.baseDir = baseDir;
-        this.baseURL = baseURL;
+    public TempStorageInitAction() {
+        this.appName = "temp-tap-storage";
     }
 
-    public File getBaseDir() {
-        return baseDir;
+    @Override
+    public void doInit() {
+        // verify
+        log.debug("doInit start");
+        TempStorageInitAction.getConfig(this.initParams.get(CONFIG_FILE_INIT_PARAMETER_NAME));
+        log.debug("doInit start: OK");
     }
 
-    public String getBaseURL() {
-        return baseURL;
-    }
+    static MultiValuedProperties getConfig(final String configurationFileName) {
+        PropertiesReader r = new PropertiesReader(configurationFileName);
+        MultiValuedProperties props = r.getAllProperties();
 
-    public void setBaseURL(String baseURL) {
-        this.baseURL = baseURL;
-    }
-
-    /**
-     * Load a new configuration with the default configuration file location.
-     *
-     * @return  TempStorageConfiguration instance.  Never null.
-     */
-    public static TempStorageConfiguration load() {
-        return TempStorageConfiguration.load(DEFAULT_CONFIG_FILE);
-    }
-
-    /**
-     * Load the given configuration file to populate this configuration.
-     * @param configurationFileName     The configuration file located in ${user.home}/config or in the
-     *                                  ${env.DEFAULT_CONFIG_DIR} folder.
-     * @return  A new TempStorageConfiguration instance.  Never null.
-     */
-    public static TempStorageConfiguration load(final String configurationFileName) {
-        final PropertiesReader r = new PropertiesReader(configurationFileName);
-        final MultiValuedProperties props = r.getAllProperties();
-
-        if (LOGGER.isDebugEnabled()) {
-            for (final String s : props.keySet()) {
-                LOGGER.debug("props: " + s + "=" + props.getProperty(s));
-            }
+        for (String s : props.keySet()) {
+            log.debug("props: " + s + "=" + props.getProperty(s));
         }
 
-        final String baseURL;
-
-        if (!props.keySet().contains(BASE_DIR_KEY)) {
-            final String message = "CONFIG: incomplete: " + BASE_DIR_KEY + " is required in the <init-param> section.";
-            LOGGER.error(message);
-            throw new RuntimeException(message);
-        } else if (!props.keySet().contains(BASE_URL_KEY)) {
-            LOGGER.warn(BASE_URL_KEY + " is missing.  The request URL will be used instead at runtime.");
-            baseURL = null;
-        } else {
-            // TODO: /files has to match servlet-mapping for this in web.xml
-            baseURL = props.getFirstPropertyValue(BASE_URL_KEY) + TempStorageConfiguration.DOWNLOAD_ENDPOINT;
-        }
-
+        // TODO: /files has to match servlet-mapping for this in web.xml
+        final String baseURL = props.getFirstPropertyValue(BASE_URL_KEY) + "/files";
         final File baseDir = new File(props.getFirstPropertyValue(BASE_DIR_KEY));
 
         if (!baseDir.exists()) {
-            final boolean successful = baseDir.mkdirs();
-            LOGGER.debug(baseDir.getPath() + " successfully created?: " + (successful ? "OK" : "FAILED"));
+            baseDir.mkdirs();
         }
         if (!baseDir.exists()) {
             throw new RuntimeException(BASE_DIR_KEY + "=" + baseDir + " does not exist, cannot create");
@@ -170,6 +127,6 @@ public class TempStorageConfiguration {
             throw new RuntimeException(BASE_DIR_KEY + "=" + baseDir + " is not readable && writable");
         }
 
-        return new TempStorageConfiguration(baseDir, baseURL);
+        return props;
     }
 }
