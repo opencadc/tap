@@ -96,17 +96,18 @@ import org.apache.log4j.Logger;
  */
 public abstract class TempStorageManager implements ResultStore, UWSInlineContentHandler {
 
+    private static final String DOWNLOAD_ENDPOINT = "/files/";
     private static final Logger log = Logger.getLogger(TempStorageManager.class);
 
-    private Job job;
-    private String contentType;
-    private String filename;
+    protected Job job;
+    protected String contentType;
+    protected String filename;
 
     public TempStorageManager() {
     }
 
     // used by TempStorageGetAction
-    File getStoredFile(String filename) {
+    public File getStoredFile(String filename) {
         return getDestFile(filename);
     }
 
@@ -175,6 +176,8 @@ public abstract class TempStorageManager implements ResultStore, UWSInlineConten
             sb.append("/");
         }
 
+        sb.append(TempStorageManager.DOWNLOAD_ENDPOINT);
+
         sb.append(filename);
         String s = sb.toString();
         try {
@@ -196,11 +199,10 @@ public abstract class TempStorageManager implements ResultStore, UWSInlineConten
         }
 
         String filename = name + "-" + getRandomString();
-        String baseURL = getBaseURL();
         String baseDir = getBaseDir();
 
         File put = new File(baseDir + (baseDir.endsWith("/") ? "" : "/") + filename);
-        final URL retURL = new URL(baseURL + "/" + filename);
+        final URL retURL = getURL(filename);
 
         log.debug("put: " + put);
         log.debug("contentType: " + contentType);
@@ -229,7 +231,9 @@ public abstract class TempStorageManager implements ResultStore, UWSInlineConten
 
     /**
      * Obtain the base URL where this file will be retrievable later.  The /files endpoint will be appended to it when
-     * a file is written, as well as the file name.
+     * a file is written, as well as the file name.  This method is meant to be used as an override by implementors to
+     * allow for some logic in obtaining it such as getting the request URL, looking it up in a registry, or generating
+     * one.
      *
      * <p>Example:
      * <code>
