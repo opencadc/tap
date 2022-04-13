@@ -65,7 +65,7 @@
  ************************************************************************
  */
 
-package org.openadc.tap.tmp;
+package org.opencadc.tap.tmp;
 
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.InlineContentHandler;
@@ -84,7 +84,7 @@ import org.apache.log4j.Logger;
  *
  * @author pdowler
  */
-public abstract class TempStorageGetAction extends RestAction {
+public class TempStorageGetAction extends RestAction {
     private static final Logger log = Logger.getLogger(TempStorageGetAction.class);
 
     public TempStorageGetAction() {
@@ -98,7 +98,8 @@ public abstract class TempStorageGetAction extends RestAction {
     @Override
     public void doAction() throws Exception {
         String filename = syncInput.getPath();
-        TempStorageManager sm = getTempStorageManager();
+        log.debug("GETting " + filename);
+        TempStorageManager sm = new TempStorageManager();
         File f = sm.getStoredFile(filename);
         if (!f.exists()) {
             throw new ResourceNotFoundException("not found: " + filename);
@@ -107,8 +108,6 @@ public abstract class TempStorageGetAction extends RestAction {
         InputStream fis = null;
         OutputStream ostream = null;
         try {
-            // TODO: TempStorageManager has to store the requested content-type somewhere
-
             // The content-type header needs to be properly set in the response.
             syncOutput.setHeader("Content-Type", Files.probeContentType(f.toPath()));
             syncOutput.setHeader("Content-Length", f.length());
@@ -140,11 +139,4 @@ public abstract class TempStorageGetAction extends RestAction {
             }
         }
     }
-
-    /**
-     * Obtain the TempStorageManager implementation to use.
-     *
-     * @return TempStorageManager instance.  Never null.
-     */
-    public abstract TempStorageManager getTempStorageManager();
 }

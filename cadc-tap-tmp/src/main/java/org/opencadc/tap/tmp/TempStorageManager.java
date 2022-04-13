@@ -67,11 +67,11 @@
  ************************************************************************
  */
 
-package org.openadc.tap.tmp;
+package org.opencadc.tap.tmp;
 
 import ca.nrc.cadc.dali.tables.TableWriter;
-import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.tap.ResultStore;
+import ca.nrc.cadc.util.MultiValuedProperties;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.server.RandomStringGenerator;
 import ca.nrc.cadc.uws.web.InlineContentException;
@@ -94,16 +94,21 @@ import org.apache.log4j.Logger;
  *
  * @author pdowler
  */
-public abstract class TempStorageManager implements ResultStore, UWSInlineContentHandler {
+public class TempStorageManager implements ResultStore, UWSInlineContentHandler {
 
-    private static final String DOWNLOAD_ENDPOINT = "/files/";
     private static final Logger log = Logger.getLogger(TempStorageManager.class);
 
     protected Job job;
     protected String contentType;
     protected String filename;
 
+    private final File baseDir;
+    private final String baseURL;
+
     public TempStorageManager() {
+        MultiValuedProperties props = TempStorageInitAction.getConfig();
+        this.baseURL = props.getFirstPropertyValue(TempStorageInitAction.BASE_URL_KEY) + "/files";
+        this.baseDir = new File(props.getFirstPropertyValue(TempStorageInitAction.BASE_DIR_KEY));
     }
 
     // used by TempStorageGetAction
@@ -127,7 +132,7 @@ public abstract class TempStorageManager implements ResultStore, UWSInlineConten
         }
 
         // TODO: store content-type with file so that TempStorageAction
-        // can set content-type header correctly
+        // TODO: can set content-type header correctly
         File dest = getDestFile(filename);
         URL ret = getURL(filename);
         try (FileOutputStream ostream = new FileOutputStream(dest)) {
@@ -164,19 +169,16 @@ public abstract class TempStorageManager implements ResultStore, UWSInlineConten
     }
 
     private File getDestFile(String filename) {
-        return new File(getBaseDir(), filename);
+        return new File(baseDir, filename);
     }
 
     private URL getURL(String filename) {
         StringBuilder sb = new StringBuilder();
-        String baseURL = getBaseURL();
         sb.append(baseURL);
 
         if (!baseURL.endsWith("/")) {
             sb.append("/");
         }
-
-        sb.append(TempStorageManager.DOWNLOAD_ENDPOINT);
 
         sb.append(filename);
         String s = sb.toString();
@@ -189,7 +191,7 @@ public abstract class TempStorageManager implements ResultStore, UWSInlineConten
 
     // cadc-uws-server UWSInlineContentHandler implementation
     @Override
-    public InlineContentHandler.Content accept(String name, String contentType, InputStream inputStream)
+    public Content accept(String name, String contentType, InputStream inputStream)
             throws InlineContentException, IOException {
         // store the file in tmp storage
         log.debug("name: " + name);
@@ -199,10 +201,8 @@ public abstract class TempStorageManager implements ResultStore, UWSInlineConten
         }
 
         String filename = name + "-" + getRandomString();
-        String baseDir = getBaseDir();
 
-        File put = new File(baseDir + (baseDir.endsWith("/") ? "" : "/") + filename);
-        final URL retURL = getURL(filename);
+        File put = new File(baseDir + "/" + filename);
 
         log.debug("put: " + put);
         log.debug("contentType: " + contentType);
@@ -219,37 +219,14 @@ public abstract class TempStorageManager implements ResultStore, UWSInlineConten
         fos.flush();
         fos.close();
 
-        InlineContentHandler.Content ret = new InlineContentHandler.Content();
+        URL retURL = new URL(baseURL + "/" + filename);
+        Content ret = new Content();
         ret.name = UWSInlineContentHandler.CONTENT_PARAM_REPLACE;
-        ret.value = new ParameterReplacement("param:" + name, retURL.toExternalForm());
+        ret.value = new UWSInlineContentHandler.ParameterReplacement("param:" + name, retURL.toExternalForm());
         return ret;
     }
 
     private static String getRandomString() {
         return new RandomStringGenerator(16).getID();
     }
-
-    /**
-     * Obtain the base URL where this file will be retrievable later.  The /files endpoint will be appended to it when
-     * a file is written, as well as the file name.  This method is meant to be used as an override by implementors to
-     * allow for some logic in obtaining it such as getting the request URL, looking it up in a registry, or generating
-     * one.
-     *
-     * <p>Example:
-     * <code>
-     * PUT myfile.txt
-     * getBaseURL() = https://mysite.com/myservice
-     * https://mysite.com/myservice/files/myfile.txt
-     * </code>
-     *
-     * @return String configured base URL.  Never null.
-     */
-    public abstract String getBaseURL();
-
-    /**
-     * Obtain the base directory path where a file will be stored.  This will be used to store and retrieve the data.
-     *
-     * @return String directory path.  Never null.
-     */
-    public abstract String getBaseDir();
 }
