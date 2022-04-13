@@ -52,7 +52,7 @@ In the `web.xml`:
         <!-- Optional init parameter to validate configuration. -->
         <init-param>
             <param-name>init</param-name>
-            <param-value>ca.nrc.cadc.sc2tap.TempStorageInitAction</param-value>
+            <param-value>org.opencadc.tap.tmp.TempStorageInitAction</param-value>
         </init-param>
 
         <init-param>
