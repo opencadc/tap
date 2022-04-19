@@ -1,3 +1,0 @@
-rootProject.name = 'tap'
-include 'cadc-tap', 'cadc-tap-schema', 'cadc-tap-server', 'cadc-jsqlparser-compat', 'cadc-adql', 'cadc-tap-server-oracle', 'cadc-tap-server-pg', 'cadc-tap-tmp', 'cadc-test-tap', 'example-tap'
-
