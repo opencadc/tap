@@ -1,10 +1,9 @@
-
 /*
  ************************************************************************
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2019.                            (c) 2019.
+ *  (c) 2016.                            (c) 2016.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -63,43 +62,81 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.oracle;
+package org.opencadc.tap.tmp;
 
-import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
-import ca.nrc.cadc.tap.schema.TapDataType;
+import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.rest.InlineContentHandler;
+import ca.nrc.cadc.rest.RestAction;
 
-import java.sql.Types;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
 
-public class OracleDataTypeMapper extends BasicDataTypeMapper {
-    // HACK: arbitrary sensible limit.  Maximum is 4000 for Oracle.
-    private static final String DEFAULT_VARCHAR2_QUANTIFIER = "(3072)";
+import org.apache.log4j.Logger;
 
+/**
+ * GET Action class for obtaining a stored file from an Upload or the results of an Asynchronous request.
+ *
+ * @author pdowler
+ */
+public class TempStorageGetAction extends RestAction {
+    private static final Logger log = Logger.getLogger(TempStorageGetAction.class);
 
-    public OracleDataTypeMapper() {
-        super();
-        dataTypes.put(TapDataType.POINT, new TypePair("POINT", null));
-        dataTypes.put(TapDataType.CIRCLE, new TypePair("CIRCLE", null));
-        dataTypes.put(TapDataType.POLYGON, new TypePair("POLYGON", null));
-        dataTypes.put(TapDataType.INTEGER, new TypePair("INT", Types.INTEGER));
-        dataTypes.put(TapDataType.CLOB, new TypePair("CHAR", Types.INTEGER));
-        dataTypes.put(TapDataType.LONG, new TypePair("NUMBER(38)", Types.BIGINT));
-
-        // Allow "timestamp" as well as "adql:TIMESTAMP" as an xtype value.
-        dataTypes.put(new TapDataType("char", "*", "adql:TIMESTAMP"),
-                      new TypePair("TIMESTAMP", Types.TIMESTAMP));
+    public TempStorageGetAction() {
     }
 
     @Override
-    protected String getVarCharType() {
-        return "VARCHAR2";
+    protected InlineContentHandler getInlineContentHandler() {
+        return null;
     }
 
     @Override
-    protected String getDefaultCharlimit() {
-        return DEFAULT_VARCHAR2_QUANTIFIER;
+    public void doAction() throws Exception {
+        String filename = syncInput.getPath();
+        log.debug("GETting " + filename);
+        TempStorageManager sm = new TempStorageManager();
+        File f = sm.getStoredFile(filename);
+        if (!f.exists()) {
+            throw new ResourceNotFoundException("not found: " + filename);
+        }
+
+        InputStream fis = null;
+        OutputStream ostream = null;
+        try {
+            // The content-type header needs to be properly set in the response.
+            syncOutput.setHeader("Content-Type", Files.probeContentType(f.toPath()));
+            syncOutput.setHeader("Content-Length", f.length());
+            syncOutput.setCode(200);
+
+            fis = new FileInputStream(f);
+            ostream = syncOutput.getOutputStream();
+            byte[] buf = new byte[16384];
+            int num = fis.read(buf);
+            while (num > 0) {
+                ostream.write(buf, 0, num);
+                num = fis.read(buf);
+            }
+            ostream.flush();
+        } finally {
+            if (fis != null) {
+                try {
+                    fis.close();
+                } catch (Exception ignore) {
+                    // Do nothing
+                }
+            }
+            if (ostream != null) {
+                try {
+                    ostream.close();
+                } catch (Exception ignore) {
+                    // Do nothing
+                }
+            }
+        }
     }
 }
