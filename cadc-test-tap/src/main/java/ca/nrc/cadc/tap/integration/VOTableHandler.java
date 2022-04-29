@@ -65,10 +65,9 @@
 *  $Revision: 5 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.tap.integration;
-
 
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableInfo;
@@ -85,49 +84,51 @@ import org.junit.Assert;
  *
  * @author pdowler
  */
-public abstract class VOTableHandler 
-{
+public abstract class VOTableHandler {
+
     private static final Logger log = Logger.getLogger(VOTableHandler.class);
 
-    private VOTableHandler() { }
-    
+    private VOTableHandler() {
+    }
+
     private static VOTableDocument getVOTable(InputStream istream)
-        throws IOException
-    {
+            throws IOException {
         VOTableReader vrdr = new VOTableReader();
         return vrdr.read(istream);
     }
-    
+
     static VOTableDocument getVOTable(URL url)
-        throws IOException
-    {
+            throws IOException {
         // TODO: use HttpDownload so we can do anon and auth
         InputStream istream = url.openStream();
         return getVOTable(istream);
     }
-    
+
     static VOTableDocument getVOTable(byte[] ba)
-        throws IOException
-    {
+            throws IOException {
         ByteArrayInputStream istream = new ByteArrayInputStream(ba);
         return getVOTable(istream);
     }
-    
+
     static VOTableDocument getVOTable(String xml) throws IOException {
         VOTableReader vrdr = new VOTableReader();
         return vrdr.read(xml);
     }
-    
-    static String getQueryStatus(VOTableDocument vot)
-    {
+
+    static String getQueryStatus(VOTableDocument vot) {
         VOTableResource vr = vot.getResourceByType("results");
         Assert.assertNotNull(vr);
         log.debug("found resource: " + vr.getName() + " " + vr.getType());
-        for (VOTableInfo vi : vr.getInfos())
-        {
-            if ("QUERY_STATUS".equals(vi.getName()))
-                return vi.getValue();
+        String ret = null;
+        // find the last QUERY_STATUS and return that because there can be a trailing
+        // status when result processing fails
+        for (VOTableInfo vi : vr.getInfos()) {
+            if ("QUERY_STATUS".equals(vi.getName())) {
+                ret = vi.getValue();
+                log.warn("found status: " + ret);
+            }
         }
-        return null;
+        log.warn("return status: " + ret);
+        return ret;
     }
 }
