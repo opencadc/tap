@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2019.                            (c) 2019.
+*  (c) 2022.                            (c) 2022.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -65,34 +65,32 @@
 *  $Revision: 5 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.sample;
 
+import ca.nrc.cadc.vosi.Availability;
 import ca.nrc.cadc.vosi.AvailabilityPlugin;
-import ca.nrc.cadc.vosi.AvailabilityStatus;
 import ca.nrc.cadc.vosi.avail.CheckDataSource;
 import ca.nrc.cadc.vosi.avail.CheckException;
 import org.apache.log4j.Logger;
 
-
 /**
  * Sample WebService implementation for VOSI-availability. The class name for this class
  * is used to configure the VOSI-availability servlet in the web.xml file.
- * 
+ *
  * @author pdowler
  */
-public class SampleWebService implements AvailabilityPlugin
-{
+public class SampleWebService implements AvailabilityPlugin {
+
     private static final Logger log = Logger.getLogger(SampleWebService.class);
-    
+
     private static String TAPDS_NAME = "jdbc/tapuser";
     // note tap_schema table names
     private String TAPDS_TEST = "select schema_name from tap_schema.schemas11 where schema_name='tap_schema'";
-    
-    public SampleWebService()
-    {
-        
+
+    public SampleWebService() {
+
     }
 
     @Override
@@ -107,46 +105,38 @@ public class SampleWebService implements AvailabilityPlugin
         // see: context.xml
         return true;
     }
-    
-    public AvailabilityStatus getStatus()
-    {
+
+    public Availability getStatus() {
         boolean isGood = true;
         String note = "service is accepting queries";
-        try
-        {
+        try {
             // test query using standard TAP data source
             CheckDataSource checkDataSource = new CheckDataSource(TAPDS_NAME, TAPDS_TEST);
             checkDataSource.check();
-            
+
             // check for a certficate needed to perform network ops
             //File cert = ...
             //CheckCertificate checkCert = new CheckCertificate(cert);
             //checkCert.check();
-
             // check some other web service availability since we depend it
             //URL avail = ...
             //CheckWebService cws = new CheckWebService(avail);
             //cws.check();
-        }
-        catch(CheckException ce)
-        {
+        } catch (CheckException ce) {
             // tests determined that the resource is not working
             isGood = false;
             note = ce.getMessage();
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             // the test itself failed
             log.error("web service status test failed", t);
             isGood = false;
             note = "test failed, reason: " + t;
         }
-        return new AvailabilityStatus(isGood, null, null, null, note);
+        return new Availability(isGood, note);
     }
 
-    public void setState(String string)
-    {
+    public void setState(String string) {
         throw new UnsupportedOperationException();
     }
-    
+
 }
