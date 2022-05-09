@@ -24,7 +24,7 @@ dependencies {
     compile 'org.opencadc:cadc-tap:[1.1,)'
     compile 'org.opencadc:cadc-tap-server:[1.1,)'
     compile 'org.opencadc:cadc-tap-schema:[1.1.28,)'
-    compile 'org.opencadc:cadc-jsqlparser-compat:0.6.4'
+    compile 'org.opencadc:cadc-jsqlparser-compat:[0.6.4,)'
 
     testCompile 'junit:junit:4.13'
 }
