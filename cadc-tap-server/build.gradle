@@ -13,19 +13,18 @@ sourceCompatibility = 1.8
 
 group = 'org.opencadc'
 
-version = '1.1.17'
+version = '1.1.19'
 
 description = 'OpenCADC TAP-1.1 tap server library'
 def git_url = 'https://github.com/opencadc/tap'
 
 dependencies {
-    compile 'log4j:log4j:[1.2,)'
     compile 'org.jdom:jdom2:[2.0,)'
 
-    compile 'org.opencadc:cadc-util:[1.2,)'
+    compile 'org.opencadc:cadc-util:[1.6,)'
     compile 'org.opencadc:cadc-tap:[1.1.0,1.2)'
     compile 'org.opencadc:cadc-tap-schema:[1.1.28,1.2)'
-    compile 'org.opencadc:cadc-vosi:[1.0,)'
+    compile 'org.opencadc:cadc-vosi:[1.4.2,)'
     compile 'org.opencadc:cadc-dali:[1.2.5,)'
     compile 'org.opencadc:cadc-registry:[1.4,)'
     compile 'org.opencadc:cadc-uws:[1.0,)'

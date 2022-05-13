@@ -62,81 +62,71 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
-*
 ************************************************************************
- */
+*/
 
-package ca.nrc.cadc.sample;
+package org.opencadc.tap.tmp;
 
-import ca.nrc.cadc.vosi.Availability;
-import ca.nrc.cadc.vosi.AvailabilityPlugin;
-import ca.nrc.cadc.vosi.avail.CheckDataSource;
-import ca.nrc.cadc.vosi.avail.CheckException;
+import ca.nrc.cadc.rest.InitAction;
+import ca.nrc.cadc.util.MultiValuedProperties;
+import ca.nrc.cadc.util.PropertiesReader;
+import java.io.File;
 import org.apache.log4j.Logger;
 
 /**
- * Sample WebService implementation for VOSI-availability. The class name for this class
- * is used to configure the VOSI-availability servlet in the web.xml file.
  *
  * @author pdowler
  */
-public class SampleWebService implements AvailabilityPlugin {
+public class TempStorageInitAction extends InitAction {
+    private static final Logger log = Logger.getLogger(TempStorageInitAction.class);
 
-    private static final Logger log = Logger.getLogger(SampleWebService.class);
+    // TODO get config file name from init-param
+    private static final String CONFIG = "cadc-tap-tmp.properties";
 
-    private static String TAPDS_NAME = "jdbc/tapuser";
-    // note tap_schema table names
-    private String TAPDS_TEST = "select schema_name from tap_schema.schemas11 where schema_name='tap_schema'";
-
-    public SampleWebService() {
-
+    private static final String CONFIG_KEY = "org.opencadc.tap";
+    
+    static final String BASE_DIR_KEY = CONFIG_KEY + ".baseStorageDir";
+    static final String BASE_URL_KEY = CONFIG_KEY + ".baseURL";
+    
+    public TempStorageInitAction() { 
     }
 
     @Override
-    public void setAppName(String string) {
-        //no-op
+    public void doInit() {
+        // verify
+        getConfig();
     }
+    
+    static MultiValuedProperties getConfig() {
+        PropertiesReader r = new PropertiesReader(CONFIG);
+        MultiValuedProperties props = r.getAllProperties();
 
-    @Override
-    public boolean heartbeat() {
-        // currently no-op: the most that makes sense here is to maybe 
-        // borrow and return a connection from the tapuser connection pool 
-        // see: context.xml
-        return true;
-    }
-
-    public Availability getStatus() {
-        boolean isGood = true;
-        String note = "service is accepting queries";
-        try {
-            // test query using standard TAP data source
-            CheckDataSource checkDataSource = new CheckDataSource(TAPDS_NAME, TAPDS_TEST);
-            checkDataSource.check();
-
-            // check for a certficate needed to perform network ops
-            //File cert = ...
-            //CheckCertificate checkCert = new CheckCertificate(cert);
-            //checkCert.check();
-            // check some other web service availability since we depend it
-            //URL avail = ...
-            //CheckWebService cws = new CheckWebService(avail);
-            //cws.check();
-        } catch (CheckException ce) {
-            // tests determined that the resource is not working
-            isGood = false;
-            note = ce.getMessage();
-        } catch (Throwable t) {
-            // the test itself failed
-            log.error("web service status test failed", t);
-            isGood = false;
-            note = "test failed, reason: " + t;
+        for (String s : props.keySet()) {
+            log.debug("props: " + s + "=" + props.getProperty(s));
         }
-        return new Availability(isGood, note);
-    }
 
-    public void setState(String string) {
-        throw new UnsupportedOperationException();
-    }
+        // TODO: /files has to match servlet-mapping for this in web.xml
+        final String baseURL = props.getFirstPropertyValue(BASE_URL_KEY);
+        final File baseDir = new File(props.getFirstPropertyValue(BASE_DIR_KEY));
 
+        if (!baseDir.exists()) {
+            baseDir.mkdirs();
+        }
+        if (!baseDir.exists()) {
+            throw new RuntimeException(BASE_DIR_KEY + "=" + baseDir + " does not exist, cannot create");
+        }
+        if (!baseDir.isDirectory()) {
+            throw new RuntimeException(BASE_DIR_KEY + "=" + baseDir + " is not a directory");
+        }
+        if (!baseDir.canRead() || !baseDir.canWrite()) {
+            throw new RuntimeException(BASE_DIR_KEY + "=" + baseDir + " is not readable && writable");
+        }
+
+        if (baseURL == null) {
+            log.error("CONFIG: incomplete: baseDir=" + baseDir + "  baseURL=" + baseURL);
+            throw new RuntimeException("CONFIG incomplete: baseDir=" + baseDir + " baseURL=" + baseURL);
+        }
+
+        return props;
+    }
 }
