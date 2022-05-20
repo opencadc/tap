@@ -1,8 +1,8 @@
-# cadc-tap-server-oracle 1.2.4
+# cadc-tap-server-oracle 1.2.9
 
 Offers Oracle support to handle datatype conversions in ADQL.
 
-ALMA currently has a [sample implementation](https://github.com/opencadc/alma/tree/master/obscore).
+ALMA currently has a [sample implementation](https://github.com/opencadc/alma/tree/master/tap).
 
 ## Requirements
 

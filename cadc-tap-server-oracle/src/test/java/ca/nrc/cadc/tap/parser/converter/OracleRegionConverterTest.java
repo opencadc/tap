@@ -109,9 +109,9 @@ public class OracleRegionConverterTest {
 
         final String resultFunctionSource = resultFunction.toString();
         Assert.assertEquals("Wrong output.",
-                            "SDO_GEOM.RELATE(SDO_UTIL.CIRCLE_POLYGON(88.0, 12.0, "
-                            + 0.8D * OracleCircle.TO_METRES_ON_EARTH + ", 0.005), 'contains', " +
-                            "SDO_GEOMETRY(2001, 8307, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005)",
+                            "SDO_CONTAINS(SDO_UTIL.CIRCLE_POLYGON(88.0, 12.0, "
+                            + 0.8D * OracleCircle.TO_METRES_ON_EARTH + ", 0.005), " +
+                            "SDO_GEOMETRY(2001, 8307, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL))",
                             resultFunctionSource);
     }
 
@@ -140,10 +140,10 @@ public class OracleRegionConverterTest {
 
         final String resultFunctionSource = equalsFunction.toString();
         Assert.assertEquals("Wrong output.",
-                            "SDO_GEOM.RELATE(SDO_UTIL.CIRCLE_POLYGON(88.0, 12.0, "
-                            + 0.8D * OracleCircle.TO_METRES_ON_EARTH + ", 0.005), 'contains', " +
+                            "SDO_CONTAINS(SDO_UTIL.CIRCLE_POLYGON(88.0, 12.0, "
+                            + 0.8D * OracleCircle.TO_METRES_ON_EARTH + ", 0.005), " +
                             "SDO_GEOMETRY"
-                            + "(2001, 8307, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL), 0.005) = 'CONTAINS'",
+                            + "(2001, 8307, SDO_POINT_TYPE(16.8, 33.4, NULL), NULL, NULL)) = 'TRUE'",
                             resultFunctionSource);
     }
 
@@ -162,6 +162,24 @@ public class OracleRegionConverterTest {
         Assert.assertEquals("Wrong SQL DISTANCE output.",
                             "SDO_CONTAINS(s_region, " +
                             "SDO_GEOMETRY(2001, 8307, SDO_POINT_TYPE(88.0, 12.0, NULL), NULL, NULL))",
+                            distanceFunction.toString());
+    }
+
+    @Test
+    public void handleColumnReferenceInside() {
+        final OracleRegionConverter oracleRegionConverter = new OracleRegionConverter(new ExpressionNavigator(),
+                                                                                      new ReferenceNavigator(),
+                                                                                      new FromItemNavigator());
+
+        final Expression left = new Column(new Table(), "s_region");
+        final Expression right = new OraclePoint(new Point(14.0D, -2.0D));
+        final Expression distanceFunction = oracleRegionConverter.handleContains(left, right);
+
+        assert distanceFunction instanceof Function;
+
+        Assert.assertEquals("Wrong SQL DISTANCE output.",
+                            "SDO_INSIDE(s_region, " +
+                            "SDO_GEOMETRY(2001, 8307, SDO_POINT_TYPE(14.0, -2.0, NULL), NULL, NULL))",
                             distanceFunction.toString());
     }
 

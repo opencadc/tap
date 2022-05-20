@@ -1,5 +1,9 @@
 # cadc-tap-server-oracle
 
+## 2022.05.20 - 1.2.9
+
+  * Use proper Oracle functions for indexed columns with respect to `CONTAINS` or `INSIDE` operations. 
+
 ## 2019.10.18 - 1.2.4
 
   * Removed too-specific code for column replacement.
