@@ -166,6 +166,24 @@ public class OracleRegionConverterTest {
     }
 
     @Test
+    public void handleColumnReferenceInside() {
+        final OracleRegionConverter oracleRegionConverter = new OracleRegionConverter(new ExpressionNavigator(),
+                                                                                      new ReferenceNavigator(),
+                                                                                      new FromItemNavigator());
+
+        final Expression left = new Column(new Table(), "s_region");
+        final Expression right = new OraclePoint(new Point(14.0D, -2.0D));
+        final Expression distanceFunction = oracleRegionConverter.handleContains(left, right);
+
+        assert distanceFunction instanceof Function;
+
+        Assert.assertEquals("Wrong SQL DISTANCE output.",
+                            "SDO_INSIDE(s_region, " +
+                            "SDO_GEOMETRY(2001, 8307, SDO_POINT_TYPE(14.0, -2.0, NULL), NULL, NULL))",
+                            distanceFunction.toString());
+    }
+
+    @Test
     public void handleColumnReference() {
         final OracleRegionConverter oracleRegionConverter = new OracleRegionConverter(new ExpressionNavigator(),
                                                                                       new ReferenceNavigator(),
