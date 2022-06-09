@@ -71,12 +71,14 @@ import ca.nrc.cadc.dali.tables.ascii.AsciiTableWriter;
 import ca.nrc.cadc.dali.tables.votable.VOTableField;
 import ca.nrc.cadc.dali.util.Format;
 import ca.nrc.cadc.dali.util.FormatFactory;
+import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaUtil;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -157,7 +159,14 @@ public class AsciiTableData implements TableDataInputStream, Iterator<List<Objec
      */
     @Override
     public boolean hasNext() {
-        return rowIterator.hasNext();
+        try {
+            return rowIterator.hasNext();
+        } catch (IllegalStateException ex) {
+            if (ex.getCause() != null && ex.getCause() instanceof SocketException) {
+                throw new TransientException("read stream failed: " + ex.getCause().getMessage(), ex.getCause());
+            }
+            throw ex;
+        }
     }
 
     /**
@@ -169,22 +178,27 @@ public class AsciiTableData implements TableDataInputStream, Iterator<List<Objec
             throw new NoSuchElementException("No more data to read.");
         }
         
-        CSVRecord rec = rowIterator.next();
-        if (!rec.isConsistent()) {
-            if (rowIterator.hasNext()) {
-                throw new InconsistentTableDataException("truncated row: " + rec);
+        CSVRecord rec;
+        try {
+            rec = rowIterator.next();
+            if (!rec.isConsistent()) {
+                if (rowIterator.hasNext()) {
+                    throw new InconsistentTableDataException("truncated row: " + rec);
+                }
+                throw new InconsistentTableDataException("truncated stream");
             }
-            throw new InconsistentTableDataException("truncated stream");
+        } catch (IllegalStateException ex) {
+            if (ex.getCause() != null && ex.getCause() instanceof SocketException) {
+                throw new TransientException("read stream failed: " + ex.getCause().getMessage(), ex.getCause());
+            }
+            throw ex;
         }
         
-        List<Object> row = new ArrayList<Object>(columnNames.size());
-        String cell = null;
-        Object value = null;
-        Format format = null;
+        List<Object> row = new ArrayList<>(columnNames.size());
         for (int i = 0; i < columnNames.size(); i++) {
-            cell = rec.get(i);
-            format = columnFormats.get(i);
-            value = format.parse(cell);
+            String cell = rec.get(i);
+            Format format = columnFormats.get(i);
+            Object value = format.parse(cell);
             row.add(value);
         }
         return row;
