@@ -162,7 +162,8 @@ public class AsciiTableData implements TableDataInputStream, Iterator<List<Objec
         try {
             return rowIterator.hasNext();
         } catch (IllegalStateException ex) {
-            if (ex.getCause() != null && ex.getCause() instanceof SocketException) {
+            if (ex.getCause() != null 
+                && (ex.getCause() instanceof SocketException) || (ex.getCause() instanceof IOException)) {
                 throw new TransientException("read stream failed: " + ex.getCause().getMessage(), ex.getCause());
             }
             throw ex;
