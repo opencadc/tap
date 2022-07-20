@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2020.                            (c) 2020.
+*  (c) 2022.                            (c) 2022.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -464,8 +464,8 @@ public class TapClient<E> {
         }
         log.debug("meta query: " + syncURL + " " + query + " MAXREC=" + params.get("MAXREC"));
         HttpPost post = new HttpPost(syncURL, params, false);
-        //post.setConnectionTimeout(6000);
-        //post.setReadTimeout(12000);
+        post.setConnectionTimeout(6000);
+        post.setReadTimeout(12000);
         try {
             post.prepare();
         }  catch (IllegalArgumentException ex) {
@@ -475,11 +475,14 @@ public class TapClient<E> {
         }
             
         URL execURL = post.getRedirectURL();
+        if (execURL == null) {
+            throw new TransientException("unexpected response: code=" + post.getResponseCode() + ", no Location header");
+        }
         String jobID = getJobID(syncURL, execURL);
         
         HttpGet meta = new HttpGet(execURL, true);
-        //exec.setConnectionTimeout(6000);
-        //exec.setReadTimeout(12000);
+        meta.setConnectionTimeout(6000);
+        meta.setReadTimeout(12000);
         try {
             meta.prepare();
         } catch (IllegalArgumentException ex) {
