@@ -70,7 +70,6 @@
 package ca.nrc.cadc.tap.writer.format;
 
 import ca.nrc.cadc.dali.Point;
-import ca.nrc.cadc.tap.parser.region.function.OracleCircle;
 import ca.nrc.cadc.tap.parser.region.function.OracleGeometricFunction;
 import ca.nrc.cadc.tap.parser.region.function.OraclePolygon;
 
@@ -171,6 +170,11 @@ public class OracleRegionFormat extends AbstractResultSetFormat {
     BigDecimal[] toBigDecimalArray(final Object structArray) throws SQLException {
         if (structArray instanceof Array) {
             return (BigDecimal[]) ((Array) structArray).getArray();
+        } else if (structArray instanceof Struct) {
+            final Object[] attributeArray = ((Struct) structArray).getAttributes();
+            return Arrays.stream(attributeArray)
+                         .filter(o -> (o instanceof BigDecimal))
+                         .map(o -> (BigDecimal) o).toArray(BigDecimal[]::new);
         } else {
             return null;
         }
