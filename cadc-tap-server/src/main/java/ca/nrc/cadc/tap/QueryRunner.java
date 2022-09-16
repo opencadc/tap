@@ -370,13 +370,23 @@ public class QueryRunner implements JobRunner
                     // make fetch size (client batch size) small,
                     // and restrict to forward only so that client memory usage is minimal since
                     // we are only interested in reading the ResultSet once
+                    log.debug("setAutoCommit: " + pfac.getAutoCommit());
                     connection.setAutoCommit(pfac.getAutoCommit());
-                    pstmt = connection.prepareStatement(sql);
-                    pstmt.setFetchSize(1000);
+                    
+                    pstmt = connection.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
+                            ResultSet.CONCUR_READ_ONLY, ResultSet.CLOSE_CURSORS_AT_COMMIT);
                     pstmt.setFetchDirection(ResultSet.FETCH_FORWARD);
+                    if (maxRows == null || maxRows > 1000) {
+                        log.debug("maxRows = " + maxRows + ": setting fetchSize = 1000");
+                        pstmt.setFetchSize(1000);
+                    } else {
+                        log.debug("maxRows = " + maxRows + ": not setting fetchSize");
+                    }
+                    
 
                     log.debug("executing query: " + sql);
                     resultSet = pstmt.executeQuery();
+                    log.debug("result set: " + resultSet.getClass().getName());
                 }
 
                 t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
@@ -442,12 +452,16 @@ public class QueryRunner implements JobRunner
                     } catch (Throwable ignore) { }
                     try
                     {
-                        resultSet.close();
+                        if (resultSet != null) {
+                            resultSet.close();
+                        }
                     }
                     catch (Throwable ignore) { }
                     try
                     {
-                        pstmt.close();
+                        if (pstmt != null) {
+                            pstmt.close();
+                        }
                     }
                     catch (Throwable ignore) { }
                     try
