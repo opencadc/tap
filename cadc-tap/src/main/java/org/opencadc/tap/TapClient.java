@@ -83,7 +83,6 @@ import ca.nrc.cadc.io.ByteLimitExceededException;
 import ca.nrc.cadc.io.ResourceIterator;
 import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.net.HttpPost;
-import ca.nrc.cadc.net.RemoteServiceException;
 import ca.nrc.cadc.net.ResourceAlreadyExistsException;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.net.TransientException;
