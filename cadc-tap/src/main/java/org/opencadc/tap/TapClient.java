@@ -134,6 +134,10 @@ public class TapClient<E> {
     private final Capabilities caps;
     private final Capability tap;
     
+    // yes, it is int milliseconds in java.net.URLConnection
+    private int connectionTimeout = 6000; // 6 seconds aka "one round"
+    private int readTimeout = 60000;      // 60 seconds
+    
     /**
      * Constructor.
      * 
@@ -158,6 +162,29 @@ public class TapClient<E> {
             throw new ResourceNotFoundException("not found: " + resourceID, ex);
         }
     }
+
+    /**
+     * Set connection timeout for all TAP queries. This value can be changed between 
+     * invocation of "queryForObject" and "query" (iterator).
+     * 
+     * @param connectionTimeout connection timeout in milliseconds
+     */
+    public void setConnectionTimeout(int connectionTimeout) {
+        this.connectionTimeout = connectionTimeout;
+    }
+
+    /**
+     * Set read timeout for all TAP queries. This value can be changed between 
+     * invocation of "queryForObject" and "query" (iterator). The value must be
+     * long enough for the query to start outputing rows.
+     * 
+     * @param readTimeout read timeout in milliseconds
+     */
+    public void setReadTimeout(int readTimeout) {
+        this.readTimeout = readTimeout;
+    }
+    
+    
     
     @Deprecated
     public URL getAsyncURL(AuthMethod am) throws ResourceNotFoundException {
@@ -375,8 +402,8 @@ public class TapClient<E> {
         params.put("MAXREC", 1);
         log.debug("object query: " + syncURL + " " + query);
         HttpPost post = new HttpPost(syncURL, params, false);
-        //post.setConnectionTimeout(6000);
-        //post.setReadTimeout(12000);
+        post.setConnectionTimeout(connectionTimeout);
+        post.setReadTimeout(readTimeout);
         try {
             post.prepare();
         }  catch (IllegalArgumentException ex) {
@@ -389,8 +416,8 @@ public class TapClient<E> {
         String jobID = getJobID(syncURL, execURL);
         
         HttpGet exec = new HttpGet(execURL, true);
-        //exec.setConnectionTimeout(6000);
-        //exec.setReadTimeout(12000);
+        exec.setConnectionTimeout(connectionTimeout);
+        exec.setReadTimeout(readTimeout);
         try {
             exec.prepare();
         } catch (IllegalArgumentException ex) {
@@ -464,8 +491,8 @@ public class TapClient<E> {
         }
         log.debug("meta query: " + syncURL + " " + query + " MAXREC=" + params.get("MAXREC"));
         HttpPost post = new HttpPost(syncURL, params, false);
-        post.setConnectionTimeout(6000);
-        post.setReadTimeout(12000);
+        post.setConnectionTimeout(connectionTimeout);
+        post.setReadTimeout(readTimeout);
         try {
             post.prepare();
         }  catch (IllegalArgumentException ex) {
@@ -481,8 +508,8 @@ public class TapClient<E> {
         String jobID = getJobID(syncURL, execURL);
         
         HttpGet meta = new HttpGet(execURL, true);
-        meta.setConnectionTimeout(6000);
-        meta.setReadTimeout(12000);
+        meta.setConnectionTimeout(connectionTimeout);
+        meta.setReadTimeout(readTimeout);
         try {
             meta.prepare();
         } catch (IllegalArgumentException ex) {
