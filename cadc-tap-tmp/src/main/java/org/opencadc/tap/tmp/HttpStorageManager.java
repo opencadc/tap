@@ -209,7 +209,9 @@ public class HttpStorageManager implements ResultStore, UWSInlineContentHandler 
         log.debug("contentType: " + contentType);
 
         HttpUpload put = new HttpUpload(inputStream, putURL);
-        put.setRequestProperty("content-type", contentType);
+        if (contentType != null) {
+            put.setRequestProperty("content-type", contentType);
+        }
         Subject s = SSLUtil.createSubject(certFile);
         Subject.doAs(s, new RunnableAction(put));
         
