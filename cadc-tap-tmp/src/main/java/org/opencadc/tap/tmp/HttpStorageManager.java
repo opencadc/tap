@@ -126,7 +126,7 @@ public class HttpStorageManager implements ResultStore, UWSInlineContentHandler 
             throw new InvalidConfigException("invalid " + BASE_URL_KEY + " = " + surl, ex);
         }
         String cfilename = props.getFirstPropertyValue(CERT_KEY);
-        String absCertFile = System.getProperty("user.home") + "/config/" + cfilename;
+        String absCertFile = System.getProperty("user.home") + "/.ssl/" + cfilename;
         log.warn("cert file: " + absCertFile);
         this.certFile = new File(absCertFile);
     }
