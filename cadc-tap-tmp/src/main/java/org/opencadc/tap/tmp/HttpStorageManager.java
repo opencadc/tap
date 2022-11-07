@@ -68,6 +68,7 @@
 package org.opencadc.tap.tmp;
 
 import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.RunnableAction;
 import ca.nrc.cadc.auth.SSLUtil;
 import ca.nrc.cadc.cred.client.CredUtil;
@@ -87,7 +88,6 @@ import ca.nrc.cadc.tap.ResultStore;
 import ca.nrc.cadc.util.InvalidConfigException;
 import ca.nrc.cadc.util.MultiValuedProperties;
 import ca.nrc.cadc.util.PropertiesReader;
-import ca.nrc.cadc.util.StringUtil;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.ParameterUtil;
 import ca.nrc.cadc.uws.server.RandomStringGenerator;
@@ -113,7 +113,6 @@ import java.security.AccessControlException;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
 import java.sql.ResultSet;
-import java.util.List;
 import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
 
@@ -195,12 +194,16 @@ public class HttpStorageManager implements ResultStore, UWSInlineContentHandler 
 
         // default
         URL putURL = new URL(baseURL + "/" + filename);
-
+        URL retURL = putURL;
+        
         String dest = ParameterUtil.findParameterValue("DEST", job.getParameterList());
         if (dest != null) {
             try {
                 if (CredUtil.checkCredentials()) {
-                    putURL = getUserDestination(dest);
+                    URL[] u = getUserDestination(dest);
+                    putURL = u[0];
+                    retURL = u[1];
+                    
                 } else {
                     throw new AccessControlException("no credentials to use with DEST=" + dest);
                 }
@@ -214,19 +217,28 @@ public class HttpStorageManager implements ResultStore, UWSInlineContentHandler 
 
         HttpUpload put = new HttpUpload(stw, putURL);
         put.setRequestProperty("content-type", contentType);
-        Subject s = SSLUtil.createSubject(certFile);
-        Subject.doAs(s, new RunnableAction(put));
+        if (dest != null) {
+            // run as user
+            put.run();
+        } else {
+            // run with configured cert
+            Subject s = SSLUtil.createSubject(certFile);
+            Subject.doAs(s, new RunnableAction(put));
+        }
         if (put.getThrowable() != null) {
             throw new RuntimeException("failed to store file " + filename, put.getThrowable());
         }
         
-        return putURL;
+        return retURL;
     }
 
-    private URL getUserDestination(String dest) {
+    private URL[] getUserDestination(String dest) {
+        URL[] ret = new URL[2];
         try {
             if (dest.startsWith("https:")) {
-                return new URL(dest);
+                ret[0] = new URL(dest);
+                ret[1] = ret[0];
+                return ret;
             }
         } catch (MalformedURLException ex) {
             throw new IllegalArgumentException("invalid DEST https URL: " + dest, ex);
@@ -237,14 +249,15 @@ public class HttpStorageManager implements ResultStore, UWSInlineContentHandler 
             if ("vos".equals(uri.getScheme())) {
                 VOSURI vu = new VOSURI(uri);
                 try {
-                    Transfer xfr = negotiate(vu);
+                    Transfer xfr = negotiatePUT(vu);
                     String surl = xfr.getEndpoint(); // first
-                    URL ret = new URL(surl);
+                    ret[0] = new URL(surl);
+                    ret[1] = constructGET(vu);
                     return ret;
                 } catch (MalformedURLException ex) {
                     throw new RuntimeException("vospace service " + vu.getServiceURI() + " returned invalid URL: " + ex);
                 } catch (ResourceNotFoundException | TransferParsingException | IOException ex) {
-                    throw new RuntimeException("failed to negotiate push to vospace: " + dest);
+                    throw new RuntimeException("failed to negotiate push to vospace: " + dest, ex);
                 } catch (InterruptedException ex) {
                     throw new RuntimeException("vospace transfer negotiation interrupted", ex);
                 }
@@ -289,8 +302,25 @@ public class HttpStorageManager implements ResultStore, UWSInlineContentHandler 
         return new RandomStringGenerator(16).getID();
     }
     
-    // spyglass -v --resourceID=ivo://cadc.nrc.ca/vault vos://cadc.nrc.ca~vault/pdowler/
-    private Transfer negotiate(VOSURI target) throws ResourceNotFoundException, 
+    private URL constructGET(VOSURI target) {
+        RegistryClient reg = new RegistryClient();
+        URL filesURL = reg.getServiceURL(target.getServiceURI(), Standards.VOSPACE_FILES_20, AuthMethod.ANON);
+        if (filesURL == null) {
+            throw new RuntimeException("OOPS: faield to find " + Standards.VOSPACE_FILES_20 
+                    + " endpoint in " + target.getServiceURI());
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append(filesURL.toExternalForm());
+        // VOSURI path includes leading /
+        sb.append(target.getPath());
+        try {
+            return new URL(sb.toString());
+        } catch (MalformedURLException ex) {
+            throw new RuntimeException("BUG: failed to create vospace files URL for " + target);
+        }
+    }
+    
+    private Transfer negotiatePUT(VOSURI target) throws ResourceNotFoundException, 
             IOException, InterruptedException, TransferParsingException {
         
         // https+cert
@@ -315,11 +345,20 @@ public class HttpStorageManager implements ResultStore, UWSInlineContentHandler 
         RegistryClient reg = new RegistryClient();
         URL turl = reg.getServiceURL(target.getServiceURI(), Standards.VOSPACE_SYNC_21, AuthMethod.CERT);
         
-        HttpPost post = new HttpPost(turl, content, true);
+        log.warn("negotiate: " + turl);
+        HttpPost post = new HttpPost(turl, content, false);
         try {
             post.prepare();
+            InputStream istream;
+            if (post.getRedirectURL() != null) {
+                HttpGet get = new HttpGet(post.getRedirectURL(), true);
+                get.prepare();
+                istream = get.getInputStream();
+            } else {
+                istream = post.getInputStream();
+            }
             TransferReader reader = new TransferReader();
-            Transfer t = reader.read(post.getInputStream(), null);
+            Transfer t = reader.read(istream, null);
             log.debug("Response transfer: " + t);
             return t;
         } catch (ByteLimitExceededException | ResourceAlreadyExistsException ex) {
