@@ -30,7 +30,14 @@ For the HttpStorageManager, the result will be PUT to that same URL and requires
 an X509 cliejnt certificate to authenticate. The certificate is located in 
 {user.home}/.ssl/{certificate file name}.
 
-In both cases, result files will be retrievable from {baseURL}/{result_filename}.
+The HttpStorageManager ResultStore implementation supports a user-specified job 
+parameter `DEST={uri}` which will direct output of async queries to the specified
+URI. This can be a VOSpace URI (`vos://{authority}~{service}/{path}`) or an `https`
+URL that accepts PUT and supports GET. When DEST is used, the caller's credentials
+are used instead of the configured certificate.
+
+In both cases, result files will be retrievable from {baseURL}/{result_filename} 
+(unless DEST was used).
 
 
 ### Enable storage
