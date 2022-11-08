@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2022.                            (c) 2022.
+*  (c) 2009.                            (c) 2009.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,70 +62,74 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
+*  $Revision: 4 $
+*
 ************************************************************************
-*/
+ */
 
 package org.opencadc.tap.tmp;
 
-import ca.nrc.cadc.rest.InitAction;
-import ca.nrc.cadc.util.MultiValuedProperties;
-import ca.nrc.cadc.util.PropertiesReader;
-import java.io.File;
-import org.apache.log4j.Logger;
+import ca.nrc.cadc.dali.tables.TableWriter;
+import ca.nrc.cadc.net.OutputStreamWrapper;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.sql.ResultSet;
 
 /**
  *
- * @author pdowler
+ * @author jburke
  */
-public class TempStorageInitAction extends InitAction {
-    private static final Logger log = Logger.getLogger(TempStorageInitAction.class);
+public class StreamingTableWriter implements OutputStreamWrapper {
 
-    // TODO get config file name from init-param
-    private static final String CONFIG = "cadc-tap-tmp.properties";
+    private ResultSet rs;
+    private TableWriter<ResultSet> tableWriter;
+    private Integer maxrec;
 
-    private static final String CONFIG_KEY = TempStorageManager.class.getName();
-    
-    static final String BASE_DIR_KEY = CONFIG_KEY + ".baseStorageDir";
-    static final String BASE_URL_KEY = CONFIG_KEY + ".baseURL";
-    
-    public TempStorageInitAction() { 
+    private Throwable error;
+    private TableWriter errorWriter;
+
+    /**
+     *
+     * @param rs ResultSet containing the data.
+     * @param writer TableWriter to format the data.
+     */
+    StreamingTableWriter(ResultSet rs, TableWriter<ResultSet> writer, Integer maxrec) {
+        if (writer == null) {
+            throw new IllegalArgumentException("TableWriter can not be null");
+        }
+        this.rs = rs;
+        this.tableWriter = writer;
+        this.maxrec = maxrec;
     }
 
+    StreamingTableWriter(Throwable t, TableWriter writer) {
+        if (t == null) {
+            throw new IllegalArgumentException("Throwable can not be null");
+        }
+        if (writer == null) {
+            throw new IllegalArgumentException("VOTableWriter can not be null");
+        }
+        this.error = t;
+        this.errorWriter = writer;
+    }
+
+    /**
+     *
+     *
+     * @param out OutputStream to write to.
+     * @throws IOException if there is a problem writing to the stream.
+     */
     @Override
-    public void doInit() {
-        // verify
-        getConfig();
-    }
-    
-    static MultiValuedProperties getConfig() {
-        PropertiesReader r = new PropertiesReader(CONFIG);
-        MultiValuedProperties props = r.getAllProperties();
-
-        for (String s : props.keySet()) {
-            log.debug("props: " + s + "=" + props.getProperty(s));
+    public void write(OutputStream out)
+            throws IOException {
+        if (tableWriter != null) {
+            Long num = null;
+            if (maxrec != null) {
+                num = maxrec.longValue();
+            }
+            tableWriter.write(rs, out, num);
+        } else {
+            errorWriter.write(error, out);
         }
-
-        final String baseURL = props.getFirstPropertyValue(BASE_URL_KEY);
-        final File baseDir = new File(props.getFirstPropertyValue(BASE_DIR_KEY));
-
-        if (!baseDir.exists()) {
-            baseDir.mkdirs();
-        }
-        if (!baseDir.exists()) {
-            throw new RuntimeException(BASE_DIR_KEY + "=" + baseDir + " does not exist, cannot create");
-        }
-        if (!baseDir.isDirectory()) {
-            throw new RuntimeException(BASE_DIR_KEY + "=" + baseDir + " is not a directory");
-        }
-        if (!baseDir.canRead() || !baseDir.canWrite()) {
-            throw new RuntimeException(BASE_DIR_KEY + "=" + baseDir + " is not readable && writable");
-        }
-
-        if (baseURL == null) {
-            log.error("CONFIG: incomplete: baseDir=" + baseDir + "  baseURL=" + baseURL);
-            throw new RuntimeException("CONFIG incomplete: baseDir=" + baseDir + " baseURL=" + baseURL);
-        }
-
-        return props;
     }
 }

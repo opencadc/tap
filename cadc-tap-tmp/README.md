@@ -1,21 +1,48 @@
-# cadc-tap-tmp (1.0.0)
+# cadc-tap-tmp
 
-Simple library to provide default storage on disk for uploaded files to a TAP service.  Useful for a zero-config
-TAP service to provide limited upload storage in a temporary file system.
+Simple library to provide plugins that implement both the ResultStore (TAP-async 
+result storage) and UWSInlineContentHandler (inline TAP_UPLOAD support) interfaces. 
+Two interfaces are provided: `org.opencadc.tap.tmp.TempStorageManager` uses a configurable
+local directory in the filesystem, `org.opencadc.tap.tmp.HttpStorageManager` uses an 
+external HTTP service to store and deliver files.
 
 ## Applying cadc-tap-tmp
 
 ### Configuration
 A configuration file `cadc-tap-tmp.properties` needs to be accessible in the `System.getProperty("user.home")/config` folder, or in a separate folder specified by a System property called `ca.nrc.cadc.util.PropertiesReader.dir`.
-```properties
-org.opencadc.tap.baseStorageDir = /tmp
-org.opencadc.tap.baseURL = https://example.com/storage/endpoint
-```
 
-The `/files` endpoint will be appended to the `org.opencadc.tap.baseURL` property, and will be enabled below (see [Enable Retrieval](#enable-retrieval)).
+For the local filesystem using `TempStorageManager`:
+```properties
+org.opencadc.tap.tmp.TempStorageManager.baseURL = {base URL for result files}
+
+org.opencadc.tap.tmp.TempStorageManager.baseStorageDir = {local directory for tmp files}
+```
+For the TempStorageManager, an additional servlet must be deployed in the TAP 
+service to [Enable Retrieval](#enable-retrieval)
+
+For the external http service using `HttpStorageManager`:
+```properties
+org.opencadc.tap.tmp.HttpStorageManager.baseURL = {base URL for result files}
+
+org.opencadc.tap.tmp.HttpStorageManager.certificate = {certificate file name}
+```
+For the HttpStorageManager, the result will be PUT to that same URL and requires 
+an X509 client certificate to authenticate. The certificate is located in 
+{user.home}/.ssl/{certificate file name}.
+
+The HttpStorageManager ResultStore implementation supports a user-specified job 
+parameter `DEST={uri}` which will direct output of async queries to the specified
+URI. This can be a VOSpace URI (`vos://{authority}~{service}/{path}`) or an `https`
+URL that accepts PUT and supports GET. When DEST is used, the caller's credentials
+are used instead of the configured certificate.
+
+In both cases, result files will be retrievable from {baseURL}/{result_filename} 
+(unless DEST was used).
+
 
 ### Enable storage
-To enable temporary uploads to disk, set the `InlineContentHandler` in the handling UWS (`cadc-rest`) servlet to be the `TempStorageManager`:
+To enable temporary uploads to disk, configure the `InlineContentHandler` in both the 
+TAP-sync and TAP-async servlets to load the one of the plugin classes:
 
 In the `web.xml`:
 
@@ -28,21 +55,19 @@ In the `web.xml`:
   </init-param>
   ...
 </servlet>
-
 ```
 
-Finally, the implementation service's `PluginFactory.properties` will need to use the `TempStorageManger` as the `ResultStore`:
+The ResultStore implementation is configured in the TAP service's
+`PluginFactory.properties`, e.g.:
 
-In the `PluginFactory.properties`:
 ```properties
 ca.nrc.cadc.tap.ResultStore = org.opencadc.tap.tmp.TempStorageManager
 ```
 
-### Enable retrieval
-To enable retrieving the uploaded file, such as an asynchronous query, a new `/files` endpoint will be required.  Provide a concrete
-implementation of the `TempStorageGetAction`:
-
-In the `web.xml`:
+### Enable retrieval for TempStorageManager
+To enable retrieval of the stored file, such as an asynchronous query result, 
+a new endpoint will be required using the `TempStorageInitAction` and
+`TempStorageGetAction`:
 
 ```xml
     <servlet>
@@ -64,6 +89,8 @@ In the `web.xml`:
     
     <servlet-mapping>
         <servlet-name>TempStorageServlet</servlet-name>
-        <url-pattern>/files/*</url-pattern>
+        <url-pattern>/stuff-to-keep-and-serve/*</url-pattern>
     </servlet-mapping>
 ```
+The `baseURL` in `cadc-tap-tmp.properties` must include the path component used in the above
+servlet-mapping, e.g. `https://example.net/tap/stuff-to-keep-and-serve`.
