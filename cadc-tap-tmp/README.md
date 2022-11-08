@@ -27,7 +27,7 @@ org.opencadc.tap.tmp.HttpStorageManager.baseURL = {base URL for result files}
 org.opencadc.tap.tmp.HttpStorageManager.certificate = {certificate file name}
 ```
 For the HttpStorageManager, the result will be PUT to that same URL and requires 
-an X509 cliejnt certificate to authenticate. The certificate is located in 
+an X509 client certificate to authenticate. The certificate is located in 
 {user.home}/.ssl/{certificate file name}.
 
 The HttpStorageManager ResultStore implementation supports a user-specified job 
