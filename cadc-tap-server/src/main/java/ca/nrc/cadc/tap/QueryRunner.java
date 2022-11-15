@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2022.                            (c) 2022.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -373,8 +373,7 @@ public class QueryRunner implements JobRunner
                     log.debug("setAutoCommit: " + pfac.getAutoCommit());
                     connection.setAutoCommit(pfac.getAutoCommit());
                     
-                    pstmt = connection.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
-                            ResultSet.CONCUR_READ_ONLY, ResultSet.CLOSE_CURSORS_AT_COMMIT);
+                    pstmt = connection.prepareStatement(sql);
                     pstmt.setFetchDirection(ResultSet.FETCH_FORWARD);
                     if (maxRows == null || maxRows > 1000) {
                         log.debug("maxRows = " + maxRows + ": setting fetchSize = 1000");
