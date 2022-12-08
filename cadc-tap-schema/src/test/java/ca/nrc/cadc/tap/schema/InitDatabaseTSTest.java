@@ -69,7 +69,12 @@ package ca.nrc.cadc.tap.schema;
 
 
 import ca.nrc.cadc.util.Log4jInit;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.util.List;
+import javax.sql.DataSource;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -92,7 +97,7 @@ public class InitDatabaseTSTest {
     @Test
     public void testParseCreateDDL() {
         try {
-            InitDatabaseTS init = new InitDatabaseTS(null, null, schema);
+            InitDatabaseTS init = new InitDatabaseTS(new DummyDataSource(), null, schema);
             for (String fname : InitDatabaseTS.CREATE_SQL) {
                 log.info("process file: " + fname);
                 List<String> statements = init.parseDDL(fname, schema);
@@ -143,7 +148,7 @@ public class InitDatabaseTSTest {
     @Test
     public void testParseUpgradeDDL() {
         try {
-            InitDatabaseTS init = new InitDatabaseTS(null, null, schema);
+            InitDatabaseTS init = new InitDatabaseTS(new DummyDataSource(), null, schema);
             for (String fname : InitDatabaseTS.UPGRADE_SQL) {
                 log.info("process file: " + fname);
                 List<String> statements = init.parseDDL(fname, schema);
@@ -154,5 +159,54 @@ public class InitDatabaseTSTest {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
         }
+    }
+    
+    private class DummyDataSource implements DataSource {
+
+        @Override
+        public Connection getConnection() throws SQLException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Connection getConnection(String string, String string1) throws SQLException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public PrintWriter getLogWriter() throws SQLException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void setLogWriter(PrintWriter writer) throws SQLException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void setLoginTimeout(int i) throws SQLException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public int getLoginTimeout() throws SQLException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public <T> T unwrap(Class<T> type) throws SQLException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean isWrapperFor(Class<?> type) throws SQLException {
+            throw new UnsupportedOperationException();
+        }
+        
     }
 }
