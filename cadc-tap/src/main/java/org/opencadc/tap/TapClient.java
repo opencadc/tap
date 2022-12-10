@@ -415,6 +415,7 @@ public class TapClient<E> {
         String jobID = getJobID(syncURL, execURL);
         
         HttpGet exec = new HttpGet(execURL, true);
+        exec.setMaxRetries(0); // can only hit this URL once
         exec.setConnectionTimeout(connectionTimeout);
         exec.setReadTimeout(readTimeout);
         try {
