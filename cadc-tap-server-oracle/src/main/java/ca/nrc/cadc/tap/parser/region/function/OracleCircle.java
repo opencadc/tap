@@ -89,7 +89,7 @@ public class OracleCircle extends Function {
     private static final Logger LOGGER = Logger.getLogger(OracleRegionConverter.class);
 
     public static final String FUNCTION_NAME = "SDO_UTIL.CIRCLE_POLYGON";
-    public static final double DEFAULT_ARC_TOLERANCE = 0.005D;
+    public static final double DEFAULT_ARC_TOLERANCE = 0.05D;
     public static final double TO_METRES_ON_EARTH = 2.0D * Math.PI * 6371000.0D / 360.0D;
 
 
