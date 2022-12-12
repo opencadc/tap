@@ -566,12 +566,12 @@ public class TapClient<E> {
         params.put("RESPONSEFORMAT", "tsv");
         params.remove("MAXREC");
         log.debug("stream query: " + syncURL + " " + query);
-        HttpPost create = new HttpPost(syncURL, params, false);
-        create.prepare();
+        HttpPost fullQuery = new HttpPost(syncURL, params, false);
+        fullQuery.prepare();
         
-        URL streamURL = create.getRedirectURL();
+        URL streamURL = fullQuery.getRedirectURL();
         if (streamURL == null) {
-            throw new TransientException("unexpected response: code=" + create.getResponseCode() + ", no Location header");
+            throw new TransientException("unexpected response: code=" + fullQuery.getResponseCode() + ", no Location header");
         }
         jobID = getJobID(syncURL, streamURL);
         HttpGet stream = new HttpGet(streamURL, true);
