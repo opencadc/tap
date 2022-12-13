@@ -510,6 +510,7 @@ public class TapClient<E> {
         HttpGet meta = new HttpGet(execURL, true);
         meta.setConnectionTimeout(connectionTimeout);
         meta.setReadTimeout(readTimeout);
+        meta.setMaxRetries(0); // can only hit this URL once
         try {
             meta.prepare();
         } catch (IllegalArgumentException ex) {
@@ -565,8 +566,27 @@ public class TapClient<E> {
         params.put("RESPONSEFORMAT", "tsv");
         params.remove("MAXREC");
         log.debug("stream query: " + syncURL + " " + query);
-        HttpPost stream = new HttpPost(syncURL, params, true);
-        stream.prepare();
+        HttpPost fullQuery = new HttpPost(syncURL, params, false);
+        fullQuery.prepare();
+        
+        URL streamURL = fullQuery.getRedirectURL();
+        if (streamURL == null) {
+            throw new TransientException("unexpected response: code=" + fullQuery.getResponseCode() + ", no Location header");
+        }
+        jobID = getJobID(syncURL, streamURL);
+        HttpGet stream = new HttpGet(streamURL, true);
+        stream.setConnectionTimeout(connectionTimeout);
+        stream.setReadTimeout(readTimeout);
+        stream.setMaxRetries(0); // can only hit this URL once
+        try {
+            stream.prepare();
+        } catch (IllegalArgumentException ex) {
+            log.debug("content-type: " + stream.getContentType() + " " + stream.getResponseCode(), ex);
+            extractTapError(stream.getContentType(), ex);
+        } catch (IOException ex) {
+            // usually corrupted or non-xml content due to unexpected network fail
+            throw new TransientException("jobID=" + jobID + " queryForIterator execute query failed: " + ex.getMessage(), ex);
+        }
         InputStream istream = stream.getInputStream();
         if (istream != null) {
             return new TsvIterator<>(mapper, formatters, istream);
