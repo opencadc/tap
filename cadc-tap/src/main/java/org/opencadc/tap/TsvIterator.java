@@ -86,9 +86,9 @@ class TsvIterator<E> implements ResourceIterator<E> {
     private final AsciiTableData asciiTableData;
 
 
-    public TsvIterator(TapRowMapper<E> mapper, List<Format> formatters, InputStream istream) throws IOException {
+    public TsvIterator(TapRowMapper<E> mapper, List<Format> formatters, String contentType, InputStream istream) throws IOException {
         this.mapper = mapper;
-        this.asciiTableData = new AsciiTableData(istream, "text/tab-separated-values");
+        this.asciiTableData = new AsciiTableData(istream, contentType);
         this.asciiTableData.setColumnFormats(formatters);
     }
 
