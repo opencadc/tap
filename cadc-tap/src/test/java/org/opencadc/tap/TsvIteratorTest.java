@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2020.                            (c) 2020.
+*  (c) 2022.                            (c) 2022.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -68,67 +68,111 @@
 package org.opencadc.tap;
 
 import ca.nrc.cadc.dali.util.Format;
-import ca.nrc.cadc.io.ResourceIterator;
+import ca.nrc.cadc.dali.util.LongFormat;
+import ca.nrc.cadc.dali.util.StringFormat;
+import ca.nrc.cadc.dali.util.URIFormat;
+import ca.nrc.cadc.dali.util.UTCTimestampFormat;
+import ca.nrc.cadc.util.Log4jInit;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
+import java.net.URI;
+import java.text.DateFormat;
+import java.util.ArrayList;
 import java.util.List;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.opencadc.tap.io.AsciiTableData;
+import org.junit.Assert;
+import org.junit.Test;
+import org.opencadc.tap.io.InconsistentTableDataException;
 
 /**
  *
  * @author pdowler
  */
-class TsvIterator<E> implements ResourceIterator<E> {
-    private static final Logger log = Logger.getLogger(TsvIterator.class);
+public class TsvIteratorTest {
+    private static final Logger log = Logger.getLogger(TsvIteratorTest.class);
 
-    private final TapRowMapper<E> mapper;
-    private final AsciiTableData asciiTableData;
-
-
-    public TsvIterator(TapRowMapper<E> mapper, List<Format> formatters, String contentType, InputStream istream) throws IOException {
-        this.mapper = mapper;
-        this.asciiTableData = new AsciiTableData(istream, contentType);
-        this.asciiTableData.setColumnFormats(formatters);
+    static {
+        Log4jInit.setLevel("org.opencadc.tap", Level.INFO);
     }
-
-    @Override
-    public boolean hasNext() {
-        return asciiTableData.hasNext();
+    
+    public TsvIteratorTest() { 
     }
+    
+    @Test
+    public void testEmptyStream() throws Exception {
+        List<Format> formatters = new ArrayList<>();
+        formatters.add(new URIFormat());
+        
+        byte[] empty = new byte[0];
+        ByteArrayInputStream bis = new ByteArrayInputStream(empty);
 
-    @Override
-    public E next() {
-        boolean map = false;
-        int rowlen = -1;
         try {
-            List<Object> row = asciiTableData.next();
-            rowlen = row.size();
-            map = true;
-            return mapper.mapRow(row);
-        } catch (Exception ex) {
-            if (map) {
-                throw new RowMapException("RowMapper " + mapper.getClass().getName() + " failed to map row[" + rowlen + "]", ex);
-            }
-            throw new RowMapException("Format objects failed to parse column value", ex);
+            TsvIterator<URI> iter = new TsvIterator<>(new URIMapper(), formatters, "text/tab-separated-values", bis);
+            Assert.fail("expected IOException, got an iterator");
+        } catch (IOException expected) {
+            log.info("caught expected: " + expected);
         }
     }
+    
+    @Test
+    public void testErrorStream() throws Exception {
+        List<Format> formatters = new ArrayList<>();
+        formatters.add(new URIFormat());
+        formatters.add(new StringFormat());
+        formatters.add(new LongFormat());
+        formatters.add(new UTCTimestampFormat());
+        
+        String msg = "internal server error";
+        byte[] bytes = msg.getBytes();
+        ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
 
-    /**
-     * Closes this stream and releases any system resources associated
-     * with it. If the stream is already closed then invoking this
-     * method has no effect.
-     *
-     * <p>As noted in {@link AutoCloseable#close()}, cases where the
-     * close may fail require careful attention. It is strongly advised
-     * to relinquish the underlying resources and to internally
-     * <em>mark</em> the {@code Closeable} as closed, prior to throwing
-     * the {@code IOException}.
-     *
-     * @throws IOException if an I/O error occurs
-     */
-    @Override
-    public void close() throws IOException {
-        asciiTableData.close();
+        try {
+            TsvIterator<URI> iter = new TsvIterator<>(new URIMapper(), formatters, "text/tab-separated-values", bis);
+            Assert.fail("expected IOException, got an iterator with hasNext = " + iter.hasNext());
+        } catch (InconsistentTableDataException expected) {
+            log.info("caught expected: " + expected);
+        }
+    }
+    
+    @Test
+    public void testWrongContentType() throws Exception {
+        List<Format> formatters = new ArrayList<>();
+        formatters.add(new URIFormat());
+        
+        byte[] empty = new byte[0];
+        ByteArrayInputStream bis = new ByteArrayInputStream(empty);
+
+        try {
+            TsvIterator<URI> iter = new TsvIterator<>(new URIMapper(), formatters, "text/plain", bis);
+            Assert.fail("expected UnsupportedOperationException, got an iterator");
+        } catch (UnsupportedOperationException expected) {
+            log.info("caught expected: " + expected);
+        }
+    }
+    
+    @Test
+    public void testNullContentType() throws Exception {
+        List<Format> formatters = new ArrayList<>();
+        formatters.add(new URIFormat());
+        
+        byte[] empty = new byte[0];
+        ByteArrayInputStream bis = new ByteArrayInputStream(empty);
+
+        try {
+            TsvIterator<URI> iter = new TsvIterator<>(new URIMapper(), formatters, null, bis);
+            Assert.fail("expected UnsupportedOperationException, got an iterator");
+        } catch (UnsupportedOperationException expected) {
+            log.info("caught expected: " + expected);
+        }
+    }
+    
+    private class URIMapper implements TapRowMapper<URI> {
+
+        @Override
+        public URI mapRow(List<Object> row) {
+            return URI.create((String) row.get(0));
+        }
+        
     }
 }

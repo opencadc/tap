@@ -183,14 +183,6 @@ public class TapClient<E> {
         this.readTimeout = readTimeout;
     }
     
-    
-    
-    @Deprecated
-    public URL getAsyncURL(AuthMethod am) throws ResourceNotFoundException {
-        URI sm = Standards.getSecurityMethod(am);
-        return getAsyncURL(sm);
-    }
-
     /**
      * Generate a usable async endpoint URL. This method only considers the specified
      * authentication method when performing the lookup of the base URL.
@@ -213,12 +205,6 @@ public class TapClient<E> {
         }
     }
 
-    @Deprecated
-    public URL getSyncURL(AuthMethod am) throws ResourceNotFoundException {
-        URI sm = Standards.getSecurityMethod(am);
-        return getSyncURL(sm);
-    }
-
     /**
      * Generate a usable sync endpoint URL. This method only considers the specified
      * authentication method when performing the lookup of the base URL.
@@ -239,35 +225,6 @@ public class TapClient<E> {
         } catch (MalformedURLException ex) {
             throw new RuntimeException("FAIL: appending /sync to " + base + " gave invalid URL", ex);
         }
-    }
-    
-    /**
-     * Synchronous TAP query with streaming output.
-     *
-     * The returned Iterator can throw exceptions when processing a row of data from the query:
-     * - NoSuchElementException if the end of the data stream has been reached
-     * - IndexOutOfBoundsException if the row does not have the expected number of values
-     *
-     * @param query ADQL query to execute
-     * @param mapper TapRowMapper to convert row data to domain object
-     * @return ResourceIterator over domain objects of type E
-     * @throws AccessControlException permission denied
-     * @throws NotAuthenticatedException authentication attempt failed or rejected
-     * @throws ByteLimitExceededException input or output limit exceeded
-     * @throws IllegalArgumentException null method arguments or invalid query
-     * @throws ResourceNotFoundException remote resource not found
-     * @throws TransientException temporary failure of TAP service: same call could work in future
-     * @throws IOException failure to send or read data stream
-     * @throws InterruptedException thread interrupted
-     * @deprecated use query(String, TapRowMapper) instead
-     */
-    @Deprecated
-    public ResourceIterator<E> execute(String query, TapRowMapper<E> mapper)
-        throws AccessControlException, NotAuthenticatedException,
-            ByteLimitExceededException, IllegalArgumentException,
-            ResourceNotFoundException, 
-            TransientException, IOException, InterruptedException {
-        return query(query, mapper);
     }
     
     /**
@@ -589,7 +546,7 @@ public class TapClient<E> {
         }
         InputStream istream = stream.getInputStream();
         if (istream != null) {
-            return new TsvIterator<>(mapper, formatters, istream);
+            return new TsvIterator<>(mapper, formatters, stream.getContentType(), istream);
         }
 
         throw new RuntimeException("BUG: query response had InputStream: null");

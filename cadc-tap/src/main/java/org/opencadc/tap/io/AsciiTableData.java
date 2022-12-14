@@ -215,9 +215,14 @@ public class AsciiTableData implements TableDataInputStream, Iterator<List<Objec
      * acceptTargetTableDesc.
      * 
      * @param columnFormats 
+     * @throws InconsistentTableDataException if number of formatters doesn't match number of columns
      */
-    public void setColumnFormats(List<Format> columnFormats) {
+    public void setColumnFormats(List<Format> columnFormats) throws InconsistentTableDataException {
         this.columnFormats = columnFormats;
+        if (columnFormats != null && columnFormats.size() != columnNames.size()) {
+            throw new InconsistentTableDataException("detected mismatch between columns and formatters: "
+                + columnNames.size() + " columns != " + columnFormats.size() + " formatters");
+        }
     }
     
     @Override
