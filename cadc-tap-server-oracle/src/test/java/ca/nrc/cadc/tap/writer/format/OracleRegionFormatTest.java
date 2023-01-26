@@ -117,7 +117,7 @@ public class OracleRegionFormatTest {
 
         final BigDecimal[] typeValues = new BigDecimal[] {
                 new BigDecimal(1),
-                new BigDecimal(2003),
+                new BigDecimal(1003),
                 new BigDecimal(1)
         };
 

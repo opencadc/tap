@@ -106,7 +106,12 @@ public class OraclePolygonTest extends AbstractFunctionTest {
         final Function ordinateArrayFunction = new Function();
         final ExpressionList ordinateArrayFunctionParams = new ExpressionList(new ArrayList<>());
         ordinateArrayFunction.setName(OraclePolygon.ORDINATE_ARRAY_FUNCTION_NAME);
-        ordinateArrayFunctionParams.getExpressions().addAll(expressionList.subList(1, expressionList.size()));
+        ordinateArrayFunctionParams.getExpressions().add(new DoubleValue("288.0"));
+        ordinateArrayFunctionParams.getExpressions().add(new DoubleValue("28.0"));
+        ordinateArrayFunctionParams.getExpressions().add(new DoubleValue("288.0"));
+        ordinateArrayFunctionParams.getExpressions().add(new DoubleValue("388.0"));
+        ordinateArrayFunctionParams.getExpressions().add(new DoubleValue("88.0"));
+        ordinateArrayFunctionParams.getExpressions().add(new DoubleValue("188.0"));
         ordinateArrayFunction.setParameters(ordinateArrayFunctionParams);
 
         expectedExpressions.add(new LongValue("2003"));
@@ -134,12 +139,12 @@ public class OraclePolygonTest extends AbstractFunctionTest {
         final ExpressionList ordinageArrayFunctionParams = new ExpressionList(new ArrayList<>());
         final List<Expression> expectedVertices = new ArrayList<>();
 
-        expectedVertices.add(new DoubleValue("44.0"));
-        expectedVertices.add(new DoubleValue("89.8"));
-        expectedVertices.add(new DoubleValue("10.6"));
-        expectedVertices.add(new DoubleValue("77.9"));
         expectedVertices.add(new DoubleValue("20.0"));
         expectedVertices.add(new DoubleValue("-0.8"));
+        expectedVertices.add(new DoubleValue("10.6"));
+        expectedVertices.add(new DoubleValue("77.9"));
+        expectedVertices.add(new DoubleValue("44.0"));
+        expectedVertices.add(new DoubleValue("89.8"));
 
         ordinateArrayFunction.setName(OraclePolygon.ORDINATE_ARRAY_FUNCTION_NAME);
         ordinageArrayFunctionParams.getExpressions().addAll(expectedVertices);

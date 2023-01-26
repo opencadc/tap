@@ -76,6 +76,8 @@ import ca.nrc.cadc.tap.parser.RegionFinder;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -88,8 +90,10 @@ import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 
 public class OraclePolygon extends OracleGeometricFunction {
 
+    static final int ORACLE_POLYGON_ELEMENT_INFO_TYPE = 1003;
+
     private static final int[] ORACLE_ELEMENT_INFO_VALUES = new int[] {
-        1, 2003, 1
+        1, ORACLE_POLYGON_ELEMENT_INFO_TYPE, 1
     };
 
     // Outer Polygon element
@@ -127,18 +131,31 @@ public class OraclePolygon extends OracleGeometricFunction {
     }
 
     /**
-     * Map this shape's values to ORACLE ORDINATE function parameters.
+     * Map this shape's values to ORACLE ORDINATE function parameters.  Oracle polygons are constructed in
+     * counter-clockwise direction, so reverse the vertices here.
      *
      * @param parameterList The ExpressionList to add parameters to.
      */
     @Override
     void mapValues(final ExpressionList parameterList) {
+        final List<Expression[]> vertexExpressionPoints = new ArrayList<>();
+
         // Start at 1 since the first item will be the coordinate system.
         for (int i = 1; i < this.vertices.size(); i = i + 2) {
             final Expression ra = this.vertices.get(i);
             final Expression dec = this.vertices.get(i + 1);
-            addNumericExpression(ra, parameterList);
-            addNumericExpression(dec, parameterList);
+            vertexExpressionPoints.add(new Expression[] {
+               ra, dec
+            });
+        }
+
+        // Reverse to go in counter-clockwise direction as per Oracle specifications.
+        Collections.reverse(vertexExpressionPoints);
+
+        // Add the vertices after reversing them.
+        for (final Expression[] vertexExpressionPoint : vertexExpressionPoints) {
+            addNumericExpression(vertexExpressionPoint[0], parameterList);
+            addNumericExpression(vertexExpressionPoint[1], parameterList);
         }
     }
 

@@ -116,7 +116,7 @@ abstract class AbstractFunctionTest {
         elemInfoFunction.setName(OraclePolygon.ELEM_INFO_FUNCTION_NAME);
         elemInfoFunction.setParameters(elemInfoFunctionParams);
         elemInfoFunctionParams.getExpressions().addAll(
-                Arrays.asList(new LongValue("1"), new LongValue("" + OracleGeometricFunction.POLYGON_GEO_TYPE),
+                Arrays.asList(new LongValue("1"), new LongValue("" + OraclePolygon.ORACLE_POLYGON_ELEMENT_INFO_TYPE),
                               new LongValue(oracleType)));
 
         return elemInfoFunction;

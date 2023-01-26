@@ -86,7 +86,9 @@ public class OracleBoxTest extends AbstractFunctionTest {
     @Test
     @SuppressWarnings("unchecked")
     public void convertParameters() {
-        final OracleBox testSubject = new OracleBox(new DoubleValue("1"), new DoubleValue("13"), new DoubleValue("44"),
+        final OracleBox testSubject = new OracleBox(new DoubleValue("1"),
+                                                    new DoubleValue("13"),
+                                                    new DoubleValue("44"),
                                                     new DoubleValue("88"));
 
         final ExpressionList result = testSubject.getParameters();
