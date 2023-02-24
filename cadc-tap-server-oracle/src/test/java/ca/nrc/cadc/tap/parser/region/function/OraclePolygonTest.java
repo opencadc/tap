@@ -106,7 +106,18 @@ public class OraclePolygonTest extends AbstractFunctionTest {
         final Function ordinateArrayFunction = new Function();
         final ExpressionList ordinateArrayFunctionParams = new ExpressionList(new ArrayList<>());
         ordinateArrayFunction.setName(OraclePolygon.ORDINATE_ARRAY_FUNCTION_NAME);
-        ordinateArrayFunctionParams.getExpressions().addAll(expressionList.subList(1, expressionList.size()));
+
+        final List<Expression> expectedExpressionList = new ArrayList<>();
+        expectedExpressionList.add(new DoubleValue("288.0"));
+        expectedExpressionList.add(new DoubleValue("28.0"));
+        expectedExpressionList.add(new DoubleValue("288.0"));
+        expectedExpressionList.add(new DoubleValue("388.0"));
+        expectedExpressionList.add(new DoubleValue("88.0"));
+        expectedExpressionList.add(new DoubleValue("188.0"));
+        expectedExpressionList.add(new DoubleValue("288.0"));
+        expectedExpressionList.add(new DoubleValue("28.0"));
+
+        ordinateArrayFunctionParams.getExpressions().addAll(expectedExpressionList);
         ordinateArrayFunction.setParameters(ordinateArrayFunctionParams);
 
         expectedExpressions.add(new LongValue("2003"));
@@ -140,6 +151,8 @@ public class OraclePolygonTest extends AbstractFunctionTest {
         expectedVertices.add(new DoubleValue("77.9"));
         expectedVertices.add(new DoubleValue("20.0"));
         expectedVertices.add(new DoubleValue("-0.8"));
+        expectedVertices.add(new DoubleValue("44.0"));
+        expectedVertices.add(new DoubleValue("89.8"));
 
         ordinateArrayFunction.setName(OraclePolygon.ORDINATE_ARRAY_FUNCTION_NAME);
         ordinageArrayFunctionParams.getExpressions().addAll(expectedVertices);
