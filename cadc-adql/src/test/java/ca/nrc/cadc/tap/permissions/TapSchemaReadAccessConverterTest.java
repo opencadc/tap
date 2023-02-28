@@ -81,6 +81,7 @@ import java.util.UUID;
 
 import javax.security.auth.Subject;
 
+import ca.nrc.cadc.auth.NotAuthenticatedException;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -512,15 +513,20 @@ public class TapSchemaReadAccessConverterTest {
         }
 
         @Override
-        public int getOwnerType() {
-            return 0;
+        public Subject validate(Subject subject) throws NotAuthenticatedException {
+            return subject;
         }
 
         @Override
-        public String toOwnerString(Subject subject) {
+        public Subject augment(Subject subject) {
+            return subject;
+        }
+
+        @Override
+        public String toDisplayString(Subject subject) {
             return null;
         }
-        
+
     }
 
     static class TestGMSClient implements GroupClient {
