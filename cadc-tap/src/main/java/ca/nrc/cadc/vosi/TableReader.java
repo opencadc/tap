@@ -94,8 +94,8 @@ public class TableReader extends TableSetParser
 {
     private static final Logger log = Logger.getLogger(TableReader.class);
 
-    private static final String TAP_TYPE = "vod:TAPType";
-    private static final String VOT_TYPE = "vod:VOTableType";
+    private static final String TAP_TYPE = "vs:TAPType";
+    private static final String VOT_TYPE = "vs:VOTableType";
     
     public TableReader() { this(true); }
     

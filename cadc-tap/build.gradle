@@ -2,7 +2,6 @@ plugins {
     id "java"
     id "maven"
     id 'maven-publish'
-    id 'com.jfrog.bintray' version '1.8.4'
     id 'checkstyle'
 }
 
@@ -16,7 +15,7 @@ apply from: '../opencadc.gradle'
 sourceCompatibility = 1.8
 
 group = 'org.opencadc'
-version = '1.1.15'
+version = '1.1.16'
 
 description = 'OpenCADC TAP-1.1 tap client library'
 def git_url = 'https://github.com/opencadc/tap'
@@ -25,7 +24,7 @@ dependencies {
     compile 'org.apache.commons:commons-csv:[1.6,1.7)'
     
     compile 'org.opencadc:cadc-util:[1.6.3,2.0)'
-    compile 'org.opencadc:cadc-registry:[1.5,2.0)'
+    compile 'org.opencadc:cadc-registry:[1.7.1,2.0)'
     compile 'org.opencadc:cadc-dali:[1.2,2.0)'
     compile 'org.opencadc:cadc-vosi:[1.0,2.0)'
     compile 'org.opencadc:cadc-gms:[1.0,)'
