@@ -69,25 +69,10 @@
 
 package ca.nrc.cadc.tap.permissions;
 
-import java.net.URI;
-import java.security.AccessControlException;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateExpiredException;
-import java.security.cert.CertificateNotYetValidException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import javax.security.auth.Subject;
-
-import org.apache.log4j.Logger;
-import org.opencadc.gms.GroupClient;
-import org.opencadc.gms.GroupURI;
-import org.opencadc.gms.GroupUtil;
-
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.cred.client.CredUtil;
+import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.tap.parser.ParserUtil;
@@ -97,6 +82,17 @@ import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
 import ca.nrc.cadc.uws.server.RandomStringGenerator;
 import ca.nrc.cadc.uws.server.StringIDGenerator;
+import java.io.IOException;
+import java.net.URI;
+import java.security.AccessControlException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateExpiredException;
+import java.security.cert.CertificateNotYetValidException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import javax.security.auth.Subject;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.LongValue;
 import net.sf.jsqlparser.expression.Parenthesis;
@@ -112,7 +108,11 @@ import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.Join;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.SelectExpressionItem;
-import net.sf.jsqlparser.statement.select.SubSelect;;
+import net.sf.jsqlparser.statement.select.SubSelect;
+import org.apache.log4j.Logger;
+import org.opencadc.gms.GroupURI;
+import org.opencadc.gms.IvoaGroupClient;
+;
 
 /**
  * Query converter that injects read-access constraints for tap_schema queries.
@@ -150,19 +150,17 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
     public static final AssetTable TABLES_ASSET_TABLE = new AssetTable("tap_schema", "tables", "table_name");
     public static final AssetTable COLUMNS_ASSET_TABLE = new AssetTable("tap_schema", "columns", "column_name");
 
-    private GroupClient gmsClient;
+    private IvoaGroupClient gmsClient;
     private IdentityManager identityManager;
 
     public TapSchemaReadAccessConverter(IdentityManager identityManager) {
         super(new ExpressionNavigator(), new ReferenceNavigator(), new FromItemNavigator());
         this.identityManager = identityManager;
-        LocalAuthority localAuthority = new LocalAuthority();
-        URI serviceID = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
-        this.gmsClient = GroupUtil.getGroupClient(serviceID);
+        this.gmsClient = new IvoaGroupClient();
     }
 
     // testing support
-    public void setGroupClient(GroupClient gmsClient) {
+    public void setGroupClient(IvoaGroupClient gmsClient) {
         this.gmsClient = gmsClient;
     }
 
@@ -475,29 +473,42 @@ public class TapSchemaReadAccessConverter extends SelectNavigator {
         return s != null && s.getPrincipals() != null && s.getPrincipals().size() > 0;
     }
 
-    private List<String> getGroupIDs(GroupClient gmsClient) throws AccessControlException {
+    private List<String> getGroupIDs(IvoaGroupClient gmsClient) throws AccessControlException {
         try {
             List<String> groupIDs = new ArrayList<String>();
 
+            LocalAuthority loc = new LocalAuthority();
+            URI gmsURI = loc.getServiceURI(Standards.GMS_SEARCH_10.toString());
+            if (gmsURI == null) {
+                // try prototype
+                gmsURI = loc.getServiceURI(Standards.GMS_SEARCH_01.toString());
+                if (gmsURI != null) {
+                    log.warn("found GMS#search endpioint using prototype standardID: " 
+                            + Standards.GMS_SEARCH_01 + " = " + gmsURI);
+                }
+            }
+                    
             try {
                 if (ensureCredentials()) {
-                    GroupClient gms = gmsClient;
+                    IvoaGroupClient gms = gmsClient;
                     if (gms == null) {
                         log.debug("Constructing new GMS Client");
-                        LocalAuthority loc = new LocalAuthority();
-                        URI gmsURI = loc.getServiceURI(Standards.GMS_GROUPS_01.toString());
-                        gms = GroupUtil.getGroupClient(gmsURI);
+                        gms = new IvoaGroupClient();
                     }
-                    List<GroupURI> groups = gms.getMemberships();
+                    
+                    Set<GroupURI> groups = gms.getMemberships(gmsURI);
                     for (GroupURI group : groups) {
                         groupIDs.add(group.toString());
                     }
                 }
             } catch (CertificateException ex) {
                 throw new RuntimeException("failed to find group memberships (invalid proxy certficate)", ex);
+            } catch (IOException | InterruptedException | ResourceNotFoundException ex) {
+                throw new RuntimeException("failed to find group memberships in " + gmsURI, ex);
             }
             return groupIDs;
         } finally {
+            
         }
     }
     

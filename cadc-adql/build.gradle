@@ -13,14 +13,14 @@ sourceCompatibility = 1.8
 
 group = 'org.opencadc'
 
-version = '1.1.11'
+version = '1.1.12'
 
 description = 'OpenCADC ADQL-2.0 parser library'
 def git_url = 'https://github.com/opencadc/tap'
 
 dependencies {
-    compile 'org.opencadc:cadc-util:[1.6,2.0)'
-    compile 'org.opencadc:cadc-gms:[1.0,)'
+    compile 'org.opencadc:cadc-util:[1.9,2.0)'
+    compile 'org.opencadc:cadc-gms:[1.0.4,)'
     compile 'org.opencadc:cadc-tap:[1.1,)'
     compile 'org.opencadc:cadc-tap-server:[1.1,)'
     compile 'org.opencadc:cadc-tap-schema:[1.1.28,)'

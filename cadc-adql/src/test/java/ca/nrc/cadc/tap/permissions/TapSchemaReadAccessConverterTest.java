@@ -87,19 +87,22 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.opencadc.gms.GroupClient;
 import org.opencadc.gms.GroupURI;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.IdentityManager;
+import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.tap.AdqlQuery;
 import ca.nrc.cadc.tap.TapQuery;
-import ca.nrc.cadc.tap.permissions.TapSchemaReadAccessConverter;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.PropertiesReader;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
+import java.io.IOException;
+import java.util.TreeSet;
+import org.opencadc.gms.IvoaGroupClient;
 
 /**
  * Test class for the TapSchemaReadAccessConverter.
@@ -494,6 +497,16 @@ public class TapSchemaReadAccessConverterTest {
     static class TestIdentityManager implements IdentityManager {
 
         @Override
+        public Subject validate(Subject subject) throws NotAuthenticatedException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Subject augment(Subject subject) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public Subject toSubject(Object owner) {
             return null;
         }
@@ -512,24 +525,19 @@ public class TapSchemaReadAccessConverterTest {
         }
 
         @Override
-        public int getOwnerType() {
-            return 0;
-        }
-
-        @Override
-        public String toOwnerString(Subject subject) {
+        public String toDisplayString(Subject subject) {
             return null;
         }
-        
     }
 
-    static class TestGMSClient implements GroupClient {
+    static class TestGMSClient extends IvoaGroupClient {
 
         @Override
-        public List<GroupURI> getMemberships() {
+        public Set<GroupURI> getMemberships(URI resourceID) 
+                throws IOException, InterruptedException, ResourceNotFoundException {
             Subject cur = AuthenticationUtil.getCurrentSubject();
 
-            List<GroupURI> memberships = new ArrayList<GroupURI>();
+            Set<GroupURI> memberships = new TreeSet<GroupURI>();
             log.info("Current subject: " + cur);
             log.info("Subject with groups: " + subjectWithGroups);
             if (cur == subjectWithGroups) {
@@ -539,13 +547,23 @@ public class TapSchemaReadAccessConverterTest {
             log.debug("TestGMSClient: " + memberships.size() + " groups");
             return memberships;
         }
+        
+        @Override
+        public Set<GroupURI> getMemberships(URI resourceID, Set<String> groupNames) 
+                throws IOException, InterruptedException, ResourceNotFoundException {
+            throw new UnsupportedOperationException("unexpected call in test");
+        }
+
+        @Override
+        public Set<GroupURI> getMemberships(Set<GroupURI> uris) 
+                throws IOException, InterruptedException, ResourceNotFoundException {
+            throw new UnsupportedOperationException("unexpected call in test");
+        }
 
         @Override
         public boolean isMember(GroupURI g) {
-            // not used
-            return false;
+            throw new UnsupportedOperationException("unexpected call in test");
         }
-
     }
     
     class TestTapSchemaReadAccessConverter extends TapSchemaReadAccessConverter {
