@@ -148,7 +148,7 @@ public class HttpStorageManager implements ResultStore, UWSInlineContentHandler 
         }
         String cfilename = props.getFirstPropertyValue(CERT_KEY);
         String absCertFile = System.getProperty("user.home") + "/.ssl/" + cfilename;
-        log.warn("cert file: " + absCertFile);
+        log.debug("cert file: " + absCertFile);
         this.certFile = new File(absCertFile);
     }
 
@@ -229,6 +229,7 @@ public class HttpStorageManager implements ResultStore, UWSInlineContentHandler 
             throw new RuntimeException("failed to store file " + filename, put.getThrowable());
         }
         
+        log.debug("result: " + retURL);
         return retURL;
     }
 
@@ -345,7 +346,7 @@ public class HttpStorageManager implements ResultStore, UWSInlineContentHandler 
         RegistryClient reg = new RegistryClient();
         URL turl = reg.getServiceURL(target.getServiceURI(), Standards.VOSPACE_SYNC_21, AuthMethod.CERT);
         
-        log.warn("negotiate: " + turl);
+        log.debug("negotiate: " + turl);
         HttpPost post = new HttpPost(turl, content, false);
         try {
             post.prepare();
