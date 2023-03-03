@@ -116,7 +116,7 @@ public class OracleRegionConverter extends RegionFinder {
     private static final String CONTAINS_TRUE_VALUE = CONTAINS_RELATE_MASK.toUpperCase();
     private static final String ANYINTERACT_FUNCTION_NAME = "SDO_ANYINTERACT";
     private static final String ANYINTERACT_RELATE_MASK = "anyinteract";
-    private static final String RELATE_DEFAULT_TOLERANCE = "0.005";
+    private static final String RELATE_DEFAULT_TOLERANCE = "0.05";
 
     // Prototype coordinate range function using Oracle's SDO_GEOM package.
     public static final String RANGE_S2D = "RANGE_S2D";
@@ -270,7 +270,7 @@ public class OracleRegionConverter extends RegionFinder {
     }
 
     /**
-     * This method is called when a CONTAINS is found outside of a predicate.
+     * This method is called when a CONTAINS is found outside a predicate.
      * This could occur if the query had CONTAINS(...) in the select list or as
      * part of an arithmetic expression or aggregate function (since CONTAINS
      * returns a numeric value).
