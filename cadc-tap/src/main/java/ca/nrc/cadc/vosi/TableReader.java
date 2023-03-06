@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2011.                            (c) 2011.
+*  (c) 2023.                            (c) 2023.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -70,6 +70,7 @@
 package ca.nrc.cadc.vosi;
 
 
+import ca.nrc.cadc.reg.XMLConstants;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.KeyColumnDesc;
 import ca.nrc.cadc.tap.schema.KeyDesc;
@@ -94,8 +95,8 @@ public class TableReader extends TableSetParser
 {
     private static final Logger log = Logger.getLogger(TableReader.class);
 
-    private static final String TAP_TYPE = "vod:TAPType";
-    private static final String VOT_TYPE = "vod:VOTableType";
+    private static final String TAP_TYPE = "TAPType";
+    private static final String VOT_TYPE = "VOTableType";
     
     public TableReader() { this(true); }
     
@@ -128,6 +129,16 @@ public class TableReader extends TableSetParser
     
     static TableDesc toTable(String schemaName, Element te, Namespace xsi)
     {
+        String tapType = TAP_TYPE;
+        String votType = VOT_TYPE;
+        for (Namespace ns : te.getNamespacesInScope()) {
+            if (ns.getURI().equals(XMLConstants.VODATASERVICE_11_NS.toASCIIString())) {
+                tapType = ns.getPrefix() + ":" + TAP_TYPE;
+                votType = ns.getPrefix() + ":" + VOT_TYPE;
+                log.debug("found: " + tapType + " " + votType);
+                break;
+            }
+        }
         String tn = te.getChildTextTrim("name");
         TableDesc td = new TableDesc(schemaName, tn);
         td.description = te.getChildTextTrim("description");
@@ -141,7 +152,7 @@ public class TableReader extends TableSetParser
             String xtype = dte.getAttributeValue("extendedType");
             log.debug(cn + ": " + dtt + " " + dtv + " " + xtype);
             String arraysize = null;
-            if (TAP_TYPE.equals(dtt))
+            if (tapType.equals(dtt))
             {
                 dtv = "adql:" + dtv;
                 String sz = dte.getAttributeValue("size");
@@ -157,12 +168,13 @@ public class TableReader extends TableSetParser
                 else if (dtv.equalsIgnoreCase("adql:REGION"))
                     arraysize = "*";
             }
-            else if (VOT_TYPE.equals(dtt))
+            else if (votType.equals(dtt))
             {
                 arraysize = dte.getAttributeValue("arraysize");
             }
             
             TapDataType tt = new TapDataType(dtv, arraysize, xtype);
+            log.debug("created: " + cn + " " + tt);
             ColumnDesc cd = new ColumnDesc(tn, cn, tt);
             cd.description = ce.getChildTextTrim("description");
             cd.ucd = ce.getChildTextTrim("ucd");
