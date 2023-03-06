@@ -272,11 +272,7 @@ public class TableSetReaderWriterTest
                     Assert.assertEquals(ecd.unit, acd.unit);
                     Assert.assertEquals(ecd.utype, acd.utype);
                     
-                    String expArraySize = edt.arraysize;
-                    if (edt.arraysize == null && !edt.isVarSize() && ver >= 11) {
-                        expArraySize = "1"; // VODataService XSD default value for VOtableType
-                    }
-                    Assert.assertEquals(ecd.getColumnName(), expArraySize, adt.arraysize);
+                    Assert.assertEquals(ecd.getColumnName(), edt.arraysize, adt.arraysize);
                     Assert.assertEquals(ecd.getColumnName(), edt.isVarSize(), adt.isVarSize());
                     Assert.assertEquals(ecd.getColumnName(), edt.xtype, adt.xtype);
                 }

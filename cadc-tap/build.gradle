@@ -24,7 +24,7 @@ dependencies {
     compile 'org.apache.commons:commons-csv:[1.6,1.7)'
     
     compile 'org.opencadc:cadc-util:[1.6.3,2.0)'
-    compile 'org.opencadc:cadc-registry:[1.7.1,2.0)'
+    compile 'org.opencadc:cadc-registry:[1.7.2,2.0)'
     compile 'org.opencadc:cadc-dali:[1.2,2.0)'
     compile 'org.opencadc:cadc-vosi:[1.0,2.0)'
     compile 'org.opencadc:cadc-gms:[1.0,)'

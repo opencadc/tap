@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2023.                            (c) 2023.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -98,13 +98,14 @@ public class TableSet
     private static final String ADQL_PREFIX = "adql";
     private static final String VOTABLE_PREFIX = "votable";
 
+    // the default database schema -- not xml schema
     private static final String DEFAULT_SCHEMA = "default";
 
     private TapSchema tapSchema;
 
     private Namespace xsi = W3CConstants.XSI_NS;
     private Namespace vosi = VOSI.TABLES_NS;
-    private Namespace vod = XMLConstants.VODATASERVICE_NS;;
+    private Namespace vod = XMLConstants.VODATASERVICE_NS;
 
     public TableSet(TapSchema tapSchema)
     {
