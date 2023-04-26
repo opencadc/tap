@@ -42,9 +42,9 @@ dependencies {
     compile 'org.opencadc:cadc-uws-server:[1.2.6,)'
     compile 'org.opencadc:cadc-tap-tmp:[1.1,)'
     compile 'org.opencadc:cadc-gms:[1.0,)'
-    runtime 'org.opencadc:cadc-registry:[1.5.10,)'
+    compile 'org.opencadc:cadc-registry:[1.5.10,)'
+    compile 'org.opencadc:cadc-gms:[1.0.4,2.0)'
 
-    runtime 'org.opencadc:cadc-gms:[1.0.4,2.0)'
     runtime 'org.opencadc:cadc-access-control-identity:[1.1.0,)'
     runtime 'org.apache.ant:ant:1.9.4'
     runtime 'org.opencadc:nom-tam-fits:[1.16.0,2.0)'
