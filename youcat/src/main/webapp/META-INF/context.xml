@@ -1,0 +1,41 @@
+<?xml version='1.0' encoding='utf-8'?>
+<Context>
+
+    <WatchedResource>WEB-INF/web.xml</WatchedResource>
+
+    <!-- astro -->
+    <Resource name="jdbc/tapadm"
+        auth="Container"
+        type="javax.sql.DataSource"
+        factory="org.apache.tomcat.jdbc.pool.DataSourceFactory" closeMethod="close"
+        minEvictableIdleTimeMillis="60000" timeBetweenEvictionRunsMillis="30000"
+        maxWait="20000"
+        initialSize="0"  minIdle="0" maxIdle="${youcat.tapadm.maxActive}" maxActive="${youcat.tapadm.maxActive}" 
+        username="${youcat.tapadm.username}" password="${youcat.tapadm.password}"
+        driverClassName="org.postgresql.Driver" url="${youcat.tapadm.url}"
+        removeAbandoned="false"
+        testWhileIdle="true" testOnBorrow="true" validationQuery="select 123" />
+    <Resource name="jdbc/uws"
+        auth="Container"
+        type="javax.sql.DataSource"
+        factory="org.apache.tomcat.jdbc.pool.DataSourceFactory" closeMethod="close"
+        minEvictableIdleTimeMillis="60000" timeBetweenEvictionRunsMillis="30000"
+        maxWait="20000"
+        initialSize="0" minIdle="0" maxIdle="${youcat.uws.maxActive}" maxActive="${youcat.uws.maxActive}"
+        username="${youcat.uws.username}" password="${youcat.uws.password}"
+        driverClassName="org.postgresql.Driver" url="${youcat.uws.url}"
+        removeAbandoned="false"
+        testOnBorrow="true" validationQuery="select 123" />
+    <Resource name="jdbc/tapuser"
+        auth="Container"
+        type="javax.sql.DataSource"
+        factory="org.apache.tomcat.jdbc.pool.DataSourceFactory" closeMethod="close"
+        minEvictableIdleTimeMillis="60000" timeBetweenEvictionRunsMillis="30000"
+        maxWait="20000"
+        initialSize="0" minIdle="0" maxIdle="${youcat.tapuser.maxActive}" maxActive="${youcat.tapuser.maxActive}"
+        username="${youcat.tapuser.username}" password="${youcat.tapuser.password}"
+        driverClassName="org.postgresql.Driver" url="${youcat.tapuser.url}"
+        removeAbandoned="false"
+        testOnBorrow="true" validationQuery="select 123" />
+    
+</Context>
