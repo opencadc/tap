@@ -169,7 +169,7 @@ public class CatalogTapService implements AvailabilityPlugin {
             checkResource = new CheckWebService(url);
             checkResource.check();
             
-            URI groupsURI = localAuthority.getServiceURI(Standards.GMS_SEARCH_01.toString());
+            URI groupsURI = localAuthority.getServiceURI(Standards.GMS_SEARCH_10.toString());
             if (!groupsURI.equals(usersURI)) {
                 url = reg.getServiceURL(groupsURI, Standards.VOSI_AVAILABILITY, AuthMethod.ANON);
                 checkResource = new CheckWebService(url);

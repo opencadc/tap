@@ -19,6 +19,7 @@
     <init-param>
       <param-name>logLevelPackages</param-name>
       <param-value>
+        org.opencadc.youcat
         org.opencadc.tap
         ca.nrc.cadc.rest
         ca.nrc.cadc.uws
@@ -30,14 +31,6 @@
         ca.nrc.cadc.auth
         ca.nrc.cadc.vosi
       </param-value>
-    </init-param>
-    <init-param>
-      <param-name>logAccessGroup</param-name>
-      <param-value>ivo://cadc.nrc.ca/gms?CADC</param-value>
-    </init-param>
-    <init-param>
-      <param-name>groupAuthorizer</param-name>
-      <param-value>ca.nrc.cadc.ac.client.GroupAuthorizer</param-value>
     </init-param>
         <init-param>
             <param-name>logControlProperties</param-name>
@@ -51,7 +44,7 @@
     <servlet-class>ca.nrc.cadc.uws.server.JobServlet</servlet-class>
         <init-param>
             <param-name>ca.nrc.cadc.uws.server.JobManager</param-name>
-            <param-value>ca.nrc.cadc.cat.ws.QueryJobManager</param-value>
+            <param-value>org.opencadc.youcat.QueryJobManager</param-value>
         </init-param>
         <init-param>
             <param-name>ca.nrc.cadc.rest.InlineContentHandler</param-name>
@@ -77,7 +70,7 @@
     <servlet-class>ca.nrc.cadc.uws.server.JobServlet</servlet-class>
     <init-param>
       <param-name>ca.nrc.cadc.uws.server.JobManager</param-name>
-      <param-value>ca.nrc.cadc.cat.ws.QueryJobManager</param-value>
+      <param-value>org.opencadc.youcat.QueryJobManager</param-value>
     </init-param>
     <init-param>
         <param-name>ca.nrc.cadc.rest.InlineContentHandler</param-name>
@@ -123,7 +116,7 @@
       <description>
       </description>
       <param-name>ca.nrc.cadc.vosi.AvailabilityPlugin</param-name>
-      <param-value>ca.nrc.cadc.cat.ws.CatalogTapService</param-value>
+      <param-value>org.opencadc.youcat.CatalogTapService</param-value>
     </init-param>
       <init-param>
           <param-name>availabilityProperties</param-name>
@@ -161,7 +154,7 @@
         <servlet-class>ca.nrc.cadc.uws.server.JobServlet</servlet-class>
         <init-param>
             <param-name>ca.nrc.cadc.uws.server.JobManager</param-name>
-            <param-value>ca.nrc.cadc.cat.ws.TableUpdateJobManager</param-value>
+            <param-value>org.opencadc.youcat.TableUpdateJobManager</param-value>
         </init-param>
         <init-param>
             <param-name>get</param-name>
@@ -202,97 +195,43 @@
         <load-on-startup>3</load-on-startup>
     </servlet>
 
-  <servlet-mapping>
-    <servlet-name>AsyncQueryServlet</servlet-name>
-    <url-pattern>/async/*</url-pattern>
-  </servlet-mapping>
-  <servlet-mapping>
-    <servlet-name>AsyncQueryServlet</servlet-name>
-    <url-pattern>/auth-async/*</url-pattern>
-  </servlet-mapping>
-  <servlet-mapping>
-    <servlet-name>SyncQueryServlet</servlet-name>
-    <url-pattern>/sync/*</url-pattern>
-  </servlet-mapping>
-  <servlet-mapping>
-    <servlet-name>SyncQueryServlet</servlet-name>
-    <url-pattern>/auth-sync/*</url-pattern>
-  </servlet-mapping>
-  <servlet-mapping>
-    <servlet-name>TableServlet</servlet-name>
-    <url-pattern>/tables/*</url-pattern>
-  </servlet-mapping>
-  <servlet-mapping>
-    <servlet-name>TableServlet</servlet-name>
-    <url-pattern>/auth-tables/*</url-pattern>
-  </servlet-mapping>
-  <servlet-mapping>
-    <servlet-name>AsyncTableUpdateServlet</servlet-name>
-    <url-pattern>/table-update/*</url-pattern>
-  </servlet-mapping>
-  <servlet-mapping>
-    <servlet-name>AsyncTableUpdateServlet</servlet-name>
-    <url-pattern>/auth-table-update/*</url-pattern>
-  </servlet-mapping>
-  <servlet-mapping>
-    <servlet-name>PermissionsServlet</servlet-name>
-    <url-pattern>/permissions/*</url-pattern>
-  </servlet-mapping>
-  <servlet-mapping>
-    <servlet-name>PermissionsServlet</servlet-name>
-    <url-pattern>/auth-permissions/*</url-pattern>
-  </servlet-mapping>
-  <servlet-mapping>
-    <servlet-name>SyncLoadServlet</servlet-name>
-    <url-pattern>/load/*</url-pattern>
-  </servlet-mapping>
-  <servlet-mapping>
-    <servlet-name>SyncLoadServlet</servlet-name>
-    <url-pattern>/auth-load/*</url-pattern>
-  </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>AsyncQueryServlet</servlet-name>
+        <url-pattern>/async/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>SyncQueryServlet</servlet-name>
+        <url-pattern>/sync/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>TableServlet</servlet-name>
+        <url-pattern>/tables/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>AsyncTableUpdateServlet</servlet-name>
+        <url-pattern>/table-update/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>PermissionsServlet</servlet-name>
+        <url-pattern>/permissions/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>SyncLoadServlet</servlet-name>
+        <url-pattern>/load/*</url-pattern>
+    </servlet-mapping>
 
-  <!-- base service -->
-  <servlet-mapping>
-    <servlet-name>CapabilitiesServlet</servlet-name>
-    <url-pattern>/capabilities</url-pattern>
-  </servlet-mapping>
-  <servlet-mapping>
-    <servlet-name>logControl</servlet-name>
-    <url-pattern>/logControl/*</url-pattern>
-  </servlet-mapping>
-
-  <servlet-mapping>
-    <servlet-name>AvailabilityServlet</servlet-name>
-    <url-pattern>/availability</url-pattern>
-  </servlet-mapping>
-
-  <!-- Define a security constraint for auth servlet -->
-  <security-constraint>
-    <web-resource-collection>
-      <web-resource-name>auth</web-resource-name>
-      <description/>
-      <url-pattern>/auth-async/*</url-pattern>
-      <url-pattern>/auth-sync/*</url-pattern>
-      <url-pattern>/auth-tables/*</url-pattern>
-      <url-pattern>/auth-table-update/*</url-pattern>
-      <url-pattern>/auth-load/*</url-pattern>
-      <http-method>GET</http-method>
-      <http-method>POST</http-method>
-      <http-method>HEAD</http-method>
-      <http-method>PUT</http-method>
-      <http-method>OPTIONS</http-method>
-      <http-method>TRACE</http-method>
-      <http-method>DELETE</http-method>
-    </web-resource-collection>
-    <auth-constraint>
-      <description>force authentication for all requests</description>
-      <role-name>public</role-name>
-    </auth-constraint>
-  </security-constraint>
-
-  <login-config>
-    <auth-method>BASIC</auth-method>
-    <realm-name>Canadian Astronomy Data Centre</realm-name>
-  </login-config>
-
+    <!-- base service -->
+    <servlet-mapping>
+        <servlet-name>AvailabilityServlet</servlet-name>
+        <url-pattern>/availability</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>CapabilitiesServlet</servlet-name>
+        <url-pattern>/capabilities</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>logControl</servlet-name>
+        <url-pattern>/logControl/*</url-pattern>
+    </servlet-mapping>
+    
 </web-app>

@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2019.                            (c) 2019.
+*  (c) 2023.                            (c) 2023.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -80,7 +80,6 @@ import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.Log4jInit;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.net.URL;
@@ -89,9 +88,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.TreeMap;
-
 import javax.security.auth.Subject;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.xerces.impl.dv.util.Base64;
@@ -276,71 +273,7 @@ public class RegistryClientLookupTest {
         }
     }
 
-    // username-password endpoints exist by convention but are not described in the
-    // VOSI-capabilities
-    @Test
-    public void testAuthAsync() {
-        try {
-            URL url = tapClient.getAsyncURL(Standards.SECURITY_METHOD_ANON);
-            url = new URL(url.toExternalForm().replace("async", "auth-async"));
-
-            Assert.assertNotNull(url);
-            HttpPost post = new HttpPost(url, queryParams, false);
-            post.setRequestProperty(AuthenticationUtil.AUTHORIZATION_HEADER, basicAuth);
-            post.run();
-            Assert.assertNull(post.getThrowable());
-            Assert.assertEquals(303, post.getResponseCode());
-            Assert.assertNotNull(post.getRedirectURL());
-            Assert.assertEquals(userid, post.getResponseHeader(AuthenticationUtil.VO_AUTHENTICATED_HEADER));
-        } catch (Exception unexpected) {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
-        }
-    }
-
-    @Test
-    public void testAuthSync() {
-        try {
-            URL url = tapClient.getSyncURL(Standards.SECURITY_METHOD_ANON);
-            url = new URL(url.toExternalForm().replace("sync", "auth-sync"));
-
-            Assert.assertNotNull(url);
-            log.info("url: " + url.toString());
-            HttpPost post = new HttpPost(url, queryParams, false);
-            post.setRequestProperty(AuthenticationUtil.AUTHORIZATION_HEADER, basicAuth);
-            post.run();
-            Assert.assertNull(post.getThrowable());
-            Assert.assertEquals(303, post.getResponseCode());
-            Assert.assertNotNull(post.getRedirectURL());
-            Assert.assertEquals(userid, post.getResponseHeader(AuthenticationUtil.VO_AUTHENTICATED_HEADER));
-        } catch (Exception unexpected) {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
-        }
-    }
-
-    @Test
-    public void testAuthTables() {
-        try {
-            URL url = regClient.getServiceURL(Constants.RESOURCE_ID, Standards.VOSI_TABLES_11, AuthMethod.ANON);
-            url = new URL(url.toExternalForm().replace("tables", "auth-tables"));
-
-            Assert.assertNotNull(url);
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            HttpDownload get = new HttpDownload(url, bos);
-            get.setRequestProperty(AuthenticationUtil.AUTHORIZATION_HEADER, basicAuth);
-            get.run();
-            Assert.assertNull(get.getThrowable());
-            Assert.assertEquals(200, get.getResponseCode());
-            Assert.assertTrue(bos.size() > 0);
-            Assert.assertEquals(userid, get.getResponseHeader(AuthenticationUtil.VO_AUTHENTICATED_HEADER));
-
-        } catch (Exception unexpected) {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
-        }
-    }
-
+    
     // internal log control
     @Test
     public void testLogControl() {

@@ -10,9 +10,9 @@
         factory="org.apache.tomcat.jdbc.pool.DataSourceFactory" closeMethod="close"
         minEvictableIdleTimeMillis="60000" timeBetweenEvictionRunsMillis="30000"
         maxWait="20000"
-        initialSize="0"  minIdle="0" maxIdle="${youcat.tapadm.maxActive}" maxActive="${youcat.tapadm.maxActive}" 
-        username="${youcat.tapadm.username}" password="${youcat.tapadm.password}"
-        driverClassName="org.postgresql.Driver" url="${youcat.tapadm.url}"
+        initialSize="0"  minIdle="0" maxIdle="${org.opencadc.youcat.tapadm.maxActive}" maxActive="${org.opencadc.youcat.tapadm.maxActive}" 
+        username="${org.opencadc.youcat.tapadm.username}" password="${org.opencadc.youcat.tapadm.password}"
+        driverClassName="org.postgresql.Driver" url="${org.opencadc.youcat.tapadm.url}"
         removeAbandoned="false"
         testWhileIdle="true" testOnBorrow="true" validationQuery="select 123" />
     <Resource name="jdbc/uws"
@@ -21,9 +21,9 @@
         factory="org.apache.tomcat.jdbc.pool.DataSourceFactory" closeMethod="close"
         minEvictableIdleTimeMillis="60000" timeBetweenEvictionRunsMillis="30000"
         maxWait="20000"
-        initialSize="0" minIdle="0" maxIdle="${youcat.uws.maxActive}" maxActive="${youcat.uws.maxActive}"
-        username="${youcat.uws.username}" password="${youcat.uws.password}"
-        driverClassName="org.postgresql.Driver" url="${youcat.uws.url}"
+        initialSize="0" minIdle="0" maxIdle="${org.opencadc.youcat.uws.maxActive}" maxActive="${org.opencadc.youcat.uws.maxActive}"
+        username="${org.opencadc.youcat.uws.username}" password="${org.opencadc.youcat.uws.password}"
+        driverClassName="org.postgresql.Driver" url="${org.opencadc.youcat.uws.url}"
         removeAbandoned="false"
         testOnBorrow="true" validationQuery="select 123" />
     <Resource name="jdbc/tapuser"
@@ -32,9 +32,9 @@
         factory="org.apache.tomcat.jdbc.pool.DataSourceFactory" closeMethod="close"
         minEvictableIdleTimeMillis="60000" timeBetweenEvictionRunsMillis="30000"
         maxWait="20000"
-        initialSize="0" minIdle="0" maxIdle="${youcat.tapuser.maxActive}" maxActive="${youcat.tapuser.maxActive}"
-        username="${youcat.tapuser.username}" password="${youcat.tapuser.password}"
-        driverClassName="org.postgresql.Driver" url="${youcat.tapuser.url}"
+        initialSize="0" minIdle="0" maxIdle="${org.opencadc.youcat.tapuser.maxActive}" maxActive="${org.opencadc.youcat.tapuser.maxActive}"
+        username="${org.opencadc.youcat.tapuser.username}" password="${org.opencadc.youcat.tapuser.password}"
+        driverClassName="org.postgresql.Driver" url="${org.opencadc.youcat.tapuser.url}"
         removeAbandoned="false"
         testOnBorrow="true" validationQuery="select 123" />
     
