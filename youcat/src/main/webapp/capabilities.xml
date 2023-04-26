@@ -33,10 +33,6 @@
       <securityMethod standardID="ivo://ivoa.net/sso#tls-with-certificate"/>
       <securityMethod standardID="ivo://ivoa.net/sso#token"/>
     </interface>
-    <interface xsi:type="vs:ParamHTTP" role="std" version="1.1">
-      <accessURL use="base">https://example.net/youcat/auth-tables</accessURL>
-      <securityMethod standardID="ivo://ivoa.net/sso#BasicAA"/>
-    </interface>
   </capability>
   
   <!-- prototype async table-update -->
@@ -46,10 +42,6 @@
       <securityMethod standardID="ivo://ivoa.net/sso#cookie"/>
       <securityMethod standardID="ivo://ivoa.net/sso#tls-with-certificate"/>
       <securityMethod standardID="ivo://ivoa.net/sso#token"/>
-    </interface>
-    <interface xsi:type="vs:ParamHTTP" role="std">
-      <accessURL use="base">https://example.net/youcat/auth-table-update</accessURL>
-      <securityMethod standardID="ivo://ivoa.net/sso#BasicAA"/>
     </interface>
   </capability>
   
@@ -61,10 +53,6 @@
       <securityMethod standardID="ivo://ivoa.net/sso#tls-with-certificate"/>
       <securityMethod standardID="ivo://ivoa.net/sso#token"/>
     </interface>
-    <interface xsi:type="vs:ParamHTTP" role="std">
-      <accessURL use="base">https://example.net/youcat/auth-load</accessURL>
-      <securityMethod standardID="ivo://ivoa.net/sso#BasicAA"/>
-    </interface>
   </capability>
   
     <!-- prototype table permissions -->
@@ -74,10 +62,6 @@
       <securityMethod standardID="ivo://ivoa.net/sso#cookie"/>
       <securityMethod standardID="ivo://ivoa.net/sso#tls-with-certificate"/>
       <securityMethod standardID="ivo://ivoa.net/sso#token"/>
-    </interface>
-    <interface xsi:type="vs:ParamHTTP" role="std">
-      <accessURL use="base">https://example.net/youcat/auth-permissions</accessURL>
-      <securityMethod standardID="ivo://ivoa.net/sso#BasicAA"/>
     </interface>
   </capability>
 

@@ -34,7 +34,9 @@ for common system properties.
 
 The `youcat` service currently queries a known (trusted) GMS service for all groups a user belongs to
 in order to mangle queries on the *tap_schema* content. A service providing the 
-`ivo://ivoa.net/std/GMS#search-1.0` capability must be configured here for that to work.
+`ivo://ivoa.net/std/GMS#search-1.0` capability must be configured here for that to work. Temporary
+hack: at least one library still uses the old standardID (`ivo://ivoa.net/std/GMS#search-1.0`) so that 
+has to be configured as well.
 
 See <a href="https://github.com/opencadc/reg/tree/master/cadc-registry">cadc-registry</a>.
 
