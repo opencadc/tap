@@ -33,17 +33,21 @@ for common system properties.
 ### cadc-registry.properties
 
 The `youcat` service currently queries a known (trusted) GMS service for all groups a user belongs to
-in order to mangle queries on the *tap_schema* content. A service providing the 
-`ivo://ivoa.net/std/GMS#search-1.0` capability must be configured here for that to work. Temporary
-hack: at least one library still uses the old standardID (`ivo://ivoa.net/std/GMS#search-1.0`) so that 
+in order to inject group membership constraints into queries on the *tap_schema* content. A service 
+providing the `ivo://ivoa.net/std/GMS#search-1.0` capability must be configured here for that to work. 
+Temporary hack: at least one library still uses the old standardID (`ivo://ivoa.net/std/GMS#search-0.1`) so that 
 has to be configured as well.
 
 See <a href="https://github.com/opencadc/reg/tree/master/cadc-registry">cadc-registry</a>.
 
 ### cadc-tap-tmp.properties
 
-This service uses the `cadc-tap-tmp` library to persist tap_upload tables and async results. It is currently
-hard-coded (PluginFactory.properties) to use the HttpStorageManager and persist to an external URL (HTTP PUT).
+This service uses the `cadc-tap-tmp` library for temporary storage needed by core TAP features 
+(async results, tap_upload tables). It is currently hard-coded (PluginFactory.properties) to 
+use the HttpStorageManager and persist to an external URL (HTTP PUT).
+
+This storage _is not_ used for content upload of user-created tables: that content is streamed 
+directly into the database server.
 
 See <a href="https://github.com/opencadc/tap/tree/master/cadc-tap-tmp">cadc-tap-tmp</a>.
 
