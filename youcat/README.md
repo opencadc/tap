@@ -29,6 +29,33 @@ for common system properties.
  - See <a href="https://github.com/opencadc/ac/tree/master/cadc-access-control-identity">cadc-access-control-identity</a> for CADC access-control system support.
   
  - See <a href="https://github.com/opencadc/ac/tree/master/cadc-gms">cadc-gms</a> for OIDC token support.
+ 
+`youcat` requires 3 connection pools:
+```
+org.opencadc.youcat.tapadm.maxActive={max connections for jobs pool}
+org.opencadc.youcat.tapadm.username={database username for jobs pool}
+org.opencadc.youcat.tapadm.password={database password for jobs pool}
+org.opencadc.youcat.tapadm.url=jdbc:postgresql://{server}/{database}
+
+org.opencadc.youcat.tapuser.maxActive={max connections for jobs pool}
+org.opencadc.youcat.tapuser.username={database username for jobs pool}
+org.opencadc.youcat.tapuser.password={database password for jobs pool}
+org.opencadc.youcat.tapuser.url=jdbc:postgresql://{server}/{database}
+
+org.opencadc.youcat.uws.maxActive={max connections for jobs pool}
+org.opencadc.youcat.uws.username={database username for jobs pool}
+org.opencadc.youcat.uws.password={database password for jobs pool}
+org.opencadc.youcat.uws.url=jdbc:postgresql://{server}/{database}
+```
+
+The `tapadm` pool manages (create, alter, drop) tap_schema tables and manages the tap_schema content. The `uws` 
+pool manages (create, alter, drop) uws tables and manages the uws content (creates and modifies jobs in the uws
+schema when jobs are created and executed by users.
+
+The `tapuser` pool is used to run TAP queries, including creating tables in the tap_upload schema. 
+
+All three pools must have the same JDBC URL (e.g. use the same database) with PostgreSQL. This may be 
+relaxed in future.
 
 ### cadc-registry.properties
 
