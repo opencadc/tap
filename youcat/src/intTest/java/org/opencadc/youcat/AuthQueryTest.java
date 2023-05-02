@@ -122,7 +122,7 @@ public class AuthQueryTest {
     static URL asyncCertURL;
 
     static {
-        Log4jInit.setLevel("ca.nrc.cadc.cat", Level.INFO);
+        Log4jInit.setLevel("org.opencadc.youcat", Level.INFO);
 
         // need to read cert so we have creds to make the fake GMS call
         File cf = FileUtil.getFileFromResource("x509_CADCAuthtest1.pem", AuthQueryTest.class);
@@ -280,7 +280,6 @@ public class AuthQueryTest {
             params.put("DEST", "vos://cadc.nrc.ca~vault/CADCAuthtest1/test/youcat-testVOSAuthQuery");
 
             Job job = Subject.doAs(subjectWithGroups, new AsyncQueryAction(asyncCertURL, params));
-            log.debug("Job phase: " + job.getExecutionPhase());
             log.info("jobID: " + job.getID() + " phase: " + job.getExecutionPhase() + " error: " + job.getErrorSummary());
             Assert.assertTrue("job completed", job.getExecutionPhase().equals(ExecutionPhase.COMPLETED));
             for (Result r : job.getResultsList()) {

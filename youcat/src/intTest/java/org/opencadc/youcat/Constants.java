@@ -76,9 +76,11 @@ import java.net.URI;
  */
 public abstract class Constants {
 
-    //public static final URI RESOURCE_ID = URI.create("ivo://cadc.nrc.ca/cadc/youcat");
-    public static final URI RESOURCE_ID = URI.create("ivo://cadc.nrc.ca/youcat");
-    
-    public static final URI GMS_RESOURSE_ID = URI.create("ivo://cadc.nrc.ca/gms");
-    
+    // non-production resourceID for developer testing (requires a local reg service)
+    public static final URI RESOURCE_ID = URI.create("ivo://opencadc.org/youcat");
+
+    // DANGER: historical settings for testing live CADC services -- don't try this
+    // unless you really know what you are doing and have the right credentials
+    //public static final URI RESOURCE_ID = URI.create("ivo://cadc.nrc.ca/cadc/youcat"); // CADC youcat
+    //public static final URI RESOURCE_ID = URI.create("ivo://cadc.nrc.ca/youcat"); // CANFAR youcat
 }
