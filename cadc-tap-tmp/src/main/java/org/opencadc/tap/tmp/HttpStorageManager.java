@@ -68,7 +68,6 @@
 package org.opencadc.tap.tmp;
 
 import ca.nrc.cadc.auth.AuthMethod;
-import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.RunnableAction;
 import ca.nrc.cadc.auth.SSLUtil;
 import ca.nrc.cadc.cred.client.CredUtil;
@@ -84,7 +83,6 @@ import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.rest.InlineContentException;
-import ca.nrc.cadc.tap.ResultStore;
 import ca.nrc.cadc.util.InvalidConfigException;
 import ca.nrc.cadc.util.MultiValuedProperties;
 import ca.nrc.cadc.util.PropertiesReader;
@@ -122,24 +120,30 @@ import org.apache.log4j.Logger;
  * 
  * @author pdowler
  */
-public class HttpStorageManager implements ResultStore, UWSInlineContentHandler {
+public class HttpStorageManager implements StorageManager {
     private static final Logger log = Logger.getLogger(HttpStorageManager.class);
 
-    private static final String CONFIG = "cadc-tap-tmp.properties";
     private static final String BASE_URL_KEY = HttpStorageManager.class.getName() + ".baseURL";
     private static final String CERT_KEY = HttpStorageManager.class.getName() + ".certificate";
     
     private Job job;
-    
     private String contentType;
     private String  filename;
-    
-    private final URL baseURL;
-    private final File certFile;
+    private URL baseURL;
+    private File certFile;
     
     public HttpStorageManager() throws InvalidConfigException {
         PropertiesReader r = new PropertiesReader(CONFIG);
         MultiValuedProperties props = r.getAllProperties();
+        init(props);
+    }
+
+    // constructed by DelegatingStorageManager
+    HttpStorageManager(MultiValuedProperties props) {
+        init(props);
+    }
+    
+    private void init(MultiValuedProperties props) {
         String surl = props.getFirstPropertyValue(BASE_URL_KEY);
         try {
             this.baseURL = new URL(surl);
@@ -151,6 +155,7 @@ public class HttpStorageManager implements ResultStore, UWSInlineContentHandler 
         log.debug("cert file: " + absCertFile);
         this.certFile = new File(absCertFile);
     }
+    
 
     @Override
     public void setJob(Job job) {
