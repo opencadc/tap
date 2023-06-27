@@ -94,7 +94,7 @@ import org.apache.log4j.Logger;
  *
  * @author pdowler
  */
-public class TempStorageManager implements ResultStore, UWSInlineContentHandler {
+public class TempStorageManager implements StorageManager {
 
     private static final Logger log = Logger.getLogger(TempStorageManager.class);
 
@@ -107,6 +107,12 @@ public class TempStorageManager implements ResultStore, UWSInlineContentHandler 
 
     public TempStorageManager() {
         MultiValuedProperties props = TempStorageInitAction.getConfig();
+        this.baseURL = props.getFirstPropertyValue(TempStorageInitAction.BASE_URL_KEY);
+        this.baseDir = new File(props.getFirstPropertyValue(TempStorageInitAction.BASE_DIR_KEY));
+    }
+    
+    // constructed by DelegatingStorageManager
+    TempStorageManager(MultiValuedProperties props) {
         this.baseURL = props.getFirstPropertyValue(TempStorageInitAction.BASE_URL_KEY);
         this.baseDir = new File(props.getFirstPropertyValue(TempStorageInitAction.BASE_DIR_KEY));
     }

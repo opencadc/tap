@@ -2,19 +2,26 @@
 
 Simple library to provide plugins that implement both the ResultStore (TAP-async 
 result storage) and UWSInlineContentHandler (inline TAP_UPLOAD support) interfaces. 
-Two interfaces are provided: `org.opencadc.tap.tmp.TempStorageManager` uses a configurable
+Two implementations are provided: `org.opencadc.tap.tmp.TempStorageManager` uses a configurable
 local directory in the filesystem, `org.opencadc.tap.tmp.HttpStorageManager` uses an 
 external HTTP service to store and deliver files.
 
-## Applying cadc-tap-tmp
+In addition, a third implementation `org.opencadc.tap.tmp.DelegatingStorageManager` can be
+configured in services; this implementation can be configured to load and use one of the
+other two classes above.
 
-### Configuration
-A configuration file `cadc-tap-tmp.properties` needs to be accessible in the `System.getProperty("user.home")/config` folder, or in a separate folder specified by a System property called `ca.nrc.cadc.util.PropertiesReader.dir`.
+## configuration
+
+### cadc-tap-tmp.properties
+This configuration file needs to be accessible in the `System.getProperty("user.home")/config` folder.
 
 For the local filesystem using `TempStorageManager`:
 ```properties
-org.opencadc.tap.tmp.TempStorageManager.baseURL = {base URL for result files}
+# specify implementation in case the DelegatingStorageManager is used
+org.opencadc.tap.tmp.StorageManager = org.opencadc.tap.tmp.TempStorageManager
 
+# TempStorageManager config
+org.opencadc.tap.tmp.TempStorageManager.baseURL = {base URL for result files}
 org.opencadc.tap.tmp.TempStorageManager.baseStorageDir = {local directory for tmp files}
 ```
 For the TempStorageManager, an additional servlet must be deployed in the TAP 
@@ -22,8 +29,11 @@ service to [Enable Retrieval](#enable-retrieval)
 
 For the external http service using `HttpStorageManager`:
 ```properties
-org.opencadc.tap.tmp.HttpStorageManager.baseURL = {base URL for result files}
+# specify implementation in case the DelegatingStorageManager is used
+org.opencadc.tap.tmp.StorageManager = org.opencadc.tap.tmp.HttpStorageManager
 
+# HttpStorageManager config
+org.opencadc.tap.tmp.HttpStorageManager.baseURL = {base URL for result files}
 org.opencadc.tap.tmp.HttpStorageManager.certificate = {certificate file name}
 ```
 For the HttpStorageManager, the result will be PUT to that same URL and requires 

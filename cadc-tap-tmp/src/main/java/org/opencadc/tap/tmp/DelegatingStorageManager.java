@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2023.                            (c) 2023.
+*  (c) 2022.                            (c) 2022.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,70 +67,83 @@
 
 package org.opencadc.tap.tmp;
 
-import ca.nrc.cadc.rest.InitAction;
+import ca.nrc.cadc.dali.tables.TableWriter;
+import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.rest.InlineContentException;
+import ca.nrc.cadc.util.InvalidConfigException;
 import ca.nrc.cadc.util.MultiValuedProperties;
 import ca.nrc.cadc.util.PropertiesReader;
-import java.io.File;
+import ca.nrc.cadc.uws.Job;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.sql.ResultSet;
 import org.apache.log4j.Logger;
 
 /**
- *
+ * StorageManager implementation that delegates to a configured implementation at
+ * runtime.
+ * 
  * @author pdowler
  */
-public class TempStorageInitAction extends InitAction {
-    private static final Logger log = Logger.getLogger(TempStorageInitAction.class);
-
-    static final String CONFIG = "cadc-tap-tmp.properties";
+public class DelegatingStorageManager implements StorageManager {
+    private static final Logger log = Logger.getLogger(DelegatingStorageManager.class);
 
     private static final String IMPL_KEY = StorageManager.class.getName();
-    private static final String CONFIG_KEY = TempStorageManager.class.getName();
     
-    static final String BASE_DIR_KEY = CONFIG_KEY + ".baseStorageDir";
-    static final String BASE_URL_KEY = CONFIG_KEY + ".baseURL";
+    private final StorageManager impl;
     
-    public TempStorageInitAction() { 
+    public DelegatingStorageManager() {
+        PropertiesReader r = new PropertiesReader(CONFIG);
+        MultiValuedProperties props = r.getAllProperties();
+        String cname = props.getFirstPropertyValue(IMPL_KEY);
+        if (cname == null) {
+            throw new InvalidConfigException("missing required key: " + IMPL_KEY);
+        }
+        try {
+            Class c = Class.forName(cname);
+            this.impl = (StorageManager) c.newInstance();
+        } catch (ClassNotFoundException | IllegalAccessException | InstantiationException ex) {
+            throw new InvalidConfigException("failed to load StorageManager impl: " + cname, ex);
+        }
     }
 
     @Override
-    public void doInit() {
-        // verify
-        getConfig();
+    public void setJob(Job job) {
+        impl.setJob(job);
+    }
+
+    @Override
+    public URL put(ResultSet rs, TableWriter<ResultSet> writer) throws IOException {
+        return impl.put(rs, writer);
+    }
+
+    @Override
+    public URL put(ResultSet rs, TableWriter<ResultSet> writer, Integer maxrec) throws IOException {
+        return impl.put(rs, writer, maxrec);
+    }
+
+    @Override
+    public URL put(Throwable t, TableWriter writer) throws IOException {
+        return impl.put(t, writer);
+    }
+
+    @Override
+    public void setContentType(String contentType) {
+        impl.setContentType(contentType);
+    }
+
+    @Override
+    public void setFilename(String filename) {
+        impl.setFilename(filename);
+    }
+
+    @Override
+    public Content accept(String name, String contentType, InputStream inputStream) 
+            throws InlineContentException, IOException, ResourceNotFoundException, TransientException {
+        return impl.accept(name, contentType, inputStream);
     }
     
-    static MultiValuedProperties getConfig() {
-        PropertiesReader r = new PropertiesReader(CONFIG);
-        MultiValuedProperties props = r.getAllProperties();
-
-        for (String s : props.keySet()) {
-            log.debug("props: " + s + "=" + props.getProperty(s));
-        }
-        
-        String implClass = props.getFirstPropertyValue(IMPL_KEY);
-        log.debug(CONFIG + ":  " + IMPL_KEY + " = " + implClass);
-        if (implClass == null || implClass.equals(CONFIG_KEY)) {
-            // init config
-            final String baseURL = props.getFirstPropertyValue(BASE_URL_KEY);
-            final File baseDir = new File(props.getFirstPropertyValue(BASE_DIR_KEY));
-
-            if (!baseDir.exists()) {
-                baseDir.mkdirs();
-            }
-            if (!baseDir.exists()) {
-                throw new RuntimeException(BASE_DIR_KEY + "=" + baseDir + " does not exist, cannot create");
-            }
-            if (!baseDir.isDirectory()) {
-                throw new RuntimeException(BASE_DIR_KEY + "=" + baseDir + " is not a directory");
-            }
-            if (!baseDir.canRead() || !baseDir.canWrite()) {
-                throw new RuntimeException(BASE_DIR_KEY + "=" + baseDir + " is not readable && writable");
-            }
-
-            if (baseURL == null) {
-                log.error("CONFIG: incomplete: baseDir=" + baseDir + "  baseURL=" + baseURL);
-                throw new RuntimeException("CONFIG incomplete: baseDir=" + baseDir + " baseURL=" + baseURL);
-            }
-        }
-
-        return props;
-    }
+    
 }
