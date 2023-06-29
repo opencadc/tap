@@ -21,11 +21,12 @@ For the local filesystem using `TempStorageManager`:
 org.opencadc.tap.tmp.StorageManager = org.opencadc.tap.tmp.TempStorageManager
 
 # TempStorageManager config
-org.opencadc.tap.tmp.TempStorageManager.baseURL = {base URL for result files}
+org.opencadc.tap.tmp.TempStorageManager.baseURL = {base URL for the tmp files}
 org.opencadc.tap.tmp.TempStorageManager.baseStorageDir = {local directory for tmp files}
 ```
 For the TempStorageManager, an additional servlet must be deployed in the TAP 
-service to [Enable Retrieval](#enable-retrieval)
+service to [Enable Retrieval](#enable-retrieval) and the _baseURL_ must include
+the path to that servlet.
 
 For the external http service using `HttpStorageManager`:
 ```properties
@@ -33,26 +34,27 @@ For the external http service using `HttpStorageManager`:
 org.opencadc.tap.tmp.StorageManager = org.opencadc.tap.tmp.HttpStorageManager
 
 # HttpStorageManager config
-org.opencadc.tap.tmp.HttpStorageManager.baseURL = {base URL for result files}
+org.opencadc.tap.tmp.HttpStorageManager.baseURL = {base URL for tmp files}
 org.opencadc.tap.tmp.HttpStorageManager.certificate = {certificate file name}
 ```
 For the HttpStorageManager, the result will be PUT to that same URL and requires 
 an X509 client certificate to authenticate. The certificate is located in 
 {user.home}/.ssl/{certificate file name}.
 
-The HttpStorageManager ResultStore implementation supports a user-specified job 
-parameter `DEST={uri}` which will direct output of async queries to the specified
-URI. This can be a VOSpace URI (`vos://{authority}~{service}/{path}`) or an `https`
-URL that accepts PUT and supports GET. When DEST is used, the caller's credentials
-are used instead of the configured certificate.
+In addition to the configured result storage, the HttpStorageManager ResultStore 
+implementation supports a user-specified job parameter `DEST={uri}` which will direct 
+output of async queries to the specified URI. This can be a VOSpace URI 
+(`vos://{authority}~{service}/{path}`) or an `https` URL that accepts PUT and 
+supports GET. When DEST is used, the caller's credentials are used instead of the 
+configured certificate.
 
 In both cases, result files will be retrievable from {baseURL}/{result_filename} 
 (unless DEST was used).
 
 
 ### Enable storage
-To enable temporary uploads to disk, configure the `InlineContentHandler` in both the 
-TAP-sync and TAP-async servlets to load the one of the plugin classes:
+To enable temporary uploads to disk, configure the `InlineContentHandler` in both 
+the TAP-sync and TAP-async servlets to load one of the plugin classes:
 
 In the `web.xml`:
 
@@ -67,7 +69,7 @@ In the `web.xml`:
 </servlet>
 ```
 
-The ResultStore implementation is configured in the TAP service's
+The `ResultStore` implementation is configured in the TAP service's
 `PluginFactory.properties`, e.g.:
 
 ```properties

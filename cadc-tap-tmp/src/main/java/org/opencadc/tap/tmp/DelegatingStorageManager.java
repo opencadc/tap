@@ -101,11 +101,12 @@ public class DelegatingStorageManager implements StorageManager {
         if (cname == null) {
             throw new InvalidConfigException("missing required key: " + IMPL_KEY);
         }
-        try {
-            Class c = Class.forName(cname);
-            this.impl = (StorageManager) c.newInstance();
-        } catch (ClassNotFoundException | IllegalAccessException | InstantiationException ex) {
-            throw new InvalidConfigException("failed to load StorageManager impl: " + cname, ex);
+        if (TempStorageManager.class.getName().equals(cname)) {
+            this.impl = new TempStorageManager(props);
+        } else if (HttpStorageManager.class.getName().equals(cname)) {
+            this.impl = new HttpStorageManager(props);
+        } else {
+            throw new InvalidConfigException("unknown implementation " + IMPL_KEY + "=" + cname);
         }
     }
 
