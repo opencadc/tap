@@ -45,17 +45,12 @@ dependencies {
     runtime 'org.opencadc:cadc-tap-tmp:[1.1,)'
     runtime 'org.opencadc:cadc-vos:[1.1,2.0)'
     runtime 'org.opencadc:cadc-access-control-identity:[1.1.0,)'
-    runtime 'org.apache.ant:ant:1.9.4'
-    runtime 'org.opencadc:nom-tam-fits:[1.16.0,2.0)'
-    //runtime 'uk.ac.starlink:jcdf:[1.2.3,2.0'
-    //runtime 'uk.ac.starlink:stil:[4.0,5.0)'
     
     testCompile 'junit:junit:[4.0,)'
     intTestCompile 'org.opencadc:cadc-tap:[1.0,)'
     intTestCompile 'org.opencadc:cadc-test-uws:[1.1.1,)'
     intTestCompile 'org.opencadc:cadc-test-vosi:[1.0.11,)'
     intTestCompile 'org.opencadc:cadc-test-tap:[1.1,)'
-    
 }
 
 configurations {
