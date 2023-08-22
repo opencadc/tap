@@ -54,8 +54,10 @@ dependencies {
 }
 
 configurations {
+  // this are provided by tomcat
   runtime.exclude group: 'javax.servlet'
-  runtime.exclude group: 'net.sourceforge.jtds'
   runtime.exclude group: 'org.postgresql'
-  runtime.exclude group: 'org.restlet.jee'
+
+  // pulled by stil,unused, critical CVEs:
+  runtime.exclude group: 'org.yaml', module: 'snakeyaml'
 }
