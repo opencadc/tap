@@ -114,6 +114,19 @@ public class TempStorageManager implements StorageManager {
         this.baseDir = new File(props.getFirstPropertyValue(TempStorageInitAction.BASE_DIR_KEY));
     }
 
+    @Override
+    public void check() throws Exception {
+        // check baseDir
+        if (baseDir.isDirectory() && baseDir.canRead() && baseDir.canWrite()) {
+            return;
+        }
+        throw new IOException("cannot use baseDir: " + baseDir 
+                + " -- reason: isDir=" + baseDir.isDirectory()
+                + " readable=" + baseDir.canRead()
+                + " writable=" + baseDir.canWrite());
+    }
+
+    
     // used by TempStorageGetAction
     public File getStoredFile(String filename) {
         return getDestFile(filename);

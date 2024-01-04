@@ -70,6 +70,7 @@ package org.opencadc.tap.tmp;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.RunnableAction;
 import ca.nrc.cadc.auth.SSLUtil;
+import ca.nrc.cadc.auth.X509CertificateChain;
 import ca.nrc.cadc.cred.client.CredUtil;
 import ca.nrc.cadc.dali.tables.TableWriter;
 import ca.nrc.cadc.io.ByteLimitExceededException;
@@ -108,8 +109,11 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.security.AccessControlException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
+import java.security.spec.InvalidKeySpecException;
 import java.sql.ResultSet;
 import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
@@ -154,6 +158,14 @@ public class HttpStorageManager implements StorageManager {
         String absCertFile = System.getProperty("user.home") + "/.ssl/" + cfilename;
         log.debug("cert file: " + absCertFile);
         this.certFile = new File(absCertFile);
+    }
+
+    @Override
+    public void check() throws Exception {
+        // validate certificate
+        X509CertificateChain cert = SSLUtil.readPemCertificateAndKey(certFile);
+        cert.getChain()[0].checkValidity();
+        // TODO: check baseURL? 
     }
     
 
