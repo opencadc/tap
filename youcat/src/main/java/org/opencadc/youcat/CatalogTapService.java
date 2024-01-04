@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2019.                            (c) 2019.
+*  (c) 2023.                            (c) 2023.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -74,18 +74,27 @@ import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.tap.schema.InitDatabaseTS;
+import ca.nrc.cadc.util.InvalidConfigException;
 import ca.nrc.cadc.uws.server.impl.InitDatabaseUWS;
 import ca.nrc.cadc.vosi.Availability;
 import ca.nrc.cadc.vosi.AvailabilityPlugin;
+import ca.nrc.cadc.vosi.avail.CheckCertificate;
 import ca.nrc.cadc.vosi.avail.CheckDataSource;
 import ca.nrc.cadc.vosi.avail.CheckException;
 import ca.nrc.cadc.vosi.avail.CheckResource;
 import ca.nrc.cadc.vosi.avail.CheckWebService;
 import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.spec.InvalidKeySpecException;
+import java.util.NoSuchElementException;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
+import org.opencadc.tap.tmp.DelegatingStorageManager;
+import org.opencadc.tap.tmp.StorageManager;
 
 /**
  *
@@ -98,7 +107,7 @@ public class CatalogTapService implements AvailabilityPlugin {
     private static final String TAPUSER_TEST = "select schema_name from tap_schema.schemas11 where schema_name='tap_schema'";
     private static final String UWS_TEST = "select jobID from uws.Job limit 1";
 
-    private static File SERVOPS_CERT = new File(System.getProperty("user.home") + "/.ssl/cadcproxy.pem");
+    private static final File AAI_PEM_FILE = new File(System.getProperty("user.home") + "/.ssl/cadcproxy.pem");
     private static File TMPOPS_CERT = new File(System.getProperty("user.home") + "/.ssl/tmpops.pem");
     
     private static final URI TMP_STORAGE_WS = URI.create("ivo://cadc.nrc.ca/cadc/minoc");
@@ -147,38 +156,70 @@ public class CatalogTapService implements AvailabilityPlugin {
             cr.check();
             // TODO: check that DS_TAPUSER can create/drop TAP_UPLOAD tables
 
-            // create/drop in all user schemas
-            //File cert = TODO;
-            //CheckCertificate checkCert = new CheckCertificate(cert);
-            //checkCert.check();
-
             // check other services we depend on
             RegistryClient reg = new RegistryClient();
-            URL url;
-            CheckResource checkResource;
-            
             LocalAuthority localAuthority = new LocalAuthority();
 
-            URI credURI = localAuthority.getServiceURI(Standards.CRED_PROXY_10.toString());
-            url = reg.getServiceURL(credURI, Standards.VOSI_AVAILABILITY, AuthMethod.ANON);
-            checkResource = new CheckWebService(url);
-            checkResource.check();
-
-            URI usersURI = localAuthority.getServiceURI(Standards.UMS_USERS_01.toString());
-            url = reg.getServiceURL(usersURI, Standards.VOSI_AVAILABILITY, AuthMethod.ANON);
-            checkResource = new CheckWebService(url);
-            checkResource.check();
-            
-            URI groupsURI = localAuthority.getServiceURI(Standards.GMS_SEARCH_10.toString());
-            if (!groupsURI.equals(usersURI)) {
-                url = reg.getServiceURL(groupsURI, Standards.VOSI_AVAILABILITY, AuthMethod.ANON);
-                checkResource = new CheckWebService(url);
-                checkResource.check();
+            URI credURI = null;
+            try {
+                credURI = localAuthority.getServiceURI(Standards.CRED_PROXY_10.toString());
+                URL url = reg.getServiceURL(credURI, Standards.VOSI_AVAILABILITY, AuthMethod.ANON);
+                if (url != null) {
+                    CheckResource checkResource = new CheckWebService(url);
+                    checkResource.check();
+                } else {
+                    log.debug("check skipped: " + credURI + " does not provide " + Standards.VOSI_AVAILABILITY);
+                }
+            } catch (NoSuchElementException ex) {
+                log.debug("not configured: " + Standards.CRED_PROXY_10);
             }
 
-            url = reg.getServiceURL(TMP_STORAGE_WS, Standards.VOSI_AVAILABILITY, AuthMethod.ANON);
-            checkResource = new CheckWebService(url);
-            checkResource.check();
+            URI usersURI = null;
+            try {
+                usersURI = localAuthority.getServiceURI(Standards.UMS_USERS_01.toString());
+                URL url = reg.getServiceURL(credURI, Standards.VOSI_AVAILABILITY, AuthMethod.ANON);
+                if (url != null) {
+                    CheckResource checkResource = new CheckWebService(url);
+                    checkResource.check();
+                } else {
+                    log.debug("check skipped: " + usersURI + " does not provide " + Standards.VOSI_AVAILABILITY);
+                }
+            } catch (NoSuchElementException ex) {
+                log.debug("not configured: " + Standards.UMS_USERS_01);
+            }
+
+            URI groupsURI = null;
+            try {
+                groupsURI = localAuthority.getServiceURI(Standards.GMS_SEARCH_10.toString());
+                if (!groupsURI.equals(usersURI)) {
+                    URL url = reg.getServiceURL(groupsURI, Standards.VOSI_AVAILABILITY, AuthMethod.ANON);
+                    if (url != null) {
+                        CheckResource checkResource = new CheckWebService(url);
+                        checkResource.check();
+                    } else {
+                        log.debug("check skipped: " + groupsURI + " does not provide " + Standards.VOSI_AVAILABILITY);
+                    }
+                }
+            } catch (NoSuchElementException ex) {
+                log.debug("not configured: " + Standards.GMS_SEARCH_10);
+            }
+
+            if (credURI != null || usersURI != null) {
+                if (AAI_PEM_FILE.exists() && AAI_PEM_FILE.canRead()) {
+                    // check for a certificate needed to perform network A&A ops
+                    CheckCertificate checkCert = new CheckCertificate(AAI_PEM_FILE);
+                    checkCert.check();
+                } else {
+                    log.debug("AAI cert not found or unreadable");
+                }
+            }
+
+            try {
+                StorageManager store = new DelegatingStorageManager();
+                store.check();
+            } catch (Exception ex) {
+                throw new CheckException("cadc-tap-tmp check: " + ex, ex);
+            }
                 
         } catch (CheckException ce) {
             // tests determined that the resource is not working

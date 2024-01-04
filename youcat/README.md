@@ -71,7 +71,7 @@ See <a href="https://github.com/opencadc/reg/tree/master/cadc-registry">cadc-reg
 
 This service uses the `cadc-tap-tmp` library for temporary storage needed by core TAP features 
 (async results, tap_upload tables). It is currently hard-coded (PluginFactory.properties) to 
-use the HttpStorageManager and persist to an external URL (HTTP PUT).
+use the DelegatingStorageManager.
 
 This storage _is not_ used for content upload of user-created tables: that content is streamed 
 directly into the database server.
