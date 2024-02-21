@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2022.                            (c) 2022.
+*  (c) 2023.                            (c) 2023.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -80,9 +80,9 @@ import org.apache.log4j.Logger;
 public class TempStorageInitAction extends InitAction {
     private static final Logger log = Logger.getLogger(TempStorageInitAction.class);
 
-    // TODO get config file name from init-param
-    private static final String CONFIG = "cadc-tap-tmp.properties";
+    static final String CONFIG = "cadc-tap-tmp.properties";
 
+    private static final String IMPL_KEY = StorageManager.class.getName();
     private static final String CONFIG_KEY = TempStorageManager.class.getName();
     
     static final String BASE_DIR_KEY = CONFIG_KEY + ".baseStorageDir";
@@ -104,26 +104,31 @@ public class TempStorageInitAction extends InitAction {
         for (String s : props.keySet()) {
             log.debug("props: " + s + "=" + props.getProperty(s));
         }
+        
+        String implClass = props.getFirstPropertyValue(IMPL_KEY);
+        log.debug(CONFIG + ":  " + IMPL_KEY + " = " + implClass);
+        if (implClass == null || implClass.equals(CONFIG_KEY)) {
+            // init config
+            final String baseURL = props.getFirstPropertyValue(BASE_URL_KEY);
+            final File baseDir = new File(props.getFirstPropertyValue(BASE_DIR_KEY));
 
-        final String baseURL = props.getFirstPropertyValue(BASE_URL_KEY);
-        final File baseDir = new File(props.getFirstPropertyValue(BASE_DIR_KEY));
+            if (!baseDir.exists()) {
+                baseDir.mkdirs();
+            }
+            if (!baseDir.exists()) {
+                throw new RuntimeException(BASE_DIR_KEY + "=" + baseDir + " does not exist, cannot create");
+            }
+            if (!baseDir.isDirectory()) {
+                throw new RuntimeException(BASE_DIR_KEY + "=" + baseDir + " is not a directory");
+            }
+            if (!baseDir.canRead() || !baseDir.canWrite()) {
+                throw new RuntimeException(BASE_DIR_KEY + "=" + baseDir + " is not readable && writable");
+            }
 
-        if (!baseDir.exists()) {
-            baseDir.mkdirs();
-        }
-        if (!baseDir.exists()) {
-            throw new RuntimeException(BASE_DIR_KEY + "=" + baseDir + " does not exist, cannot create");
-        }
-        if (!baseDir.isDirectory()) {
-            throw new RuntimeException(BASE_DIR_KEY + "=" + baseDir + " is not a directory");
-        }
-        if (!baseDir.canRead() || !baseDir.canWrite()) {
-            throw new RuntimeException(BASE_DIR_KEY + "=" + baseDir + " is not readable && writable");
-        }
-
-        if (baseURL == null) {
-            log.error("CONFIG: incomplete: baseDir=" + baseDir + "  baseURL=" + baseURL);
-            throw new RuntimeException("CONFIG incomplete: baseDir=" + baseDir + " baseURL=" + baseURL);
+            if (baseURL == null) {
+                log.error("CONFIG: incomplete: baseDir=" + baseDir + "  baseURL=" + baseURL);
+                throw new RuntimeException("CONFIG incomplete: baseDir=" + baseDir + " baseURL=" + baseURL);
+            }
         }
 
         return props;

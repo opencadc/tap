@@ -70,13 +70,11 @@
 package org.opencadc.tap.tmp;
 
 import ca.nrc.cadc.dali.tables.TableWriter;
-import ca.nrc.cadc.tap.ResultStore;
 import ca.nrc.cadc.util.MultiValuedProperties;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.server.RandomStringGenerator;
 import ca.nrc.cadc.uws.web.InlineContentException;
 import ca.nrc.cadc.uws.web.UWSInlineContentHandler;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -84,7 +82,6 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.ResultSet;
-
 import org.apache.log4j.Logger;
 
 
@@ -94,10 +91,10 @@ import org.apache.log4j.Logger;
  *
  * @author pdowler
  */
-public class TempStorageManager implements ResultStore, UWSInlineContentHandler {
+public class TempStorageManager implements StorageManager {
 
     private static final Logger log = Logger.getLogger(TempStorageManager.class);
-
+    
     protected Job job;
     protected String contentType;
     protected String filename;
@@ -110,7 +107,26 @@ public class TempStorageManager implements ResultStore, UWSInlineContentHandler 
         this.baseURL = props.getFirstPropertyValue(TempStorageInitAction.BASE_URL_KEY);
         this.baseDir = new File(props.getFirstPropertyValue(TempStorageInitAction.BASE_DIR_KEY));
     }
+    
+    // constructed by DelegatingStorageManager
+    TempStorageManager(MultiValuedProperties props) {
+        this.baseURL = props.getFirstPropertyValue(TempStorageInitAction.BASE_URL_KEY);
+        this.baseDir = new File(props.getFirstPropertyValue(TempStorageInitAction.BASE_DIR_KEY));
+    }
 
+    @Override
+    public void check() throws Exception {
+        // check baseDir
+        if (baseDir.isDirectory() && baseDir.canRead() && baseDir.canWrite()) {
+            return;
+        }
+        throw new IOException("cannot use baseDir: " + baseDir 
+                + " -- reason: isDir=" + baseDir.isDirectory()
+                + " readable=" + baseDir.canRead()
+                + " writable=" + baseDir.canWrite());
+    }
+
+    
     // used by TempStorageGetAction
     public File getStoredFile(String filename) {
         return getDestFile(filename);

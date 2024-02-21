@@ -498,6 +498,11 @@ public class TapSchemaReadAccessConverterTest {
     static class TestIdentityManager implements IdentityManager {
 
         @Override
+        public Set<URI> getSecurityMethods() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public Subject validate(Subject subject) throws NotAuthenticatedException {
             throw new UnsupportedOperationException();
         }

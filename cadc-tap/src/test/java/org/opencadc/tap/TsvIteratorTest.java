@@ -76,8 +76,8 @@ import ca.nrc.cadc.util.Log4jInit;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
-import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -108,8 +108,28 @@ public class TsvIteratorTest {
         ByteArrayInputStream bis = new ByteArrayInputStream(empty);
 
         try {
-            TsvIterator<URI> iter = new TsvIterator<>(new URIMapper(), formatters, "text/tab-separated-values", bis);
+            TsvIterator<URI> iter = new TsvIterator<>(new FourColMapper(), formatters, "text/tab-separated-values", bis);
             Assert.fail("expected IOException, got an iterator");
+        } catch (IOException expected) {
+            log.info("caught expected: " + expected);
+        }
+    }
+    
+    @Test
+    public void testNoRows() throws Exception {
+        List<Format> formatters = new ArrayList<>();
+        formatters.add(new URIFormat());
+        formatters.add(new StringFormat());
+        formatters.add(new LongFormat());
+        formatters.add(new UTCTimestampFormat());
+        
+        String msg = "a\tb\tc\td\n";
+        byte[] bytes = msg.getBytes();
+        ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+
+        try {
+            TsvIterator<URI> iter = new TsvIterator<>(new FourColMapper(), formatters, "text/tab-separated-values", bis);
+            Assert.assertFalse(iter.hasNext());
         } catch (IOException expected) {
             log.info("caught expected: " + expected);
         }
@@ -123,15 +143,46 @@ public class TsvIteratorTest {
         formatters.add(new LongFormat());
         formatters.add(new UTCTimestampFormat());
         
-        String msg = "internal server error";
+        String msg = "internal\tserver error"; // also looks like 2 columns
         byte[] bytes = msg.getBytes();
         ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
 
         try {
-            TsvIterator<URI> iter = new TsvIterator<>(new URIMapper(), formatters, "text/tab-separated-values", bis);
+            TsvIterator<URI> iter = new TsvIterator<>(new FourColMapper(), formatters, "text/tab-separated-values", bis);
             Assert.fail("expected IOException, got an iterator with hasNext = " + iter.hasNext());
         } catch (InconsistentTableDataException expected) {
             log.info("caught expected: " + expected);
+        }
+    }
+    
+    @Test
+    public void testErrorMidStream() throws Exception {
+        List<Format> formatters = new ArrayList<>();
+        formatters.add(new URIFormat());
+        formatters.add(new StringFormat());
+        formatters.add(new LongFormat());
+        formatters.add(new UTCTimestampFormat());
+        
+        String msg = "a\tb\tc\td\n" 
+                + "foo:bar1\tabc\t123\t2000-01-01T01:02:03\n"
+                + "foo:bar2\toops\n"
+                + "foo:bar3\tabc\t123\t2000-01-01T01:02:03\n"
+                ;
+        byte[] bytes = msg.getBytes();
+        ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+
+        try {
+            TsvIterator<URI> iter = new TsvIterator<>(new FourColMapper(), formatters, "text/tab-separated-values", bis);
+            Assert.assertTrue(iter.hasNext());
+            URI v1 = iter.next();
+            log.info("found: " + v1);
+            Assert.assertTrue(iter.hasNext());
+            URI v2 = iter.next();
+            
+            Assert.fail("expected RowMapException, got " + v2);
+        } catch (RowMapException expected) {
+            log.info("caught expected: " + expected + " cause: " + expected.getCause());
+            
         }
     }
     
@@ -144,7 +195,7 @@ public class TsvIteratorTest {
         ByteArrayInputStream bis = new ByteArrayInputStream(empty);
 
         try {
-            TsvIterator<URI> iter = new TsvIterator<>(new URIMapper(), formatters, "text/plain", bis);
+            TsvIterator<URI> iter = new TsvIterator<>(new FourColMapper(), formatters, "text/plain", bis);
             Assert.fail("expected UnsupportedOperationException, got an iterator");
         } catch (UnsupportedOperationException expected) {
             log.info("caught expected: " + expected);
@@ -160,18 +211,22 @@ public class TsvIteratorTest {
         ByteArrayInputStream bis = new ByteArrayInputStream(empty);
 
         try {
-            TsvIterator<URI> iter = new TsvIterator<>(new URIMapper(), formatters, null, bis);
+            TsvIterator<URI> iter = new TsvIterator<>(new FourColMapper(), formatters, null, bis);
             Assert.fail("expected UnsupportedOperationException, got an iterator");
         } catch (UnsupportedOperationException expected) {
             log.info("caught expected: " + expected);
         }
     }
     
-    private class URIMapper implements TapRowMapper<URI> {
+    private class FourColMapper implements TapRowMapper<URI> {
 
         @Override
         public URI mapRow(List<Object> row) {
-            return URI.create((String) row.get(0));
+            URI ret = (URI) row.get(0);
+            String c2 = (String) row.get(1);
+            Long c3 = (Long) row.get(2);
+            Date c4 = (Date) row.get(3);
+            return ret;
         }
         
     }

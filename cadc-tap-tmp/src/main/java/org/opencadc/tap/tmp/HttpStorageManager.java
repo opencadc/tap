@@ -68,9 +68,9 @@
 package org.opencadc.tap.tmp;
 
 import ca.nrc.cadc.auth.AuthMethod;
-import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.RunnableAction;
 import ca.nrc.cadc.auth.SSLUtil;
+import ca.nrc.cadc.auth.X509CertificateChain;
 import ca.nrc.cadc.cred.client.CredUtil;
 import ca.nrc.cadc.dali.tables.TableWriter;
 import ca.nrc.cadc.io.ByteLimitExceededException;
@@ -84,7 +84,6 @@ import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.rest.InlineContentException;
-import ca.nrc.cadc.tap.ResultStore;
 import ca.nrc.cadc.util.InvalidConfigException;
 import ca.nrc.cadc.util.MultiValuedProperties;
 import ca.nrc.cadc.util.PropertiesReader;
@@ -110,8 +109,11 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.security.AccessControlException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
+import java.security.spec.InvalidKeySpecException;
 import java.sql.ResultSet;
 import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
@@ -122,24 +124,30 @@ import org.apache.log4j.Logger;
  * 
  * @author pdowler
  */
-public class HttpStorageManager implements ResultStore, UWSInlineContentHandler {
+public class HttpStorageManager implements StorageManager {
     private static final Logger log = Logger.getLogger(HttpStorageManager.class);
 
-    private static final String CONFIG = "cadc-tap-tmp.properties";
     private static final String BASE_URL_KEY = HttpStorageManager.class.getName() + ".baseURL";
     private static final String CERT_KEY = HttpStorageManager.class.getName() + ".certificate";
     
     private Job job;
-    
     private String contentType;
     private String  filename;
-    
-    private final URL baseURL;
-    private final File certFile;
+    private URL baseURL;
+    private File certFile;
     
     public HttpStorageManager() throws InvalidConfigException {
         PropertiesReader r = new PropertiesReader(CONFIG);
         MultiValuedProperties props = r.getAllProperties();
+        init(props);
+    }
+
+    // constructed by DelegatingStorageManager
+    HttpStorageManager(MultiValuedProperties props) {
+        init(props);
+    }
+    
+    private void init(MultiValuedProperties props) {
         String surl = props.getFirstPropertyValue(BASE_URL_KEY);
         try {
             this.baseURL = new URL(surl);
@@ -151,6 +159,15 @@ public class HttpStorageManager implements ResultStore, UWSInlineContentHandler 
         log.debug("cert file: " + absCertFile);
         this.certFile = new File(absCertFile);
     }
+
+    @Override
+    public void check() throws Exception {
+        // validate certificate
+        X509CertificateChain cert = SSLUtil.readPemCertificateAndKey(certFile);
+        cert.getChain()[0].checkValidity();
+        // TODO: check baseURL? 
+    }
+    
 
     @Override
     public void setJob(Job job) {

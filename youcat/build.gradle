@@ -1,0 +1,63 @@
+plugins {
+    id 'war'
+    id 'maven'
+    id 'maven-publish'
+    id 'checkstyle'
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+apply from: '../opencadc.gradle'
+
+sourceCompatibility = 1.8
+
+group = 'ca.nrc.cadc'
+
+war {
+    // Include the swagger-ui so that /cat provides the cat API documentation
+    from(System.getenv('RPS') + '/resources/') {                
+        include 'swagger-ui/'                      
+    }                                                                
+}
+
+dependencies {
+    providedCompile 'javax.servlet:javax.servlet-api:[3.1.0,)'
+    providedCompile 'org.postgresql:postgresql:[42.2,43.0)'
+ 
+    compile 'org.opencadc:cadc-util:[1.9.6,2.0)'
+    runtime 'org.opencadc:cadc-log:[1.1.1,)'
+    compile 'org.opencadc:cadc-rest:[1.3.16,)'
+    compile 'org.opencadc:cadc-dali:[1.2.12,)'
+    compile 'org.opencadc:cadc-adql:[1.1.8,)'
+    compile 'org.opencadc:cadc-uws:[1.0.2,)'
+    compile 'org.opencadc:cadc-uws-server:[1.2.18,)'
+    compile 'org.opencadc:cadc-tap-schema:[1.1.32,)'
+    compile 'org.opencadc:cadc-tap-server:[1.1.21,)'
+    compile 'org.opencadc:cadc-tap-server-pg:[1.0.5,)'
+    compile 'org.opencadc:cadc-adql:[1.1.12,)'
+    compile 'org.opencadc:cadc-vosi:[1.4.3,2.0)'
+    compile 'org.opencadc:cadc-registry:[1.7.2,)'
+    compile 'org.opencadc:cadc-gms:[1.0.4,2.0)'
+    compile 'org.opencadc:cadc-tap-tmp:[1.1.5,)'
+
+    runtime 'org.opencadc:cadc-vos:[1.1,2.0)'
+    runtime 'org.opencadc:cadc-access-control-identity:[1.1.0,)'
+    
+    testCompile 'junit:junit:[4.0,)'
+    intTestCompile 'org.opencadc:cadc-tap:[1.0,)'
+    intTestCompile 'org.opencadc:cadc-test-uws:[1.1.1,)'
+    intTestCompile 'org.opencadc:cadc-test-vosi:[1.0.11,)'
+    intTestCompile 'org.opencadc:cadc-test-tap:[1.1,)'
+}
+
+configurations {
+  // this are provided by tomcat
+  runtime.exclude group: 'javax.servlet'
+  runtime.exclude group: 'org.postgresql'
+
+  // pulled by stil,unused, critical CVEs:
+  runtime.exclude group: 'org.yaml', module: 'snakeyaml'
+}

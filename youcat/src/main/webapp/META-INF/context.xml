@@ -1,0 +1,41 @@
+<?xml version='1.0' encoding='utf-8'?>
+<Context>
+
+    <WatchedResource>WEB-INF/web.xml</WatchedResource>
+
+    <!-- astro -->
+    <Resource name="jdbc/tapadm"
+        auth="Container"
+        type="javax.sql.DataSource"
+        factory="org.apache.tomcat.jdbc.pool.DataSourceFactory" closeMethod="close"
+        minEvictableIdleTimeMillis="60000" timeBetweenEvictionRunsMillis="30000"
+        maxWait="20000"
+        initialSize="0"  minIdle="0" maxIdle="${org.opencadc.youcat.tapadm.maxActive}" maxActive="${org.opencadc.youcat.tapadm.maxActive}" 
+        username="${org.opencadc.youcat.tapadm.username}" password="${org.opencadc.youcat.tapadm.password}"
+        driverClassName="org.postgresql.Driver" url="${org.opencadc.youcat.tapadm.url}"
+        removeAbandoned="false"
+        testWhileIdle="true" testOnBorrow="true" validationQuery="select 123" />
+    <Resource name="jdbc/uws"
+        auth="Container"
+        type="javax.sql.DataSource"
+        factory="org.apache.tomcat.jdbc.pool.DataSourceFactory" closeMethod="close"
+        minEvictableIdleTimeMillis="60000" timeBetweenEvictionRunsMillis="30000"
+        maxWait="20000"
+        initialSize="0" minIdle="0" maxIdle="${org.opencadc.youcat.uws.maxActive}" maxActive="${org.opencadc.youcat.uws.maxActive}"
+        username="${org.opencadc.youcat.uws.username}" password="${org.opencadc.youcat.uws.password}"
+        driverClassName="org.postgresql.Driver" url="${org.opencadc.youcat.uws.url}"
+        removeAbandoned="false"
+        testOnBorrow="true" validationQuery="select 123" />
+    <Resource name="jdbc/tapuser"
+        auth="Container"
+        type="javax.sql.DataSource"
+        factory="org.apache.tomcat.jdbc.pool.DataSourceFactory" closeMethod="close"
+        minEvictableIdleTimeMillis="60000" timeBetweenEvictionRunsMillis="30000"
+        maxWait="20000"
+        initialSize="0" minIdle="0" maxIdle="${org.opencadc.youcat.tapuser.maxActive}" maxActive="${org.opencadc.youcat.tapuser.maxActive}"
+        username="${org.opencadc.youcat.tapuser.username}" password="${org.opencadc.youcat.tapuser.password}"
+        driverClassName="org.postgresql.Driver" url="${org.opencadc.youcat.tapuser.url}"
+        removeAbandoned="false"
+        testOnBorrow="true" validationQuery="select 123" />
+    
+</Context>
