@@ -81,6 +81,7 @@ import java.util.UUID;
 
 import javax.security.auth.Subject;
 
+import ca.nrc.cadc.auth.NotAuthenticatedException;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
