@@ -158,8 +158,8 @@ public class ExtractorTest
                 List<TapSelectItem> selectList = _en.getSelectList();
                 for (int i = 0; i < expectedList.size(); i++)
                 {
-                    TapSelectItem expected = expectedList.get(0);
-                    TapSelectItem actual = selectList.get(0);
+                    TapSelectItem expected = expectedList.get(i);
+                    TapSelectItem actual = selectList.get(i);
                     log.debug("expected: " + expected);
                     log.debug("actual: " + actual);
 
@@ -236,7 +236,7 @@ public class ExtractorTest
         String query = "select area(position_center_ra) from caom.siav1";
 
         List<TapSelectItem> expectedList = new ArrayList<>();
-        TapSelectItem paramDesc = new TapSelectItem("area", TapDataType.DOUBLE);
+        TapSelectItem paramDesc = new TapSelectItem("area1", TapDataType.DOUBLE);
         expectedList.add(paramDesc);
         
         doit(query, expectedList);
@@ -261,11 +261,13 @@ public class ExtractorTest
     @Test
     public void testArgumentDatatypeFunctionExpression()
     {
-        String query = "select max(position_center_ra) from caom.siav1";
+        String query = "select max(t_double), max(t_long) from tap_schema.alldatatypes";
 
         List<TapSelectItem> expectedList = new ArrayList<>();
-        TapSelectItem paramDesc = new TapSelectItem("max", TapDataType.DOUBLE);
-        expectedList.add(paramDesc);
+        TapSelectItem p1 = new TapSelectItem("max1", TapDataType.DOUBLE);
+        TapSelectItem p2 = new TapSelectItem("max2", TapDataType.LONG);
+        expectedList.add(p1);
+        expectedList.add(p2);
 
         doit(query, expectedList);
     }
@@ -276,7 +278,7 @@ public class ExtractorTest
         String query = "select max(area(position_center_ra)) from caom.siav1";
 
         List<TapSelectItem> expectedList = new ArrayList<>();
-        TapSelectItem paramDesc = new TapSelectItem("max", TapDataType.DOUBLE);
+        TapSelectItem paramDesc = new TapSelectItem("max1", TapDataType.DOUBLE);
         expectedList.add(paramDesc);
 
         doit(query, expectedList);
@@ -288,7 +290,7 @@ public class ExtractorTest
         String query = "select area(max(position_center_ra)) from caom.siav1";
 
         List<TapSelectItem> expectedList = new ArrayList<TapSelectItem>();
-        TapSelectItem paramDesc = new TapSelectItem("area", TapDataType.DOUBLE);
+        TapSelectItem paramDesc = new TapSelectItem("area1", TapDataType.DOUBLE);
         expectedList.add(paramDesc);
 
         doit(query, expectedList);
@@ -300,7 +302,7 @@ public class ExtractorTest
         String query = "select max(min(avg(position_center_ra))) from caom.siav1";
 
         List<TapSelectItem> expectedList = new ArrayList<>();
-        TapSelectItem paramDesc = new TapSelectItem("max", TapDataType.DOUBLE);
+        TapSelectItem paramDesc = new TapSelectItem("max1", TapDataType.DOUBLE);
         expectedList.add(paramDesc);
 
         doit(query, expectedList);
@@ -309,11 +311,13 @@ public class ExtractorTest
     @Test
     public void testConstantExpression()
     {
-        String query = "select 1 from caom.siav1";
+        String query = "select 1, 0.999 from tap_schema.alldatatypes";
 
         List<TapSelectItem> expectedList = new ArrayList<>();
-        TapSelectItem paramDesc = new TapSelectItem("1", new TapDataType("char", "*", null));
-        expectedList.add(paramDesc);
+        TapSelectItem p1 = new TapSelectItem("col1", new TapDataType("long", null, null));
+        TapSelectItem p2 = new TapSelectItem("col2", new TapDataType("double", null, null));
+        expectedList.add(p1);
+        expectedList.add(p2);
 
         doit(query, expectedList);
     }
@@ -321,11 +325,39 @@ public class ExtractorTest
     @Test
     public void testConstantWithAliasExpression()
     {
-        String query = "select 1 as one from caom.siav1";
+        String query = "select 1 as one, 0.5 as half from tap_schema.alldatatypes";
 
         List<TapSelectItem> expectedList = new ArrayList<TapSelectItem>();
-        TapSelectItem paramDesc = new TapSelectItem("one", new TapDataType("char", "*", null));
-        expectedList.add(paramDesc);
+        TapSelectItem p1 = new TapSelectItem("one", new TapDataType("long", null, null));
+        TapSelectItem p2 = new TapSelectItem("half", new TapDataType("double", null, null));
+        expectedList.add(p1);
+        expectedList.add(p2);
+
+        doit(query, expectedList);
+    }
+
+    @Test
+    public void testSubselectExpression()
+    {
+        String query = "select (select 1 from tap_schema.alldatatypes) from tap_schema.alldatatypes";
+
+        List<TapSelectItem> expectedList = new ArrayList<TapSelectItem>();
+        TapSelectItem p1 = new TapSelectItem("col1", new TapDataType("long", null, null));
+        expectedList.add(p1);
+
+        doit(query, expectedList);
+    }
+
+    @Test
+    public void testSubselectWithAliasExpression()
+    {
+        String query = "select (select 1 as one from tap_schema.alldatatypes), 0.5 as half from tap_schema.alldatatypes";
+
+        List<TapSelectItem> expectedList = new ArrayList<TapSelectItem>();
+        TapSelectItem p1 = new TapSelectItem("one", new TapDataType("long", null, null));
+        TapSelectItem p2 = new TapSelectItem("half", new TapDataType("double", null, null));
+        expectedList.add(p1);
+        expectedList.add(p2);
 
         doit(query, expectedList);
     }
@@ -333,25 +365,168 @@ public class ExtractorTest
     @Test
     public void testFunctionWithConstantExpression()
     {
-        String query = "select max(1) from caom.siav1";
+        String query = "select max(1), max(0.5) as foo from tap_schema.alldatatypes";
 
         List<TapSelectItem> expectedList = new ArrayList<TapSelectItem>();
-        TapSelectItem paramDesc = new TapSelectItem("max", new TapDataType("char", "*", null));
-        expectedList.add(paramDesc);
+        TapSelectItem p1 = new TapSelectItem("max1", new TapDataType("long", null, null));
+        TapSelectItem p2 = new TapSelectItem("foo", new TapDataType("double", null, null));
+        expectedList.add(p1);
+        expectedList.add(p2);
 
         doit(query, expectedList);
     }
 
     @Test
-    public void testFunctionWithConstantAndAliasExpression()
+    public void testQueryWithThreeFunctions()
     {
-        String query = "select max(1) as foo from caom.siav1";
+        String query = "select max(1), min(1.0), count(5) from caom.siav1";
 
         List<TapSelectItem> expectedList = new ArrayList<TapSelectItem>();
-        TapSelectItem paramDesc = new TapSelectItem("foo", new TapDataType("char", "*", null));
-        expectedList.add(paramDesc);
+        TapSelectItem p1 = new TapSelectItem("max1", new TapDataType("long", null, null));
+        TapSelectItem p2 = new TapSelectItem("min2", new TapDataType("double", null, null));
+        TapSelectItem p3 = new TapSelectItem("count3", new TapDataType("long", null, null));
+        expectedList.add(p1);
+        expectedList.add(p2);
+        expectedList.add(p3);
 
         doit(query, expectedList);
     }
 
+    @Test
+    public void testQueryWithMath()
+    {
+        String query = "select 2+2, 2-2 as zero, 2*2, 2/2, 1.5+1.5 from tap_schema.alldatatypes";
+
+        List<TapSelectItem> expectedList = new ArrayList<TapSelectItem>();
+        TapSelectItem p1 = new TapSelectItem("col1", new TapDataType("long", null, null));
+        TapSelectItem p2 = new TapSelectItem("zero", new TapDataType("long", null, null));
+        TapSelectItem p3 = new TapSelectItem("col3", new TapDataType("long", null, null));
+        TapSelectItem p4 = new TapSelectItem("col4", new TapDataType("double", null, null));
+        TapSelectItem p5 = new TapSelectItem("col5", new TapDataType("double", null, null));
+        expectedList.add(p1);
+        expectedList.add(p2);
+        expectedList.add(p3);
+        expectedList.add(p4);
+        expectedList.add(p5);
+
+        doit(query, expectedList);
+    }
+
+    @Test
+    public void testQueryWithLongMath()
+    {
+        String query = "select 1+t_long, 0-t_long, 2*t_long, 1.5*t_long, t_long/5 from tap_schema.alldatatypes";
+
+        List<TapSelectItem> expectedList = new ArrayList<TapSelectItem>();
+        TapSelectItem p1 = new TapSelectItem("col1", new TapDataType("long", null, null));
+        TapSelectItem p2 = new TapSelectItem("col2", new TapDataType("long", null, null));
+        TapSelectItem p3 = new TapSelectItem("col3", new TapDataType("long", null, null));
+        TapSelectItem p4 = new TapSelectItem("col4", new TapDataType("double", null, null));
+        TapSelectItem p5 = new TapSelectItem("col5", new TapDataType("double", null, null));
+        expectedList.add(p1);
+        expectedList.add(p2);
+        expectedList.add(p3);
+        expectedList.add(p4);
+        expectedList.add(p5);
+
+        doit(query, expectedList);
+    }
+
+    @Test
+    public void testQueryWithMathColumns()
+    {
+        String query = "select t_integer + t_integer, t_double + t_integer from tap_schema.alldatatypes";
+
+        List<TapSelectItem> expectedList = new ArrayList<TapSelectItem>();
+        TapSelectItem p1 = new TapSelectItem("col1", new TapDataType("long", null, null));
+        TapSelectItem p2 = new TapSelectItem("col2", new TapDataType("double", null, null));
+        expectedList.add(p1);
+        expectedList.add(p2);
+
+        doit(query, expectedList);
+    }
+
+    @Test
+    public void testQueryWithMathFunctions()
+    {
+        String query = "select (max(t_double) - min(t_long))/count(t_long) from tap_schema.alldatatypes";
+
+        List<TapSelectItem> expectedList = new ArrayList<TapSelectItem>();
+        TapSelectItem p1 = new TapSelectItem("col1", new TapDataType("double", null, null));
+        expectedList.add(p1);
+
+        doit(query, expectedList);
+    }
+
+    @Test
+    public void testQueryWithLongCase()
+    {
+        String query = "select sum(case when t_long < 2 then 1 else 0 end) as math from tap_schema.alldatatypes";
+
+        List<TapSelectItem> expectedList = new ArrayList<TapSelectItem>();
+        TapSelectItem p1 = new TapSelectItem("math", new TapDataType("long", null, null));
+        expectedList.add(p1);
+
+        doit(query, expectedList);
+    }
+
+    @Test
+    public void testQueryWithDoubleCase()
+    {
+        String query = "select case when t_long < 2 then t_double else 0 end from tap_schema.alldatatypes";
+
+        List<TapSelectItem> expectedList = new ArrayList<TapSelectItem>();
+        TapSelectItem p1 = new TapSelectItem("col1", new TapDataType("double", null, null));
+        expectedList.add(p1);
+
+        doit(query, expectedList);
+    }
+
+    @Test
+    public void testQueryWithStringConstantCase()
+    {
+        String query = "select case when t_double < 2 then 'abc' else 0.0 end from tap_schema.alldatatypes";
+
+        List<TapSelectItem> expectedList = new ArrayList<TapSelectItem>();
+        TapSelectItem p1 = new TapSelectItem("col1", new TapDataType("char", "*", null));
+        expectedList.add(p1);
+
+        doit(query, expectedList);
+    }
+
+    @Test
+    public void testQueryWithStringElseCase()
+    {
+        String query = "select (case when t_double < 2 then 0.0 else 'abc' end) from tap_schema.alldatatypes";
+
+        List<TapSelectItem> expectedList = new ArrayList<TapSelectItem>();
+        TapSelectItem p1 = new TapSelectItem("col1", new TapDataType("char", "*", null));
+        expectedList.add(p1);
+
+        doit(query, expectedList);
+    }
+
+    @Test
+    public void testQueryWithStringColumnElseCase()
+    {
+        String query = "select (case when t_double < 2 then 0 else t_char end) from tap_schema.alldatatypes";
+
+        List<TapSelectItem> expectedList = new ArrayList<TapSelectItem>();
+        TapSelectItem p1 = new TapSelectItem("col1", new TapDataType("char", "*", null));
+        expectedList.add(p1);
+
+        doit(query, expectedList);
+    }
+
+    @Test
+    public void testQueryWithIntColumnElseCase()
+    {
+        String query = "select (case when t_double < 2 then t_integer else t_integer end) from tap_schema.alldatatypes";
+
+        List<TapSelectItem> expectedList = new ArrayList<TapSelectItem>();
+        TapSelectItem p1 = new TapSelectItem("col1", new TapDataType("long", null, null));
+        expectedList.add(p1);
+
+        doit(query, expectedList);
+    }
 }
