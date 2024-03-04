@@ -90,6 +90,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 import org.opencadc.tap.io.TableDataInputStream;
@@ -123,14 +124,16 @@ public class BasicUploadManager implements UploadManager
     /**
      * Maximum number of rows allowed in the UPLOAD VOTable.
      */
-    protected int maxUploadRows;
+    protected final int maxUploadRows;
 
     protected Job job;
     
     /**
      * Default constructor.
      */
-    private BasicUploadManager() { }
+    private BasicUploadManager() {
+        this(Integer.MAX_VALUE);
+    }
     
     protected BasicUploadManager(int maxUploadRows)
     {
@@ -240,7 +243,33 @@ public class BasicUploadManager implements UploadManager
 
                     @Override
                     public Iterator<List<Object>> iterator() {
-                        return parser.iterator();
+                        return new Iterator<List<Object>>() {
+                            final Iterator<List<Object>> wrapped = parser.iterator();
+                            int rowsRead = 0;
+
+                            @Override
+                            public boolean hasNext() {
+                                return wrapped.hasNext() && rowsRead < maxUploadRows;
+                            }
+
+                            @Override
+                            public List<Object> next() {
+                                final List<Object> next = wrapped.next();
+                                rowsRead++;
+
+                                return next;
+                            }
+
+                            @Override
+                            public void remove() {
+                                wrapped.remove();
+                            }
+
+                            @Override
+                            public void forEachRemaining(Consumer<? super List<Object>> action) {
+                                wrapped.forEachRemaining(action);
+                            }
+                        };
                     }
 
                     @Override
