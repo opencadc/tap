@@ -67,21 +67,82 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.parser;
+package ca.nrc.cadc.tap.parser.converter.postgresql;
 
-import ca.nrc.cadc.tap.parser.function.Concatenate;
-import ca.nrc.cadc.tap.parser.function.Operator;
-import ca.nrc.cadc.tap.parser.operator.TextSearchMatch;
+
+import ca.nrc.cadc.tap.parser.FunctionFinder;
+import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
+import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
+import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
+import ca.nrc.cadc.tap.parser.operator.postgresql.PgTextSearchMatch;
+import java.util.List;
+import net.sf.jsqlparser.expression.BinaryExpression;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.expression.StringValue;
+import net.sf.jsqlparser.schema.Column;
+import org.apache.log4j.Logger;
 
 /**
- *
+ * Convert function call match(column, string) into a TextSearchMatch operator
+ * invocation. This is for querying tsvector columns.
+ * 
  * @author pdowler
  */
-public interface OperatorVisitor 
+public class MatchConverter extends FunctionFinder
 {
-    public void visit(Operator operator);
+    private static final Logger log = Logger.getLogger(MatchConverter.class);
 
-    public void visit(Concatenate operator);
+    public MatchConverter(ExpressionNavigator en, ReferenceNavigator rn, FromItemNavigator fn)
+    {
+        super(en, rn, fn);
+    }
 
-    public void visit(TextSearchMatch match);
+    @Override
+    protected Expression convertToImplementation(Function func)
+    {
+        if (!func.getName().equalsIgnoreCase("match"))
+            return func;
+        
+        List<Expression> exprs = func.getParameters().getExpressions();
+        if (exprs.size() == 2)
+        {
+            Expression e1 = exprs.get(0);
+            Expression e2 = exprs.get(1);
+            if (e1 instanceof Column && e2 instanceof StringValue)
+            {
+                Column col = (Column) e1;
+                String query = ((StringValue) e2).getValue();
+                return new PgTextSearchMatch(col, query);
+            }
+        }
+        throw new IllegalArgumentException("invalid args to match: expected match(<column>,<string>)");
+    }
+
+    @Override
+    protected Expression handlePredicateFunction(BinaryExpression expr)
+    {
+        log.debug("handlePredicateFunction: " + expr);
+        if (expr.getLeftExpression() instanceof PgTextSearchMatch)
+        {
+            PgTextSearchMatch ts = (PgTextSearchMatch) expr.getLeftExpression();
+            log.debug("handlePredicateFunction: " + ts);
+            if (expr.getRightExpression() instanceof LongValue)
+            {
+                long value = ((LongValue) expr.getRightExpression()).getValue();
+                log.debug("handlePredicateFunction: " + value);
+                if (value == 0)
+                {
+                    log.debug("handlePredicateFunction: negate");
+                    ts.negate();
+                }
+            }
+                
+            return ts;
+        }
+        return expr;
+    }
+
+    
 }

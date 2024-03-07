@@ -69,8 +69,8 @@
 
 package ca.nrc.cadc.tap;
 
+import ca.nrc.cadc.tap.parser.BaseExpressionDeParser;
 import ca.nrc.cadc.tap.parser.ParserUtil;
-import ca.nrc.cadc.tap.parser.PgsphereDeParser;
 import ca.nrc.cadc.tap.parser.QuerySelectDeParser;
 import ca.nrc.cadc.tap.parser.converter.AllColumnConverter;
 import ca.nrc.cadc.tap.parser.converter.TableNameConverter;
@@ -85,6 +85,7 @@ import ca.nrc.cadc.tap.parser.schema.ExpressionValidator;
 import ca.nrc.cadc.tap.parser.schema.TapSchemaTableValidator;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.uws.ParameterUtil;
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -94,6 +95,7 @@ import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectBody;
+import net.sf.jsqlparser.statement.select.SelectVisitor;
 import net.sf.jsqlparser.statement.select.Top;
 import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
 import net.sf.jsqlparser.util.deparser.SelectDeParser;
@@ -125,12 +127,22 @@ public class AdqlQuery extends AbstractTapQuery
     protected TapSchemaTableValidator tstValidator;
 
     protected transient boolean navigated = false;
+    
+    // default
+    private Class<? extends BaseExpressionDeParser> deparserClass = BaseExpressionDeParser.class;
 
-    public AdqlQuery() 
-    { 
+    /**
+     * Instantiate with the default BaseExpressionDeParser. 
+     * @see setDeparserImpl
+     */
+    public AdqlQuery() {
         super();
     }
-
+    
+    public void setDeparserImpl(Class<? extends BaseExpressionDeParser> deparserClass) {
+        this.deparserClass = deparserClass;
+    }
+    
     /**
      * Set up the List&#60;SelectNavigator&#62;. Subclasses should override this method to
      * add extra navigators that check or modify the parsed query statement. This
@@ -279,9 +291,12 @@ public class AdqlQuery extends AbstractTapQuery
      */
     protected ExpressionDeParser getExpressionDeparser(SelectDeParser dep, StringBuffer sb)
     {
-        // backwards compat: return the PgsphereDeParser like we used to for now
-        return new PgsphereDeParser(dep, sb);
-        //return new BaseExpressionDeParser(dep, sb);
+        try {
+            Constructor<? extends BaseExpressionDeParser> ctor = deparserClass.getConstructor(SelectVisitor.class, StringBuffer.class);
+            return ctor.newInstance(dep, sb);
+        } catch (Exception ex) {
+            throw new RuntimeException("CONFIG: failed to instantiate " + deparserClass.getName(), ex);
+        } 
     }
 
     @Override

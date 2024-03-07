@@ -69,19 +69,14 @@
 
 package ca.nrc.cadc.tap.parser.converter;
 
-
-
-import net.sf.jsqlparser.statement.select.Limit;
-import net.sf.jsqlparser.statement.select.PlainSelect;
-import net.sf.jsqlparser.statement.select.Top;
-
-import org.apache.log4j.Logger;
-
-import ca.nrc.cadc.tap.parser.converter.postgresql.PgLimit;
 import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
 import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
+import net.sf.jsqlparser.statement.select.Limit;
+import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.Top;
+import org.apache.log4j.Logger;
 
 /**
  * Only convert top level plainSelect.
@@ -124,7 +119,7 @@ public class TopConverter extends SelectNavigator
             plainSelect.setTop(null);
             
             if (rowCount == 0)
-                plainSelect.setLimit(new PgLimit(limit));
+                plainSelect.setLimit(new LimitExt(limit));
         }
 
         log.debug("visit(PlainSelect) done");

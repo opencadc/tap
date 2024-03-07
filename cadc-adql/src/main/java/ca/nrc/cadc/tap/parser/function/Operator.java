@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2009.                            (c) 2009.
+ *  (c) 2024.                            (c) 2024.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -70,7 +70,6 @@
 package ca.nrc.cadc.tap.parser.function;
 
 import ca.nrc.cadc.tap.parser.OperatorVisitor;
-import ca.nrc.cadc.tap.parser.region.pgsphere.function.Spoint;
 import net.sf.jsqlparser.expression.BinaryExpression;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.ExpressionVisitor;
@@ -105,11 +104,11 @@ public class Operator extends BinaryExpression
         super();
         this.operator = operator;
         this.negateOperator = negateOperator;
-        if (left instanceof Spoint)
-            ((Spoint) left).setOperand(true);
+        if (left instanceof OperatorArg)
+            ((OperatorArg) left).setOperand(true);
         setLeftExpression(left);
-        if (right instanceof Spoint)
-            ((Spoint) right).setOperand(true);
+        if (right instanceof OperatorArg)
+            ((OperatorArg) right).setOperand(true);
         setRightExpression(right);
         negate = false;
     }
