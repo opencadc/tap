@@ -70,10 +70,10 @@
 package ca.nrc.cadc.tap.upload;
 
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
-import ca.nrc.cadc.dali.tables.votable.VOTableField;
 import ca.nrc.cadc.dali.tables.votable.VOTableReader;
 import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
+import ca.nrc.cadc.io.ByteCountInputStream;
 import ca.nrc.cadc.tap.UploadManager;
 import static ca.nrc.cadc.tap.UploadManager.SCHEMA;
 import java.util.ArrayList;
@@ -81,7 +81,6 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.log4j.Logger;
-import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaUtil;
 import java.io.IOException;
@@ -99,13 +98,15 @@ public class JDOMVOTableParser implements VOTableParser
     
     protected String tableName;
     protected VOTableTable votable;
+    protected UploadLimits uploadLimits;
 
     public JDOMVOTableParser() { }
 
     @Override
-    public void setUpload(UploadTable upload)
+    public void setUpload(UploadTable upload, UploadLimits uploadLimits)
     {
         this.upload = upload;
+        this.uploadLimits = uploadLimits;
     }
 
     private void init()
@@ -113,28 +114,54 @@ public class JDOMVOTableParser implements VOTableParser
     {
         if (votable == null)
         {
+            verifyUploadTable();
             VOTableReader r = new VOTableReader();
-            // TODO: wrap a ByteCountInputStream here to limit input data volume
             VOTableDocument doc = r.read(upload.uri.toURL().openStream());
             VOTableResource vr = doc.getResourceByType("results");
+
             this.votable = vr.getTable();
-            
+
             this.tableName = upload.tableName;
-            if (!tableName.toUpperCase().startsWith(SCHEMA))
+            if (!tableName.toUpperCase().startsWith(SCHEMA)) {
                 tableName = SCHEMA + "." + tableName;
+            }
+        }
+    }
+
+    void verifyUploadTable() throws IOException {
+        if (uploadLimits != null) {
+            final VOTableReader voTableReader = new VOTableReader();
+            try (final ByteCountInputStream byteCountInputStream =
+                         new ByteCountInputStream(upload.uri.toURL().openStream(), uploadLimits.getByteLimit())) {
+                final VOTableDocument doc = voTableReader.read(byteCountInputStream);
+                final VOTableResource vr = doc.getResourceByType("results");
+                final VOTableTable voTableTable = vr.getTable();
+
+                if (voTableTable.getFields().size() > uploadLimits.getColumnLimit()) {
+                    throw new IOException("Column count exceeds maximum of " + uploadLimits.getColumnLimit());
+                }
+
+                int counter = 0;
+                for (final Iterator<List<Object>> iterator = voTableTable.getTableData().iterator(); iterator.hasNext(); ) {
+                    if (++counter > uploadLimits.getRowLimit()) {
+                        throw new IOException("Row count exceeds maximum of " + uploadLimits.getRowLimit());
+                    } else {
+                        iterator.next();
+                    }
+                }
+            }
         }
     }
     
     /**
      * Get a List that describes each VOTable column.
      *
-     * @throws java.io.IOException
-     * @throws VOTableParserException if unable to parse the VOTable.
+     * @throws java.io.IOException if unable to parse the VOTable.
      * @return List of ColumnDesc describing the VOTable columns.
      */
     @Override
     public TableDesc getTableDesc()
-        throws IOException, VOTableParserException
+        throws IOException
     {
         init();
         TableDesc tableDesc = TapSchemaUtil.createTableDesc(UploadManager.SCHEMA, tableName, votable);

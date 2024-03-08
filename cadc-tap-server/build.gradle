@@ -13,7 +13,7 @@ sourceCompatibility = 1.8
 
 group = 'org.opencadc'
 
-version = '1.1.23'
+version = '1.1.24'
 
 description = 'OpenCADC TAP-1.1 tap server library'
 def git_url = 'https://github.com/opencadc/tap'
@@ -33,4 +33,5 @@ dependencies {
     testCompile 'junit:junit:[4.0,5.0)'
     testCompile 'xerces:xercesImpl:[2.0,)'
     testCompile 'org.jdom:jaxen-jdom:1.0-FCS'
+    testImplementation 'org.apache.commons:commons-lang3:[3.14.0, )'
 }

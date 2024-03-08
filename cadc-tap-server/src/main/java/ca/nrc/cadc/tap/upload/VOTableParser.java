@@ -82,9 +82,13 @@ import java.util.List;
  */
 public interface VOTableParser
 {
-    public static final String TAP_SCHEMA = "tap_schema";
-    
-    void setUpload(UploadTable upload);
+    /**
+     * Set the Upload Table details.
+     * @param upload        The upload table descriptor.
+     * @param uploadLimits  Limitations of the Upload table.  Optional.
+     * @throws VOTableParserException   For any parsing exceptions.
+     */
+    void setUpload(UploadTable upload, UploadLimits uploadLimits) throws VOTableParserException;
     
     /**
      * Get a TableDesc of the VOTable.
