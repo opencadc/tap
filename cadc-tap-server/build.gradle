@@ -13,25 +13,25 @@ sourceCompatibility = 1.8
 
 group = 'org.opencadc'
 
-version = '1.1.24'
+version = '1.2.0'
 
 description = 'OpenCADC TAP-1.1 tap server library'
 def git_url = 'https://github.com/opencadc/tap'
 
 dependencies {
-    compile 'org.jdom:jdom2:[2.0,)'
+    implementation 'org.jdom:jdom2:[2.0,)'
 
-    compile 'org.opencadc:cadc-util:[1.6,)'
-    compile 'org.opencadc:cadc-tap:[1.1.0,1.2)'
-    compile 'org.opencadc:cadc-tap-schema:[1.1.28,1.2)'
-    compile 'org.opencadc:cadc-vosi:[1.4.2,)'
-    compile 'org.opencadc:cadc-dali:[1.2.5,)'
-    compile 'org.opencadc:cadc-registry:[1.4,)'
-    compile 'org.opencadc:cadc-uws:[1.0,)'
-    compile 'org.opencadc:cadc-uws-server:[1.1,)'
+    implementation 'org.opencadc:cadc-util:[1.6,)'
+    implementation 'org.opencadc:cadc-tap:[1.1.0,1.2)'
+    implementation 'org.opencadc:cadc-tap-schema:[1.1.28,1.2)'
+    implementation 'org.opencadc:cadc-vosi:[1.4.2,)'
+    implementation 'org.opencadc:cadc-dali:[1.2.5,)'
+    implementation 'org.opencadc:cadc-registry:[1.4,)'
+    implementation 'org.opencadc:cadc-uws:[1.0,)'
+    implementation 'org.opencadc:cadc-uws-server:[1.1,)'
 
-    testCompile 'junit:junit:[4.0,5.0)'
-    testCompile 'xerces:xercesImpl:[2.0,)'
-    testCompile 'org.jdom:jaxen-jdom:1.0-FCS'
+    testImplementation 'junit:junit:[4.0,5.0)'
+    testImplementation 'xerces:xercesImpl:[2.0,)'
+    testImplementation 'org.jdom:jaxen-jdom:1.0-FCS'
     testImplementation 'org.apache.commons:commons-lang3:[3.14.0, )'
 }
