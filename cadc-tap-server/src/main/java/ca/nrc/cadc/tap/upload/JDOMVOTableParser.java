@@ -118,9 +118,7 @@ public class JDOMVOTableParser implements VOTableParser
             VOTableReader r = new VOTableReader();
             VOTableDocument doc = r.read(upload.uri.toURL().openStream());
             VOTableResource vr = doc.getResourceByType("results");
-
             this.votable = vr.getTable();
-
             this.tableName = upload.tableName;
             if (!tableName.toUpperCase().startsWith(SCHEMA)) {
                 tableName = SCHEMA + "." + tableName;
@@ -128,25 +126,35 @@ public class JDOMVOTableParser implements VOTableParser
         }
     }
 
+    /**
+     * Ensure the Upload table conforms to specified limitations, if any.  This will only read through the file if
+     * the Upload table file falls into the acceptable size.
+     * @throws IOException  If any of the limitations are exceeded.
+     */
     void verifyUploadTable() throws IOException {
-        if (uploadLimits != null) {
+        // Only proceed if a size limitation is set.
+        if (uploadLimits != null && uploadLimits.byteLimit != null) {
             final VOTableReader voTableReader = new VOTableReader();
             try (final ByteCountInputStream byteCountInputStream =
-                         new ByteCountInputStream(upload.uri.toURL().openStream(), uploadLimits.getByteLimit())) {
+                         new ByteCountInputStream(upload.uri.toURL().openStream(), uploadLimits.byteLimit)) {
                 final VOTableDocument doc = voTableReader.read(byteCountInputStream);
                 final VOTableResource vr = doc.getResourceByType("results");
                 final VOTableTable voTableTable = vr.getTable();
 
-                if (voTableTable.getFields().size() > uploadLimits.getColumnLimit()) {
-                    throw new IOException("Column count exceeds maximum of " + uploadLimits.getColumnLimit());
+                if (uploadLimits.columnLimit != null && voTableTable.getFields().size() > uploadLimits.columnLimit) {
+                    throw new IOException("Column count exceeds maximum of " + uploadLimits.columnLimit);
                 }
 
-                int counter = 0;
-                for (final Iterator<List<Object>> iterator = voTableTable.getTableData().iterator(); iterator.hasNext(); ) {
-                    if (++counter > uploadLimits.getRowLimit()) {
-                        throw new IOException("Row count exceeds maximum of " + uploadLimits.getRowLimit());
-                    } else {
-                        iterator.next();
+                // If no row limit has been set, avoid reading through the file.
+                if (uploadLimits.rowLimit != null) {
+                    int counter = 0;
+                    for (final Iterator<List<Object>> iterator = voTableTable.getTableData().iterator();
+                         iterator.hasNext();) {
+                        if (++counter > uploadLimits.rowLimit) {
+                            throw new IOException("Row count exceeds maximum of " + uploadLimits.rowLimit);
+                        } else {
+                            iterator.next();
+                        }
                     }
                 }
             }

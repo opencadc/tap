@@ -69,25 +69,13 @@
 package ca.nrc.cadc.tap.upload;
 
 public class UploadLimits {
-    private final Long byteLimit;
-    private final Integer rowLimit;
-    private final Integer columnLimit;
+    final Long byteLimit;
+    final Integer rowLimit;
+    final Integer columnLimit;
 
     public UploadLimits(Long byteLimit, Integer rowLimit, Integer columnLimit) {
         this.byteLimit = byteLimit;
         this.rowLimit = rowLimit;
         this.columnLimit = columnLimit;
-    }
-
-    long getByteLimit() {
-        return byteLimit == null ? Long.MAX_VALUE : byteLimit;
-    }
-
-    int getRowLimit() {
-        return rowLimit == null ? Integer.MAX_VALUE : rowLimit;
-    }
-
-    int getColumnLimit() {
-        return columnLimit == null ? Integer.MAX_VALUE : columnLimit;
     }
 }

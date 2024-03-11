@@ -112,7 +112,7 @@ public class JDOMVOTableParserTest {
 
         final UploadTable uploadTable = new UploadTable("test2", "jobid2", uploadFile.toURI());
 
-        testSubject.setUpload(uploadTable, new UploadLimits(null, 2, 2));
+        testSubject.setUpload(uploadTable, new UploadLimits(5L * 1024L * 1024L, 2, null));
 
         try {
             testSubject.verifyUploadTable();
@@ -132,7 +132,7 @@ public class JDOMVOTableParserTest {
 
         final UploadTable uploadTable = new UploadTable("test3", "jobid3", uploadFile.toURI());
 
-        testSubject.setUpload(uploadTable, new UploadLimits(null, null, 4));
+        testSubject.setUpload(uploadTable, new UploadLimits(5L * 1024L * 1024L, null, 4));
 
         try {
             testSubject.verifyUploadTable();
