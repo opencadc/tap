@@ -128,7 +128,7 @@ public class JDOMVOTableParser implements VOTableParser
 
     /**
      * Ensure the Upload table conforms to specified limitations, if any.  This will only read through the file if
-     * the Upload table file falls into the acceptable size.
+     * the Upload table file falls into the acceptable size first.
      * @throws IOException  If any of the limitations are exceeded.
      */
     void verifyUploadTable() throws IOException {
@@ -145,7 +145,7 @@ public class JDOMVOTableParser implements VOTableParser
                     throw new IOException("Column count exceeds maximum of " + uploadLimits.columnLimit);
                 }
 
-                // If no row limit has been set, avoid reading through the file.
+                // Avoid iterating if no row limit has been set.
                 if (uploadLimits.rowLimit != null) {
                     int counter = 0;
                     for (final Iterator<List<Object>> iterator = voTableTable.getTableData().iterator();
