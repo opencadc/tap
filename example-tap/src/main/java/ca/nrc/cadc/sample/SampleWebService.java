@@ -106,6 +106,7 @@ public class SampleWebService implements AvailabilityPlugin {
         return true;
     }
 
+    @Override
     public Availability getStatus() {
         boolean isGood = true;
         String note = "service is accepting queries";

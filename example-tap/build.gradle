@@ -21,7 +21,7 @@ dependencies {
     compile 'org.opencadc:cadc-uws:[1.0,)'
     compile 'org.opencadc:cadc-uws-server:[1.2,)'
     compile 'org.opencadc:cadc-tap-server:[1.1.5,)'
-    compile 'org.opencadc:cadc-vosi:[1.0,1.4)'
+    compile 'org.opencadc:cadc-vosi:[1.4.4,1.5)'
     compile 'org.opencadc:cadc-adql:[1.1,)'
 
     // Switch out this to use any supported database instead of PostgreSQL.
