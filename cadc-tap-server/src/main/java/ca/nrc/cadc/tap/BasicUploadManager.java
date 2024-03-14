@@ -119,9 +119,9 @@ public class BasicUploadManager implements UploadManager
     protected DateFormat dateFormat;
 
     /**
-     * Limitations on the UPLOAD VOTable.
+     * Limitations on the UPLOAD VOTable.  Defaults to one Megabyte with unlimited rows and columns.
      */
-    protected UploadLimits uploadLimits;
+    protected UploadLimits uploadLimits = new UploadLimits(1024L * 1024L);
 
     protected Job job;
     
@@ -132,6 +132,10 @@ public class BasicUploadManager implements UploadManager
     
     protected BasicUploadManager(UploadLimits uploadLimits)
     {
+        if (uploadLimits == null) {
+            throw new IllegalStateException("Upload limits are required.");
+        }
+
         this.uploadLimits = uploadLimits;
         dateFormat = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
     }
@@ -265,8 +269,8 @@ public class BasicUploadManager implements UploadManager
     protected VOTableParser getVOTableParser(UploadTable uploadTable)
             throws VOTableParserException
     {
-        VOTableParser ret = new JDOMVOTableParser();
-        ret.setUpload(uploadTable, uploadLimits);
+        VOTableParser ret = new JDOMVOTableParser(uploadLimits);
+        ret.setUpload(uploadTable);
         return ret;
     }
 

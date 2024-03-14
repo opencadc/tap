@@ -69,13 +69,15 @@
 package ca.nrc.cadc.tap.upload;
 
 public class UploadLimits {
-    final Long byteLimit;
-    final Integer rowLimit;
-    final Integer columnLimit;
+    final long byteLimit;
+    public Integer rowLimit;
+    public Integer columnLimit;
 
-    public UploadLimits(Long byteLimit, Integer rowLimit, Integer columnLimit) {
+    public UploadLimits(long byteLimit) {
+        if (byteLimit <= 0) {
+            throw new IllegalStateException(
+                    "Invalid configuration: Upload file size limit should be greater than zero.");
+        }
         this.byteLimit = byteLimit;
-        this.rowLimit = rowLimit;
-        this.columnLimit = columnLimit;
     }
 }

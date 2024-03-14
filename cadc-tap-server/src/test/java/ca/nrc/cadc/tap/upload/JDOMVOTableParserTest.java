@@ -91,33 +91,39 @@ public class JDOMVOTableParserTest {
     }
 
     @Test
-    public void testUploadValidateUnlimited() throws Exception {
-        final JDOMVOTableParser testSubject = new JDOMVOTableParser();
+    public void testUploadInvalidConditions() {
+        try {
+            new JDOMVOTableParser(null);
+            Assert.fail("Should throw IllegalStateException.");
+        } catch (IllegalStateException illegalStateException) {
+            // Good.
+        }
 
-        final File uploadFile = createUploadFile("testuploadunlimited", "results",
-                                                  4, 200);
-
-        final UploadTable uploadTable = new UploadTable("test1", "jobid1", uploadFile.toURI());
-
-        testSubject.setUpload(uploadTable, null);
-        testSubject.verifyUploadTable();
+        try {
+            new JDOMVOTableParser(new UploadLimits(-3L));
+            Assert.fail("Should throw IllegalStateException.");
+        } catch (IllegalStateException illegalStateException) {
+            // Good.
+        }
     }
 
     @Test
     public void testUploadValidateRowLimit() throws Exception {
-        final JDOMVOTableParser testSubject = new JDOMVOTableParser();
+        final UploadLimits uploadLimits = new UploadLimits(5L * 1024L * 1024L);
+        uploadLimits.rowLimit = 2;
+        final JDOMVOTableParser testSubject = new JDOMVOTableParser(uploadLimits);
 
         final File uploadFile = createUploadFile("testuploadrowlimit", "results",
                 2, 5);
 
         final UploadTable uploadTable = new UploadTable("test2", "jobid2", uploadFile.toURI());
 
-        testSubject.setUpload(uploadTable, new UploadLimits(5L * 1024L * 1024L, 2, null));
+        testSubject.setUpload(uploadTable);
 
         try {
             testSubject.verifyUploadTable();
-            Assert.fail("Should throw IOException here.");
-        } catch (IOException ioException) {
+            Assert.fail("Should throw IllegalArgumentException here.");
+        } catch (IllegalArgumentException ioException) {
             Assert.assertEquals("Wrong message.", "Row count exceeds maximum of 2",
                     ioException.getMessage());
         }
@@ -125,19 +131,20 @@ public class JDOMVOTableParserTest {
 
     @Test
     public void testUploadValidateColumnLimit() throws Exception {
-        final JDOMVOTableParser testSubject = new JDOMVOTableParser();
+        final UploadLimits uploadLimits = new UploadLimits(5L * 1024L * 1024L);
+        uploadLimits.columnLimit = 4;
+        final JDOMVOTableParser testSubject = new JDOMVOTableParser(uploadLimits);
 
         final File uploadFile = createUploadFile("testuploadcolumnlimit", "results",
                 12, 500);
 
         final UploadTable uploadTable = new UploadTable("test3", "jobid3", uploadFile.toURI());
-
-        testSubject.setUpload(uploadTable, new UploadLimits(5L * 1024L * 1024L, null, 4));
+        testSubject.setUpload(uploadTable);
 
         try {
             testSubject.verifyUploadTable();
-            Assert.fail("Should throw IOException here.");
-        } catch (IOException ioException) {
+            Assert.fail("Should throw IllegalArgumentException here.");
+        } catch (IllegalArgumentException ioException) {
             Assert.assertEquals("Wrong message.", "Column count exceeds maximum of 4",
                     ioException.getMessage());
         }
@@ -145,58 +152,65 @@ public class JDOMVOTableParserTest {
 
     @Test
     public void testUploadValidateByteLimit() throws Exception {
-        final JDOMVOTableParser testSubject = new JDOMVOTableParser();
+        final JDOMVOTableParser testSubject = new JDOMVOTableParser(new UploadLimits(1024L));
 
         final File uploadFile = createUploadFile("testuploadbytelimit", "results",
                 12, 5000);
 
         final UploadTable uploadTable = new UploadTable("test4", "jobid4", uploadFile.toURI());
 
-        testSubject.setUpload(uploadTable, new UploadLimits(1024L, null, null));
+        testSubject.setUpload(uploadTable);
 
         try {
             testSubject.verifyUploadTable();
-            Assert.fail("Should throw ByteLimitExceededException here.");
-        } catch (ByteLimitExceededException ioException) {
-            Assert.assertEquals("Wrong message.", 1024L, ioException.getLimit(), 0L);
+            Assert.fail("Should throw IllegalArgumentException here.");
+        } catch (IllegalArgumentException ioException) {
+            Assert.assertEquals("Wrong message.", 1024L,
+                                ((ByteLimitExceededException) ioException.getCause()).getLimit(), 0L);
         }
     }
 
     @Test
     public void testUploadValidateCombinationLimit1() throws Exception {
-        final JDOMVOTableParser testSubject = new JDOMVOTableParser();
+        final UploadLimits uploadLimits = new UploadLimits(1024L * 1024L);
+        uploadLimits.rowLimit = 2000;
+        final JDOMVOTableParser testSubject = new JDOMVOTableParser(uploadLimits);
 
         final File uploadFile = createUploadFile("testuploadcombinationlimit2", "results",
                 12, 5000);
 
         final UploadTable uploadTable = new UploadTable("test5", "jobid5", uploadFile.toURI());
 
-        testSubject.setUpload(uploadTable, new UploadLimits(1024L * 1024L, 2000, null));
+        testSubject.setUpload(uploadTable);
 
         try {
             testSubject.verifyUploadTable();
-            Assert.fail("Should throw IOException here.");
-        } catch (ByteLimitExceededException ioException) {
-            Assert.assertEquals("Wrong message.", 1024L * 1024L, ioException.getLimit(), 0L);
+            Assert.fail("Should throw IllegalArgumentException here.");
+        } catch (IllegalArgumentException ioException) {
+            Assert.assertEquals("Wrong message.", 1024L * 1024L,
+                                ((ByteLimitExceededException) ioException.getCause()).getLimit(), 0L);
         }
     }
 
     @Test
     public void testUploadValidateCombinationLimit2() throws Exception {
-        final JDOMVOTableParser testSubject = new JDOMVOTableParser();
+        final UploadLimits uploadLimits = new UploadLimits(5L * 1024L * 1024L);
+        uploadLimits.rowLimit = 2000;
+        uploadLimits.columnLimit = 10;
+        final JDOMVOTableParser testSubject = new JDOMVOTableParser(uploadLimits);
 
         final File uploadFile = createUploadFile("testuploadcombinationlimit2", "results",
                 12, 5000);
 
         final UploadTable uploadTable = new UploadTable("test6", "jobid6", uploadFile.toURI());
 
-        testSubject.setUpload(uploadTable, new UploadLimits(5 * 1024L * 1024L, 2000, null));
+        testSubject.setUpload(uploadTable);
 
         try {
             testSubject.verifyUploadTable();
-            Assert.fail("Should throw IOException here.");
-        } catch (IOException ioException) {
-            Assert.assertEquals("Wrong message.", "Row count exceeds maximum of 2000",
+            Assert.fail("Should throw IllegalArgumentException here.");
+        } catch (IllegalArgumentException ioException) {
+            Assert.assertEquals("Wrong message.", "Column count exceeds maximum of 10",
                     ioException.getMessage());
         }
     }

@@ -85,10 +85,9 @@ public interface VOTableParser
     /**
      * Set the Upload Table details.
      * @param upload        The upload table descriptor.
-     * @param uploadLimits  Limitations of the Upload table.  Optional.
      * @throws VOTableParserException   For any parsing exceptions.
      */
-    void setUpload(UploadTable upload, UploadLimits uploadLimits) throws VOTableParserException;
+    void setUpload(UploadTable upload) throws VOTableParserException;
     
     /**
      * Get a TableDesc of the VOTable.
