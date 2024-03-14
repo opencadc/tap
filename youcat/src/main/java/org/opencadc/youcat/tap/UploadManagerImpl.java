@@ -67,14 +67,8 @@
 
 package org.opencadc.youcat.tap;
 
-import ca.nrc.cadc.stc.Polygon;
-import ca.nrc.cadc.stc.Position;
-import ca.nrc.cadc.stc.Region;
 import ca.nrc.cadc.tap.BasicUploadManager;
-import ca.nrc.cadc.tap.parser.region.pgsphere.function.Spoint;
-import ca.nrc.cadc.tap.parser.region.pgsphere.function.Spoly;
-import java.sql.SQLException;
-import org.postgresql.util.PGobject;
+import ca.nrc.cadc.tap.upload.UploadLimits;
 
 /**
  *
@@ -82,13 +76,19 @@ import org.postgresql.util.PGobject;
  */
 public class UploadManagerImpl extends BasicUploadManager {
 
-    /**
-     * Default maximum number of rows allowed in the UPLOAD VOTable.
-     */
-    public static final int MAX_UPLOAD_ROWS = 10000;
+    public static final UploadLimits MAX_UPLOAD;
+    
+    static {
+        // for votable xml, 20MiB is roughly:
+        // 34k rows X 10 columns
+        // 340k rows X 1 column (more if compact)
+        MAX_UPLOAD = new UploadLimits(20 * 1024L * 1024L); // 20 MiB
+        // TODO: columnLimit to prevent really wide tables?
+        MAX_UPLOAD.rowLimit = 100000; // sane batch size users can manage
+    }
 
     public UploadManagerImpl() {
-        super(MAX_UPLOAD_ROWS);
+        super(MAX_UPLOAD);
     }
 
     /**
