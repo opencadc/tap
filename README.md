@@ -2,7 +2,7 @@
 client and server implementation of IVOA Table Access Protocol (TAP) specification
 
 ## youcat
-TouCat is a complete prototype TAP service that supports TAP-1.1 plus TAP-next extensions
+YouCat is a complete prototype TAP service that supports TAP-1.1 plus TAP-next extensions
 for user-managed tables. Users are allocated a schema (literally) and can create and drop tables, 
 create indices, and load table data. Loading data is limited to "append more rows" and designed
 mainly for bulk data loading. 
