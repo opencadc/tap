@@ -139,16 +139,16 @@
         <hard>600</hard>
     </executionDuration>
 
-    <!-- outputLimit for async queries: 128MB -->
+    <!-- outputLimit for async queries: 128MiB -->
     <outputLimit>
         <default unit="byte">134217728</default>
         <hard unit="byte">134217728</hard>
     </outputLimit>
     <!-- outputLimit for sync queries: no limit -->
 
+    <!-- 32MiB limit for tap_upload  -->
     <uploadLimit>
-        <default unit="row">10000</default>
-        <hard unit="row">10000</hard>
+        <hard unit="byte">33554432</hard>
     </uploadLimit>
 
   </capability>

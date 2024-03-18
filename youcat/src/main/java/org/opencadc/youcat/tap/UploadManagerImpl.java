@@ -79,10 +79,10 @@ public class UploadManagerImpl extends BasicUploadManager {
     public static final UploadLimits MAX_UPLOAD;
     
     static {
-        // for votable xml, 20MiB is roughly:
-        // 34k rows X 10 columns
-        // 340k rows X 1 column (more if compact)
-        MAX_UPLOAD = new UploadLimits(20 * 1024L * 1024L); // 20 MiB
+        // for votable xml, 32MiB is roughly:
+        // 50k rows X 10 columns
+        // 500k rows X 1 column (more if compact)
+        MAX_UPLOAD = new UploadLimits(32 * 1024L * 1024L); // 32 MiB
         // TODO: columnLimit to prevent really wide tables?
         MAX_UPLOAD.rowLimit = 100000; // sane batch size users can manage
     }
