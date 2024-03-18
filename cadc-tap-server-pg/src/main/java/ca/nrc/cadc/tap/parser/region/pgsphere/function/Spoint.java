@@ -70,13 +70,13 @@
 package ca.nrc.cadc.tap.parser.region.pgsphere.function;
 
 import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.tap.parser.function.OperatorArg;
 import java.util.ArrayList;
 import java.util.List;
-
+import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
-import net.sf.jsqlparser.expression.DoubleValue;
 import org.apache.log4j.Logger;
 
 /**
@@ -85,7 +85,7 @@ import org.apache.log4j.Logger;
  * @author zhangsa
  * 
  */
-public class Spoint extends Function
+public class Spoint extends Function implements OperatorArg
 {
     private static final Logger log = Logger.getLogger(Spoint.class);
 

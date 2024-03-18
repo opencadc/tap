@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2011.                            (c) 2011.
+*  (c) 2015.                            (c) 2015.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,21 +67,68 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.parser;
+package ca.nrc.cadc.tap.parser.operator;
 
-import ca.nrc.cadc.tap.parser.function.Concatenate;
-import ca.nrc.cadc.tap.parser.function.Operator;
-import ca.nrc.cadc.tap.parser.operator.TextSearchMatch;
+import ca.nrc.cadc.tap.parser.OperatorVisitor;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.ExpressionVisitor;
+import net.sf.jsqlparser.schema.Column;
+import org.apache.log4j.Logger;
 
 /**
- *
- * @author pdowler
+ * Text search expression.
  */
-public interface OperatorVisitor 
+public abstract class TextSearchMatch implements Expression
 {
-    public void visit(Operator operator);
+    private static Logger log = Logger.getLogger(TextSearchMatch.class);
 
-    public void visit(Concatenate operator);
+    protected Column column;
+    protected String query;
+    protected boolean negate = false;
 
-    public void visit(TextSearchMatch match);
+    public TextSearchMatch(Column column, String query)
+    {
+        this.column = column;
+        this.query = query;
+    }
+
+    @Override
+    public void accept(ExpressionVisitor expressionVisitor)
+    {
+        log.debug("accept(" + expressionVisitor.getClass().getSimpleName() + "): " + this);
+        ((OperatorVisitor) expressionVisitor).visit(this);
+    }
+
+    public Column getColumn()
+    {
+        return column;
+    }
+
+    public void setColumn(Column column)
+    {
+        this.column = column;
+    }
+
+    public String getQuery()
+    {
+        return query;
+    }
+
+    public void setQuery(String query)
+    {
+        this.query = query;
+    }
+
+    public void negate()
+    {
+        this.negate = true;
+    }
+
+    public boolean isNegate()
+    {
+        return negate;
+    }
+
+    // jsqlparser used toString to we need to revert it to abstract, ugh    
+    public abstract String toString();
 }

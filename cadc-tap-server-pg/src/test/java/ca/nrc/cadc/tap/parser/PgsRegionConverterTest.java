@@ -125,7 +125,7 @@ public class PgsRegionConverterTest
             job.getParameterList().add(para);
             log.debug("input query: " + _query);
 
-            TapQuery tapQuery = new AdqlPgsRegionQuery(); // inner class in this file
+            AdqlQuery tapQuery = new AdqlPgsRegionQuery(); // inner class in this file
             tapQuery.setJob(job);
             String sql = tapQuery.getSQL();
             log.debug("actual: " + sql);
@@ -398,7 +398,7 @@ public class PgsRegionConverterTest
     
 }
 
-class AdqlPgsRegionQuery extends AdqlQuery
+class AdqlPgsRegionQuery extends PgAdqlQuery
 {
     @Override
     protected void init()

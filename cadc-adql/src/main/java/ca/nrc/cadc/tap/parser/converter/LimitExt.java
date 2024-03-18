@@ -3,12 +3,12 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2011.                            (c) 2011.
+*  (c) 2024.                            (c) 2024.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 *  All rights reserved                  Tous droits réservés
-*
+*                                       
 *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 *  expressed, implied, or               énoncée, implicite ou légale,
 *  statutory, of any kind with          de quelque nature que ce
@@ -31,10 +31,10 @@
 *  software without specific prior      de ce logiciel sans autorisation
 *  written permission.                  préalable et particulière
 *                                       par écrit.
-*
+*                                       
 *  This file is part of the             Ce fichier fait partie du projet
 *  OpenCADC project.                    OpenCADC.
-*
+*                                       
 *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 *  you can redistribute it and/or       vous pouvez le redistribuer ou le
 *  modify it under the terms of         modifier suivant les termes de
@@ -44,7 +44,7 @@
 *  either version 3 of the              : soit la version 3 de cette
 *  License, or (at your option)         licence, soit (à votre gré)
 *  any later version.                   toute version ultérieure.
-*
+*                                       
 *  OpenCADC is distributed in the       OpenCADC est distribué
 *  hope that it will be useful,         dans l’espoir qu’il vous
 *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -54,7 +54,7 @@
 *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 *  General Public License for           Générale Publique GNU Affero
 *  more details.                        pour plus de détails.
-*
+*                                       
 *  You should have received             Vous devriez avoir reçu une
 *  a copy of the GNU Affero             copie de la Licence Générale
 *  General Public License along         Publique GNU Affero avec
@@ -62,128 +62,100 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
+*  $Revision: 4 $
 *
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.parser.converter.postgresql;
+package ca.nrc.cadc.tap.parser.converter;
 
-
-import ca.nrc.cadc.tap.AdqlQuery;
-import ca.nrc.cadc.tap.TapQuery;
-import ca.nrc.cadc.tap.parser.RegionFinder;
-import ca.nrc.cadc.tap.parser.RegionFinderTest;
-import ca.nrc.cadc.tap.parser.TestUtil;
-import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
-import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
-import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
-import ca.nrc.cadc.tap.parser.schema.BlobClobColumnValidator;
-import ca.nrc.cadc.tap.parser.schema.ExpressionValidator;
-import ca.nrc.cadc.tap.parser.schema.TapSchemaTableValidator;
-import ca.nrc.cadc.tap.schema.TapSchema;
-import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.uws.Job;
-import ca.nrc.cadc.uws.Parameter;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Test;
+import net.sf.jsqlparser.statement.select.Limit;
 
 /**
- *
- * @author pdowler
+ * An SQL LIMIT expression that handles limit 0??? 
  */
-public class MatchConverterTest 
+public class LimitExt extends Limit
 {
-    private static final Logger log = Logger.getLogger(MatchConverterTest.class);
+    private long offset;
+    private long rowCount;
+    private boolean rowCountJdbcParameter = false;
+    private boolean offsetJdbcParameter = false;
+    private boolean limitAll;
 
-    static
+    public LimitExt(Limit limit)
     {
-        Log4jInit.setLevel("ca.nrc.cadc.tap.parser", Level.INFO);
+        this.offset = limit.getOffset();
+        this.rowCount = limit.getRowCount();
+        this.rowCountJdbcParameter = limit.isRowCountJdbcParameter();
+        this.offsetJdbcParameter = limit.isOffsetJdbcParameter();
+        this.limitAll = limit.isLimitAll();
     }
-    
-    public MatchConverterTest() { }
-    
-    Job job = new Job() 
+
+    public String toString()
     {
-        @Override
-        public String getID() { return "abcdefg"; }
-    };
-    
-    private String doit(String method, String query)
-    {
-        try
+        String retVal = "";
+        if (rowCount >= 0 || rowCountJdbcParameter)
         {
-            log.debug("IN: " + query);
-            Parameter para = new Parameter("QUERY", query);
-            job.getParameterList().add(para);
-            TapQuery tapQuery = new TestQuery();
-            tapQuery.setJob(job);
-            String sql = tapQuery.getSQL();
-            log.debug(method + " OUT: " + sql);
-            return sql;
+            retVal += " LIMIT " + (rowCountJdbcParameter ? "?" : rowCount + "");
         }
-        finally
+        if (offset > 0 || offsetJdbcParameter)
         {
-            job.getParameterList().clear();
+            retVal += " OFFSET " + (offsetJdbcParameter ? "?" : offset + "");
         }
+        return retVal;
     }
-    
-    @Test
-    public void testMatch()
+
+    public long getOffset()
     {
-        try
-        {
-            // re-use t_text since it is CLOB
-            String query = "select count(*) from SomeTable where match(t_text, 'foo|bar') = 1";
-            String sql = doit("testMatch", query);
-            sql = sql.toLowerCase();
-            Assert.assertTrue("expected t_text @@, got: " + sql, sql.contains("t_text @@ 'foo|bar'::tsquery"));
-        }
-        catch(Exception unexpected)
-        {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception" + unexpected);
-        }
+        return offset;
     }
-    
-    @Test
-    public void testNotMatch()
+
+    public long getRowCount()
     {
-        try
-        {
-            // re-use t_text since it is CLOB
-            String query = "select count(*) from SomeTable where match(t_text, 'foo|bar') = 0";
-            String sql = doit("testNotMatch", query);
-            sql = sql.toLowerCase();
-            Assert.assertTrue("expected not t_text @@, got: " + sql, sql.contains("not (t_text @@ 'foo|bar'::tsquery)"));
-        }
-        catch(Exception unexpected)
-        {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception" + unexpected);
-        }
+        return rowCount;
     }
-    
-    @Test
-    public void testCountStar()
+
+    public void setOffset(long l)
     {
-        String query = "select count(*) from SomeTable";
-        String sql = doit("testCountStart", query);
+        offset = l;
     }
-    
-    static class TestQuery extends AdqlQuery
+
+    public void setRowCount(long l)
     {
-        @Override
-        protected void init()
-        {
-            //super.init();
-            TapSchema tapSchema = TestUtil.mockTapSchema();
-            ExpressionNavigator en = new ExpressionValidator(tapSchema);
-            ReferenceNavigator rn = new BlobClobColumnValidator(tapSchema);
-            FromItemNavigator fn = new TapSchemaTableValidator(tapSchema);
-            super.navigatorList.add(new MatchConverter(en, rn, fn));
-        }
+        rowCount = l;
     }
+
+    public boolean isOffsetJdbcParameter()
+    {
+        return offsetJdbcParameter;
+    }
+
+    public boolean isRowCountJdbcParameter()
+    {
+        return rowCountJdbcParameter;
+    }
+
+    public void setOffsetJdbcParameter(boolean b)
+    {
+        offsetJdbcParameter = b;
+    }
+
+    public void setRowCountJdbcParameter(boolean b)
+    {
+        rowCountJdbcParameter = b;
+    }
+
+    /**
+     * @return true if the limit is "LIMIT ALL [OFFSET ...])
+     */
+    public boolean isLimitAll()
+    {
+        return limitAll;
+    }
+
+    public void setLimitAll(boolean b)
+    {
+        limitAll = b;
+    }
+
 }

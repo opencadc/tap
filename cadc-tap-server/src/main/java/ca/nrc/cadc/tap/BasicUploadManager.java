@@ -119,19 +119,31 @@ public class BasicUploadManager implements UploadManager
     protected DateFormat dateFormat;
 
     /**
-     * Limitations on the UPLOAD VOTable.  Defaults to one Megabyte with unlimited rows and columns.
+     * Limitations on the UPLOAD VOTable.
      */
-    protected UploadLimits uploadLimits = new UploadLimits(1024L * 1024L);
+    protected final UploadLimits uploadLimits;
 
     protected Job job;
     
     /**
-     * Default constructor.
+     * Backwards compatible constructor. This uses the default byte limit of 10MiB.
+     * 
+     * @param rowLimit maximum number of rows
+     * @deprecated use UploadLimits instead
      */
-    private BasicUploadManager() { }
-    
-    protected BasicUploadManager(UploadLimits uploadLimits)
-    {
+    @Deprecated
+    protected BasicUploadManager(int rowLimit) {
+        // 10MiB of votable xml is roughly 17k rows x 10 columns
+        this(new UploadLimits(10 * 1024L * 1024L));
+        this.uploadLimits.rowLimit = rowLimit;
+    }
+
+    /**
+     * Subclass constructor.
+     * 
+     * @param uploadLimits limits on table upload
+     */
+    protected BasicUploadManager(UploadLimits uploadLimits) {
         if (uploadLimits == null) {
             throw new IllegalStateException("Upload limits are required.");
         }

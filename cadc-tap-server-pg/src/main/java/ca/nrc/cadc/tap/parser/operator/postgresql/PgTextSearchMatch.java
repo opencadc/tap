@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2015.                            (c) 2015.
+*  (c) 2024.                            (c) 2024.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,76 +62,28 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
-*
 ************************************************************************
 */
+
 package ca.nrc.cadc.tap.parser.operator.postgresql;
 
-import ca.nrc.cadc.tap.parser.OperatorVisitor;
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.ExpressionVisitor;
+import ca.nrc.cadc.tap.parser.operator.TextSearchMatch;
+import net.sf.jsqlparser.schema.Column;
 import org.apache.log4j.Logger;
 
-import net.sf.jsqlparser.expression.StringValue;
-import net.sf.jsqlparser.schema.Column;
-
 /**
- * Text search expression to match a tsvector to a tsquery.
+ *
+ * @author pdowler
  */
-public class TextSearchMatch implements Expression
-{
-    private static Logger log = Logger.getLogger(TextSearchMatch.class);
+public class PgTextSearchMatch extends TextSearchMatch {
+    private static final Logger log = Logger.getLogger(PgTextSearchMatch.class);
 
-    private Column column;
-    private String query;
-    private boolean negate = false;
-
-    public TextSearchMatch(Column column, String query)
-    {
-        this.column = column;
-        this.query = query;
+    public PgTextSearchMatch(Column col, String str) {
+        super(col, str);
     }
 
     @Override
-    public void accept(ExpressionVisitor expressionVisitor)
-    {
-        log.debug("accept(" + expressionVisitor.getClass().getSimpleName() + "): " + this);
-        ((OperatorVisitor) expressionVisitor).visit(this);
-    }
-
-    public Column getColumn()
-    {
-        return column;
-    }
-
-    public void setColumn(Column column)
-    {
-        this.column = column;
-    }
-
-    public String getQuery()
-    {
-        return query;
-    }
-
-    public void setQuery(String query)
-    {
-        this.query = query;
-    }
-
-    public void negate()
-    {
-        this.negate = true;
-    }
-
-    public boolean isNegate()
-    {
-        return negate;
-    }
-    
-    public String toString()
-    {
+    public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append(column.getWholeColumnName());
         sb.append(" @@ ");
