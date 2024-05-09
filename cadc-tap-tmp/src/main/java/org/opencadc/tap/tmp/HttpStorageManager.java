@@ -91,14 +91,6 @@ import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.ParameterUtil;
 import ca.nrc.cadc.uws.server.RandomStringGenerator;
 import ca.nrc.cadc.uws.web.UWSInlineContentHandler;
-import ca.nrc.cadc.vos.Direction;
-import ca.nrc.cadc.vos.Protocol;
-import ca.nrc.cadc.vos.Transfer;
-import ca.nrc.cadc.vos.TransferParsingException;
-import ca.nrc.cadc.vos.TransferReader;
-import ca.nrc.cadc.vos.TransferWriter;
-import ca.nrc.cadc.vos.VOS;
-import ca.nrc.cadc.vos.VOSURI;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -109,14 +101,19 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.security.AccessControlException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
-import java.security.spec.InvalidKeySpecException;
 import java.sql.ResultSet;
 import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
+import org.opencadc.vospace.VOS;
+import org.opencadc.vospace.VOSURI;
+import org.opencadc.vospace.transfer.Direction;
+import org.opencadc.vospace.transfer.Protocol;
+import org.opencadc.vospace.transfer.Transfer;
+import org.opencadc.vospace.transfer.TransferParsingException;
+import org.opencadc.vospace.transfer.TransferReader;
+import org.opencadc.vospace.transfer.TransferWriter;
 
 /**
  * Implementation of ResultStore and UWSINlineCOntentHandler that uses an external
@@ -322,9 +319,9 @@ public class HttpStorageManager implements StorageManager {
     
     private URL constructGET(VOSURI target) {
         RegistryClient reg = new RegistryClient();
-        URL filesURL = reg.getServiceURL(target.getServiceURI(), Standards.VOSPACE_FILES_20, AuthMethod.ANON);
+        URL filesURL = reg.getServiceURL(target.getServiceURI(), Standards.VOSPACE_FILES, AuthMethod.ANON);
         if (filesURL == null) {
-            throw new RuntimeException("OOPS: faield to find " + Standards.VOSPACE_FILES_20 
+            throw new RuntimeException("OOPS: faield to find " + Standards.VOSPACE_FILES
                     + " endpoint in " + target.getServiceURI());
         }
         StringBuilder sb = new StringBuilder();
