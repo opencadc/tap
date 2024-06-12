@@ -71,23 +71,24 @@ package ca.nrc.cadc.tap.parser.region.function;
 
 import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.dali.Polygon;
-import ca.nrc.cadc.tap.parser.RegionFinder;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.LongValue;
-import net.sf.jsqlparser.expression.StringValue;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 
 
+/**
+ * Represents an Oracle Polygon object.
+ */
 public class OraclePolygon extends OracleGeometricFunction {
-
     private static final int[] ORACLE_ELEMENT_INFO_VALUES = new int[] {
         1, 2003, 1
     };
@@ -101,29 +102,66 @@ public class OraclePolygon extends OracleGeometricFunction {
         }
     }
 
-    private final List<Expression> vertices = new ArrayList<>();
+    private final List<Expression> vertexExpressions = new ArrayList<>();
 
 
     private OraclePolygon() {
         super(ORACLE_ELEMENT_INFO);
     }
 
-    public OraclePolygon(final List<Expression> verticeExpressions) {
+    public OraclePolygon(final List<Expression> vertexExpressions) {
         this();
-        if (verticeExpressions != null) {
-            this.vertices.addAll(verticeExpressions);
+        if (vertexExpressions != null) {
+            // Skip the first value as it's the coord sys (e.g. ICRS).
+            this.vertexExpressions.addAll(vertexExpressions.subList(1, vertexExpressions.size()));
         }
+        ensureCounterClockwise();
         processOrdinateParameters();
     }
 
     public OraclePolygon(final Polygon polygon) {
         this();
-        vertices.add(new StringValue(RegionFinder.ICRS));
         for (final Point p : polygon.getVertices()) {
-            vertices.add(new DoubleValue(Double.toString(p.getLongitude())));
-            vertices.add(new DoubleValue(Double.toString(p.getLatitude())));
+            vertexExpressions.add(new DoubleValue(Double.toString(p.getLongitude())));
+            vertexExpressions.add(new DoubleValue(Double.toString(p.getLatitude())));
         }
+        ensureCounterClockwise();
         processOrdinateParameters();
+    }
+
+    private void ensureCounterClockwise() {
+        double edgeSum = 0.0D;
+        final int length = this.vertexExpressions.size();
+        for (int i = 0; i < length; i = i + 2) {
+            final Expression ra1 = this.vertexExpressions.get(i);
+            final Expression dec1 = this.vertexExpressions.get(i + 1);
+
+            final Expression ra2;
+            final Expression dec2;
+            if (i == length - 2) {
+                // Back to the beginning if we're on the last vertex.
+                ra2 = this.vertexExpressions.get(0);
+                dec2 = this.vertexExpressions.get(1);
+            } else {
+                // Back to the beginning if we're on the last vertex.
+                ra2 = this.vertexExpressions.get(i + 2);
+                dec2 = this.vertexExpressions.get(i + 3);
+            }
+            edgeSum += (Double.parseDouble(ra2.toString()) - Double.parseDouble(ra1.toString())) *
+                       (Double.parseDouble(dec2.toString()) + Double.parseDouble(dec1.toString()));
+        }
+
+        if (edgeSum > 0.0D) {
+            final List<Expression> reversedVertices = new ArrayList<>();
+            // Clockwise, so reverse the vertices, but maintain the pairs of points.
+            for (int i = length - 2; i >= 0; i -= 2) {
+                reversedVertices.add(this.vertexExpressions.get(i));
+                reversedVertices.add(this.vertexExpressions.get(i + 1));
+            }
+
+            this.vertexExpressions.clear();
+            this.vertexExpressions.addAll(reversedVertices);
+        }
     }
 
     /**
@@ -132,24 +170,27 @@ public class OraclePolygon extends OracleGeometricFunction {
      * @param parameterList The ExpressionList to add parameters to.
      */
     @Override
-    void mapValues(final ExpressionList parameterList) {
-        // Start at 1 since the first item will be the coordinate system.
-        for (int i = 1; i < this.vertices.size(); i = i + 2) {
-            final Expression ra = this.vertices.get(i);
-            final Expression dec = this.vertices.get(i + 1);
-            addNumericExpression(ra, parameterList);
-            addNumericExpression(dec, parameterList);
-        }
-    }
-
     @SuppressWarnings("unchecked")
-    void addNumericExpression(final Expression expression, final ExpressionList parameterList) {
-        if (!(expression instanceof DoubleValue) && !(expression instanceof LongValue)) {
-            throw new UnsupportedOperationException(
-                    String.format("Cannot use non-constant coordinates in Polygon.  Expected Double or Long but found"
-                                  + " '%s'", expression.toString()));
-        } else {
-            parameterList.getExpressions().add(expression);
+    void mapValues(final ExpressionList parameterList) {
+        final int vertexCount = this.vertexExpressions.size();
+        for (int i = 0; i < vertexCount; i = i + 2) {
+            final Expression ra = this.vertexExpressions.get(i);
+            final Expression dec = this.vertexExpressions.get(i + 1);
+            parameterList.getExpressions().add(ra);
+            parameterList.getExpressions().add(dec);
+        }
+
+        final Expression firstVertexXExpression = this.vertexExpressions.get(0);
+        final Expression firstVertexYExpression = this.vertexExpressions.get(1);
+        final double firstVertexX = Double.parseDouble(firstVertexXExpression.toString());
+        final double firstVertexY = Double.parseDouble(firstVertexYExpression.toString());
+        final double lastVertexX = Double.parseDouble(this.vertexExpressions.get(vertexCount - 2).toString());
+        final double lastVertexY = Double.parseDouble(this.vertexExpressions.get(vertexCount - 1).toString());
+
+        // Close the Polygon, if necessary, as per Oracle's requirements.
+        if (firstVertexX != lastVertexX || firstVertexY != lastVertexY) {
+            parameterList.getExpressions().add(firstVertexXExpression);
+            parameterList.getExpressions().add(firstVertexYExpression);
         }
     }
 
@@ -164,6 +205,6 @@ public class OraclePolygon extends OracleGeometricFunction {
         final List<Integer> currValues = Arrays.stream(ORACLE_ELEMENT_INFO_VALUES).boxed().collect(Collectors.toList());
         final List<Integer> structValues = Arrays.stream(structTypeArray).map(BigDecimal::intValue).collect(
                 Collectors.toList());
-        return structValues.containsAll(currValues);
+        return new HashSet<>(structValues).containsAll(currValues);
     }
 }
