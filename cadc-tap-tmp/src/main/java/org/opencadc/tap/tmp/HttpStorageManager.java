@@ -70,6 +70,7 @@ package org.opencadc.tap.tmp;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.RunnableAction;
 import ca.nrc.cadc.auth.SSLUtil;
+import ca.nrc.cadc.auth.X509CertificateChain;
 import ca.nrc.cadc.cred.client.CredUtil;
 import ca.nrc.cadc.dali.tables.TableWriter;
 import ca.nrc.cadc.io.ByteLimitExceededException;
@@ -90,14 +91,6 @@ import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.ParameterUtil;
 import ca.nrc.cadc.uws.server.RandomStringGenerator;
 import ca.nrc.cadc.uws.web.UWSInlineContentHandler;
-import ca.nrc.cadc.vos.Direction;
-import ca.nrc.cadc.vos.Protocol;
-import ca.nrc.cadc.vos.Transfer;
-import ca.nrc.cadc.vos.TransferParsingException;
-import ca.nrc.cadc.vos.TransferReader;
-import ca.nrc.cadc.vos.TransferWriter;
-import ca.nrc.cadc.vos.VOS;
-import ca.nrc.cadc.vos.VOSURI;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -113,6 +106,14 @@ import java.security.cert.CertificateNotYetValidException;
 import java.sql.ResultSet;
 import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
+import org.opencadc.vospace.VOS;
+import org.opencadc.vospace.VOSURI;
+import org.opencadc.vospace.transfer.Direction;
+import org.opencadc.vospace.transfer.Protocol;
+import org.opencadc.vospace.transfer.Transfer;
+import org.opencadc.vospace.transfer.TransferParsingException;
+import org.opencadc.vospace.transfer.TransferReader;
+import org.opencadc.vospace.transfer.TransferWriter;
 
 /**
  * Implementation of ResultStore and UWSINlineCOntentHandler that uses an external
@@ -154,6 +155,14 @@ public class HttpStorageManager implements StorageManager {
         String absCertFile = System.getProperty("user.home") + "/.ssl/" + cfilename;
         log.debug("cert file: " + absCertFile);
         this.certFile = new File(absCertFile);
+    }
+
+    @Override
+    public void check() throws Exception {
+        // validate certificate
+        X509CertificateChain cert = SSLUtil.readPemCertificateAndKey(certFile);
+        cert.getChain()[0].checkValidity();
+        // TODO: check baseURL? 
     }
     
 
@@ -310,9 +319,9 @@ public class HttpStorageManager implements StorageManager {
     
     private URL constructGET(VOSURI target) {
         RegistryClient reg = new RegistryClient();
-        URL filesURL = reg.getServiceURL(target.getServiceURI(), Standards.VOSPACE_FILES_20, AuthMethod.ANON);
+        URL filesURL = reg.getServiceURL(target.getServiceURI(), Standards.VOSPACE_FILES, AuthMethod.ANON);
         if (filesURL == null) {
-            throw new RuntimeException("OOPS: faield to find " + Standards.VOSPACE_FILES_20 
+            throw new RuntimeException("OOPS: faield to find " + Standards.VOSPACE_FILES
                     + " endpoint in " + target.getServiceURI());
         }
         StringBuilder sb = new StringBuilder();

@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2011.                            (c) 2011.
+*  (c) 2024.                            (c) 2024.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,87 +62,20 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
-*
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.parser.converter.postgresql;
-
-
-import ca.nrc.cadc.tap.parser.FunctionFinder;
-import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
-import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
-import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
-import ca.nrc.cadc.tap.parser.operator.postgresql.TextSearchMatch;
-import java.util.List;
-import net.sf.jsqlparser.expression.BinaryExpression;
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.Function;
-import net.sf.jsqlparser.expression.LongValue;
-import net.sf.jsqlparser.expression.StringValue;
-import net.sf.jsqlparser.schema.Column;
-import org.apache.log4j.Logger;
+package ca.nrc.cadc.tap.parser.function;
 
 /**
- * Convert function call match(column, string) into a TextSearchMatch operator
- * invocation. This is for querying tsvector columns.
+ * Interface for expression classes that need to be told they are an operand to
+ * an operator.
  * 
  * @author pdowler
  */
-public class MatchConverter extends FunctionFinder
-{
-    private static final Logger log = Logger.getLogger(MatchConverter.class);
-
-    public MatchConverter(ExpressionNavigator en, ReferenceNavigator rn, FromItemNavigator fn)
-    {
-        super(en, rn, fn);
-    }
-
-    @Override
-    protected Expression convertToImplementation(Function func)
-    {
-        if (!func.getName().equalsIgnoreCase("match"))
-            return func;
-        
-        List<Expression> exprs = func.getParameters().getExpressions();
-        if (exprs.size() == 2)
-        {
-            Expression e1 = exprs.get(0);
-            Expression e2 = exprs.get(1);
-            if (e1 instanceof Column && e2 instanceof StringValue)
-            {
-                Column col = (Column) e1;
-                String query = ((StringValue) e2).getValue();
-                return new TextSearchMatch(col, query);
-            }
-        }
-        throw new IllegalArgumentException("invalid args to match: expected match(<column>,<string>)");
-    }
-
-    @Override
-    protected Expression handlePredicateFunction(BinaryExpression expr)
-    {
-        log.debug("handlePredicateFunction: " + expr);
-        if (expr.getLeftExpression() instanceof TextSearchMatch)
-        {
-            TextSearchMatch ts = (TextSearchMatch) expr.getLeftExpression();
-            log.debug("handlePredicateFunction: " + ts);
-            if (expr.getRightExpression() instanceof LongValue)
-            {
-                long value = ((LongValue) expr.getRightExpression()).getValue();
-                log.debug("handlePredicateFunction: " + value);
-                if (value == 0)
-                {
-                    log.debug("handlePredicateFunction: negate");
-                    ts.negate();
-                }
-            }
-                
-            return ts;
-        }
-        return expr;
-    }
-
+public interface OperatorArg {
     
+    public void setOperand(boolean isOperand);
+            
+    public boolean isOperand();
 }

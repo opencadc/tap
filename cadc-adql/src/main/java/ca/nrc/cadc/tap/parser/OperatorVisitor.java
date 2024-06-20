@@ -71,7 +71,7 @@ package ca.nrc.cadc.tap.parser;
 
 import ca.nrc.cadc.tap.parser.function.Concatenate;
 import ca.nrc.cadc.tap.parser.function.Operator;
-import ca.nrc.cadc.tap.parser.operator.postgresql.TextSearchMatch;
+import ca.nrc.cadc.tap.parser.operator.TextSearchMatch;
 
 /**
  *

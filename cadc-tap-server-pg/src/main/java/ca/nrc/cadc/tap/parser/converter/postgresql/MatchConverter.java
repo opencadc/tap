@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2022.                            (c) 2022.
+*  (c) 2011.                            (c) 2011.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -65,79 +65,84 @@
 *  $Revision: 5 $
 *
 ************************************************************************
- */
+*/
 
-package ca.nrc.cadc.sample;
+package ca.nrc.cadc.tap.parser.converter.postgresql;
 
-import ca.nrc.cadc.vosi.Availability;
-import ca.nrc.cadc.vosi.AvailabilityPlugin;
-import ca.nrc.cadc.vosi.avail.CheckDataSource;
-import ca.nrc.cadc.vosi.avail.CheckException;
+
+import ca.nrc.cadc.tap.parser.FunctionFinder;
+import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
+import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
+import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
+import ca.nrc.cadc.tap.parser.operator.postgresql.PgTextSearchMatch;
+import java.util.List;
+import net.sf.jsqlparser.expression.BinaryExpression;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.expression.StringValue;
+import net.sf.jsqlparser.schema.Column;
 import org.apache.log4j.Logger;
 
 /**
- * Sample WebService implementation for VOSI-availability. The class name for this class
- * is used to configure the VOSI-availability servlet in the web.xml file.
- *
+ * Convert function call match(column, string) into a TextSearchMatch operator
+ * invocation. This is for querying tsvector columns.
+ * 
  * @author pdowler
  */
-public class SampleWebService implements AvailabilityPlugin {
+public class MatchConverter extends FunctionFinder
+{
+    private static final Logger log = Logger.getLogger(MatchConverter.class);
 
-    private static final Logger log = Logger.getLogger(SampleWebService.class);
-
-    private static String TAPDS_NAME = "jdbc/tapuser";
-    // note tap_schema table names
-    private String TAPDS_TEST = "select schema_name from tap_schema.schemas11 where schema_name='tap_schema'";
-
-    public SampleWebService() {
-
+    public MatchConverter(ExpressionNavigator en, ReferenceNavigator rn, FromItemNavigator fn)
+    {
+        super(en, rn, fn);
     }
 
     @Override
-    public void setAppName(String string) {
-        //no-op
-    }
-
-    @Override
-    public boolean heartbeat() {
-        // currently no-op: the most that makes sense here is to maybe 
-        // borrow and return a connection from the tapuser connection pool 
-        // see: context.xml
-        return true;
-    }
-
-    @Override
-    public Availability getStatus() {
-        boolean isGood = true;
-        String note = "service is accepting queries";
-        try {
-            // test query using standard TAP data source
-            CheckDataSource checkDataSource = new CheckDataSource(TAPDS_NAME, TAPDS_TEST);
-            checkDataSource.check();
-
-            // check for a certficate needed to perform network ops
-            //File cert = ...
-            //CheckCertificate checkCert = new CheckCertificate(cert);
-            //checkCert.check();
-            // check some other web service availability since we depend it
-            //URL avail = ...
-            //CheckWebService cws = new CheckWebService(avail);
-            //cws.check();
-        } catch (CheckException ce) {
-            // tests determined that the resource is not working
-            isGood = false;
-            note = ce.getMessage();
-        } catch (Throwable t) {
-            // the test itself failed
-            log.error("web service status test failed", t);
-            isGood = false;
-            note = "test failed, reason: " + t;
+    protected Expression convertToImplementation(Function func)
+    {
+        if (!func.getName().equalsIgnoreCase("match"))
+            return func;
+        
+        List<Expression> exprs = func.getParameters().getExpressions();
+        if (exprs.size() == 2)
+        {
+            Expression e1 = exprs.get(0);
+            Expression e2 = exprs.get(1);
+            if (e1 instanceof Column && e2 instanceof StringValue)
+            {
+                Column col = (Column) e1;
+                String query = ((StringValue) e2).getValue();
+                return new PgTextSearchMatch(col, query);
+            }
         }
-        return new Availability(isGood, note);
+        throw new IllegalArgumentException("invalid args to match: expected match(<column>,<string>)");
     }
 
-    public void setState(String string) {
-        throw new UnsupportedOperationException();
+    @Override
+    protected Expression handlePredicateFunction(BinaryExpression expr)
+    {
+        log.debug("handlePredicateFunction: " + expr);
+        if (expr.getLeftExpression() instanceof PgTextSearchMatch)
+        {
+            PgTextSearchMatch ts = (PgTextSearchMatch) expr.getLeftExpression();
+            log.debug("handlePredicateFunction: " + ts);
+            if (expr.getRightExpression() instanceof LongValue)
+            {
+                long value = ((LongValue) expr.getRightExpression()).getValue();
+                log.debug("handlePredicateFunction: " + value);
+                if (value == 0)
+                {
+                    log.debug("handlePredicateFunction: negate");
+                    ts.negate();
+                }
+            }
+                
+            return ts;
+        }
+        return expr;
     }
 
+    
 }

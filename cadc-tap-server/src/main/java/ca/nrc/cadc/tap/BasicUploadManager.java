@@ -1,4 +1,4 @@
-/*
+ /*
 ************************************************************************
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -77,6 +77,7 @@ import ca.nrc.cadc.tap.db.TapConstants;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.upload.JDOMVOTableParser;
+import ca.nrc.cadc.tap.upload.UploadLimits;
 import ca.nrc.cadc.tap.upload.UploadParameters;
 import ca.nrc.cadc.tap.upload.UploadTable;
 import ca.nrc.cadc.tap.upload.VOTableParser;
@@ -101,10 +102,7 @@ import org.opencadc.tap.io.TableDataInputStream;
 public class BasicUploadManager implements UploadManager
 {
     private static final Logger log = Logger.getLogger(BasicUploadManager.class);
-    
-    // Number of rows to insert per commit.
-    private static final int NUM_ROWS_PER_COMMIT = 100;
-    
+
     /**
      * DataSource for the DB.
      */
@@ -121,20 +119,36 @@ public class BasicUploadManager implements UploadManager
     protected DateFormat dateFormat;
 
     /**
-     * Maximum number of rows allowed in the UPLOAD VOTable.
+     * Limitations on the UPLOAD VOTable.
      */
-    protected int maxUploadRows;
+    protected final UploadLimits uploadLimits;
 
     protected Job job;
     
     /**
-     * Default constructor.
+     * Backwards compatible constructor. This uses the default byte limit of 10MiB.
+     * 
+     * @param rowLimit maximum number of rows
+     * @deprecated use UploadLimits instead
      */
-    private BasicUploadManager() { }
-    
-    protected BasicUploadManager(int maxUploadRows)
-    {
-        this.maxUploadRows = maxUploadRows;
+    @Deprecated
+    protected BasicUploadManager(int rowLimit) {
+        // 10MiB of votable xml is roughly 17k rows x 10 columns
+        this(new UploadLimits(10 * 1024L * 1024L));
+        this.uploadLimits.rowLimit = rowLimit;
+    }
+
+    /**
+     * Subclass constructor.
+     * 
+     * @param uploadLimits limits on table upload
+     */
+    protected BasicUploadManager(UploadLimits uploadLimits) {
+        if (uploadLimits == null) {
+            throw new IllegalStateException("Upload limits are required.");
+        }
+
+        this.uploadLimits = uploadLimits;
         dateFormat = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
     }
 
@@ -265,9 +279,9 @@ public class BasicUploadManager implements UploadManager
     }
     
     protected VOTableParser getVOTableParser(UploadTable uploadTable)
-            throws IOException
+            throws VOTableParserException
     {
-        VOTableParser ret = new JDOMVOTableParser();
+        VOTableParser ret = new JDOMVOTableParser(uploadLimits);
         ret.setUpload(uploadTable);
         return ret;
     }

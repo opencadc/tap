@@ -16,13 +16,14 @@ sourceCompatibility = 1.8
 
 group = 'org.opencadc'
 
-version = '1.0.5'
+version = '1.1.0'
 
 description = 'OpenCADC TAP-1.1 tap server plugin (PostgreSQL+pgsphere)'
 def git_url = 'https://github.com/opencadc/tap'
 
 dependencies {
     compile 'org.opencadc:cadc-dali-pg:[0.1,)'
+    compile 'org.opencadc:cadc-adql:[1.1.14,)'
     compile 'org.opencadc:cadc-tap-schema:[1.1.22, )'
     compile 'org.opencadc:cadc-tap-server:[1.1.7, )'
 

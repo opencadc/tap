@@ -109,6 +109,10 @@ public class DelegatingStorageManager implements StorageManager {
             throw new InvalidConfigException("unknown implementation " + IMPL_KEY + "=" + cname);
         }
     }
+    
+    public void check() throws Exception {
+        impl.check();
+    }
 
     @Override
     public void setJob(Job job) {

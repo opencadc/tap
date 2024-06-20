@@ -72,11 +72,8 @@ package ca.nrc.cadc.tap.parser.navigator;
 import ca.nrc.cadc.tap.parser.OperatorVisitor;
 import ca.nrc.cadc.tap.parser.function.Concatenate;
 import ca.nrc.cadc.tap.parser.function.Operator;
-import ca.nrc.cadc.tap.parser.operator.postgresql.TextSearchMatch;
+import ca.nrc.cadc.tap.parser.operator.TextSearchMatch;
 import java.util.Iterator;
-
-import org.apache.log4j.Logger;
-
 import net.sf.jsqlparser.expression.AllComparisonExpression;
 import net.sf.jsqlparser.expression.AnyComparisonExpression;
 import net.sf.jsqlparser.expression.CaseExpression;
@@ -119,6 +116,7 @@ import net.sf.jsqlparser.statement.select.AllTableColumns;
 import net.sf.jsqlparser.statement.select.SelectExpressionItem;
 import net.sf.jsqlparser.statement.select.SelectItemVisitor;
 import net.sf.jsqlparser.statement.select.SubSelect;
+import org.apache.log4j.Logger;
 
 /**
  * This is a super class for expression navigation.  

@@ -77,4 +77,12 @@ import ca.nrc.cadc.uws.web.UWSInlineContentHandler;
  */
 public interface StorageManager extends ResultStore, UWSInlineContentHandler {
     static final String CONFIG = "cadc-tap-tmp.properties";
+    
+    /**
+     * Perform any checks that the implementation should be able to function if
+     * called.
+     * 
+     * @throws Exception if the implementation will probably fail to function
+     */
+    public void check() throws Exception;
 }
