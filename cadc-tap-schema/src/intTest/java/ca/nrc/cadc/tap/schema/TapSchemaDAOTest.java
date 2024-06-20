@@ -70,7 +70,9 @@
 package ca.nrc.cadc.tap.schema;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.X500IdentityManager;
 import ca.nrc.cadc.db.ConnectionConfig;
 import ca.nrc.cadc.db.DBConfig;
 import ca.nrc.cadc.db.DBUtil;
@@ -412,7 +414,8 @@ public class TapSchemaDAOTest {
             Assert.assertNull("read-only", tp0.readGroup);
             Assert.assertNull("read-write", tp0.readWriteGroup);
             
-            // default IdentityManager is X500IdentityManager (cadc-util)
+            // default IdentityManager is NoOpIdentityManager (cadc-util)
+            System.setProperty(IdentityManager.class.getName(), X500IdentityManager.class.getName());
             X500Principal owner = new X500Principal("C=ca, O=test, CN=foo");
             
             Set<Principal> pset = new HashSet<Principal>();
