@@ -38,6 +38,34 @@
         </init-param>
     <load-on-startup>1</load-on-startup>
   </servlet>
+  
+    <servlet>
+        <servlet-name>TableServlet</servlet-name>
+        <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
+        <init-param>
+            <param-name>init</param-name>
+            <param-value>org.opencadc.youcat.YoucatInitAction</param-value>
+        </init-param>
+        <init-param>
+            <param-name>get</param-name>
+            <param-value>ca.nrc.cadc.vosi.actions.GetAction</param-value>
+        </init-param>
+        <init-param>
+            <param-name>put</param-name>
+            <param-value>ca.nrc.cadc.vosi.actions.PutAction</param-value>
+        </init-param>
+        <init-param>
+            <param-name>delete</param-name>
+            <param-value>ca.nrc.cadc.vosi.actions.DeleteAction</param-value>
+        </init-param>
+        <!-- 
+        <init-param>
+            <param-name>post</param-name>
+            <param-value>ca.nrc.cadc.vosi.actions.PostAction</param-value>
+        </init-param>
+        -->
+        <load-on-startup>2</load-on-startup>
+    </servlet>
 
   <servlet>
     <servlet-name>AsyncQueryServlet</servlet-name>
@@ -62,7 +90,7 @@
             <param-name>delete</param-name>
             <param-value>ca.nrc.cadc.uws.web.DeleteAction</param-value>
         </init-param>
-    <load-on-startup>2</load-on-startup>
+    <load-on-startup>3</load-on-startup>
   </servlet>
 
   <servlet>
@@ -84,7 +112,7 @@
         <param-name>post</param-name>
         <param-value>ca.nrc.cadc.uws.web.SyncPostAction</param-value>
     </init-param>
-    <load-on-startup>2</load-on-startup>
+    <load-on-startup>3</load-on-startup>
   </servlet>
 
   <servlet>
@@ -125,30 +153,6 @@
     <load-on-startup>3</load-on-startup>
   </servlet>
 
-    <servlet>
-        <servlet-name>TableServlet</servlet-name>
-        <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
-        <init-param>
-            <param-name>get</param-name>
-            <param-value>ca.nrc.cadc.vosi.actions.GetAction</param-value>
-        </init-param>
-        <init-param>
-            <param-name>put</param-name>
-            <param-value>ca.nrc.cadc.vosi.actions.PutAction</param-value>
-        </init-param>
-        <init-param>
-            <param-name>delete</param-name>
-            <param-value>ca.nrc.cadc.vosi.actions.DeleteAction</param-value>
-        </init-param>
-        <!-- 
-        <init-param>
-            <param-name>post</param-name>
-            <param-value>ca.nrc.cadc.vosi.actions.PostAction</param-value>
-        </init-param>
-        -->
-        <load-on-startup>3</load-on-startup>
-    </servlet>
-    
     <servlet>
         <servlet-name>AsyncTableUpdateServlet</servlet-name>
         <servlet-class>ca.nrc.cadc.uws.server.JobServlet</servlet-class>
