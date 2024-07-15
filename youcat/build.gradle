@@ -17,9 +17,9 @@ sourceCompatibility = 11
 group = 'ca.nrc.cadc'
 
 war {
-    // Include the swagger-ui so that /cat provides the cat API documentation
+    // Include the swagger UI so that base URL provides API docs
     from(System.getenv('RPS') + '/resources/') {                
-        include 'swagger-ui/'                      
+        include 'swagger-openapi/dist/'                      
     }                                                                
 }
 
