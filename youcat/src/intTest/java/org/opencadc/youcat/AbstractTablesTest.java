@@ -119,15 +119,21 @@ abstract class AbstractTablesTest {
     private static final Logger log = Logger.getLogger(AbstractTablesTest.class);
 
     static {
-        Log4jInit.setLevel("ca.nrc.cadc.cat", Level.INFO);
+        Log4jInit.setLevel("org.opencadc.youcat", Level.INFO);
         Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
     }
+    
+    static final String YOUCAT_ADMIN = "youcat-admin.pem";         // to create test schema
+    static final String SCHEMA_OWNER_CERT = "youcat-owner.pem";    // own test schema
+    static final String SCHEMA_GROUP_MEMBER = "youcat-member.pem"; // member of group
     
     static String VALID_TEST_GROUP = "ivo://cadc.nrc.ca/gms?YouCat-ReadWrite";
 
     Subject anon;
     Subject schemaOwner;
     Subject subjectWithGroups;
+    
+    protected String testSchemaName = "int_test_schema"; 
     
     URL anonQueryURL;
     URL certQueryURL;
@@ -139,12 +145,12 @@ abstract class AbstractTablesTest {
     
     AbstractTablesTest() { 
         try {
-            File cf = FileUtil.getFileFromResource("x509_CADCAuthtest1.pem", AbstractTablesTest.class);
+            File cf = FileUtil.getFileFromResource(SCHEMA_OWNER_CERT, AbstractTablesTest.class);
             schemaOwner = SSLUtil.createSubject(cf);
             anon = AuthenticationUtil.getAnonSubject();
             log.debug("created schemaOwner: " + schemaOwner);
             
-            cf = FileUtil.getFileFromResource("x509_CADCAuthtest2.pem", AbstractTablesTest.class);
+            cf = FileUtil.getFileFromResource(SCHEMA_GROUP_MEMBER, AbstractTablesTest.class);
             subjectWithGroups = SSLUtil.createSubject(cf);
             log.debug("created subjectWithGroups: " + subjectWithGroups);
 
@@ -161,6 +167,9 @@ abstract class AbstractTablesTest {
             } catch (Exception ex) {
                 log.error("TEST SETUP BUG: failed to find TAP URL", ex);
             }
+            
+            // TODO: use youcat-admin to create the test schema owned by youcat-owner
+            
         } catch (Throwable t) {
             throw new RuntimeException("TEST SETUP FAILED", t);
         }
@@ -192,7 +201,7 @@ abstract class AbstractTablesTest {
         // cleanup just in case
         doDelete(subject, tableName, true);
 
-        final TableDesc orig = new TableDesc("cadcauthtest1", tableName);
+        final TableDesc orig = new TableDesc(testSchemaName, tableName);
         orig.description = "created by intTest";
         orig.tableType = TableDesc.TableType.TABLE;
         orig.tableIndex = 1;
@@ -292,7 +301,7 @@ abstract class AbstractTablesTest {
     protected void clearSchemaPerms() throws MalformedURLException {
         TapPermissions tp = new TapPermissions();
         tp.isPublic = false;
-        setPerms(schemaOwner, "cadcauthtest1", tp, 200);
+        setPerms(schemaOwner, testSchemaName, tp, 200);
     }
     
     protected void setPerms(Subject subject, String name, TapPermissions tp, int expectedCode) throws MalformedURLException {

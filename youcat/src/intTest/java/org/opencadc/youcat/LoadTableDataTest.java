@@ -146,7 +146,7 @@ public class LoadTableDataTest extends AbstractTablesTest {
         try {
             log.info("start");
             
-            String testTable = "cadcauthtest1.testPostNoTableName";
+            String testTable = testSchemaName + ".testPostNoTableName";
             doCreateTable(schemaOwner, testTable);
             
             StringBuilder data = new StringBuilder();
@@ -177,7 +177,7 @@ public class LoadTableDataTest extends AbstractTablesTest {
         try {
             log.info("start");
             
-            String testTable = "cadcauthtest1.testPostInvalidColumnName";
+            String testTable = testSchemaName + ".testPostInvalidColumnName";
             doCreateTable(schemaOwner, testTable);
             
             StringBuilder data = new StringBuilder();
@@ -208,7 +208,7 @@ public class LoadTableDataTest extends AbstractTablesTest {
         try {
             log.info("start");
             
-            String testTable = "cadcauthtest1.testWrongNumberOfColumns";
+            String testTable = testSchemaName + ".testWrongNumberOfColumns";
             doCreateTable(schemaOwner, testTable);
             
             StringBuilder data = new StringBuilder();
@@ -243,7 +243,7 @@ public class LoadTableDataTest extends AbstractTablesTest {
             data.append("c0\tc1\n");
             data.append("string");
             
-            URL postURL = new URL(certLoadURL.toString() + "/cadcauthtest1.noSuchTable");
+            URL postURL = new URL(certLoadURL.toString() + "/" + testSchemaName + ".noSuchTable");
             final HttpPost post = new HttpPost(postURL, new FileContent(data.toString(), TableContentHandler.CONTENT_TYPE_TSV, UTF8), false);
             Subject.doAs(schemaOwner, new PrivilegedExceptionAction<Object>() {
                 public Object run() throws Exception {
@@ -270,7 +270,7 @@ public class LoadTableDataTest extends AbstractTablesTest {
             data.append("c0\tc1\n");
             data.append("string");
             
-            URL postURL = new URL(certLoadURL.toString() + "/cadcauthtest1.invalid.table.name");
+            URL postURL = new URL(certLoadURL.toString() + "/" + testSchemaName + ".invalid.table.name");
             final HttpPost post = new HttpPost(postURL, new FileContent(data.toString(), TableContentHandler.CONTENT_TYPE_TSV, UTF8), false);
             Subject.doAs(schemaOwner, new PrivilegedExceptionAction<Object>() {
                 public Object run() throws Exception {
@@ -294,7 +294,7 @@ public class LoadTableDataTest extends AbstractTablesTest {
             
             clearSchemaPerms();
             
-            String testTable = "cadcauthtest1.testNotTableOwner";
+            String testTable = testSchemaName + ".testNotTableOwner";
             doCreateTable(schemaOwner, testTable);
             
             StringBuilder data = new StringBuilder();
@@ -326,9 +326,9 @@ public class LoadTableDataTest extends AbstractTablesTest {
             log.info("start");
             
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            setPerms(schemaOwner, "cadcauthtest1", tp, 200);
+            setPerms(schemaOwner, testSchemaName, tp, 200);
             
-            String testTable = "cadcauthtest1.testAllDataTypesTSV";
+            String testTable = testSchemaName + ".testAllDataTypesTSV";
             doCreateTable(schemaOwner, testTable);
             setPerms(schemaOwner, testTable, tp, 200);
             
@@ -397,9 +397,9 @@ public class LoadTableDataTest extends AbstractTablesTest {
             log.info("start");
             
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            setPerms(schemaOwner, "cadcauthtest1", tp, 200);
+            setPerms(schemaOwner, testSchemaName, tp, 200);
             
-            String testTable = "cadcauthtest1.testAllDataTypesFits";
+            String testTable = testSchemaName + ".testAllDataTypesFits";
             doCreateTable(schemaOwner, testTable);
             setPerms(schemaOwner, testTable, tp, 200);
             
@@ -506,9 +506,9 @@ public class LoadTableDataTest extends AbstractTablesTest {
             log.info("start");
             
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            setPerms(schemaOwner, "cadcauthtest1", tp, 200);
+            setPerms(schemaOwner, testSchemaName, tp, 200);
             
-            String testTable = "cadcauthtest1.testMixedContentTypeASCII";
+            String testTable = testSchemaName + ".testMixedContentTypeASCII";
             doCreateTable(schemaOwner, testTable);
             setPerms(schemaOwner, testTable, tp, 200);
             
@@ -583,9 +583,9 @@ public class LoadTableDataTest extends AbstractTablesTest {
             log.info("start");
             
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            setPerms(schemaOwner, "cadcauthtest1", tp, 200);
+            setPerms(schemaOwner, testSchemaName, tp, 200);
             
-            String testTable = "cadcauthtest1.testMultipleBatches";
+            String testTable = testSchemaName + ".testMultipleBatches";
             doCreateTable(schemaOwner, testTable);
             setPerms(schemaOwner, testTable, tp, 200);
             
@@ -632,9 +632,9 @@ public class LoadTableDataTest extends AbstractTablesTest {
             log.info("start");
             
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            setPerms(schemaOwner, "cadcauthtest1", tp, 200);
+            setPerms(schemaOwner, testSchemaName, tp, 200);
             
-            String testTable = "cadcauthtest1.testErrorInMiddle";
+            String testTable = testSchemaName + ".testErrorInMiddle";
             doCreateTable(schemaOwner, testTable);
             setPerms(schemaOwner, testTable, tp, 200);
             
