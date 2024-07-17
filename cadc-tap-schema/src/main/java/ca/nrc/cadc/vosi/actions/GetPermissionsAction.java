@@ -67,19 +67,14 @@
 
 package ca.nrc.cadc.vosi.actions;
 
-import java.io.OutputStream;
-
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
-
-import org.apache.log4j.Logger;
-import org.opencadc.gms.GroupURI;
-
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import java.io.OutputStream;
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+import org.apache.log4j.Logger;
+import org.opencadc.gms.GroupURI;
 
 /**
  * Return the permissions for the object identified by the 'name'
@@ -94,14 +89,17 @@ public class GetPermissionsAction extends TablesAction {
 
     @Override
     public void doAction() throws Exception {
-        String name = getTableName();
-        log.debug("POST: " + name);
+        String[] target = getTarget();
+        if (target == null) {
+            throw new IllegalArgumentException("no schema|table name in path");
+        }
+        String name = target[0]; // schema
+        if (target[1] != null) {
+            name = target[1]; // table
+        }
+        log.debug("name: " + name);
         
         checkWritable();
-        
-        if (name == null) {
-            throw new IllegalArgumentException( "Missing param: name");
-        }
         
         TapSchemaDAO dao = getTapSchemaDAO();
         TapPermissions permissions = null;

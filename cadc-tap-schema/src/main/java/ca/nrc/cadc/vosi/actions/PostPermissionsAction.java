@@ -101,12 +101,15 @@ public class PostPermissionsAction extends TablesAction {
     
     @Override
     public void doAction() throws Exception {
-        
-        String name = getTableName();
-        log.debug("name: " + name);
-        if (name == null) {
-            throw new IllegalArgumentException("Missing param: name");
+        String[] target = getTarget();
+        if (target == null) {
+            throw new IllegalArgumentException("no schema|table name in path");
         }
+        String name = target[0]; // schema
+        if (target[1] != null) {
+            name = target[1]; // table
+        }
+        log.debug("name: " + name);
         
         checkWritable();
         

@@ -69,6 +69,7 @@ package ca.nrc.cadc.vosi.actions;
 
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.RestAction;
+import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
@@ -93,8 +94,14 @@ public class GetAction extends TablesAction {
 
     @Override
     public void doAction() throws Exception {
-        String tableName = getTableName();
-        log.debug("GET: " + tableName);
+        String schemaName = null;
+        String tableName = null;
+        String[] target = getTarget();
+        if (target != null) {
+            schemaName = target[0];
+            tableName = target[1];
+        }
+        log.debug("GET: " + schemaName + " " + tableName);
         
         if (!readable) {
             throw new AccessControlException(RestAction.STATE_OFFLINE_MSG);
@@ -118,13 +125,35 @@ public class GetAction extends TablesAction {
         if (tableName != null) {
             checkTableReadPermissions(dao, tableName);
             TableDesc td = dao.getTable(tableName);
+            if (td == null) {
+                // currently, permission check already threw this
+                throw new ResourceNotFoundException("table not found: " + tableName);
+            }
             TableWriter tw = new TableWriter();
             syncOutput.setCode(HttpServletResponse.SC_OK);
             syncOutput.setHeader("Content-Type", "text/xml");
             tw.write(td, new OutputStreamWriter(syncOutput.getOutputStream()));
+        } else if (schemaName != null) {
+            checkViewSchemaPermissions(dao, schemaName);
+            // TODO: TapSchemaDAO only supports schema only, ok for detail=min
+            // should at least list tables for default detail
+            // should provide columns at detail=max
+            SchemaDesc sd = dao.getSchema(schemaName, (depth == TapSchemaDAO.MIN_DEPTH));
+            if (sd == null) {
+                // currently, permission check already threw this
+                throw new ResourceNotFoundException("schema not found: " + schemaName);
+            }
+            TapSchema tapSchema = new TapSchema();
+            tapSchema.getSchemaDescs().add(sd);
+            
+            TableSetWriter tsw = new TableSetWriter();
+            syncOutput.setCode(HttpServletResponse.SC_OK);
+            syncOutput.setHeader("Content-Type", "text/xml");
+            tsw.write(tapSchema, new OutputStreamWriter(syncOutput.getOutputStream()));
         } else {
             TapSchemaLoader loader = new TapSchemaLoader(dao);
             TapSchema tapSchema = loader.load(depth);
+            
             TableSetWriter tsw = new TableSetWriter();
             syncOutput.setCode(HttpServletResponse.SC_OK);
             syncOutput.setHeader("Content-Type", "text/xml");

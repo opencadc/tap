@@ -68,19 +68,22 @@
 package ca.nrc.cadc.vosi.actions;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.net.ResourceAlreadyExistsException;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.tap.db.TableCreator;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import java.security.AccessControlException;
+import javax.security.auth.Subject;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * Create table. This action creates a new database table and adds a description
@@ -98,16 +101,95 @@ public class PutAction extends TablesAction {
 
     @Override
     public void doAction() throws Exception {
-        String tableName = getTableName();
-        String schemaName = Util.getSchemaFromTable(tableName);
-        log.debug("PUT: " + tableName);
+        String[] target = getTarget();
+        String schemaName = target[0];
+        String tableName = target[1];
+        
+        log.debug("PUT: schema=" + schemaName + " table=" + tableName);
         
         checkWritable();
         
         TapSchemaDAO ts = getTapSchemaDAO();
-        checkSchemaWritePermissions(ts, schemaName);
+        if (tableName == null) {
+            // create schema
+            checkIsAdmin();
+        } else {
+            // create table
+            checkSchemaWritePermissions(ts, schemaName);
+        }
         
+        if (tableName != null) {
+            createTable(ts, schemaName, tableName);
+        } else if (schemaName != null) {
+            createSchema(ts, schemaName);
+        }
+    }
+    
+    private void createSchema(TapSchemaDAO ts, String schema) throws Exception {
+        log.warn("createSchema: " + schema + " START");
+        String owner = getInputSchemaOwner();
+        Subject s = new Subject();
+        s.getPrincipals().add(new HttpPrincipal(owner));
+
+        SchemaDesc sd = new SchemaDesc(schema);
+        TapPermissions perms = new TapPermissions();
+        perms.owner = AuthenticationUtil.getIdentityManager().augment(s);
         
+        String[] createSQL = new String[] {
+            "CREATE SCHEMA " + schema,
+            "grant usage on schema " + schema + " to public",
+            "grant select on all tables in schema " + schema + " to public"
+        };
+
+        DataSource ds = getDataSource();
+        ts.setDataSource(ds);
+        DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
+        try {
+            tm.startTransaction();
+            
+            if (getCreateSchemaEnabled()) {
+                JdbcTemplate jdbc = new JdbcTemplate(ds);
+                for (String sql : createSQL) {
+                    log.warn(sql);
+                    jdbc.execute(sql);
+                }
+            }
+            log.warn("update tap_schema: " + sd);
+            ts.put(sd);
+            log.warn("set permissions: " + perms);
+            ts.setSchemaPermissions(schema, perms);
+            
+            tm.commitTransaction();
+        } catch (Exception ex) {
+            try {
+                log.error("PUT failed - rollback", ex);
+                tm.rollbackTransaction();
+                log.error("PUT failed - rollback: OK");
+            } catch (Exception oops) {
+                log.error("PUT failed - rollback : FAIL", oops);
+            }
+            log.warn("createSchema: " + schema + " FAIL");
+            // TODO: categorise failures better
+            throw new RuntimeException("failed to create schema " + schema, ex);
+        } finally {
+            
+            if (tm.isOpen()) {
+                log.error("BUG: open transaction in finally - trying to rollback");
+                try {
+                    tm.rollbackTransaction();
+                    log.error("BUG: rollback in finally: OK");
+                } catch (Exception oops) {
+                    log.error("BUG: rollback in finally: FAIL", oops);
+                }
+                log.warn("createSchema: " + schema + " FAIL");
+                throw new RuntimeException("BUG: open transaction in finally");
+            }
+            log.warn("createSchema: " + schema + " DONE");
+        }
+        
+    }
+
+    private void createTable(TapSchemaDAO ts, String schemaName, String tableName) throws Exception {
         TableDesc inputTable = getInputTable(schemaName, tableName);
         if (inputTable == null) {
             throw new IllegalArgumentException("no input table");
@@ -191,20 +273,47 @@ public class PutAction extends TablesAction {
         return new TableDescHandler(INPUT_TAG);
     }
     
+    private String getInputSchemaOwner() {
+        Object in = syncInput.getContent(INPUT_TAG);
+        if (in == null) {
+            throw new IllegalArgumentException("no input: expected a document describing the schema owner for create");
+        }
+        if (in instanceof String) {
+            String schemaOwner = (String) in;
+            return schemaOwner;
+        }
+        throw new RuntimeException("BUG: no input schema owner");
+    }
+
+    // unused because VOSO tableset schema does not include owner
+    private SchemaDesc getInputSchema(String schemaName) {
+        Object in = syncInput.getContent(INPUT_TAG);
+        if (in == null) {
+            throw new IllegalArgumentException("no input: expected a document describing the schema to create");
+        }
+        if (in instanceof SchemaDesc) {
+            SchemaDesc input = (SchemaDesc) in;
+            return input;
+        }
+        throw new RuntimeException("BUG: no input schema");
+    }
+
     private TableDesc getInputTable(String schemaName, String tableName) {
-        TableDesc input = (TableDesc) syncInput.getContent(INPUT_TAG);
-        if (input == null) {
+        Object in = syncInput.getContent(INPUT_TAG);
+        if (in == null) {
             throw new IllegalArgumentException("no input: expected a document describing the table to create");
         }
-        
-        input.setSchemaName(schemaName);
-        input.setTableName(tableName);
-        int c = 0;
-        for (ColumnDesc cd : input.getColumnDescs()) {
-            cd.setTableName(tableName);
-            cd.column_index = c++;
+        if (in instanceof TableDesc) {
+            TableDesc input = (TableDesc) in;
+            input.setSchemaName(schemaName);
+            input.setTableName(tableName);
+            int c = 0;
+            for (ColumnDesc cd : input.getColumnDescs()) {
+                cd.setTableName(tableName);
+                cd.column_index = c++;
+            }
+            return input;
         }
-        
-        return input;
+        throw new RuntimeException("BUG: no input table");
     }
 }
