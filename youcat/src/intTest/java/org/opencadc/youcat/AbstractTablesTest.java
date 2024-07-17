@@ -67,7 +67,6 @@
 
 package org.opencadc.youcat;
 
-
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.RunnableAction;
@@ -108,7 +107,6 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.opencadc.tap.TapClient;
-import org.postgresql.shaded.com.ongres.scram.common.util.StringWritable;
 
 /**
  * base class with common setup and methods.
