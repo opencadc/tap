@@ -82,18 +82,18 @@ See <a href="https://github.com/opencadc/tap/tree/master/cadc-tap-tmp">cadc-tap-
 
 The youcat.properties configures some admin and optional functions of the service.
 ```
-# configure the admin user
+# (optional) configure the admin user
 org.opencadc.youcat.adminUser = {identity}
 
-# (optional) configure schema creation in the database (default: false)
+# (optional) schema creation in the database (default: false)
 org.opencadc.youcat.createSchemaInDB = true|false
 ```
 The admin user can use the youcat API to create a new schema for a user. This will add the
-schema to the `tap_schema.schemas` table and enable the user to create tables in that 
-schema. If the optional _createSchemaInDB_ flag is set to true, a schema created by admin
-will be created in the database in addition to being added to the `tap_schema`. If false,
-`youcat` will not create the schema in the database and just assume it exists and that the 
-`tapadm` pool has permission to create objects (tables and indices) in it.
+schema to the `tap_schema.schemas` table with the specified owner and enable the owner to 
+further manage that schema. If the optional _createSchemaInDB_ flag is set to true, a schema 
+created by admin will be created in the database in addition to being added to the `tap_schema`. 
+If false, `youcat` will not create the schema in the database and just assume it exists and 
+that the `tapadm` pool has permission to create objects (tables and indices) in it.
 
 As hard-coded behaviours of `youcat` are extracted from the build and made configurable,
 the configuration options will usually be in this file (see **development plans** below).

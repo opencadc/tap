@@ -109,11 +109,10 @@ public class YoucatInitAction extends InitAction {
         sb.append("incomplete config: ");
         boolean ok = true;
 
-        String username = mvp.getFirstPropertyValue(YOUCAT_ADMIN);
+        String adminUser = mvp.getFirstPropertyValue(YOUCAT_ADMIN);
         sb.append("\n\t" + YOUCAT_ADMIN + ": ");
-        if (username == null) {
+        if (adminUser == null) {
             sb.append("MISSING");
-            ok = false;
         } else {
             sb.append("OK");
         }
@@ -130,16 +129,19 @@ public class YoucatInitAction extends InitAction {
             throw new InvalidConfigException(sb.toString());
         }
         
-        HttpPrincipal hp = new HttpPrincipal(username);
-        Boolean createSchemaInDB = true;
-        if (yc != null && "false".equals(yc)) {
-            createSchemaInDB = false;
+        Boolean createSchemaInDB = false; // default: false for backwards compat
+        if (yc != null && "true".equals(yc)) {
+            createSchemaInDB = true;
         }
         try {
             Context ctx = new InitialContext();
-            ctx.bind(jndiAdminKey, hp);
-            ctx.bind(jndiCreateSchemaKey, createSchemaInDB);
-            log.info("init: admin=" + hp + " createSchemaInDB=" + createSchemaInDB);
+            if (adminUser != null) {
+                ctx.bind(jndiAdminKey, new HttpPrincipal(adminUser));
+            }
+            if (createSchemaInDB != null) {
+                ctx.bind(jndiCreateSchemaKey, createSchemaInDB);
+            }
+            log.info("init: admin=" + adminUser + " createSchemaInDB=" + createSchemaInDB);
         } catch (Exception ex) {
             log.error("Failed to create JNDI key(s): " + jndiAdminKey + "|" + jndiCreateSchemaKey, ex);
         }
