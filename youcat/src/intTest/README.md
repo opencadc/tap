@@ -12,7 +12,7 @@ execute the tests:
 - youcat-owner.pem  : the owner of the test schema
 - youcat-member.pem : member of a group that youcat-owner grants read-write access to
 
-The tests are curently only runnable by CADC staff because of ard coded setup and assumptions about external
+The tests are curently only runnable by CADC staff because of hard coded setup and assumptions about external
 content (group in GMS). The test group is currently hard coded to one in the `ivo://cadc.nrc.ca/gms` GMS service. 
 
 Tested: youcat-admin == personal account, youcat-owner == cadcauthtest1, youcat-member == cadcauthtest2
