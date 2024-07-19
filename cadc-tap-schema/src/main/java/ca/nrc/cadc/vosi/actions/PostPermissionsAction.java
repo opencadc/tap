@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2018.                            (c) 2018.
+*  (c) 2024.                            (c) 2024.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,6 +67,11 @@
 
 package ca.nrc.cadc.vosi.actions;
 
+import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.rest.InlineContentException;
+import ca.nrc.cadc.rest.InlineContentHandler;
+import ca.nrc.cadc.tap.schema.TapPermissions;
+import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -74,15 +79,8 @@ import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.log4j.Logger;
 import org.opencadc.gms.GroupURI;
-
-import ca.nrc.cadc.net.ResourceNotFoundException;
-import ca.nrc.cadc.rest.InlineContentException;
-import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.tap.schema.TapPermissions;
-import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 
 /**
  * Set the permissions on a schema or table.
@@ -101,12 +99,15 @@ public class PostPermissionsAction extends TablesAction {
     
     @Override
     public void doAction() throws Exception {
-        
-        String name = getTableName();
-        log.debug("name: " + name);
-        if (name == null) {
-            throw new IllegalArgumentException("Missing param: name");
+        String[] target = getTarget();
+        if (target == null) {
+            throw new IllegalArgumentException("no schema|table name in path");
         }
+        String name = target[0]; // schema
+        if (target[1] != null) {
+            name = target[1]; // table
+        }
+        log.debug("name: " + name);
         
         checkWritable();
         

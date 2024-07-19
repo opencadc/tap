@@ -3,7 +3,7 @@
     *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2019.                            (c) 2019.
+*  (c) 2024.                            (c) 2024.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,26 +67,6 @@
 
 package org.opencadc.youcat;
 
-import java.io.ByteArrayOutputStream;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URL;
-import java.nio.charset.Charset;
-import java.security.PrivilegedExceptionAction;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
-
-import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Test;
-import org.opencadc.gms.GroupURI;
-
-import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.RunnableAction;
 import ca.nrc.cadc.dali.tables.TableData;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
@@ -99,6 +79,22 @@ import ca.nrc.cadc.net.HttpPost;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.uws.ExecutionPhase;
 import ca.nrc.cadc.vosi.actions.TableContentHandler;
+import java.io.ByteArrayOutputStream;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.security.PrivilegedExceptionAction;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.Test;
+import org.opencadc.gms.GroupURI;
 
 /**
  *
@@ -118,12 +114,11 @@ public class PermissionsTest extends AbstractTablesTest {
         try {
             clearSchemaPerms();
             
-            String testSchema = "cadcauthtest1";
-            String testTable = testSchema + ".testGetAnon";
+            String testTable = testSchemaName + ".testGetAnon";
             doCreateTable(schemaOwner, testTable);
             
             ByteArrayOutputStream out = new ByteArrayOutputStream();
-            URL schemaPerms = new URL(permsURL.toString() + "/" + testSchema);
+            URL schemaPerms = new URL(permsURL.toString() + "/" + testSchemaName);
             URL tablePerms = new URL(permsURL.toString() + "/" + testTable);
             
             // get schema perms
@@ -169,8 +164,7 @@ public class PermissionsTest extends AbstractTablesTest {
         try {
             clearSchemaPerms();
             
-            String testSchema = "cadcauthtest1";
-            String testTable = testSchema + ".testBadSetParams";
+            String testTable = testSchemaName + ".testBadSetParams";
             doCreateTable(schemaOwner, testTable);
             
             URL tablePerms = new URL(permsURL.toString() + "/" + testTable);
@@ -223,14 +217,13 @@ public class PermissionsTest extends AbstractTablesTest {
         try {
             clearSchemaPerms();
             
-            String testSchema = "cadcauthtest1";
-            String testTable = testSchema + ".testPublic";
+            String testTable = testSchemaName + ".testPublic";
             doCreateTable(schemaOwner, testTable);
             
             this.doQuery(anon, anonQueryURL, testTable, 400);
             
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            setPerms(schemaOwner, testSchema, tp, 200);
+            setPerms(schemaOwner, testSchemaName, tp, 200);
             this.doQuery(anon, anonQueryURL, testTable, 403);
             
             setPerms(schemaOwner, testTable, tp, 200);
@@ -252,8 +245,7 @@ public class PermissionsTest extends AbstractTablesTest {
             
             clearSchemaPerms();
             
-            String testSchema = "cadcauthtest1";
-            String testTable = testSchema + ".testGroupRead";
+            String testTable = testSchemaName + ".testGroupRead";
             doCreateTable(schemaOwner, testTable);
             
             this.doQuery(subjectWithGroups, certQueryURL, testTable, 400);
@@ -262,8 +254,8 @@ public class PermissionsTest extends AbstractTablesTest {
             
             GroupURI readGroup = new GroupURI(VALID_TEST_GROUP);
             TapPermissions tp = new TapPermissions(null, false, readGroup, null);
-            setPerms(schemaOwner, testSchema, tp, 200);
-            TapPermissions tp1 = getPermissions(schemaOwner, testSchema, 200);
+            setPerms(schemaOwner, testSchemaName, tp, 200);
+            TapPermissions tp1 = getPermissions(schemaOwner, testSchemaName, 200);
             Assert.assertNotNull(tp1.isPublic);
             Assert.assertFalse(tp1.isPublic);
             Assert.assertEquals(readGroup, tp1.readGroup);
@@ -297,8 +289,7 @@ public class PermissionsTest extends AbstractTablesTest {
         try {
             clearSchemaPerms();
             
-            String testSchema = "cadcauthtest1";
-            String testTable = testSchema + ".testGroupReadWrite";
+            String testTable = testSchemaName + ".testGroupReadWrite";
             doCreateTable(schemaOwner, testTable);
             
             this.doQuery(subjectWithGroups, certQueryURL, testTable, 400);
@@ -307,8 +298,8 @@ public class PermissionsTest extends AbstractTablesTest {
             
             GroupURI readWriteGroup = new GroupURI(VALID_TEST_GROUP);
             TapPermissions tp = new TapPermissions(null, false, null, readWriteGroup);
-            setPerms(schemaOwner, testSchema, tp, 200);
-            TapPermissions tp1 = getPermissions(schemaOwner, testSchema, 200);
+            setPerms(schemaOwner, testSchemaName, tp, 200);
+            TapPermissions tp1 = getPermissions(schemaOwner, testSchemaName, 200);
             Assert.assertNotNull(tp1.isPublic);
             Assert.assertFalse(tp1.isPublic);
             Assert.assertNull(tp1.readGroup);
@@ -342,11 +333,10 @@ public class PermissionsTest extends AbstractTablesTest {
         try {
             clearSchemaPerms();
             
-            String testSchema = "cadcauthtest1";
-            String testTable = testSchema + ".testDropTable";
+            String testTable = testSchemaName + ".testDropTable";
             
             TapPermissions tp = new TapPermissions(null, true, null, new GroupURI(VALID_TEST_GROUP));
-            setPerms(schemaOwner, testSchema, tp, 200);
+            setPerms(schemaOwner, testSchemaName, tp, 200);
 
             doCreateTable(subjectWithGroups, testTable);
             this.doQuery(subjectWithGroups, certQueryURL, testTable, 200);
@@ -368,11 +358,10 @@ public class PermissionsTest extends AbstractTablesTest {
         try {
             clearSchemaPerms();
             
-            String testSchema = "cadcauthtest1";
-            String testTable = testSchema + ".testDropTable";
+            String testTable = testSchemaName + ".testDropTable";
             
             TapPermissions tp = new TapPermissions(null, true, null, new GroupURI(VALID_TEST_GROUP));
-            setPerms(schemaOwner, testSchema, tp, 200);
+            setPerms(schemaOwner, testSchemaName, tp, 200);
 
             doCreateTable(subjectWithGroups, testTable);
             this.doQuery(subjectWithGroups, certQueryURL, testTable, 200);
@@ -394,21 +383,19 @@ public class PermissionsTest extends AbstractTablesTest {
         log.info("testNoInheritance()");
         try {
             
-            String testSchema = "cadcauthtest1";
-            
             GroupURI group1 = new GroupURI("ivo://cadc.nrc.ca/gms?group1");
             GroupURI group2 = new GroupURI("ivo://cadc.nrc.ca/gms?group2");
             TapPermissions tp = new TapPermissions(null, true, group1, group2);
-            this.setPerms(schemaOwner, testSchema, tp, 200);
+            this.setPerms(schemaOwner, testSchemaName, tp, 200);
             
-            TapPermissions actual = this.getPermissions(schemaOwner, testSchema, 200);
+            TapPermissions actual = this.getPermissions(schemaOwner, testSchemaName, 200);
             Assert.assertTrue(actual.owner.getPrincipals(X500Principal.class).iterator().next()
                 .getName().equals("CN=cadcauthtest1_24c,OU=cadc,O=hia,C=ca"));
             Assert.assertEquals(true, actual.isPublic);
             Assert.assertEquals(group1, actual.readGroup);
             Assert.assertEquals(group2, actual.readWriteGroup);
             
-            String testTable = testSchema + ".testNoInheritance";
+            String testTable = testSchemaName + ".testNoInheritance";
             doCreateTable(schemaOwner, testTable);
             
             actual = this.getPermissions(schemaOwner, testTable, 200);
@@ -435,8 +422,7 @@ public class PermissionsTest extends AbstractTablesTest {
             // query tap_schema.schemas -- null owner so should be public
             this.doQuery(anon, anonQueryURL, "tap_schema.schemas", 200);
             
-            String testSchema = "cadcauthtest1";
-            String testTable = testSchema + ".testQueriesChangingPerms";
+            String testTable = testSchemaName + ".testQueriesChangingPerms";
             doCreateTable(schemaOwner, testTable);
             
             // initially private
@@ -446,7 +432,7 @@ public class PermissionsTest extends AbstractTablesTest {
             
             // set schema and table to public
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            this.setPerms(schemaOwner, testSchema, tp, 200);
+            this.setPerms(schemaOwner, testSchemaName, tp, 200);
             this.setPerms(schemaOwner, testTable, tp, 200);
             this.doQuery(anon, certQueryURL, testTable, 200);
             this.doQuery(subjectWithGroups, certQueryURL, testTable, 200);
@@ -524,7 +510,7 @@ public class PermissionsTest extends AbstractTablesTest {
             
             GroupURI readGroup = new GroupURI(VALID_TEST_GROUP);
             TapPermissions tp = new TapPermissions(null, false, readGroup, null);
-            this.setPerms(this.schemaOwner, "cadcauthtest1", tp, 200);
+            this.setPerms(this.schemaOwner, testSchemaName, tp, 200);
             
             String query = "select schema_name from tap_schema.schemas";
             
@@ -581,7 +567,7 @@ public class PermissionsTest extends AbstractTablesTest {
             
             GroupURI readGroup = new GroupURI(VALID_TEST_GROUP);
             TapPermissions tp = new TapPermissions(null, false, readGroup, null);
-            this.setPerms(this.schemaOwner, "cadcauthtest1", tp, 200);
+            this.setPerms(this.schemaOwner, testSchemaName, tp, 200);
             
             String query = "select schema_name from tap_schema.tables";
             
@@ -641,7 +627,7 @@ public class PermissionsTest extends AbstractTablesTest {
             
             GroupURI readGroup = new GroupURI(VALID_TEST_GROUP);
             TapPermissions tp = new TapPermissions(null, false, readGroup, null);
-            this.setPerms(this.schemaOwner, "cadcauthtest1", tp, 200);
+            this.setPerms(this.schemaOwner, testSchemaName, tp, 200);
             
             String query = "select t.schema_name from tap_schema.tables t " +
                 "join tap_schema.columns c on t.table_name=c.table_name";
@@ -678,7 +664,7 @@ public class PermissionsTest extends AbstractTablesTest {
                 if (((String) row.get(0)).equals("tap_schema")) {
                     foundTapSchemaSchema = true;
                 }
-                if (((String) row.get(0)).equals("cadcauthtest1")) {
+                if (((String) row.get(0)).equals(testSchemaName)) {
                     foundCadcauthtest1Schema = true;
                 }
             }
@@ -686,7 +672,7 @@ public class PermissionsTest extends AbstractTablesTest {
                 Assert.fail("failed to find tap schema schema");
             }
             if (foundCadcauthtest1Schema) {
-                Assert.fail("mistakenly found cadcauthtest1 schema");
+                Assert.fail("mistakenly found " + testSchemaName + " schema");
             }
 
         } catch (Throwable t) {
@@ -716,7 +702,7 @@ public class PermissionsTest extends AbstractTablesTest {
                 if (((String) row.get(0)).equals("tap_schema")) {
                     foundTapSchemaSchema = true;
                 }
-                if (((String) row.get(0)).equals("cadcauthtest1")) {
+                if (((String) row.get(0)).equals(testSchemaName)) {
                     foundCadcauthtest1Schema = true;
                 }
             }
@@ -724,7 +710,7 @@ public class PermissionsTest extends AbstractTablesTest {
                 Assert.fail("failed to find tap schema schema");
             }
             if (!foundCadcauthtest1Schema) {
-                Assert.fail("failed to find cadcauthtest1 schema");
+                Assert.fail("failed to find " + testSchemaName + " schema");
             }
         } catch (Throwable t) {
             log.error("unexpected", t);

@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2018.                            (c) 2018.
+*  (c) 2024.                            (c) 2024.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -81,10 +81,10 @@ import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
 import java.net.URI;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Iterator;
@@ -94,7 +94,7 @@ import org.apache.log4j.Logger;
 import org.opencadc.tap.io.InconsistentTableDataException;
 import org.opencadc.tap.io.TableDataInputStream;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.PreparedStatementCreator;
+import org.springframework.jdbc.core.ParameterizedPreparedStatementSetter;
 
 /**
  * Utility to bulk load content into a table.
@@ -142,25 +142,29 @@ public class TableLoader {
         Iterator<List<Object>> dataIterator = data.iterator();
         List<Object> nextRow = null;
 
+        List<List<Object>> batch = new ArrayList<>(batchSize);
         int count = 0;
         try {
             while (!done) {
                 count = 0;
                 tm.startTransaction();
                 prof.checkpoint("start-transaction");
+                BulkInsertStatement bulkInsertStatement = new BulkInsertStatement(reorgTable);
                 
-                while (count < batchSize && dataIterator.hasNext()) {
+                while (batch.size() < batchSize && dataIterator.hasNext()) {
                     nextRow = dataIterator.next();
                     convertValueObjects(nextRow);
-                    jdbc.update(sql, nextRow.toArray());
+                    batch.add(nextRow);
                     count++;
                 }
-                log.debug("Inserting " + count + " rows in this batch.");
+                log.debug("Inserting " + batch.size() + " rows in this batch.");
+                jdbc.batchUpdate(sql, batch, batchSize, bulkInsertStatement);
                 prof.checkpoint("batch-of-inserts");
                 
                 tm.commitTransaction();
                 prof.checkpoint("commit-transaction");
-                totalInserts += count;
+                totalInserts += batch.size();
+                batch.clear();
                 done = !dataIterator.hasNext();
             }
         } catch (IllegalArgumentException | IndexOutOfBoundsException | InconsistentTableDataException ex) {
@@ -178,8 +182,8 @@ public class TableLoader {
             } catch (Exception oops) {
                 log.error("Unexpected: could not rollback transaction", oops);
             }
-            throw new IllegalArgumentException("Inserted " + totalInserts + " rows. " +
-                    "Current batch failed with: " + ex.getMessage() + " on line " + (totalInserts + count));
+            throw new IllegalArgumentException("Inserted " + totalInserts + " rows." 
+                    + " Current batch failed with: " + ex.getMessage() + " on line " + (totalInserts + count));
         } catch (Throwable t) {
             try {
                 data.close();
@@ -197,8 +201,8 @@ public class TableLoader {
             }
 
             log.debug("Batch insert failure", t);
-            throw new RuntimeException("Inserted " + totalInserts + " rows. "
-                + "Current batch of " + batchSize + " failed with: " + t.getMessage(), t);
+            throw new RuntimeException("Inserted " + totalInserts + " rows."
+                + " Current batch of " + batchSize + " failed with: " + t.getMessage(), t);
             
         } finally {
             if (tm.isOpen()) {
@@ -241,27 +245,26 @@ public class TableLoader {
         return sb.toString();
     }
     
-    private class BulkInsertStatement implements PreparedStatementCreator {
+    private class BulkInsertStatement implements ParameterizedPreparedStatementSetter<List<Object>> {
         private final Calendar utc = Calendar.getInstance(DateUtil.UTC);
         private TableDesc tableDesc;
-        Object[] row;
         
+        public BulkInsertStatement(TableDesc tableDesc) {
+            this.tableDesc = tableDesc;
+        }
+
         @Override
-        public PreparedStatement createPreparedStatement(Connection con) throws SQLException {
-            String sql = generateInsertSQL(tableDesc);
-            PreparedStatement ret = con.prepareStatement(sql);
-            
-            for (int i = 0; i < tableDesc.getColumnDescs().size(); i++) {
-                ColumnDesc cd = tableDesc.getColumnDescs().get(i);
-                Object val = row[i];
+        public void setValues(PreparedStatement ps, List<Object> row) throws SQLException {
+            int col = 1;
+            for (Object val : row) {
+                ColumnDesc cd = tableDesc.getColumnDescs().get(col - 1);
                 if (val != null && val instanceof Date && TapDataType.TIMESTAMP.equals(cd.getDatatype())) {
                     Date d = (Date) val;
-                    ret.setTimestamp(i + 1, new Timestamp(d.getTime()), utc);
+                    ps.setTimestamp(col++, new Timestamp(d.getTime()), utc);
                 } else {
-                    ret.setObject(i + 1, val);
+                    ps.setObject(col++, val);
                 }
             }
-            return ret;
         }
     }
     
@@ -274,52 +277,60 @@ public class TableLoader {
     
     // convert values that the JDBC driver won't accept
     private void convertValueObjects(List<Object> values) {
-        for (int i=0; i < values.size(); i++) {
+        for (int i = 0; i < values.size(); i++) {
             Object v = values.get(i);
             if (v != null) {
-                if (v instanceof URI) {
-                    String nv = ((URI) v).toASCIIString();
-                    values.set(i, nv);
-                } else if (v instanceof DoubleInterval) {
-                    Object nv = ddType.getIntervalObject((DoubleInterval) v);
-                    values.set(i, nv);
-                } else if (v instanceof LongInterval) {
-                    Interval inter = (Interval) v;
-                    DoubleInterval di = new DoubleInterval(inter.getLower().doubleValue(), inter.getUpper().doubleValue());
-                    Object nv = ddType.getIntervalObject(di);
-                    values.set(i, nv);
-                } else if (v instanceof Point) {
-                    Object nv = ddType.getPointObject((Point) v);
-                    values.set(i, nv);
-                } else if (v instanceof Circle) {
-                    Object nv = ddType.getCircleObject((Circle) v);
-                    values.set(i, nv);
-                } else if (v instanceof Polygon) {
-                    Object nv = ddType.getPolygonObject((Polygon) v);
-                    values.set(i, nv);
-                } else if (v instanceof ca.nrc.cadc.stc.Position) {
-                    Object nv = ddType.getPointObject((ca.nrc.cadc.stc.Position) v);
-                    values.set(i, nv);
-                } else if (v instanceof ca.nrc.cadc.stc.Region) {
-                    Object nv = ddType.getRegionObject((ca.nrc.cadc.stc.Region) v);
-                    values.set(i, nv);
-                } else if (v instanceof short[]) {
-                    Object nv = ddType.getArrayObject((short[]) v);
-                    values.set(i, nv);
-                } else if (v instanceof int[]) {
-                    Object nv = ddType.getArrayObject((int[]) v);
-                    values.set(i, nv);
-                } else if (v instanceof long[]) {
-                    Object nv = ddType.getArrayObject((long[]) v);
-                    values.set(i, nv);
-                } else if (v instanceof float[]) {
-                    Object nv = ddType.getArrayObject((float[]) v);
-                    values.set(i, nv);
-                } else if (v instanceof double[]) {
-                    Object nv = ddType.getArrayObject((double[]) v);
+                Object nv = convertValueObject(v);
+                if (v != nv) {
                     values.set(i, nv);
                 }
             }
         }
+    }
+    
+    private Object convertValueObject(Object v) {
+        if (v instanceof URI) {
+            return ((URI) v).toASCIIString();
+        }
+        if (v instanceof DoubleInterval) {
+            return ddType.getIntervalObject((DoubleInterval) v);
+        }
+        if (v instanceof LongInterval) {
+            Interval inter = (Interval) v;
+            DoubleInterval di = new DoubleInterval(inter.getLower().doubleValue(), inter.getUpper().doubleValue());
+            return ddType.getIntervalObject(di);
+        }
+        if (v instanceof Point) {
+            return ddType.getPointObject((Point) v);
+        }
+        if (v instanceof Circle) {
+            return ddType.getCircleObject((Circle) v);
+        }
+        if (v instanceof Polygon) {
+            return ddType.getPolygonObject((Polygon) v);
+        }
+        if (v instanceof ca.nrc.cadc.stc.Position) {
+            return ddType.getPointObject((ca.nrc.cadc.stc.Position) v);
+        }
+        if (v instanceof ca.nrc.cadc.stc.Region) {
+            return ddType.getRegionObject((ca.nrc.cadc.stc.Region) v);
+        }
+        if (v instanceof short[]) {
+            return ddType.getArrayObject((short[]) v);
+        }
+        if (v instanceof int[]) {
+            return ddType.getArrayObject((int[]) v);
+        }
+        if (v instanceof long[]) {
+            return ddType.getArrayObject((long[]) v);
+        }
+        if (v instanceof float[]) {
+            return ddType.getArrayObject((float[]) v);
+        }
+        if (v instanceof double[]) {
+            return ddType.getArrayObject((double[]) v);
+        }
+        
+        return v;
     }
 }

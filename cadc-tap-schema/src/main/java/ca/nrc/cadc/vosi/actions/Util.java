@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2018.                            (c) 2018.
+*  (c) 2024.                            (c) 2024.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -70,16 +70,17 @@ package ca.nrc.cadc.vosi.actions;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.cred.client.CredUtil;
+import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.tap.schema.TapPermissions;
-import java.net.URI;
+import java.io.IOException;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.security.cert.CertificateException;
-import java.util.List;
+import java.util.Set;
 import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
-import org.opencadc.gms.GroupClient;
 import org.opencadc.gms.GroupURI;
+import org.opencadc.gms.IvoaGroupClient;
 
 /**
  * Utility class with static methods for checking permissions.
@@ -135,10 +136,11 @@ class Util {
         return false;
     }
     
-    public static GroupURI getPermittedGroup(GroupClient groupClient, List<GroupURI> permittedGroups) {
+    public static GroupURI getPermittedGroup(IvoaGroupClient groupClient, Set<GroupURI> permittedGroups) 
+        throws IOException, ResourceNotFoundException {
         
         // no read groups assigned
-        if (permittedGroups == null || permittedGroups.size() == 0) {
+        if (permittedGroups == null || permittedGroups.isEmpty()) {
             return null;
         }
         
@@ -151,27 +153,17 @@ class Util {
         if (!ensureCredentials()) {
             throw new AccessControlException("No delegated credentials");
         }
-        // single group membership required
-        if (permittedGroups.size() == 1) {
-            if (groupClient.isMember(permittedGroups.get(0))) {
-                return permittedGroups.get(0);
+
+        try {
+            // membership in at least one of the groups
+            Set<GroupURI> memberships = groupClient.getMemberships(permittedGroups);
+            if (memberships == null || memberships.isEmpty()) {
+                return null;
             }
-            return null;
+            return memberships.iterator().next();
+        } catch (InterruptedException ex) {
+            throw new RuntimeException("UNEXPECTED: " + ex, ex);
         }
-        
-        // membership in at least one of the groups
-        List<GroupURI> memberships = groupClient.getMemberships();
-        if (memberships == null || memberships.size() == 0) {
-            return null;
-        }
-        
-        // remove groups that are not in the list of permitted read groups
-        memberships.retainAll(permittedGroups);
-        if (memberships.size() > 0) {
-            return memberships.get(0);
-        }
-        
-        return null;
     }
     
 //    public static GroupURI getWritePermissionsGroup(GroupClient groupClient, TapPermissions permissions) {

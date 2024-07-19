@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2018.                            (c) 2018.
+*  (c) 2024.                            (c) 2024.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,18 +67,15 @@
 
 package ca.nrc.cadc.vosi.actions;
 
-
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
-import ca.nrc.cadc.dali.tables.votable.VOTableField;
 import ca.nrc.cadc.dali.tables.votable.VOTableReader;
 import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.io.ByteCountInputStream;
 import ca.nrc.cadc.rest.InlineContentException;
 import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.tap.schema.TapSchemaUtil;
 import ca.nrc.cadc.util.StringUtil;
 import ca.nrc.cadc.vosi.InvalidTableSetException;
@@ -86,8 +83,7 @@ import ca.nrc.cadc.vosi.TableReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Properties;
 import org.apache.log4j.Logger;
 
 /**
@@ -100,6 +96,9 @@ public class TableDescHandler implements InlineContentHandler {
     private static final long BYTE_LIMIT = 1024 * 1024L; // 1 MiB
     public static final String VOSI_TABLE_TYPE = "text/xml";
     public static final String VOTABLE_TYPE = "application/x-votable+xml";
+    //public static final String VOSI_SCHEMA_TYPE = "text/xml;content=schema";
+    // VOSI tableset schema cannot carry owner information
+    public static final String VOSI_SCHEMA_TYPE = "text/plain"; // key = value
     
     private String objectTag;
     
@@ -110,12 +109,31 @@ public class TableDescHandler implements InlineContentHandler {
     @Override
     public Content accept(String name, String contentType, InputStream in) throws InlineContentException, IOException {
         try {
+            String schemaOwner = null;
+            SchemaDesc sch = null;
             TableDesc tab = null;
-            if (VOSI_TABLE_TYPE.equalsIgnoreCase(contentType)) {
-                TableReader tr = new TableReader(false); // schema validation causes default arraysize="1" to be injected
+            if (VOSI_SCHEMA_TYPE.equalsIgnoreCase(contentType)) {
+                ByteCountInputStream istream = new ByteCountInputStream(in, BYTE_LIMIT);
+                String str = StringUtil.readFromInputStream(istream, "UTF-8");
+                log.debug("raw input:\n" + str);
+                
+                //TableSetReader tsr = new TableSetReader(false);  // schema validation causes default arraysize="1" to be injected
+                //TapSchema ts = tsr.read(new StringReader(str));
+                //if (ts.getSchemaDescs().isEmpty() || ts.getSchemaDescs().size() > 1) {
+                //    throw new IllegalArgumentException("invalid input: expected 1 schema in " + VOSI_SCHEMA_TYPE
+                //        + " found: " + ts.getSchemaDescs().size());
+                //}
+                // TODO: reject if there are tables in schema
+                //sch = ts.getSchemaDescs().get(0);
+                Properties props = new Properties();
+                props.load(new StringReader(str));
+                schemaOwner = props.getProperty("owner");
+            } else if (VOSI_TABLE_TYPE.equalsIgnoreCase(contentType)) {
                 ByteCountInputStream istream = new ByteCountInputStream(in, BYTE_LIMIT);
                 String xml = StringUtil.readFromInputStream(istream, "UTF-8");
-                log.debug("input xml:\n" + xml);
+                
+                TableReader tr = new TableReader(false); // schema validation causes default arraysize="1" to be injected
+                log.debug("raw input:\n" + xml);
                 tab = tr.read(new StringReader(xml));
             } else if (VOTABLE_TYPE.equalsIgnoreCase(contentType)) {
                 VOTableReader tr = new VOTableReader();
@@ -126,6 +144,9 @@ public class TableDescHandler implements InlineContentHandler {
             InlineContentHandler.Content ret = new InlineContentHandler.Content();
             ret.name = objectTag;
             ret.value = tab;
+            if (schemaOwner != null) {
+                ret.value = schemaOwner;
+            }
             return ret;
         } catch (InvalidTableSetException ex) {
             throw new IllegalArgumentException("invalid input document", ex);
