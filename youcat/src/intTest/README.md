@@ -10,7 +10,7 @@ The following x509 client certificates are found in `$A/test-certificates` and u
 execute the tests:
 - youcat-admin.pem  : used to create the test schema, same ident must be configured as the admin in the deployed service
 - youcat-owner.pem  : the owner of the test schema
-- youcat-member.pem : member of a group that you-cat-owner grants read-write access to
+- youcat-member.pem : member of a group that youcat-owner grants read-write access to
 
 The tests are curently only runnable by CADC staff because of ard coded setup and assumptions about external
 content (group in GMS). The test group is currently hard coded to one in the `ivo://cadc.nrc.ca/gms` GMS service. 
