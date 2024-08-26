@@ -91,9 +91,7 @@ public class TableUpdateJobManager extends RequestPathJobManager {
     public TableUpdateJobManager() { 
         super();
         
-        IdentityManager im = AuthenticationUtil.getIdentityManager();
-        // persist UWS jobs to PostgreSQL using default jdbc/uws connection pool
-        JobPersistence jobPersist = new PostgresJobPersistence(im);
+        JobPersistence jobPersist = new PostgresJobPersistence();
 
         // max threads: 3 == number of simultaneously running jobs (per web server)
         JobExecutor jobExec = new ThreadPoolExecutor(jobPersist, TableUpdateRunnerImpl.class, 3);
