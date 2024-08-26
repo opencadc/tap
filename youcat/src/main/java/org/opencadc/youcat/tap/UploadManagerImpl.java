@@ -84,26 +84,10 @@ public class UploadManagerImpl extends BasicUploadManager {
         // 500k rows X 1 column (more if compact)
         MAX_UPLOAD = new UploadLimits(32 * 1024L * 1024L); // 32 MiB
         // TODO: columnLimit to prevent really wide tables?
-        MAX_UPLOAD.rowLimit = 100000; // sane batch size users can manage
+        //MAX_UPLOAD.rowLimit = 100000; // sane batch size users can manage
     }
 
     public UploadManagerImpl() {
         super(MAX_UPLOAD);
-    }
-
-    /**
-     * Create the SQL to grant select privileges to the cvopub group for the
-     * specified table.
-     *
-     * @param databaseTableName fully qualified table name.
-     * @return SQL to grant select privileges to the cvopub group.
-     */
-    @Override
-    protected String getGrantSelectTableSQL(String databaseTableName) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("grant select on table ");
-        sb.append(databaseTableName);
-        sb.append(" to group cvopub");
-        return sb.toString();
     }
 }

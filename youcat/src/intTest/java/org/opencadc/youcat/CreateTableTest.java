@@ -185,7 +185,7 @@ public class CreateTableTest extends AbstractTablesTest {
             Assert.assertFalse("no result rows", iter.hasNext());
             
             // cleanup on success
-            doDelete(schemaOwner, testTable, false);
+            //doDelete(schemaOwner, testTable, false);
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -211,13 +211,26 @@ public class CreateTableTest extends AbstractTablesTest {
             vtab.getFields().add(new VOTableField("c3", TapDataType.LONG.getDatatype()));
             vtab.getFields().add(new VOTableField("c4", TapDataType.FLOAT.getDatatype()));
             vtab.getFields().add(new VOTableField("c5", TapDataType.DOUBLE.getDatatype()));
-            VOTableField tsf = new VOTableField("c6", TapDataType.TIMESTAMP.getDatatype(), TapDataType.TIMESTAMP.arraysize);
-            tsf.xtype = TapDataType.TIMESTAMP.xtype;
-            vtab.getFields().add(tsf);
-            vtab.getFields().add(new VOTableField("e7", TapDataType.INTERVAL.getDatatype()));
-            vtab.getFields().add(new VOTableField("e8", TapDataType.POINT.getDatatype()));
-            vtab.getFields().add(new VOTableField("e9", TapDataType.CIRCLE.getDatatype()));
-            vtab.getFields().add(new VOTableField("e10", TapDataType.POLYGON.getDatatype()));
+            
+            // extended types
+            VOTableField tf;
+            tf = new VOTableField("e6", TapDataType.TIMESTAMP.getDatatype(), TapDataType.TIMESTAMP.arraysize);
+            tf.xtype = TapDataType.TIMESTAMP.xtype;
+            vtab.getFields().add(tf);
+            
+            tf = new VOTableField("e7", TapDataType.INTERVAL.getDatatype(), TapDataType.INTERVAL.arraysize);
+            tf.xtype = TapDataType.INTERVAL.xtype;
+            vtab.getFields().add(tf);
+            tf = new VOTableField("e8", TapDataType.POINT.getDatatype(), TapDataType.POINT.arraysize);
+            tf.xtype = TapDataType.POINT.xtype;
+            vtab.getFields().add(tf);
+            tf = new VOTableField("e9", TapDataType.CIRCLE.getDatatype(), TapDataType.CIRCLE.arraysize);
+            tf.xtype = TapDataType.CIRCLE.xtype;
+            vtab.getFields().add(tf);
+            tf = new VOTableField("e10", TapDataType.POLYGON.getDatatype(), TapDataType.POLYGON.arraysize);
+            tf.xtype = TapDataType.POLYGON.xtype;
+            vtab.getFields().add(tf);
+            
             // arrays
             vtab.getFields().add(new VOTableField("a11", "short", "*"));
             vtab.getFields().add(new VOTableField("a12", "int", "*"));
@@ -256,7 +269,7 @@ public class CreateTableTest extends AbstractTablesTest {
             Assert.assertFalse("no result rows", iter.hasNext());
             
             
-            doDelete(schemaOwner, testTable, false);
+            //doDelete(schemaOwner, testTable, false);
             
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
