@@ -67,10 +67,17 @@
 
 package org.opencadc.youcat;
 
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.rest.InitAction;
 import ca.nrc.cadc.tap.schema.InitDatabaseTS;
+import ca.nrc.cadc.util.InvalidConfigException;
+import ca.nrc.cadc.util.MultiValuedProperties;
+import ca.nrc.cadc.util.PropertiesReader;
 import ca.nrc.cadc.uws.server.impl.InitDatabaseUWS;
+import ca.nrc.cadc.vosi.actions.TablesAction;
+import javax.naming.Context;
+import javax.naming.InitialContext;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
@@ -81,12 +88,70 @@ import org.apache.log4j.Logger;
 public class YoucatInitAction extends InitAction {
     private static final Logger log = Logger.getLogger(YoucatInitAction.class);
 
+    private static final String YOUCAT = YoucatInitAction.class.getPackageName();
+    private static final String YOUCAT_ADMIN = YOUCAT + ".adminUser";
+    private static final String YOUCAT_CREATE = YOUCAT + ".createSchemaInDB";
+
+    private String jndiAdminKey;
+    private String jndiCreateSchemaKey;
+    
     public YoucatInitAction() { 
+    }
+
+    private void initConfig() {
+        this.jndiAdminKey = appName + TablesAction.ADMIN_KEY;
+        this.jndiCreateSchemaKey = appName + TablesAction.CREATE_SCHEMA_KEY;
+        
+        PropertiesReader r = new PropertiesReader("youcat.properties");
+        MultiValuedProperties mvp = r.getAllProperties();
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("incomplete config: ");
+        boolean ok = true;
+
+        String adminUser = mvp.getFirstPropertyValue(YOUCAT_ADMIN);
+        sb.append("\n\t" + YOUCAT_ADMIN + ": ");
+        if (adminUser == null) {
+            sb.append("MISSING");
+        } else {
+            sb.append("OK");
+        }
+        
+        String yc = mvp.getFirstPropertyValue(YOUCAT_CREATE);
+        sb.append("\n\t" + YOUCAT_CREATE + ": ");
+        if (yc == null) {
+            sb.append("MISSING");
+        } else {
+            sb.append("OK");
+        }
+        
+        if (!ok) {
+            throw new InvalidConfigException(sb.toString());
+        }
+        
+        Boolean createSchemaInDB = false; // default: false for backwards compat
+        if (yc != null && "true".equals(yc)) {
+            createSchemaInDB = true;
+        }
+        try {
+            Context ctx = new InitialContext();
+            if (adminUser != null) {
+                ctx.bind(jndiAdminKey, new HttpPrincipal(adminUser));
+            }
+            if (createSchemaInDB != null) {
+                ctx.bind(jndiCreateSchemaKey, createSchemaInDB);
+            }
+            log.info("init: admin=" + adminUser + " createSchemaInDB=" + createSchemaInDB);
+        } catch (Exception ex) {
+            log.error("Failed to create JNDI key(s): " + jndiAdminKey + "|" + jndiCreateSchemaKey, ex);
+        }
     }
 
     @Override
     public void doInit() {
         try {
+            initConfig();
+            
             // tap_schema
             log.info("InitDatabaseTS: START");
             DataSource tapadm = DBUtil.findJNDIDataSource("jdbc/tapadm");
@@ -100,6 +165,8 @@ public class YoucatInitAction extends InitAction {
             InitDatabaseUWS uwsi = new InitDatabaseUWS(uws, null, "uws");
             uwsi.doInit();
             log.info("InitDatabaseUWS: OK");
+            
+            
         } catch (Exception ex) {
             throw new RuntimeException("INIT FAIL: " + ex.getMessage(), ex);
         }

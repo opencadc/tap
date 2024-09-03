@@ -91,9 +91,8 @@ public class QueryJobManager extends RequestPathJobManager {
     public QueryJobManager() {
         super();
         
-        IdentityManager im = AuthenticationUtil.getIdentityManager();
         // persist UWS jobs to PostgreSQL using default jdbc/uws connection pool
-        JobPersistence jobPersist = new PostgresJobPersistence(new RandomStringGenerator(16), im, true);
+        JobPersistence jobPersist = new PostgresJobPersistence();
 
         // max threads: 6 == number of simultaneously running async queries (per
         // web server), plus sync queries, plus VOSI-tables queries

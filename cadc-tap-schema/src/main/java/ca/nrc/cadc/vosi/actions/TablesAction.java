@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2018.                            (c) 2018.
+*  (c) 2024.                            (c) 2024.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -68,28 +68,28 @@
 package ca.nrc.cadc.vosi.actions;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.log.WebServiceLogInfo;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.net.TransientException;
-import ca.nrc.cadc.reg.Standards;
-import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.tap.PluginFactory;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import java.net.URI;
+import java.io.IOException;
 import java.security.AccessControlException;
 import java.security.Principal;
-import java.util.ArrayList;
-import java.util.List;
-
+import java.util.Set;
+import java.util.TreeSet;
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import javax.security.auth.Subject;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
-import org.opencadc.gms.GroupClient;
 import org.opencadc.gms.GroupURI;
-import org.opencadc.gms.GroupUtil;
+import org.opencadc.gms.IvoaGroupClient;
 
 /**
  *
@@ -98,14 +98,27 @@ import org.opencadc.gms.GroupUtil;
 public abstract class TablesAction extends RestAction {
     private static final Logger log = Logger.getLogger(TablesAction.class);
 
+    public static String ADMIN_KEY = "-admin-principal";
+    public static String CREATE_SCHEMA_KEY = "-create-schema-in-db";
+    
     protected static final String PERMS_CONTENTTYPE = "text/plain";
     protected static final String OWNER_KEY = "owner";
     protected static final String PUBLIC_KEY = "public";
     protected static final String RGROUP_KEY = "r-group";
     protected static final String RWGROUP_KEY = "rw-group";
     
+    protected String jndiAdminKey;
+    protected String jndiCreateSchemaKey;
+    
     public TablesAction() { 
         super();
+    }
+
+    @Override
+    public void initAction() throws Exception {
+        super.initAction();
+        this.jndiAdminKey = appName + TablesAction.ADMIN_KEY;
+        this.jndiCreateSchemaKey = appName + TablesAction.CREATE_SCHEMA_KEY;
     }
 
     protected final DataSource getDataSource() {
@@ -125,13 +138,31 @@ public abstract class TablesAction extends RestAction {
         return null;
     }
     
-    String getTableName() {
-        String path = syncInput.getPath();
-        // TODO: move this empty str to null up to SyncInput?
-        if (path != null && path.isEmpty()) {
+    String getTableName() throws ResourceNotFoundException {
+        String[] ss = getTarget();
+        if (ss == null) {
             return null;
         }
-        return path;
+        return ss[1];
+    }
+
+    // return {schema} and {table}
+    String[] getTarget() throws ResourceNotFoundException {
+        String path = syncInput.getPath();
+        // TODO: move this empty str to null up to SyncInput?
+        if (path == null || path.isEmpty()) {
+            return null;
+        }
+        String[] st = path.split("[.]");
+        if (st.length > 2) {
+            throw new ResourceNotFoundException("not found: " + path + " (reason: invalid schema|table name -- too many dots)");
+        }
+        String[] ret = new String[2];
+        ret[0] = st[0];
+        if (st.length == 2) {
+            ret[1] = path;
+        }
+        return ret;
     }
     
     /**
@@ -182,8 +213,20 @@ public abstract class TablesAction extends RestAction {
         if (schemaPermissions == null) {
             throw new ResourceNotFoundException("schema not found: " + schemaName);
         }
+        if (schemaPermissions.owner == null) {
+            super.logInfo.setMessage("view table allowed: null schema owner");
+            return schemaPermissions;
+        }
+        if (schemaPermissions.isPublic) {
+            super.logInfo.setMessage("view table allowed: public schema");
+            return schemaPermissions;
+        }
         if (Util.isOwner(schemaPermissions)) {
             super.logInfo.setMessage("view schema permissions allowed: schema owner");
+            return schemaPermissions;
+        }
+        if (checkIsAdmin()) {
+            super.logInfo.setMessage("view schema permissions allowed: admin");
             return schemaPermissions;
         }
         throw new AccessControlException("permission denied");
@@ -210,10 +253,11 @@ public abstract class TablesAction extends RestAction {
         
         String schemaName = Util.getSchemaFromTable(tableName);
         TapPermissions schemaPermissions = dao.getSchemaPermissions(schemaName);
-        TapPermissions tablePermissions = dao.getTablePermissions(tableName);
         if (schemaPermissions == null) {
             throw new ResourceNotFoundException("schema not found: " + schemaName);
         }
+
+        TapPermissions tablePermissions = dao.getTablePermissions(tableName);
         if (tablePermissions == null) {
             throw new ResourceNotFoundException("table not found: " + tableName);
         }
@@ -223,6 +267,10 @@ public abstract class TablesAction extends RestAction {
         }
         if (Util.isOwner(tablePermissions)) {
             super.logInfo.setMessage("view table permissions allowed: table owner");
+            return tablePermissions;
+        }
+        if (checkIsAdmin()) {
+            super.logInfo.setMessage("view table permissions allowed: admin");
             return tablePermissions;
         }
         throw new AccessControlException("permission denied");
@@ -255,7 +303,7 @@ public abstract class TablesAction extends RestAction {
     // if anon or authenticated check public
     // if authenticated check schema and table owners, readGroups, readWriteGroups
     void checkTableReadPermissions(TapSchemaDAO dao, String tableName)
-            throws AccessControlException, ResourceNotFoundException {
+            throws AccessControlException, IOException, InterruptedException, ResourceNotFoundException {
         
         TapPermissions tablePermissions = dao.getTablePermissions(tableName);
         if (tablePermissions == null) {
@@ -294,15 +342,16 @@ public abstract class TablesAction extends RestAction {
             super.logInfo.setMessage("view table allowed: schema owner");
             return;
         }
+        if (checkIsAdmin()) {
+            super.logInfo.setMessage("view table allowed: admin");
+            return;
+        }
         
         // check group permissions
         // The serviceID should come from the read or readWrite group
         // in the future
-        LocalAuthority localAuthority = new LocalAuthority();
-        URI serviceURI = localAuthority.getServiceURI(Standards.GMS_SEARCH_01.toString());
-        GroupClient groupClient = GroupUtil.getGroupClient(serviceURI);
-        
-        List<GroupURI> readGroups = new ArrayList<GroupURI>(4);
+        final IvoaGroupClient groupClient = new IvoaGroupClient();
+        Set<GroupURI> readGroups = new TreeSet<>();
         if (schemaPermissions.readGroup != null) {
             readGroups.add(schemaPermissions.readGroup);
         }
@@ -321,19 +370,12 @@ public abstract class TablesAction extends RestAction {
             super.logInfo.setMessage("view table allowed: member of group " + permittingGroup);
             return;
         }
-                
-//        GroupURI readGroup = Util.getReadPermissionsGroup(groupClient, schemaPermissions);
-//
-//        readGroup = Util.getReadPermissionsGroup(groupClient, tablePermissions);
-//        if (readGroup != null) {
-//            super.logInfo.setMessage("view table allowed: member of table group " + readGroup);
-//            return;
-//        }
+
         throw new AccessControlException("permission denied");
     }
     
     public void checkTableWritePermissions(TapSchemaDAO dao, String tableName)
-            throws AccessControlException, ResourceNotFoundException {
+            throws AccessControlException, IOException, ResourceNotFoundException {
         
         TablesAction.checkTableWritePermissions(dao, tableName, logInfo);
     }
@@ -341,7 +383,7 @@ public abstract class TablesAction extends RestAction {
     // if authenticated table owners, readWriteGroup members
     // static method here so that TableUpdateRunner can make this call
     static void checkTableWritePermissions(TapSchemaDAO dao, String tableName, WebServiceLogInfo logInfo)
-            throws AccessControlException, ResourceNotFoundException {
+            throws AccessControlException, IOException, ResourceNotFoundException {
         
         TapPermissions tablePermissions = dao.getTablePermissions(tableName); 
         if (tablePermissions == null) {
@@ -351,11 +393,8 @@ public abstract class TablesAction extends RestAction {
             logInfo.setMessage("table write allowed: table owner");
             return;
         }
-        // The serviceID should come from the readWrite group in the future
-        LocalAuthority localAuthority = new LocalAuthority();
-        URI serviceURI = localAuthority.getServiceURI(Standards.GMS_SEARCH_01.toString());
-        GroupClient groupClient = GroupUtil.getGroupClient(serviceURI);
-        List<GroupURI> permittedGroups = new ArrayList<GroupURI>(1);
+        final IvoaGroupClient groupClient = new IvoaGroupClient();
+        Set<GroupURI> permittedGroups = new TreeSet<>();
         if (tablePermissions.readWriteGroup != null) {
             permittedGroups.add(tablePermissions.readWriteGroup);
             GroupURI permittedGroup = Util.getPermittedGroup(groupClient, permittedGroups);
@@ -369,7 +408,7 @@ public abstract class TablesAction extends RestAction {
     
     // if authenticated check schema owner and readWriteGroup
     void checkSchemaWritePermissions(TapSchemaDAO dao, String schemaName) 
-            throws AccessControlException, ResourceNotFoundException {
+            throws AccessControlException, IOException, ResourceNotFoundException {
         
         TapPermissions schemaPermissions = dao.getSchemaPermissions(schemaName);
         if (schemaPermissions == null) {
@@ -379,10 +418,8 @@ public abstract class TablesAction extends RestAction {
             super.logInfo.setMessage("schema write allowed: schema owner");
             return;
         }
-        LocalAuthority localAuthority = new LocalAuthority();
-        URI serviceURI = localAuthority.getServiceURI(Standards.GMS_SEARCH_01.toString());
-        GroupClient groupClient = GroupUtil.getGroupClient(serviceURI);
-        List<GroupURI> permittedGroups = new ArrayList<GroupURI>(1);
+        final IvoaGroupClient groupClient = new IvoaGroupClient();
+        Set<GroupURI> permittedGroups = new TreeSet<>();
         if (schemaPermissions.readWriteGroup != null) {
             permittedGroups.add(schemaPermissions.readWriteGroup);
             GroupURI permittedGroup = Util.getPermittedGroup(groupClient, permittedGroups);
@@ -394,4 +431,35 @@ public abstract class TablesAction extends RestAction {
         throw new AccessControlException("permission denied");
     }
     
+    // check if the caller is an admin
+    boolean checkIsAdmin() {
+        try {
+            Context ctx = new InitialContext();
+            HttpPrincipal admin = (HttpPrincipal) ctx.lookup(jndiAdminKey);
+            if (admin != null) {
+                Subject caller = AuthenticationUtil.getCurrentSubject();
+                for (Principal p : caller.getPrincipals()) {
+                    if (AuthenticationUtil.equals(admin, p)) {
+                        return true;
+                    }
+                }
+            }
+        } catch (NamingException ex) {
+            log.error("Failed to find JNDI key: " + jndiAdminKey, ex);
+        }
+        return false;
+    }
+    
+    boolean getCreateSchemaEnabled() {
+        try {
+            Context ctx = new InitialContext();
+            Boolean ret = (Boolean) ctx.lookup(jndiCreateSchemaKey);
+            if (ret != null) {
+                return ret;
+            }
+        } catch (NamingException ex) {
+            log.error("Failed to find JNDI key: " + jndiCreateSchemaKey, ex);
+        }
+        return false;
+    }
 }

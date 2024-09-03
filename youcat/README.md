@@ -50,9 +50,9 @@ org.opencadc.youcat.uws.url=jdbc:postgresql://{server}/{database}
 
 The `tapadm` pool manages (create, alter, drop) tap_schema tables and manages the tap_schema content. The `uws` 
 pool manages (create, alter, drop) uws tables and manages the uws content (creates and modifies jobs in the uws
-schema when jobs are created and executed by users.
+schema when jobs are created and executed by users. If `youcat` is configured with to create schemas (server _createSchemaInDB_ below) then this pool must also have permission to create schemas.
 
-The `tapuser` pool is used to run TAP queries, including creating tables in the tap_upload schema. 
+The `tapuser` pool is used to run TAP queries, including creating tables in the `tap_upload` schema. 
 
 All three pools must have the same JDBC URL (e.g. use the same database) with PostgreSQL. This may be 
 relaxed in future.
@@ -79,6 +79,24 @@ directly into the database server.
 See <a href="https://github.com/opencadc/tap/tree/master/cadc-tap-tmp">cadc-tap-tmp</a>.
 
 ## youcat.properties
+
+The youcat.properties configures some admin and optional functions of the service.
+```
+# (optional) configure the admin user
+org.opencadc.youcat.adminUser = {identity}
+
+# (optional) schema creation in the database (default: false)
+org.opencadc.youcat.createSchemaInDB = true|false
+```
+The optional _adminUser_ (configured using the network username) can use the youcat API to create a 
+new schema for a user. This will add the schema to the `tap_schema.schemas` table with the 
+specified owner and enable the owner to further manage that schema. If not configured, creating a
+schema through the REST API is not permitted.
+
+The optional _createSchemaInDB_ flag is set to true, a schema created by admin will be created in 
+the database in addition to being added to the `tap_schema`. If false, `youcat` will not create 
+the schema in the database and just assume it exists and that the `tapadm` pool has permission 
+to create objects (tables and indices) in it.
 
 As hard-coded behaviours of `youcat` are extracted from the build and made configurable,
 the configuration options will usually be in this file (see **development plans** below).

@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2019.                            (c) 2019.
+*  (c) 2024.                            (c) 2024.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,11 +67,7 @@
 
 package org.opencadc.youcat;
 
-
-import ca.nrc.cadc.auth.AuthMethod;
-import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.RunnableAction;
-import ca.nrc.cadc.auth.SSLUtil;
 import ca.nrc.cadc.dali.tables.TableData;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableField;
@@ -79,34 +75,22 @@ import ca.nrc.cadc.dali.tables.votable.VOTableReader;
 import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
-import ca.nrc.cadc.net.HttpDelete;
 import ca.nrc.cadc.net.HttpDownload;
-import ca.nrc.cadc.net.HttpPost;
 import ca.nrc.cadc.net.HttpUpload;
 import ca.nrc.cadc.net.InputStreamWrapper;
 import ca.nrc.cadc.net.OutputStreamWrapper;
-import ca.nrc.cadc.reg.Standards;
-import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.tap.schema.TapPermissions;
-import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.uws.ExecutionPhase;
-import ca.nrc.cadc.uws.Job;
-import ca.nrc.cadc.uws.JobReader;
 import ca.nrc.cadc.vosi.InvalidTableSetException;
 import ca.nrc.cadc.vosi.TableReader;
-import ca.nrc.cadc.vosi.TableWriter;
 import ca.nrc.cadc.vosi.actions.TableDescHandler;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.StringReader;
 import java.net.URL;
 import java.util.Iterator;
 import java.util.List;
@@ -117,7 +101,6 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
-import org.opencadc.tap.TapClient;
 
 /**
  *
@@ -127,7 +110,7 @@ public class CreateTableTest extends AbstractTablesTest {
     private static final Logger log = Logger.getLogger(CreateTableTest.class);
     
     static {
-        Log4jInit.setLevel("ca.nrc.cadc.cat", Level.INFO);
+        Log4jInit.setLevel("org.opencadc.youcat", Level.INFO);
         Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
     }
 
@@ -187,9 +170,9 @@ public class CreateTableTest extends AbstractTablesTest {
         try {
             clearSchemaPerms();
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            super.setPerms(schemaOwner, "cadcauthtest1", tp, 200);
+            super.setPerms(schemaOwner, testSchemaName, tp, 200);
             
-            String testTable = "cadcauthtest1.testCreateQueryDropVOSI";
+            String testTable = testSchemaName + ".testCreateQueryDropVOSI";
             final TableDesc orig = doCreateTable(schemaOwner, testTable);
             TableDesc td = doVosiCheck(testTable);
             compare(orig, td);
@@ -202,7 +185,7 @@ public class CreateTableTest extends AbstractTablesTest {
             Assert.assertFalse("no result rows", iter.hasNext());
             
             // cleanup on success
-            doDelete(schemaOwner, testTable, false);
+            //doDelete(schemaOwner, testTable, false);
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -214,9 +197,9 @@ public class CreateTableTest extends AbstractTablesTest {
         try {
             clearSchemaPerms();
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            super.setPerms(schemaOwner, "cadcauthtest1", tp, 200);
+            super.setPerms(schemaOwner, testSchemaName, tp, 200);
             
-            String testTable = "cadcauthtest1.testCreateQueryDropVOTable";
+            String testTable = testSchemaName + ".testCreateQueryDropVOTable";
 
             // cleanup just in case
             doDelete(schemaOwner, testTable, true);
@@ -228,13 +211,26 @@ public class CreateTableTest extends AbstractTablesTest {
             vtab.getFields().add(new VOTableField("c3", TapDataType.LONG.getDatatype()));
             vtab.getFields().add(new VOTableField("c4", TapDataType.FLOAT.getDatatype()));
             vtab.getFields().add(new VOTableField("c5", TapDataType.DOUBLE.getDatatype()));
-            VOTableField tsf = new VOTableField("c6", TapDataType.TIMESTAMP.getDatatype(), TapDataType.TIMESTAMP.arraysize);
-            tsf.xtype = TapDataType.TIMESTAMP.xtype;
-            vtab.getFields().add(tsf);
-            vtab.getFields().add(new VOTableField("e7", TapDataType.INTERVAL.getDatatype()));
-            vtab.getFields().add(new VOTableField("e8", TapDataType.POINT.getDatatype()));
-            vtab.getFields().add(new VOTableField("e9", TapDataType.CIRCLE.getDatatype()));
-            vtab.getFields().add(new VOTableField("e10", TapDataType.POLYGON.getDatatype()));
+            
+            // extended types
+            VOTableField tf;
+            tf = new VOTableField("e6", TapDataType.TIMESTAMP.getDatatype(), TapDataType.TIMESTAMP.arraysize);
+            tf.xtype = TapDataType.TIMESTAMP.xtype;
+            vtab.getFields().add(tf);
+            
+            tf = new VOTableField("e7", TapDataType.INTERVAL.getDatatype(), TapDataType.INTERVAL.arraysize);
+            tf.xtype = TapDataType.INTERVAL.xtype;
+            vtab.getFields().add(tf);
+            tf = new VOTableField("e8", TapDataType.POINT.getDatatype(), TapDataType.POINT.arraysize);
+            tf.xtype = TapDataType.POINT.xtype;
+            vtab.getFields().add(tf);
+            tf = new VOTableField("e9", TapDataType.CIRCLE.getDatatype(), TapDataType.CIRCLE.arraysize);
+            tf.xtype = TapDataType.CIRCLE.xtype;
+            vtab.getFields().add(tf);
+            tf = new VOTableField("e10", TapDataType.POLYGON.getDatatype(), TapDataType.POLYGON.arraysize);
+            tf.xtype = TapDataType.POLYGON.xtype;
+            vtab.getFields().add(tf);
+            
             // arrays
             vtab.getFields().add(new VOTableField("a11", "short", "*"));
             vtab.getFields().add(new VOTableField("a12", "int", "*"));
@@ -273,7 +269,7 @@ public class CreateTableTest extends AbstractTablesTest {
             Assert.assertFalse("no result rows", iter.hasNext());
             
             
-            doDelete(schemaOwner, testTable, false);
+            //doDelete(schemaOwner, testTable, false);
             
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
@@ -286,9 +282,9 @@ public class CreateTableTest extends AbstractTablesTest {
         try {
             clearSchemaPerms();
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            super.setPerms(schemaOwner, "cadcauthtest1", tp, 200);
+            super.setPerms(schemaOwner, testSchemaName, tp, 200);
             
-            String tableName = "cadcauthtest1.testCreateIndex";
+            String tableName = testSchemaName + ".testCreateIndex";
             TableDesc td = doCreateTable(schemaOwner, tableName);
             for (ColumnDesc cd : td.getColumnDescs()) {
                 log.info("testCreateIndex: " + cd.getColumnName());
@@ -312,9 +308,9 @@ public class CreateTableTest extends AbstractTablesTest {
         try {
             clearSchemaPerms();
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            super.setPerms(schemaOwner, "cadcauthtest1", tp, 200);
+            super.setPerms(schemaOwner, testSchemaName, tp, 200);
             
-            String tableName = "cadcauthtest1.testCreateUniqueIndex";
+            String tableName = testSchemaName + ".testCreateUniqueIndex";
             TableDesc td = doCreateTable(schemaOwner, tableName);
             for (ColumnDesc cd : td.getColumnDescs()) {
                 
