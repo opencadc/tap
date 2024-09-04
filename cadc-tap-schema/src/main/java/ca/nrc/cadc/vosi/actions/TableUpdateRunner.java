@@ -225,8 +225,8 @@ public class TableUpdateRunner implements JobRunner {
     }
 
     /**
-     *
-     * @param params
+     * Add a index to a column in the tap_schema and create the index in the database.
+     * @param params list of request query parameters.
      */
     protected void indexTable(Map<String, List<String>> params) {
         String tableName = getSingleValue("table", params);
@@ -327,8 +327,9 @@ public class TableUpdateRunner implements JobRunner {
     }
 
     /**
+     * Add the metadata for an existing table to the tap_schema.
      *
-     * @param params
+     * @param params list of request query parameters.
      */
     protected void ingestTable(Map<String, List<String>> params) {
         String tableName = getSingleValue("table", params);
@@ -336,17 +337,17 @@ public class TableUpdateRunner implements JobRunner {
             throw new IllegalArgumentException("missing parameter 'table'");
         }
 
-        // check write permissions to the tap_schema
         PluginFactory pf = new PluginFactory();
         TapSchemaDAO ts = pf.getTapSchemaDAO();
         DataSource ds = getDataSource();
         ts.setDataSource(ds);
 
-
+        // check write permissions to the tap_schema
+        String schemaName = Util.getSchemaFromTable(tableName);
         try {
-            TablesAction.checkSchemaWritePermissions(ts, "tap_schema", logInfo);
+            TablesAction.checkSchemaWritePermissions(ts, schemaName, logInfo);
         }  catch (ResourceNotFoundException | IOException ex) {
-            throw new RuntimeException("tap_schema not found");
+            throw new IllegalArgumentException("ingest schema not found in tap_schema: " + schemaName);
         }
 
         // check if table already exists in tap_schema
@@ -357,7 +358,7 @@ public class TableUpdateRunner implements JobRunner {
 
         // add the table to the tap_schema
         TableIngester tableIngester = new TableIngester(ds);
-        tableIngester.ingest("tap_schema", tableName);
+        tableIngester.ingest(schemaName, tableName);
     }
 
     private String getSingleValue(String pname, Map<String, List<String>> params) {
