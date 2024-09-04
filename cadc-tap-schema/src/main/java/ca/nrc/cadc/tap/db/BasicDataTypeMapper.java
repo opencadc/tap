@@ -118,6 +118,11 @@ public class BasicDataTypeMapper implements DatabaseDataType {
      */
     protected final Map<TapDataType, TypePair> dataTypes = new HashMap<>();
 
+    /**
+     * Mapping of database data types to VOTable data types.
+     */
+    protected final Map<String, TapDataType> dbDataTypes = new HashMap<>();
+
     public BasicDataTypeMapper() {
         // votable type -> db type
         dataTypes.put(TapDataType.BOOLEAN, new TypePair("BOOLEAN", Types.BOOLEAN));
@@ -131,6 +136,25 @@ public class BasicDataTypeMapper implements DatabaseDataType {
         dataTypes.put(TapDataType.STRING, new TypePair("CHAR", Types.CHAR));
         dataTypes.put(TapDataType.TIMESTAMP, new TypePair("TIMESTAMP", Types.TIMESTAMP));
         dataTypes.put(TapDataType.URI, new TypePair("CHAR", Types.CHAR));
+
+        // DatabaseMetadata -> TAP_DATA_TYPE
+        // TYPE_NAME    DATA_TYPE   TAP_DATA_TYPE
+        // bool         -7          BOOLEAN
+        // bpchar       1           CHAR
+        // varchar 4096 12          STRING or URI
+        // int2         5           SHORT
+        // int4         4           INTEGER
+        // int8        -5           LONG
+        // float4       7           FLOAT
+        // float8       8           DOUBLE
+        // timestamp    93          TIMESTAMP
+        dbDataTypes.put("varchar", TapDataType.STRING);
+        dbDataTypes.put("int2", TapDataType.SHORT);
+        dbDataTypes.put("int4", TapDataType.INTEGER);
+        dbDataTypes.put("int8", TapDataType.LONG);
+        dbDataTypes.put("float4", TapDataType.FLOAT);
+        dbDataTypes.put("float8", TapDataType.DOUBLE);
+        dbDataTypes.put("timestamp", TapDataType.TIMESTAMP);
     }
 
     /**
@@ -189,8 +213,21 @@ public class BasicDataTypeMapper implements DatabaseDataType {
     public String getIndexColumnOperator(ColumnDesc columnDesc) {
         return null;
     }
-    
-    
+
+    /**
+     * Maps standard database datatypes to a TapDatatype. Database specific datatypes can by mapped in a sub class database specific mapper.
+     *
+     * @param datatype database datatype
+     * @return TapDatatype
+     */
+    public TapDataType getTapDataType(String datatype) {
+        TapDataType tapDataType = dbDataTypes.get(datatype);
+        if (tapDataType != null) {
+            return tapDataType;
+        }
+        throw new UnsupportedOperationException("Unknown database datatype: " + datatype);
+    }
+
     /**
      * Find or create a TypePair for the specified data type. The current implementation
      * looks for exact matches in the dataTypes map and, if not found, it rechecks with
