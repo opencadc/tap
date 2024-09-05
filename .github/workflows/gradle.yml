@@ -36,8 +36,7 @@ jobs:
       run: cd cadc-tap-server-pg && ../gradlew --info clean build javadoc install
 
     - name: build and test cadc-tap-server-oracle
-      run: cd cadc-adql && ../gradlew --info clean build javadoc install
-
+      run: cd cadc-tap-server-oracle && ../gradlew --info clean build javadoc install
 
     - name: build and test cadc-test-tap
       run: cd cadc-test-tap && ../gradlew --info clean build javadoc install
