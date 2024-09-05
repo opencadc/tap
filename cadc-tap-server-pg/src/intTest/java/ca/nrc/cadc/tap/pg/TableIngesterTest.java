@@ -80,12 +80,18 @@ import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import ca.nrc.cadc.util.Log4jInit;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.util.ArrayList;
 import java.util.List;
 import javax.sql.DataSource;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 public class TableIngesterTest {
     private static final Logger log = Logger.getLogger(TableIngesterTest.class);
@@ -175,6 +181,166 @@ public class TableIngesterTest {
                 tapSchemaDAO.delete(testTable);
             } catch (Exception ignore) {
                 log.debug("tap_schema-cleanup-after-test failed for " + testTable);
+            }
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+
+    @Test
+    public void testVerifyTableMetadata() {
+        String testTableName = "testVerifyTableMetadata";
+        String testTable = TEST_SCHEMA + "." + testTableName;
+
+        try {
+            // cleanup
+            TableCreator tableCreator = new TableCreator(dataSource);
+            try {
+                tableCreator.dropTable(testTable);
+            } catch (Exception ignore) {
+                log.debug("database-cleanup-before-test failed for " + testTable);
+            }
+
+            // create test table in the database
+            TableDesc ingestTable = getTableDesc(TEST_SCHEMA, testTable);
+            tableCreator.createTable(ingestTable);
+            log.debug("created database table: " + testTable);
+
+            try (Connection connection = dataSource.getConnection()) {
+                DatabaseMetaData metaData = connection.getMetaData();
+                try (ResultSet rs = metaData.getColumns(null, TEST_SCHEMA, testTableName.toLowerCase(), null)) {
+                    while (rs.next()) {
+                        String colName = rs.getString("COLUMN_NAME");
+                        switch (colName) {
+                            case "e7":
+                                Assert.assertEquals("interval", "polygon", rs.getString("TYPE_NAME"));
+                                break;
+                            case "e8":
+                                Assert.assertEquals("point", "spoint", rs.getString("TYPE_NAME"));
+                                break;
+                            case "e9":
+                                Assert.assertEquals("circle", "scircle", rs.getString("TYPE_NAME"));
+                                break;
+                            case "e10":
+                                Assert.assertEquals("polygon", "spoly", rs.getString("TYPE_NAME"));
+                                break;
+                            case "a11":
+                                Assert.assertEquals("short[]", "_int2", rs.getString("TYPE_NAME"));
+                                break;
+                            case "a12":
+                                Assert.assertEquals("int[]", "_int4", rs.getString("TYPE_NAME"));
+                                break;
+                            case "a13":
+                                Assert.assertEquals("long[]", "_int8", rs.getString("TYPE_NAME"));
+                                break;
+                            case "a14":
+                                Assert.assertEquals("float[]", "_float4", rs.getString("TYPE_NAME"));
+                                break;
+                            case "a15":
+                                Assert.assertEquals("double[]", "_float8", rs.getString("TYPE_NAME"));
+                                break;
+                            default:
+                                Assert.fail("unexpected column: " + colName);
+                        }
+                    }
+                }
+            }
+
+            // cleanup
+            try {
+                tableCreator.dropTable(testTable);
+                log.debug("dropped table: " + testTable);
+            } catch (Exception ignore) {
+                log.debug("database-cleanup-after-test failed for " + testTable);
+            }
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+
+    @Ignore
+    @Test
+    public void testPrintTableMetadata() {
+        String testTableName = "testPrintTableMetadata";
+        String testTable = TEST_SCHEMA + "." + testTableName;
+        try {
+            // cleanup
+            TableCreator tableCreator = new TableCreator(dataSource);
+            try {
+                tableCreator.dropTable(testTable);
+            } catch (Exception ignore) {
+                log.debug("database-cleanup-before-test failed for " + testTable);
+            }
+
+            // create test table in the database
+            TableDesc ingestTable = getTableDesc(TEST_SCHEMA, testTable);
+            tableCreator.createTable(ingestTable);
+            log.debug("created database table: " + testTable);
+
+            List<String> columnInfo = new ArrayList<String>() {{
+                add("DATA_TYPE");
+                add("TYPE_NAME");
+                add("COLUMN_SIZE");
+                add("COLUMN_DEF");
+                add("DECIMAL_DIGITS");
+                add("SQL_DATA_TYPE");
+                add("SQL_DATETIME_SUB");
+                add("CHAR_OCTET_LENGTH");
+                add("SOURCE_DATA_TYPE");
+                add("REMARKS");
+                add("IS_NULLABLE");
+            }};
+
+            List<String> indexInfo = new ArrayList<String>() {{
+                add("NON_UNIQUE");
+                add("INDEX_QUALIFIER");
+                add("INDEX_NAME");
+                add("TYPE");
+                add("ASC_OR_DESC");
+            }};
+
+            try (Connection connection = dataSource.getConnection()) {
+                // create two indexes on the table
+                JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+                String index1 = "CREATE UNIQUE INDEX c0_idx ON int_test_schema.testPrintTableMetadata (c0)";
+                log.debug("sql:\n" + index1);
+                jdbc.execute(index1);
+                String index2 = "CREATE UNIQUE INDEX c6_idx ON int_test_schema.testPrintTableMetadata (c6)";
+                log.debug("sql:\n" + index2);
+                jdbc.execute(index2);
+
+                log.info("column metadata");
+                DatabaseMetaData metaData = connection.getMetaData();
+                try (ResultSet rs = metaData.getColumns(null, TEST_SCHEMA, testTableName.toLowerCase(), null)) {
+                    while (rs.next()) {
+                        String colName = rs.getString("COLUMN_NAME");
+                        log.info(String.format("columnName: %s", colName));
+                        for (String info : columnInfo) {
+                            log.info(String.format("%s.%s: %s", colName, info, rs.getString(info)));
+                        }
+                    }
+                }
+
+                log.info("index metadata");
+                try (ResultSet rs = metaData.getIndexInfo(null, TEST_SCHEMA, testTableName.toLowerCase(), false, false)) {
+                    while (rs.next()) {
+                        String colName = rs.getString("COLUMN_NAME");
+                        log.info(String.format("columnName: %s", colName));
+                        for (String info : indexInfo) {
+                            log.info(String.format("%s.%s: %s", colName, info, rs.getString(info)));
+                        }
+                    }
+                }
+            }
+
+            // cleanup
+            try {
+                tableCreator.dropTable(testTable);
+                log.debug("dropped table: " + testTable);
+            } catch (Exception ignore) {
+                log.debug("database-cleanup-after-test failed for " + testTable);
             }
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
