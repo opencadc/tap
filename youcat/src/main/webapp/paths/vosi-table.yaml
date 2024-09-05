@@ -1,0 +1,85 @@
+get:
+    tag:  table metadata
+    summary: get table metadata
+    description: provides the table metadata for a single schema or table
+    parameters:
+    - name: name
+      in: path
+      description: a single schema name or table name as provided in tap_schema
+      required: true
+      schema:
+        type: string
+    responses:
+        "200":
+          description: "A VOSI <table> document in XML"
+          content: {}
+        "500":
+          description: Internal server error
+          content: {}
+        "503":
+          description: Service too busy
+          content: {}
+        default:
+          description: Unexpected error
+          content: {}
+post:
+    tag:  table metadata
+    summary: update table metadata
+    description: update the tap_schema metadata from description in VOSI table format
+    parameters:
+      - name: name
+        in: path
+        description: the fully qualified name of the table to create
+        required: true
+        schema:
+          type: string
+put:
+    tag:  table metadata
+    summary: create table
+    description: "create table from description in VOSI table format (stretch: VOTable with no rows)"
+    parameters:
+    - name: name
+      in: path
+      description: the fully qualified name of the table to create
+      required: true
+      schema:
+        type: string
+    responses:
+        "201":
+          description: table created
+          content: {}
+        "400":
+          description: create table failed due to invalid input
+          content: {}
+        "500":
+          description: Internal server error
+          content: {}
+        "503":
+          description: Service too busy
+          content: {}
+        default:
+          description: Unexpected error
+          content: {}
+delete:
+    tag:  table metadata
+    summary: drop table
+    parameters:
+    - name: name
+      in: path
+      description: the table to drop
+      required: true
+      schema:
+        type: string
+    responses:
+        "200":
+          description: table dropped
+          content: {}
+        "500":
+          description: Internal server error
+          content: {}
+        "503":
+          description: Service too busy
+          content: {}
+        default:
+          description: Unexpected error
+          content: {}

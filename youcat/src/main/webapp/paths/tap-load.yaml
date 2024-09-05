@@ -1,0 +1,45 @@
+post:
+    summary: youcat bulk load
+    description: TAP synchronous bulk load endpoint
+    parameters:
+    - name: name
+      in: path
+      description: a single table name as provided in tap_schema
+      required: true
+      schema:
+        type: string
+    requestBody:
+        required: true
+        content:
+            text/tab-separated-values: {}
+            text/csv: {}
+            application/fits: {}
+            application/x-votable+xml: {}
+    responses:
+        "200":
+          description: successful response
+          content: {}
+        "400":
+          description: load data failed due to invalid input
+        "401":
+          description: authentication required and user not authenticated
+          content: {}
+        "403":
+          description: permission denied (to query schema or table)
+          content: {}
+        "404":
+          description: not found
+          content: {}
+        "500":
+          description: Internal error
+          content: {}
+        "503":
+          description: Service busy
+          content: {}
+        default:
+          description: Unexpeced error
+          content: {}
+            
+            
+                
+                

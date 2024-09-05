@@ -1,0 +1,66 @@
+get:
+    summary: TAP-sync 1.1
+    description: TAP synchronous query endpoint
+    parameters:
+      - $ref: ../components/parameters/tap-lang.yaml
+      - $ref: ../components/parameters/tap-query.yaml
+      - $ref: ../components/parameters/tap-upload.yaml
+      - $ref: ../components/parameters/tap-format.yaml
+      - $ref: ../components/parameters/dali-maxrec.yaml
+      - $ref: ../components/parameters/dali-responseformat.yaml
+    responses:
+        "200":
+          description: successful response
+          content: {}
+        "303":
+          description: redirect to the job result (optional)
+        "401":
+          description: authentication required and user not authenticated
+          content: {}
+        "403":
+          description: permission denied (to query schema or table)
+          content: {}
+        "404":
+          description: not found (schema or table used in query does not exist)
+          content: {}
+        "500":
+          description: Internal error
+          content: {}
+        "503":
+          description: Service busy
+          content: {}
+        default:
+          description: Unexpeced error
+          content: {}
+post:
+    summary: TAP-sync 1.1
+    description: TAP synchronous query endpoint
+    parameters:
+      - $ref: ../components/parameters/tap-lang.yaml
+      - $ref: ../components/parameters/tap-query.yaml
+      - $ref: ../components/parameters/tap-upload.yaml
+      - $ref: ../components/parameters/tap-format.yaml
+      - $ref: ../components/parameters/dali-maxrec.yaml
+      - $ref: ../components/parameters/dali-responseformat.yaml
+    responses:
+        "200":
+          description: Successful response
+          content: {}
+        "401":
+          description: Unauthorized - User not authenticated
+          content: {}
+        "403":
+          description: Permission denied - Table(s) not readable
+          content: {}
+        "404":
+          description: Not Found - Table(s) not found
+          content: {}
+        "500":
+          description: Internal error
+          content: {}
+        "503":
+          description: Service busy
+          content: {}
+        default:
+          description: Unexpeced error
+          content: {}

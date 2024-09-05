@@ -1,0 +1,37 @@
+get:
+    summary: UWS 1.1
+    description: async job listing
+    parameters: {}
+    responses: {}
+post:
+    summary: TAP-async 1.1
+    description: TAP asynchronous query endpoint (create UWS Job)
+    parameters:
+      - $ref: ../components/parameters/tap-lang.yaml
+      - $ref: ../components/parameters/tap-query.yaml
+      - $ref: ../components/parameters/tap-upload.yaml
+      - $ref: ../components/parameters/tap-format.yaml
+      - $ref: ../components/parameters/dali-maxrec.yaml
+      - $ref: ../components/parameters/dali-responseformat.yaml
+    responses:
+        "303":
+          description: standard UWS redirect to the created job
+          content: {}
+        "401":
+          description: not authenticated
+          content: {}
+        "403":
+          description: permission denied
+          content: {}
+        "404":
+          description: not found
+          content: {}
+        "500":
+          description: internal error
+          content: {}
+        "503":
+          description: service busy
+          content: {}
+        default:
+          description: unexpected error
+          content: {}

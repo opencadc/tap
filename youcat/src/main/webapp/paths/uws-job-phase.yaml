@@ -1,0 +1,58 @@
+get:
+    summary: UWS 1.1
+    description: job phase resource
+    responses:
+        "200":
+          description: successful response
+          content: {}
+        "401":
+          description: not authenticated
+          content: {}
+        "403":
+          description: permission denied
+          content: {}
+        "404":
+          description: not found
+          content: {}
+        "500":
+          description: internal error
+          content: {}
+        "503":
+          description: service busy
+          content: {}
+        default:
+          description: unexpected error
+          content: {}
+post:
+      summary: UWS 1.1
+      description: update job
+      parameters:
+        - name: PHASE
+          in: query
+          description: attempt to change the phase
+          required: true
+          schema:
+            type: string
+            enum: [ABORT, RUN]
+      responses:
+        "200":
+          description: Successful response
+          content: {}
+        "401":
+          description: Unauthorized - User not authenticated
+          content: {}
+        "403":
+          description: Permission denied - Table(s) not readable
+          content: {}
+        "404":
+          description: Not Found - Table(s) not found
+          content: {}
+        "500":
+          description: Internal error
+          content: {}
+        "503":
+          description: Service busy
+          content: {}
+        default:
+          description: Unexpeced error
+          content: {}

@@ -1,0 +1,5 @@
+name: UPLOAD
+in: query
+description: specify name,location pair for a table to be uploaded and used in the query
+schema:
+    type: string

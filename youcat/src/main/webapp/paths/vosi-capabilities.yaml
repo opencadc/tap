@@ -1,0 +1,27 @@
+get:
+    tag: support
+    summary: VOSI Capabilities
+    description: TBD
+    responses:
+        "200":
+          description: A VOSI Capabilities document in XML.
+          content:
+            text/xml:
+              schema:
+                $ref: '#/components/schemas/capabilities'
+        "500":
+          description: Internal server error
+          content: {}
+        "503":
+          description: Service too busy
+          content: {}
+        default:
+          description: Unexpected error
+          content: {}
+components:
+  schemas:
+    capabilities:
+      type: object
+      xml:
+        namespace: http://www.ivoa.net/xml/VOSICapabilities/v1.0
+        prefix: vosi
