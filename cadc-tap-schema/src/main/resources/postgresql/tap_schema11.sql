@@ -40,6 +40,9 @@ create table tap_schema.tables11
     read_only_group  varchar(128),
     read_write_group varchar(128),
 
+-- extension: flag to indicate if a table was created using a Tap service API
+    api_created     integer,
+
 	primary key (table_name),
 	foreign key (schema_name) references tap_schema.schemas11 (schema_name)
 )

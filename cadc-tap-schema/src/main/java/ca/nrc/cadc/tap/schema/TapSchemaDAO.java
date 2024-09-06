@@ -71,18 +71,12 @@ package ca.nrc.cadc.tap.schema;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.IdentityManager;
-import ca.nrc.cadc.cred.client.CredUtil;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.profiler.Profiler;
-import ca.nrc.cadc.reg.Standards;
-import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.uws.Job;
 
 import java.net.URI;
-import java.security.AccessControlException;
-import java.security.cert.CertificateExpiredException;
-import java.security.cert.CertificateNotYetValidException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -96,9 +90,7 @@ import java.util.TreeSet;
 import javax.security.auth.Subject;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
-import org.opencadc.gms.GroupClient;
 import org.opencadc.gms.GroupURI;
-import org.opencadc.gms.GroupUtil;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.core.RowMapper;
@@ -151,6 +143,9 @@ public class TapSchemaDAO {
     protected static String readOnlyCol = "read_only_group";
     protected static String readWriteCol = "read_write_group";
     private static String[] accessControlCols = new String[] { ownerCol, readAnonCol, readOnlyCol, readWriteCol };
+
+    // api_created is in the tables schema but not exposed as a tap_schema column
+    private static String apiCreated = "api_created";
 
     protected Job job;
     protected DataSource dataSource;
@@ -480,7 +475,7 @@ public class TapSchemaDAO {
             jdbc.update(pts);
             prof.checkpoint("put-table");
 
-            // add/remove columns not supported so udpate flag is same for the table and
+            // add/remove columns not supported so update flag is same for the table and
             // column(s)
             PutColumnStatement pcs = new PutColumnStatement(update);
             for (ColumnDesc cd : td.getColumnDescs()) {
@@ -827,6 +822,7 @@ public class TapSchemaDAO {
             StringBuilder sb = new StringBuilder();
             sb.append("SELECT ").append(toCommaList(tsTablesCols, 0));
             sb.append(",").append(toCommaList(accessControlCols, 0));
+            sb.append(",").append(apiCreated);
             sb.append(" FROM ").append(tap_schema_tab);
 
             if (tableName != null) {
@@ -1161,8 +1157,10 @@ public class TapSchemaDAO {
                 sb.append("INSERT INTO ").append(tablesTableName);
                 sb.append(" (");
                 sb.append(toCommaList(tsTablesCols, 0));
+                sb.append(",").append(apiCreated);
                 sb.append(") VALUES (");
                 sb.append(toParamList(tsTablesCols, 0));
+                sb.append(",?");
                 sb.append(")");
             }
             String sql = sb.toString();
@@ -1178,6 +1176,10 @@ public class TapSchemaDAO {
             safeSetInteger(sb, ps, col++, table.tableIndex);
             safeSetString(sb, ps, col++, table.getSchemaName());
             safeSetString(sb, ps, col++, table.getTableName());
+            // created set only in a PUT
+            if (!update) {
+                safeSetBoolean(sb, ps, col++, table.created);
+            }
 
             return ps;
         }
@@ -1546,6 +1548,7 @@ public class TapSchemaDAO {
             if (tapPermissionsMapper != null) {
                 tableDesc.tapPermissions = tapPermissionsMapper.mapRow(rs, rowNum);
             }
+            tableDesc.created = rs.getInt("api_created") == 1;
 
             return tableDesc;
         }

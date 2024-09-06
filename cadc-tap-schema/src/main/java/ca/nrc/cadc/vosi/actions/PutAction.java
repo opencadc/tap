@@ -216,6 +216,8 @@ public class PutAction extends TablesAction {
         if (td != null) {
             throw new ResourceAlreadyExistsException("table " + tableName + " already exists");
         }
+        // flag table as created using the API to allow table deletion in the DeleteAction
+        td.created = true;
         
         Profiler prof = new Profiler(PutAction.class);
         DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
