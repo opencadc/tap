@@ -131,6 +131,8 @@ public class PutAction extends TablesAction {
         s.getPrincipals().add(new HttpPrincipal(owner));
 
         SchemaDesc sd = new SchemaDesc(schema);
+        // flag schema as created using the TAP API
+        sd.apiCreated = true;
         TapPermissions perms = new TapPermissions();
         perms.owner = AuthenticationUtil.getIdentityManager().augment(s);
         
