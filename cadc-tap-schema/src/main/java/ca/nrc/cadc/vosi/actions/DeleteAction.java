@@ -122,7 +122,7 @@ public class DeleteAction extends TablesAction {
             // if the table was created with the API, drop the table,
             // otherwise only delete the table from the tap_schema
             TableDesc tableDesc = ts.getTable(tableName);
-            if (tableDesc.created) {
+            if (tableDesc.apiCreated) {
                 tc.dropTable(tableName);
                 prof.checkpoint("delete-table");
             }

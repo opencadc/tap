@@ -1178,7 +1178,7 @@ public class TapSchemaDAO {
             safeSetString(sb, ps, col++, table.getTableName());
             // created set only in a PUT
             if (!update) {
-                safeSetBoolean(sb, ps, col++, table.created);
+                safeSetBoolean(sb, ps, col++, table.apiCreated);
             }
 
             return ps;
@@ -1548,7 +1548,7 @@ public class TapSchemaDAO {
             if (tapPermissionsMapper != null) {
                 tableDesc.tapPermissions = tapPermissionsMapper.mapRow(rs, rowNum);
             }
-            tableDesc.created = rs.getInt("api_created") == 1;
+            tableDesc.apiCreated = rs.getInt("api_created") == 1;
 
             return tableDesc;
         }
