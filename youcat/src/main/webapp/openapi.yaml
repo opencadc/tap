@@ -44,12 +44,19 @@ paths:
     /async:
         $ref: ./paths/tap-async.yaml
     /async/{jobID}:
-        #$ref: ./paths/uws-job.yaml
-        $ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/uws-job.yaml
+        $ref: ./paths/uws-job.yaml
+        #$ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/uws-job.yaml
     /async/{jobID}/phase:
-        #$ref: ./paths/uws-job-phase.yaml
-        $ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/uws-job-phase.yaml
+        $ref: ./paths/uws-job-phase.yaml
+        #$ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/uws-job-phase.yaml
     ## TODO: more resources under /async/{jobID}
+
+    /tables:
+        $ref: ./paths/vosi-tableset.yaml
+        #$ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/vosi-tableset.yaml
+    /tables/{name}:
+        $ref: ./paths/vosi-table.yaml
+        #$ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/vosi-table.yaml
 
     /load/{name}:
         $ref: ./paths/tap-load.yaml
@@ -57,19 +64,15 @@ paths:
     /table-update:
         $ref: ./paths/tap-table-update.yaml
     /table-update/{jobID}:
-        $ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/uws-job.yaml
+        $ref: ./paths/uws-job.yaml
+        #$ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/uws-job.yaml
     /table-update/{jobID}/phase:
-        $ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/uws-job-phase.yaml
+        $ref: ./paths/uws-job-phase.yaml
+        #$ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/uws-job-phase.yaml
 
     /availability:
-        #$ref: ./paths/vosi-availability.yaml
-        $ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/vosi-availability.yaml
+        $ref: ./paths/vosi-availability.yaml
+        #$ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/vosi-availability.yaml
     /capabilities:
-        #$ref: ./paths/vosi-capabilities.yaml
-        $ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/vosi-capabilities.yaml
-    /tables:
-        #$ref: ./paths/vosi-tableset.yaml
-        $ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/vosi-tableset.yaml
-    /tables/{name}:
-        #$ref: ./paths/vosi-table.yaml
-        $ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/vosi-table.yaml
+        $ref: ./paths/vosi-capabilities.yaml
+        #$ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/vosi-capabilities.yaml

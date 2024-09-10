@@ -10,22 +10,3 @@ get:
     responses:
         "200":
           description: successful response
-          content: {}
-        "401":
-          description: not authenticated
-          content: {}
-        "403":
-          description: permission denied
-          content: {}
-        "404":
-          description: not found
-          content: {}
-        "500":
-          description: internal error
-          content: {}
-        "503":
-          description: service busy
-          content: {}
-        default:
-          description: unexpected error
-          content: {}

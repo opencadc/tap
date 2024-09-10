@@ -1,31 +1,63 @@
-get:
-    tag: support
-    summary: VOSI Availability
+head:
+    tag: VOSI
+    summary: VOSI Availability heartbeat check
     description: |
-        "Indicates whether the service is operable and shows the reliability\
-        of the service for extended and scheduled requests. If the query parameter\
-        'detail=min' is used, a light weight heart beat test will be performed.\
-        The heart beat test returns status 200 if the service is available."
-    parameters:
-    - name: detail
-      in: query
-      description: perform minimal heartbeat style check
-      schema:
-        type: string
-      responses:
+        Perform a minimal check that the service is reachable and running. This
+        check is intended to be very fast and lightweight.
+    responses:
+        "200":
+          description: service is reachable
+        ## TBD: response code for read-only mode? off line mode?
+get:
+    tag: VOSI
+    summary: VOSI Availability full check
+    description: |
+        Perform a complete check that the service is operational. This normally
+        includes checking the availability of back end resources (e.g. database,
+        storage, ...) and that other services that this service depends on (e.g. AAI 
+        services) are reachable (via heartbeat availability check).
+    responses:
         "200":
           description: A VOSI availability document in XML.
           content:
             text/xml:
               schema:
                 $ref: '#/components/schemas/availability'
+        ## TBD: different response code for read-only mode? off line mode?
         default:
           description: Unexpected error
           content: {}
+post:
+    tag: VOSI
+    summary: (CADC extension) modify the state (availability) of a running service
+    description: |
+        An operator can modify the state of a service instance to put it into one of
+        three modes: offline, read-only, and read-write (normal). The detailed meaning of
+        these modes depends on the nature of the service.
+    parameters:
+        - name: STATE
+          in: query
+          description: new service state
+          required: true
+          schema:
+            type: string
+            enum: [ReadWrite, ReadOnly, Offline]
+    responses:
+        "204":
+          description: service state updated
+        "401":
+            description: authentication required or attempted authentication failed
+        "403":
+            description: permission denied
+
 components:
-  schemas:
-    availability:
-      type: object
-      xml:
-        namespace: http://www.ivoa.net/xml/VOSIAvailability/v1.0
-        prefix: vosi
+    schemas:
+        availability:
+            content:
+                text/xml:
+                    schema:
+                        type: object
+                        xml:
+                            name: availability
+                            prefix: vosi
+                            namespace: http://www.ivoa.net/xml/VOSIAvailability/v1.0

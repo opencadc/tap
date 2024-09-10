@@ -1,5 +1,5 @@
 post:
-    summary: youcat bulk load
+    summary: bulk load or row data
     description: TAP synchronous bulk load endpoint
     parameters:
     - name: name
@@ -10,36 +10,30 @@ post:
         type: string
     requestBody:
         required: true
-        content:
-            text/tab-separated-values: {}
-            text/csv: {}
-            application/fits: {}
-            application/x-votable+xml: {}
+        $ref: '#/components/schemas/tableRows'
+            
     responses:
         "200":
-          description: successful response
-          content: {}
-        "400":
-          description: load data failed due to invalid input
-        "401":
-          description: authentication required and user not authenticated
-          content: {}
-        "403":
-          description: permission denied (to query schema or table)
-          content: {}
-        "404":
-          description: not found
-          content: {}
-        "500":
-          description: Internal error
-          content: {}
-        "503":
-          description: Service busy
-          content: {}
-        default:
-          description: Unexpeced error
-          content: {}
-            
-            
+          description: |
+            rows loaded; 
+            TBD: both partial or complete are possible
+
+components:
+    schemas:
+        tableRows:
+            content:
+                text/tab-separated-values:
+                    schema:
+                        type: string
+                text/csv:
+                    schema:
+                        type: string
+                application/fits:
+                application/x-votable+xml:
+                    schema:
+                        type: object
+                        xml:
+                            name: VOTABLE
+                            namespace: http://www.ivoa.net/xml/VOTable/v1.3
                 
                 

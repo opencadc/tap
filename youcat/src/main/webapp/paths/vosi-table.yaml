@@ -1,6 +1,6 @@
 get:
-    tag:  table metadata
-    summary: get table metadata
+    tag: VOSI
+    summary: get metadata for the specified table
     description: provides the table metadata for a single schema or table
     parameters:
     - name: name
@@ -11,21 +11,14 @@ get:
         type: string
     responses:
         "200":
-          description: "A VOSI <table> document in XML"
-          content: {}
-        "500":
-          description: Internal server error
-          content: {}
-        "503":
-          description: Service too busy
-          content: {}
-        default:
-          description: Unexpected error
-          content: {}
+          description: metadata for the specified table
+          $ref: '#/components/schemas/tableDoc'
 post:
-    tag:  table metadata
+    tag: VOSI
     summary: update table metadata
-    description: update the tap_schema metadata from description in VOSI table format
+    description: |
+        update the tap_schema metadata from description;
+        TBD: what can be changed and what is immutable?
     parameters:
       - name: name
         in: path
@@ -33,10 +26,17 @@ post:
         required: true
         schema:
           type: string
+    requestBody:
+        $ref: '#/components/schemas/tableDoc'
+    responses:
+        "204":
+            description: table updated
+        "400":
+            description: update table metadata failed due to invalid input
 put:
-    tag:  table metadata
+    tag: VOSI
     summary: create table
-    description: "create table from description in VOSI table format (stretch: VOTable with no rows)"
+    description: create table from description
     parameters:
     - name: name
       in: path
@@ -44,6 +44,8 @@ put:
       required: true
       schema:
         type: string
+    requestBody:
+        $ref: '#/components/schemas/tableDoc'
     responses:
         "201":
           description: table created
@@ -51,35 +53,36 @@ put:
         "400":
           description: create table failed due to invalid input
           content: {}
-        "500":
-          description: Internal server error
-          content: {}
-        "503":
-          description: Service too busy
-          content: {}
-        default:
-          description: Unexpected error
-          content: {}
 delete:
-    tag:  table metadata
-    summary: drop table
+    tag: VOSI
+    summary: delete table
     parameters:
     - name: name
       in: path
-      description: the table to drop
+      description: |
+        the table to delete; 
+        TBD: remove from tap_schema and drop from db?
       required: true
       schema:
         type: string
     responses:
-        "200":
+        "204":
           description: table dropped
-          content: {}
-        "500":
-          description: Internal server error
-          content: {}
-        "503":
-          description: Service too busy
-          content: {}
-        default:
-          description: Unexpected error
-          content: {}
+   
+components:
+    schemas:
+        tableDoc:
+            content:
+                text/xml:
+                    schema:
+                        type: object
+                        xml:
+                            name: table
+                            prefix: vosi
+                            namespace: http://www.ivoa.net/xml/VOSITables/v1.0
+#                application/x-votable+xml:
+#                    schema:
+#                        type: object
+#                        xml:
+#                            name: VOTABLE
+#                            namespace: http://www.ivoa.net/xml/VOTable/v1.3

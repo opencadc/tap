@@ -5,45 +5,32 @@ get:
     responses: {}
 post:
     summary: TAP table-update 1.2
-    description: TAP asynchronous table update (create UWS Job)
+    description: TAP asynchronous table update (create UWS Job); can only specify one operation
     parameters:
-    - name: TABLE
-      in: query
-      description: a single table name as provided in tap_schema
-      required: true
-      schema:
-        type: string
-    - name: INDEX
-      in: query
-      description: create index operation; value is a column name in the table
-      required: false
-      schema:
-        type: string
-    - name: UNIQUE
-      in: query
-      description: qualifier for INDEX to create a unique index
-      required: false
-      schema:
-        type: boolean
+        - name: TABLE
+          in: query
+          description: a single table name as provided in tap_schema
+          required: true
+          schema:
+              type: string
+        - name: INDEX
+          in: query
+          description: create index operation; value is a column name in the table
+          required: false
+          schema:
+              type: string
+        - name: UNIQUE
+          in: query
+          description: qualifier for INDEX to create a unique index
+          required: false
+          schema:
+              type: boolean
+        - name: INGEST
+          in: query
+          description: ingest operation; ingest an existing database table into tap_schema
+          required: false
+          schema:
+              type: boolean
     responses:
         "303":
           description: standard UWS redirect to the created job
-          content: {}
-        "401":
-          description: not authenticated
-          content: {}
-        "403":
-          description: permission denied
-          content: {}
-        "404":
-          description: not found
-          content: {}
-        "500":
-          description: internal error
-          content: {}
-        "503":
-          description: service busy
-          content: {}
-        default:
-          description: unexpected error
-          content: {}

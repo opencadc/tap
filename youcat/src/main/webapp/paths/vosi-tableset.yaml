@@ -1,7 +1,8 @@
 get:
+    tag: VOSI
     tag:  table metadata
     summary: VOSI Tables
-    description: Provides the table metadata in the form of a TableSet descriptions
+    description: Provides the table metadata in the form of a TableSet description
     parameters:
         - name: DETAIL
           in: query
@@ -12,21 +13,17 @@ get:
             enum: [min, max]
     responses:
         "200":
-          description: "A VOSI <tableset> document in XML"
-          content: {}
-        "500":
-          description: Internal server error
-          content: {}
-        "503":
-          description: Service too busy
-          content: {}
-        default:
-          description: Unexpected error
-          content: {}
+          description: metadata for schemas and tables
+          $ref: '#/components/schemas/tablesetDoc'
 components:
-  schemas:
-    tables:
-      type: object
-      xml:
-        namespace: http://www.ivoa.net/xml/VOSITables/v1.0
-        prefix: vosi
+    schemas:
+        tablesetDoc:
+            content:
+                text/xml:
+                    schema:
+                        type: object
+                        xml:
+                            name: tableset
+                            prefix: vosi
+                            namespace: http://www.ivoa.net/xml/VOSITables/v1.0
+
