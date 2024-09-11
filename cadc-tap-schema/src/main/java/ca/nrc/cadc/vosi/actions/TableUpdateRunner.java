@@ -120,10 +120,10 @@ public class TableUpdateRunner implements JobRunner {
     private static final List<String> PARAM_NAMES = new ArrayList<String>();
 
     static {
-        PARAM_NAMES.add("table");
         PARAM_NAMES.add("index");
+        PARAM_NAMES.add("ingest");
+        PARAM_NAMES.add("table");
         PARAM_NAMES.add("unique");
-        PARAM_NAMES.add("op");
     }
 
     private JobUpdater jobUpdater;
@@ -178,18 +178,17 @@ public class TableUpdateRunner implements JobRunner {
                 // check for the requested operation
                 ParamExtractor pe = new ParamExtractor(PARAM_NAMES);
                 Map<String, List<String>> params = pe.getParameters(job.getParameterList());
-                String op = getSingleValue("op", params);
-                if (op == null) {
-                    throw new IllegalArgumentException("missing parameter 'op'");
+                String index = getSingleValue("index", params);
+                String ingest = getSingleValue("ingest", params);
+                if (index == null && ingest == null) {
+                    throw new IllegalArgumentException("one of 'index' or 'ingest' parameter must be specified");
+                } else if (index != null && ingest != null) {
+                    throw new IllegalArgumentException("'index' and 'ingest' parameters cannot be specified at the same time");
                 }
-
-                // index or ingest table
-                if (op.equals("index")) {
+                if (index != null) {
                     indexTable(params);
-                } else if (op.equals("ingest")) {
-                    ingestTable(params);
                 } else {
-                    throw new IllegalArgumentException("unknown 'op' parameter: " + op);
+                    ingestTable(params);
                 }
 
                 ep = jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING, ExecutionPhase.COMPLETED, new Date());
@@ -230,14 +229,11 @@ public class TableUpdateRunner implements JobRunner {
      */
     protected void indexTable(Map<String, List<String>> params) {
         String tableName = getSingleValue("table", params);
-        String columnName = getSingleValue("column", params);
+        String columnName = getSingleValue("index", params);
         boolean unique = "true".equals(getSingleValue("unique", params));
 
         if (tableName == null) {
             throw new IllegalArgumentException("missing parameter 'table'");
-        }
-        if (columnName == null) {
-            throw new IllegalArgumentException("missing parameter 'column'");
         }
 
         PluginFactory pf = new PluginFactory();
@@ -332,10 +328,16 @@ public class TableUpdateRunner implements JobRunner {
      * @param params list of request query parameters.
      */
     protected void ingestTable(Map<String, List<String>> params) {
+        boolean ingest = "true".equals(getSingleValue("ingest", params));
+        if (!ingest) {
+            throw new IllegalStateException("'ingest' parameter specified but value is 'false', ingest cancelled");
+        }
+
         String tableName = getSingleValue("table", params);
         if (tableName == null) {
             throw new IllegalArgumentException("missing parameter 'table'");
         }
+        log.debug("ingesting table " + tableName);
 
         PluginFactory pf = new PluginFactory();
         TapSchemaDAO ts = pf.getTapSchemaDAO();
