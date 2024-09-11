@@ -252,8 +252,8 @@ abstract class AbstractTablesTest {
         
         // create job
         Map<String,Object> params = new TreeMap<String,Object>();
-        params.put("table", tableName);
         params.put("index", indexCol);
+        params.put("table", tableName);
         params.put("unique", Boolean.toString(unique));
         HttpPost post = new HttpPost(certUpdateURL, params, false);
         Subject.doAs(subject, new RunnableAction(post));

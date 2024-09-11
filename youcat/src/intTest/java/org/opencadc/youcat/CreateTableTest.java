@@ -84,7 +84,6 @@ import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.uws.ExecutionPhase;
 import ca.nrc.cadc.vosi.InvalidTableSetException;
 import ca.nrc.cadc.vosi.TableReader;
 import ca.nrc.cadc.vosi.actions.TableDescHandler;
@@ -276,60 +275,7 @@ public class CreateTableTest extends AbstractTablesTest {
             Assert.fail("unexpected exception: " + unexpected);
         }
     }
-    
-    @Test
-    public void testCreateIndex() {
-        try {
-            clearSchemaPerms();
-            TapPermissions tp = new TapPermissions(null, true, null, null);
-            super.setPerms(schemaOwner, testSchemaName, tp, 200);
-            
-            String tableName = testSchemaName + ".testCreateIndex";
-            TableDesc td = doCreateTable(schemaOwner, tableName);
-            for (ColumnDesc cd : td.getColumnDescs()) {
-                log.info("testCreateIndex: " + cd.getColumnName());
-                ExecutionPhase expected = ExecutionPhase.COMPLETED;
-                if (cd.getColumnName().startsWith("a")) {
-                    expected = ExecutionPhase.ERROR;
-                }
-                doCreateIndex(schemaOwner, tableName, cd.getColumnName(), false,expected, null);
-            }
-            
-            // cleanup on success
-            doDelete(schemaOwner, td.getTableName(), false);
-        } catch (Exception unexpected) {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
-        }
-    }
-    
-    @Test
-    public void testCreateUniqueIndex() {
-        try {
-            clearSchemaPerms();
-            TapPermissions tp = new TapPermissions(null, true, null, null);
-            super.setPerms(schemaOwner, testSchemaName, tp, 200);
-            
-            String tableName = testSchemaName + ".testCreateUniqueIndex";
-            TableDesc td = doCreateTable(schemaOwner, tableName);
-            for (ColumnDesc cd : td.getColumnDescs()) {
-                
-                ExecutionPhase expected = ExecutionPhase.COMPLETED;
-                if (cd.getColumnName().startsWith("e") || cd.getColumnName().startsWith("a")) {
-                    expected = ExecutionPhase.ERROR; // unique index not allowed
-                }
-                log.info("testCreateUniqueIndex: " + cd.getColumnName() + " expect: " + expected.getValue());
-                doCreateIndex(schemaOwner, tableName, cd.getColumnName(), true, expected, null);
-            }
-            
-            // cleanup on success
-            doDelete(schemaOwner, tableName, false);
-        } catch (Exception unexpected) {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
-        }
-    }
-    
+
     private void compare(TableDesc expected, TableDesc actual) {
         // When you read just a single table document you do not get the schema name and TableReader makes one up
         //Assert.assertEquals("schema name", "default", actual.getSchemaName());

@@ -51,12 +51,13 @@ dependencies {
     intTestCompile 'org.opencadc:cadc-test-uws:[1.1.1,)'
     intTestCompile 'org.opencadc:cadc-test-vosi:[1.0.11,)'
     intTestCompile 'org.opencadc:cadc-test-tap:[1.1,)'
+
+    intTestRuntime 'org.postgresql:postgresql:[42.2,43.0)'
 }
 
 configurations {
   // this are provided by tomcat
   runtime.exclude group: 'javax.servlet'
-  runtime.exclude group: 'org.postgresql'
 
   // pulled by stil,unused, critical CVEs:
   runtime.exclude group: 'org.yaml', module: 'snakeyaml'
