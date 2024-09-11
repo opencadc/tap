@@ -92,8 +92,6 @@ import org.apache.log4j.Logger;
 public class TableIngester {
     private static final Logger log = Logger.getLogger(TableIngester.class);
 
-    static final String TAP_SCHEMA = "tap_schema";
-
     private final DataSource dataSource;
     private final DatabaseDataType databaseDataType;
     private final TapSchemaDAO tapSchemaDAO;
@@ -188,10 +186,12 @@ public class TableIngester {
             throws SQLException {
         log.debug(String.format("creating TableDesc for %s %s", schemaName, tableName));
         // get the table metadata
+        String unqualifiedTableName = getUnqualifiedTableNameFromTable(tableName);
         DatabaseMetaData databaseMetaData = dataSource.getConnection().getMetaData();
+        log.debug(String.format("querying DatabaseMetadata for schema=%s table=%s", schemaName, unqualifiedTableName));
         //TODO too pg specific? table names are stored lower case in the system tables queried for the metadata
-        ResultSet columnInfo = databaseMetaData.getColumns(null, schemaName, "testtableingest", null);
-        ResultSet indexInfo = databaseMetaData.getIndexInfo(null, schemaName, "testtableingest", false, false);
+        ResultSet columnInfo = databaseMetaData.getColumns(null, schemaName, unqualifiedTableName.toLowerCase(), null);
+        ResultSet indexInfo = databaseMetaData.getIndexInfo(null, schemaName, unqualifiedTableName.toLowerCase(), false, false);
         // get column names for indexed columns
         List<String> indexedColumns = new ArrayList<String>();
         while (indexInfo.next()) {
@@ -201,9 +201,9 @@ public class TableIngester {
         }
 
         // build TableDesc
-        TableDesc tableDesc = new TableDesc(TAP_SCHEMA, tableName);
+        TableDesc tableDesc = new TableDesc(schemaName, tableName);
         tableDesc.tableType = TableDesc.TableType.TABLE;
-        log.debug(String.format("creating TableDesc %s %s", TAP_SCHEMA, tableName));
+        log.debug(String.format("creating TableDesc %s %s", schemaName, tableName));
         while (columnInfo.next()) {
             String columnName = columnInfo.getString("COLUMN_NAME");
             String columnType = columnInfo.getString("TYPE_NAME");
@@ -214,6 +214,14 @@ public class TableIngester {
             tableDesc.getColumnDescs().add(columnDesc);
         }
         return tableDesc;
+    }
+
+    String getUnqualifiedTableNameFromTable(String tableName) {
+        String[] st = tableName.split("[.]");
+        if (st.length == 2) {
+            return st[1];
+        }
+        throw new IllegalArgumentException("invalid table name: " + tableName + " (expected: <schema>.<table>)");
     }
 
 }

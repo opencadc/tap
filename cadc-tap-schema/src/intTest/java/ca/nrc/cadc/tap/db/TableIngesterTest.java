@@ -122,7 +122,7 @@ public class TableIngesterTest {
 
     @Test
     public void testTableIngest() {
-        String testTable = TEST_SCHEMA + ".testTableIngest";
+        String testTable = TEST_SCHEMA + ".test_table_ingest";
         try {
             // cleanup
             TableCreator tableCreator = new TableCreator(dataSource);
@@ -256,6 +256,73 @@ public class TableIngesterTest {
         }
     }
 
+    // test only runs using a PostgreSQL database because
+    // it is using a pg specific unsupported datatype.
+    @Test
+    public void testUnsupportedDataType() throws Exception {
+
+        DatabaseMetaData databaseMetaData = dataSource.getConnection().getMetaData();
+        String dbProductName = databaseMetaData.getDatabaseProductName();
+        if (!"PostgreSQL".equals(dbProductName)) {
+            log.info("expected PostgreSQL database, found unsupported database: " + dbProductName);
+            return;
+        }
+
+        String testTable = TEST_SCHEMA + ".test_unsupported_datatype";
+        try {
+            // cleanup
+            TableCreator tableCreator = new TableCreator(dataSource);
+            try {
+                tableCreator.dropTable(testTable);
+            } catch (Exception ignore) {
+                log.debug("database-cleanup-before-test failed for " + testTable);
+            }
+            try {
+                tapSchemaDAO.delete(testTable);
+            } catch (Exception ignore) {
+                log.debug("tap_schema-cleanup-before-test failed for " + testTable);
+            }
+
+            // create test table in the database with an unsupported data type
+            JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+            String unsupportedDataType = "money";
+            String sql = String.format("CREATE TABLE %s (c1 varchar(16), i1 integer, m1 %s)",
+                    testTable, unsupportedDataType);
+            log.debug("sql:\n" + sql);
+            jdbc.execute(sql);
+            log.debug("created database table: " + testTable);
+
+            // ingest table into the tap_schema checking for expected exception
+            boolean success = false;
+            try {
+                TableIngester tableIngester = new TableIngester(dataSource);
+                tableIngester.ingest(TEST_SCHEMA, testTable);
+            } catch (UnsupportedOperationException expected) {
+                log.info("expected exception: " + expected);
+                success = true;
+            }
+
+            // cleanup
+            try {
+                tableCreator.dropTable(testTable);
+                log.debug("dropped table: " + testTable);
+            } catch (Exception ignore) {
+                log.debug("database-cleanup-after-test failed for " + testTable);
+            }
+            try {
+                tapSchemaDAO.delete(testTable);
+            } catch (Exception ignore) {
+                log.debug("tap_schema-cleanup-after-test failed for " + testTable);
+            }
+
+            if (!success) {
+                Assert.fail("unsupported data type should throw an exception");
+            }
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
     @Ignore
     @Test
     public void testPrintTableMetadata() {
