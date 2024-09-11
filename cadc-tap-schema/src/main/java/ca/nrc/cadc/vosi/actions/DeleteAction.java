@@ -73,6 +73,7 @@ import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.tap.db.TableCreator;
+import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import java.security.AccessControlException;
 import javax.sql.DataSource;
@@ -118,8 +119,13 @@ public class DeleteAction extends TablesAction {
             
             // drop table
             TableCreator tc = new TableCreator(ds);
-            tc.dropTable(tableName);
-            prof.checkpoint("delete-table");
+            // if the table was created with the API, drop the table,
+            // otherwise only delete the table from the tap_schema
+            TableDesc tableDesc = ts.getTable(tableName);
+            if (tableDesc.apiCreated) {
+                tc.dropTable(tableName);
+                prof.checkpoint("delete-table");
+            }
             
             // remove from tap_schema last to minimise locking
             ts.delete(tableName);

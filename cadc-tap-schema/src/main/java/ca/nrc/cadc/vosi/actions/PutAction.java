@@ -131,6 +131,8 @@ public class PutAction extends TablesAction {
         s.getPrincipals().add(new HttpPrincipal(owner));
 
         SchemaDesc sd = new SchemaDesc(schema);
+        // flag schema as created using the TAP API
+        sd.apiCreated = true;
         TapPermissions perms = new TapPermissions();
         perms.owner = AuthenticationUtil.getIdentityManager().augment(s);
         
@@ -216,6 +218,8 @@ public class PutAction extends TablesAction {
         if (td != null) {
             throw new ResourceAlreadyExistsException("table " + tableName + " already exists");
         }
+        // flag table as created using the API to allow table deletion in the DeleteAction
+        td.apiCreated = true;
         
         Profiler prof = new Profiler(PutAction.class);
         DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);

@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2021.                            (c) 2021.
+ *  (c) 2024.                            (c) 2021.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -76,18 +76,17 @@ import java.util.List;
  * Descriptor class to represent a TAP_SCHEMA.schemas table.
  * 
  */
-public class SchemaDesc
-{
+public class SchemaDesc {
     private String schemaName;
-    private final List<TableDesc> tableDescs = new ArrayList<TableDesc>();
+    private final List<TableDesc> tableDescs = new ArrayList<>();
     
     public String description;
     public String utype;
     public Integer schema_index;
     public TapPermissions tapPermissions;
+    public Boolean apiCreated;
 
-    public SchemaDesc(String schemaName)
-    {
+    public SchemaDesc(String schemaName) {
         TapSchema.assertNotNull(SchemaDesc.class, "schemaName", schemaName);
         this.schemaName = schemaName;
     }
@@ -96,22 +95,19 @@ public class SchemaDesc
      * Setters and getters.
      * 
      */
-    public final String getSchemaName()
-    {
+    public final String getSchemaName() {
         return schemaName;
     }
 
-    public List<TableDesc> getTableDescs()
-    {
+    public List<TableDesc> getTableDescs() {
         return tableDescs;
     }
     
-    public TableDesc getTable(String name)
-    {
-        for (TableDesc td : tableDescs)
-        {
-            if (td.getTableName().equalsIgnoreCase(name))
+    public TableDesc getTable(String name) {
+        for (TableDesc td : tableDescs) {
+            if (td.getTableName().equalsIgnoreCase(name)) {
                 return td;
+            }
         }
         return null;
     }
@@ -120,22 +116,20 @@ public class SchemaDesc
      * @return String representation of the Schema.
      */
     @Override
-    public String toString()
-    {
+    public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("Schema[");
         sb.append(schemaName).append(",");
         sb.append(description == null ? "" : description).append(",");
         sb.append(utype == null ? "" : utype).append(",");
         sb.append("tables[");
-        if (tableDescs != null)
-        {
-            for (TableDesc tableDesc : tableDescs)
+        if (tableDescs != null) {
+            for (TableDesc tableDesc : tableDescs) {
                 sb.append(tableDesc);
+            }
         }
         sb.append("]]");
         return sb.toString();
     }
 
-    
 }
