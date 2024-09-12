@@ -100,7 +100,7 @@ public class TapSchemaDAOTest {
     private static final Logger log = Logger.getLogger(TapSchemaDAOTest.class);
 
     static {
-        Log4jInit.setLevel("ca.nrc.cadc.tap.schema", Level.INFO);
+        Log4jInit.setLevel("ca.nrc.cadc.tap.schema", Level.DEBUG);
         Log4jInit.setLevel("ca.nrc.cadc.db.version", Level.INFO);
     }
 
@@ -116,8 +116,10 @@ public class TapSchemaDAOTest {
             log.info("configured data source: " + cc.getServer() + "," + cc.getDatabase() + "," + cc.getDriver() + "," + cc.getURL());
             
             // init creates the tap_schema tables and populates with self-describing content
+            log.info("InitDatabaseTS: START");
             InitDatabaseTS init = new InitDatabaseTS(dataSource, "cadctest", "tap_schema");
             init.doInit();
+            log.info("InitDatabaseTS: OK");
             
             // add test schema so other test content will satisfy FK constraints
             TapSchemaDAO dao = new TapSchemaDAO();
@@ -128,6 +130,11 @@ public class TapSchemaDAOTest {
             log.error("setup failed", ex);
             throw new IllegalStateException("failed to create DataSource", ex);
         }
+    }
+
+    @Test
+    public void noop() {
+        
     }
 
     @Test
