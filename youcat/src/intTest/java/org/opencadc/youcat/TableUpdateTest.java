@@ -188,14 +188,17 @@ public class TableUpdateTest extends AbstractTablesTest {
     }
 
     @Test
-    public void testIngestTest() {
+    public void testIngestTable() {
         try {
             clearSchemaPerms();
             TapPermissions tp = new TapPermissions(null, true, null, null);
             super.setPerms(schemaOwner, testSchemaName, tp, 200);
 
-            // create test table and schema
+            // cleanup
             String testTable = testSchemaName + ".test_ingest_table";
+            doDelete(schemaOwner, testTable, true);
+
+            // create test table and schema
             TableDesc td = doCreateTable(schemaOwner, testTable);
 
             // delete the schema from tap_schema
@@ -206,10 +209,10 @@ public class TableUpdateTest extends AbstractTablesTest {
             }
 
             // run the ingest
-            doIngestTable(schemaOwner, testTable);
+            doIngestTable(schemaOwner, testTable, ExecutionPhase.COMPLETED);
 
             // cleanup on success
-            doDelete(schemaOwner, td.getTableName(), false);
+            doDelete(schemaOwner, testTable, false);
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -243,7 +246,7 @@ public class TableUpdateTest extends AbstractTablesTest {
             log.debug("created database table: " + testTable);
 
             try {
-                doIngestTable(schemaOwner, testTable);
+                doIngestTable(schemaOwner, testTable, ExecutionPhase.ERROR);
             } catch (UnsupportedOperationException expected) {
                 log.info("expected exception: " + expected);
             }
@@ -256,7 +259,7 @@ public class TableUpdateTest extends AbstractTablesTest {
         }
     }
 
-    void doIngestTable(Subject subject, String tableName) throws Exception {
+    void doIngestTable(Subject subject, String tableName, ExecutionPhase expected) throws Exception {
         // create job
         Map<String,Object> params = new TreeMap<String,Object>();
         params.put("op", "ingest");
@@ -296,8 +299,7 @@ public class TableUpdateTest extends AbstractTablesTest {
 
         JobReader r = new JobReader();
         Job end = r.read(new StringReader(xml2));
-        log.debug(end.getErrorSummary().toString());
-//        Assert.assertEquals("final job state", ExecutionPhase.COMPLETED, end.getExecutionPhase());
+        Assert.assertEquals("final job state", expected, end.getExecutionPhase());
     }
 
 }

@@ -231,6 +231,7 @@ public class TableUpdateRunner implements JobRunner {
         String tableName = getSingleValue("table", params);
         String columnName = getSingleValue("index", params);
         boolean unique = "true".equals(getSingleValue("unique", params));
+        log.debug(String.format("indexing table=%s column=%s unique=%s", tableName, columnName, unique));
 
         if (tableName == null) {
             throw new IllegalArgumentException("missing parameter 'table'");
