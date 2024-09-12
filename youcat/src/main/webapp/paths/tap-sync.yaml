@@ -9,10 +9,16 @@ get:
       - $ref: ../components/parameters/dali-maxrec.yaml
       - $ref: ../components/parameters/dali-responseformat.yaml
     responses:
-        "200":
-          description: successful response
-        "303":
-          description: redirect to the job result (optional)
+        200:
+            description: successful response
+        303:
+            description: redirect to the job result (optional)
+        400:
+            $ref: ../components/tap-responses.yaml#/invalid-query
+        401:
+            $ref: ../components/std-responses.yaml#/not-authenticated
+        403:
+            $ref: ../components/std-responses.yaml#/permission-denied
 post:
     summary: TAP-sync 1.1
     description: TAP synchronous query endpoint
@@ -24,6 +30,14 @@ post:
       - $ref: ../components/parameters/dali-maxrec.yaml
       - $ref: ../components/parameters/dali-responseformat.yaml
     responses:
-        "200":
-          description: Successful response
+        200:
+            description: successful response
+        303:
+            description: redirect to the job result (optional)
+        400:
+            $ref: ../components/tap-responses.yaml#/invalid-query
+        401:
+            $ref: ../components/std-responses.yaml#/not-authenticated
+        403:
+            $ref: ../components/std-responses.yaml#/permission-denied
 

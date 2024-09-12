@@ -1,0 +1,19 @@
+# UWS create job response
+not-authenticated:
+    description: authentication is required and current attempt failed
+    headers:
+        www-authenticate:
+            schema:
+                type: string
+permission-denied:
+    description: caller not allowed to perform operation
+    content:
+        text/plain:
+            schema:
+                type: string
+not-found:
+    description: resource not found
+    content:
+        text/plain:
+            schema:
+                type: string

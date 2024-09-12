@@ -1,5 +1,4 @@
 get:
-    tag: VOSI
     summary: get metadata for the specified table
     description: provides the table metadata for a single schema or table
     parameters:
@@ -10,12 +9,17 @@ get:
       schema:
         type: string
     responses:
-        "200":
-          description: metadata for the specified table
-          $ref: '#/components/schemas/tableDoc'
+        200:
+            description: metadata for the specified table
+            $ref: '#/components/schemas/tableDoc'
+        401:
+            $ref: ../components/std-responses.yaml#/not-authenticated
+        403:
+            $ref: ../components/std-responses.yaml#/permission-denied
+        404:
+            $ref: ../components/std-responses.yaml#/not-found
 post:
-    tag: VOSI
-    summary: update table metadata
+    summary: proto - update table metadata
     description: |
         update the tap_schema metadata from description;
         TBD: what can be changed and what is immutable?
@@ -25,17 +29,24 @@ post:
         description: the fully qualified name of the table to create
         required: true
         schema:
-          type: string
+            type: string
     requestBody:
         $ref: '#/components/schemas/tableDoc'
     responses:
-        "204":
+        204:
             description: table updated
-        "400":
+        400:
             description: update table metadata failed due to invalid input
+            content:
+                text/plain:
+        401:
+            $ref: ../components/std-responses.yaml#/not-authenticated
+        403:
+            $ref: ../components/std-responses.yaml#/permission-denied
+        404:
+            $ref: ../components/std-responses.yaml#/not-found
 put:
-    tag: VOSI
-    summary: create table
+    summary: proto - create table
     description: create table from description
     parameters:
     - name: name
@@ -47,15 +58,20 @@ put:
     requestBody:
         $ref: '#/components/schemas/tableDoc'
     responses:
-        "201":
+        201:
           description: table created
-          content: {}
-        "400":
-          description: create table failed due to invalid input
-          content: {}
+        400:
+            description: create table failed due to invalid input
+            content:
+                text/plain:
+        401:
+            $ref: ../components/std-responses.yaml#/not-authenticated
+        403:
+            $ref: ../components/std-responses.yaml#/permission-denied
+        404:
+            $ref: ../components/std-responses.yaml#/not-found
 delete:
-    tag: VOSI
-    summary: delete table
+    summary: proto - delete table
     parameters:
     - name: name
       in: path
@@ -66,9 +82,14 @@ delete:
       schema:
         type: string
     responses:
-        "204":
+        204:
           description: table dropped
-   
+        401:
+            $ref: ../components/std-responses.yaml#/not-authenticated
+        403:
+            $ref: ../components/std-responses.yaml#/permission-denied
+        404:
+            $ref: ../components/std-responses.yaml#/not-found
 components:
     schemas:
         tableDoc:

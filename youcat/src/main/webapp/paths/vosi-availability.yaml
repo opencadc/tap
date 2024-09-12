@@ -5,7 +5,7 @@ head:
         Perform a minimal check that the service is reachable and running. This
         check is intended to be very fast and lightweight.
     responses:
-        "200":
+        200:
           description: service is reachable
         ## TBD: response code for read-only mode? off line mode?
 get:
@@ -17,16 +17,12 @@ get:
         storage, ...) and that other services that this service depends on (e.g. AAI 
         services) are reachable (via heartbeat availability check).
     responses:
-        "200":
+        200:
           description: A VOSI availability document in XML.
           content:
             text/xml:
               schema:
                 $ref: '#/components/schemas/availability'
-        ## TBD: different response code for read-only mode? off line mode?
-        default:
-          description: Unexpected error
-          content: {}
 post:
     tag: VOSI
     summary: (CADC extension) modify the state (availability) of a running service
@@ -43,12 +39,12 @@ post:
             type: string
             enum: [ReadWrite, ReadOnly, Offline]
     responses:
-        "204":
-          description: service state updated
-        "401":
-            description: authentication required or attempted authentication failed
-        "403":
-            description: permission denied
+        204:
+            description: service state updated
+        401:
+            $ref: ../components/std-responses.yaml#/not-authenticated
+        403:
+            $ref: ../components/std-responses.yaml#/permission-denied
 
 components:
     schemas:

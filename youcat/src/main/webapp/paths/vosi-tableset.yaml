@@ -12,9 +12,13 @@ get:
             type: string
             enum: [min, max]
     responses:
-        "200":
-          description: metadata for schemas and tables
-          $ref: '#/components/schemas/tablesetDoc'
+        200:
+            description: metadata for schemas and tables
+            $ref: '#/components/schemas/tablesetDoc'
+        401:
+            $ref: ../components/std-responses.yaml#/not-authenticated
+        403:
+            $ref: ../components/std-responses.yaml#/permission-denied
 components:
     schemas:
         tablesetDoc:

@@ -8,5 +8,12 @@ get:
           required: false
           type: integer
     responses:
-        "200":
-          description: successful response
+        200:
+            description: successful response
+            $ref: '../components/uws-responses.yaml#/components/schemas/jobDoc'
+        401:
+            $ref: ../components/std-responses.yaml#/not-authenticated
+        403:
+            $ref: ../components/std-responses.yaml#/permission-denied
+        404:
+            $ref: ../components/std-responses.yaml#/not-found

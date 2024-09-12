@@ -8,28 +8,28 @@ head:
         applicable header information. SSO-next: clients use this operation to probe
         for available authentiction methods.
     responses:
-        "200":
+        200:
             description: successful probe, service allows request from caller
-        "401":
+        401:
             description: |
                 successful probe, service requires authentication or attempted authentication failed
-        "403":
+        403:
             description: authentication succeed, caller is not permitted to make requests
 get:
     tag: VOSI
     summary: VOSI Capabilities
     description: Get the set of VOResource capability descriptions for this service.
     responses:
-        "200":
+        200:
           description: A VOSI Capabilities document in XML.
           content:
             text/xml:
               schema:
                 $ref: '#/components/schemas/capabilities'
-        "401":
-            description: service requires authentication or attempted authentication failed
-        "403":
-            description: authentication succeed, caller is not permitted to make any request
+        401:
+            $ref: ../components/std-responses.yaml#/not-authenticated
+        403:
+            $ref: ../components/std-responses.yaml#/permission-denied
 components:
     schemas:
         capabilities:
