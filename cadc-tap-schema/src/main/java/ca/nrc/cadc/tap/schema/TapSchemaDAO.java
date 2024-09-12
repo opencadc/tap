@@ -119,11 +119,12 @@ public class TapSchemaDAO {
     protected String keysTableName = "tap_schema.keys" + TAP_VERSION;
     protected String keyColumnsTableName = "tap_schema.key_columns" + TAP_VERSION;
 
-    private String[] tsSchemaCols = new String[] { "description", "utype", "schema_index", "schema_name" };
+    private String[] tsSchemaCols = new String[] { 
+        "description", "utype", "schema_index", "api_created", "schema_name" };
     protected String orderSchemaClause = " ORDER BY schema_name";
 
-    private String[] tsTablesCols = new String[] { "table_type", "description", "utype", "table_index", "schema_name",
-            "table_name" };
+    private String[] tsTablesCols = new String[] { 
+        "schema_name", "table_type", "description", "utype", "table_index", "api_created", "table_name" };
     protected String orderTablesClause = " ORDER BY schema_name,table_index,table_name";
 
     private String[] tsColumnsCols = new String[] { "description", "utype", "ucd", "unit", "datatype", "arraysize",
@@ -143,9 +144,6 @@ public class TapSchemaDAO {
     protected static String readOnlyCol = "read_only_group";
     protected static String readWriteCol = "read_write_group";
     private static String[] accessControlCols = new String[] { ownerCol, readAnonCol, readOnlyCol, readWriteCol };
-
-    // api_created is in the tables and schemas schema, but not exposed as a tap_schema column
-    private static String apiCreated = "api_created";
 
     protected Job job;
     protected DataSource dataSource;
@@ -778,7 +776,6 @@ public class TapSchemaDAO {
             StringBuilder sb = new StringBuilder();
             sb.append("SELECT ").append(toCommaList(tsSchemaCols, 0));
             sb.append(",").append(toCommaList(accessControlCols, 0));
-            sb.append(",").append(apiCreated);
             sb.append(" FROM ").append(tap_schema_tab);
 
             if (schemaName != null) {
@@ -823,7 +820,6 @@ public class TapSchemaDAO {
             StringBuilder sb = new StringBuilder();
             sb.append("SELECT ").append(toCommaList(tsTablesCols, 0));
             sb.append(",").append(toCommaList(accessControlCols, 0));
-            sb.append(",").append(apiCreated);
             sb.append(" FROM ").append(tap_schema_tab);
 
             if (tableName != null) {
@@ -1103,20 +1099,16 @@ public class TapSchemaDAO {
                 sb.append("UPDATE ").append(schemasTableName);
                 sb.append(" SET (");
                 sb.append(toCommaList(tsSchemaCols, 1));
-                sb.append(",").append(apiCreated);
                 sb.append(") = (");
                 sb.append(toParamList(tsSchemaCols, 1));
-                sb.append(",?");
                 sb.append(")");
                 sb.append(" WHERE schema_name=?");
             } else {
                 sb.append("INSERT INTO ").append(schemasTableName);
                 sb.append(" (");
                 sb.append(toCommaList(tsSchemaCols, 0));
-                sb.append(",").append(apiCreated);
                 sb.append(") VALUES (");
                 sb.append(toParamList(tsSchemaCols, 0));
-                sb.append(",?");
                 sb.append(")");
             }
             String sql = sb.toString();
@@ -1129,8 +1121,8 @@ public class TapSchemaDAO {
             safeSetString(sb, ps, col++, schema.description);
             safeSetString(sb, ps, col++, schema.utype);
             safeSetInteger(sb, ps, col++, schema.schema_index);
-            safeSetString(sb, ps, col++, schema.getSchemaName());
             safeSetBoolean(sb, ps, col++, schema.apiCreated);
+            safeSetString(sb, ps, col++, schema.getSchemaName());
 
             return ps;
         }
@@ -1154,21 +1146,17 @@ public class TapSchemaDAO {
             if (update) {
                 sb.append("UPDATE ").append(tablesTableName);
                 sb.append(" SET (");
-                sb.append(toCommaList(tsTablesCols, 2));
-                sb.append(",").append(apiCreated);
+                sb.append(toCommaList(tsTablesCols, 1));
                 sb.append(") = (");
-                sb.append(toParamList(tsTablesCols, 2));
-                sb.append(",?");
+                sb.append(toParamList(tsTablesCols, 1));
                 sb.append(")");
-                sb.append(" WHERE schema_name=? AND table_name=?");
+                sb.append(" WHERE table_name=?");
             } else {
                 sb.append("INSERT INTO ").append(tablesTableName);
                 sb.append(" (");
                 sb.append(toCommaList(tsTablesCols, 0));
-                sb.append(",").append(apiCreated);
                 sb.append(") VALUES (");
                 sb.append(toParamList(tsTablesCols, 0));
-                sb.append(",?");
                 sb.append(")");
             }
             String sql = sb.toString();
@@ -1178,13 +1166,13 @@ public class TapSchemaDAO {
             // load values: description, utype, schema_name, table_name, api_created
             sb = new StringBuilder();
             int col = 1;
+            safeSetString(sb, ps, col++, table.getSchemaName());
             safeSetString(sb, ps, col++, table.tableType.getValue());
             safeSetString(sb, ps, col++, table.description);
             safeSetString(sb, ps, col++, table.utype);
             safeSetInteger(sb, ps, col++, table.tableIndex);
-            safeSetString(sb, ps, col++, table.getSchemaName());
-            safeSetString(sb, ps, col++, table.getTableName());
             safeSetBoolean(sb, ps, col++, table.apiCreated);
+            safeSetString(sb, ps, col++, table.getTableName());
 
             return ps;
         }
@@ -1522,11 +1510,12 @@ public class TapSchemaDAO {
 
             schemaDesc.description = rs.getString("description");
             schemaDesc.utype = rs.getString("utype");
-
+            schemaDesc.schema_index = rs.getInt("schema_index");
+            schemaDesc.apiCreated = rs.getInt("api_created") == 1;
+            
             if (tapPermissionsMapper != null) {
                 schemaDesc.tapPermissions = tapPermissionsMapper.mapRow(rs, rowNum);
             }
-            schemaDesc.apiCreated = rs.getInt("api_created") == 1;
 
             return schemaDesc;
         }
@@ -1550,12 +1539,13 @@ public class TapSchemaDAO {
             tableDesc.tableType = TableDesc.TableType.toValue(rs.getString("table_type"));
             tableDesc.description = rs.getString("description");
             tableDesc.utype = rs.getString("utype");
-
+            tableDesc.tableIndex = rs.getInt("table_index");
+            tableDesc.apiCreated = rs.getInt("api_created") == 1;
+            
             if (tapPermissionsMapper != null) {
                 tableDesc.tapPermissions = tapPermissionsMapper.mapRow(rs, rowNum);
             }
-            tableDesc.apiCreated = rs.getInt("api_created") == 1;
-
+            
             return tableDesc;
         }
     }
@@ -1585,7 +1575,8 @@ public class TapSchemaDAO {
             col.indexed = intToBoolean(rs.getInt("indexed"));
             col.std = intToBoolean(rs.getInt("std"));
             col.id = rs.getString("id");
-
+            col.column_index = rs.getInt("column_index");
+            
             return col;
         }
 

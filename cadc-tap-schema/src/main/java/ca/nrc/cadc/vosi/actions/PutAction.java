@@ -218,8 +218,6 @@ public class PutAction extends TablesAction {
         if (td != null) {
             throw new ResourceAlreadyExistsException("table " + tableName + " already exists");
         }
-        // flag table as created using the API to allow table deletion in the DeleteAction
-        td.apiCreated = true;
         
         Profiler prof = new Profiler(PutAction.class);
         DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
@@ -233,6 +231,8 @@ public class PutAction extends TablesAction {
             prof.checkpoint("create-table");
             
             // add to tap_schema
+            // flag table as created using the API to allow table deletion in the DeleteAction
+            inputTable.apiCreated = true;
             ts.put(inputTable);
             prof.checkpoint("insert-into-tap-schema");
             
