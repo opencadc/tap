@@ -194,11 +194,8 @@ public class TableUpdateTest extends AbstractTablesTest {
             TapPermissions tp = new TapPermissions(null, true, null, null);
             super.setPerms(schemaOwner, testSchemaName, tp, 200);
 
-            // cleanup
-            String testTable = testSchemaName + ".test_ingest_table";
-            doDelete(schemaOwner, testTable, true);
-
             // create test table and schema
+            String testTable = testSchemaName + ".test_ingest_table";
             TableDesc td = doCreateTable(schemaOwner, testTable);
 
             // delete the schema from tap_schema
@@ -262,7 +259,7 @@ public class TableUpdateTest extends AbstractTablesTest {
     void doIngestTable(Subject subject, String tableName, ExecutionPhase expected) throws Exception {
         // create job
         Map<String,Object> params = new TreeMap<String,Object>();
-        params.put("op", "ingest");
+        params.put("ingest", "true");
         params.put("table", tableName);
         HttpPost post = new HttpPost(certUpdateURL, params, false);
         Subject.doAs(subject, new RunnableAction(post));
