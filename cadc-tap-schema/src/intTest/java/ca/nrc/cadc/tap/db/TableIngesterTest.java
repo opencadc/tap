@@ -103,7 +103,7 @@ public class TableIngesterTest {
 
     private final DataSource dataSource;
     private final TapSchemaDAO tapSchemaDAO;
-    private final String TEST_SCHEMA = "int_test_schema";
+    private final String TEST_SCHEMA = "tap_schema";
 
     public TableIngesterTest() {
         // create a datasource and register with JNDI
@@ -324,7 +324,6 @@ public class TableIngesterTest {
         }
     }
 
-    @Ignore
     @Test
     public void testPrintTableMetadata() {
         String testTableName = "testPrintTableMetadata";
@@ -368,10 +367,10 @@ public class TableIngesterTest {
             try (Connection connection = dataSource.getConnection()) {
                 // create two indexes on the table
                 JdbcTemplate jdbc = new JdbcTemplate(dataSource);
-                String index1 = "CREATE UNIQUE INDEX c0_idx ON int_test_schema.testPrintTableMetadata (c0)";
+                String index1 = "CREATE UNIQUE INDEX c0_idx ON " + TEST_SCHEMA + ".testPrintTableMetadata (c0)";
                 log.debug("sql:\n" + index1);
                 jdbc.execute(index1);
-                String index2 = "CREATE UNIQUE INDEX c6_idx ON int_test_schema.testPrintTableMetadata (c6)";
+                String index2 = "CREATE UNIQUE INDEX c6_idx ON " + TEST_SCHEMA + ".testPrintTableMetadata (c6)";
                 log.debug("sql:\n" + index2);
                 jdbc.execute(index2);
 
