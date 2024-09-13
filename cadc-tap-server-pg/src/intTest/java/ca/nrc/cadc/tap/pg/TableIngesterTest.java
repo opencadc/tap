@@ -97,13 +97,13 @@ public class TableIngesterTest {
     private static final Logger log = Logger.getLogger(TableIngesterTest.class);
 
     static {
-        Log4jInit.setLevel("ca.nrc.cadc.tap.db", Level.DEBUG);
-        Log4jInit.setLevel("ca.nrc.cadc.tap.schema", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.tap.db", Level.INFO);
+        Log4jInit.setLevel("ca.nrc.cadc.tap.schema", Level.INFO);
     }
 
     private final DataSource dataSource;
     private final TapSchemaDAO tapSchemaDAO;
-    private final String TEST_SCHEMA = "tap_schema";
+    private final String TEST_SCHEMA = "int_test_schema";
 
     public TableIngesterTest() {
         // create a datasource and register with JNDI
@@ -271,13 +271,13 @@ public class TableIngesterTest {
             try {
                 tableCreator.dropTable(testTable);
             } catch (Exception ignore) {
-                log.debug("database-cleanup-before-test failed for " + testTable);
+                log.info("database-cleanup-before-test failed for " + testTable);
             }
 
             // create test table in the database
             TableDesc ingestTable = getTableDesc(TEST_SCHEMA, testTable);
             tableCreator.createTable(ingestTable);
-            log.debug("created database table: " + testTable);
+            log.info("created database table: " + testTable);
 
             List<String> columnInfo = new ArrayList<String>() {{
                 add("DATA_TYPE");
@@ -302,14 +302,11 @@ public class TableIngesterTest {
             }};
 
             try (Connection connection = dataSource.getConnection()) {
-                // create two indexes on the table
+                // create an index on the table
                 JdbcTemplate jdbc = new JdbcTemplate(dataSource);
-                String index1 = "CREATE UNIQUE INDEX c0_idx ON int_test_schema.testPrintTableMetadata (c0)";
-                log.debug("sql:\n" + index1);
-                jdbc.execute(index1);
-                String index2 = "CREATE UNIQUE INDEX c6_idx ON int_test_schema.testPrintTableMetadata (c6)";
-                log.debug("sql:\n" + index2);
-                jdbc.execute(index2);
+                String index = "CREATE UNIQUE INDEX a11_idx ON int_test_schema.testPrintTableMetadata (a11)";
+                log.info("sql:\n" + index);
+                jdbc.execute(index);
 
                 log.info("column metadata");
                 DatabaseMetaData metaData = connection.getMetaData();
@@ -333,14 +330,14 @@ public class TableIngesterTest {
                         }
                     }
                 }
-            }
 
-            // cleanup
-            try {
-                tableCreator.dropTable(testTable);
-                log.debug("dropped table: " + testTable);
-            } catch (Exception ignore) {
-                log.debug("database-cleanup-after-test failed for " + testTable);
+                // cleanup
+                try {
+                    tableCreator.dropTable(testTable);
+                    log.info("dropped table: " + testTable);
+                } catch (Exception ignore) {
+                    log.info("database-cleanup-after-test failed for " + testTable);
+                }
             }
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
@@ -355,8 +352,8 @@ public class TableIngesterTest {
         tableDesc.getColumnDescs().add(new ColumnDesc(tableName, "e9", TapDataType.CIRCLE));
         tableDesc.getColumnDescs().add(new ColumnDesc(tableName, "e10", TapDataType.POLYGON));
         // arrays
-        tableDesc.getColumnDescs().add(new ColumnDesc(tableName, "a11", new TapDataType("short", "*", null)));
-        tableDesc.getColumnDescs().add(new ColumnDesc(tableName, "a12", new TapDataType("int", "*", null)));
+        tableDesc.getColumnDescs().add(new ColumnDesc(tableName, "a11", new TapDataType("short", "8", null)));
+        tableDesc.getColumnDescs().add(new ColumnDesc(tableName, "a12", new TapDataType("int", "*12", null)));
         tableDesc.getColumnDescs().add(new ColumnDesc(tableName, "a13", new TapDataType("long", "*", null)));
         tableDesc.getColumnDescs().add(new ColumnDesc(tableName, "a14", new TapDataType("float", "*", null)));
         tableDesc.getColumnDescs().add(new ColumnDesc(tableName, "a15", new TapDataType("double", "*", null)));

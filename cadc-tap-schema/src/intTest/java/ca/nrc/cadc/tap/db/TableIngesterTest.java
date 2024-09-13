@@ -323,6 +323,7 @@ public class TableIngesterTest {
             Assert.fail("unexpected exception: " + unexpected);
         }
     }
+
     @Ignore
     @Test
     public void testPrintTableMetadata() {
@@ -396,14 +397,14 @@ public class TableIngesterTest {
                         }
                     }
                 }
-            }
 
-            // cleanup
-            try {
-                tableCreator.dropTable(testTable);
-                log.debug("dropped table: " + testTable);
-            } catch (Exception ignore) {
-                log.debug("database-cleanup-after-test failed for " + testTable);
+                // cleanup
+                try {
+                    tableCreator.dropTable(testTable);
+                    log.debug("dropped table: " + testTable);
+                } catch (Exception ignore) {
+                    log.debug("database-cleanup-after-test failed for " + testTable);
+                }
             }
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
