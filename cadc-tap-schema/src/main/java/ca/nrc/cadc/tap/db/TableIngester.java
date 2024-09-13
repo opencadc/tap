@@ -139,14 +139,10 @@ public class TableIngester {
         try {
             tm.startTransaction();
 
+            // TODO: change getSchema() above to lockSchema() once implemented to prevent duplicate put
             // add the schema to the tap_schema if it doesn't exist
             SchemaDesc schemaDesc = tapSchemaDAO.getSchema(schemaName, true);
-            if (schemaDesc == null) {
-                schemaDesc = new SchemaDesc(schemaName);
-                schemaDesc.tapPermissions = tapPermissions;
-                tapSchemaDAO.put(schemaDesc);
-                log.debug(String.format("added schema '%s' to tap_schema", schemaDesc.getSchemaName()));
-            } else {
+            if (schemaDesc != null) {
                 log.debug(String.format("existing schema '%s' in tap_schema", schemaDesc.getSchemaName()));
             }
 
@@ -203,6 +199,7 @@ public class TableIngester {
         // build TableDesc
         TableDesc tableDesc = new TableDesc(schemaName, tableName);
         tableDesc.tableType = TableDesc.TableType.TABLE;
+        tableDesc.apiCreated = true;
         log.debug(String.format("creating TableDesc %s %s", schemaName, tableName));
         while (columnInfo.next()) {
             String columnName = columnInfo.getString("COLUMN_NAME");
