@@ -38,7 +38,9 @@ jobs:
     - name: build and test cadc-tap-server-oracle
       run: cd cadc-adql && ../gradlew --info clean build javadoc install
 
-
+    - name: build and test cadc-tap-server-bigquery
+      run: cd cadc-tap-server-bigquery && ../gradlew --info clean build javadoc checkstyleMain install
+      
     - name: build and test cadc-test-tap
       run: cd cadc-test-tap && ../gradlew --info clean build javadoc install
 
