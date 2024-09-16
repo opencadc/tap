@@ -77,7 +77,6 @@ import ca.nrc.cadc.tap.PluginFactory;
 import ca.nrc.cadc.tap.db.TableCreator;
 import ca.nrc.cadc.tap.db.TableIngester;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
-import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import ca.nrc.cadc.uws.ErrorSummary;

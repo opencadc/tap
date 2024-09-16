@@ -69,9 +69,6 @@
 
 package ca.nrc.cadc.tap.pg;
 
-import ca.nrc.cadc.db.ConnectionConfig;
-import ca.nrc.cadc.db.DBConfig;
-import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.tap.db.TableCreator;
 import ca.nrc.cadc.tap.db.TableIngester;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
@@ -85,15 +82,13 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
-import javax.sql.DataSource;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-public class TableIngesterTest {
+public class TableIngesterTest extends TestUtil {
     private static final Logger log = Logger.getLogger(TableIngesterTest.class);
 
     static {
@@ -101,28 +96,17 @@ public class TableIngesterTest {
         Log4jInit.setLevel("ca.nrc.cadc.tap.schema", Level.INFO);
     }
 
-    private final DataSource dataSource;
     private final TapSchemaDAO tapSchemaDAO;
-    private final String TEST_SCHEMA = "int_test_schema";
 
     public TableIngesterTest() {
-        // create a datasource and register with JNDI
-        try {
-            DBConfig conf = new DBConfig();
-            ConnectionConfig cc = conf.getConnectionConfig("TAP_SCHEMA_TEST", "cadctest");
-            this.dataSource = DBUtil.getDataSource(cc);
-            log.info("configured data source: " + cc.getServer() + "," + cc.getDatabase() + "," + cc.getDriver() + "," + cc.getURL());
-            this.tapSchemaDAO = new TapSchemaDAO();
-            this.tapSchemaDAO.setDataSource(this.dataSource);
-        } catch (Exception ex) {
-            log.error("setup failed", ex);
-            throw new IllegalStateException("failed to create DataSource", ex);
-        }
+        super();
+        this.tapSchemaDAO = new TapSchemaDAO();
+        this.tapSchemaDAO.setDataSource(this.dataSource);
     }
 
     @Test
     public void testTableIngest() {
-        String testTable = TEST_SCHEMA + ".testTableIngest";
+        String testTable = testSchemaName + ".testTableIngest";
         TableCreator tableCreator = new TableCreator(dataSource);
         try {
             // cleanup
@@ -138,17 +122,17 @@ public class TableIngesterTest {
             }
 
             // create test table in the database
-            TableDesc ingestTable = getTableDesc(TEST_SCHEMA, testTable);
+            TableDesc ingestTable = getTableDesc(testSchemaName, testTable);
             tableCreator.createTable(ingestTable);
-            log.debug("created database table: " + testTable);
+            log.info("created database table: " + testTable);
 
             // ingest table into the tap_schema
             TableIngester tableIngester = new TableIngester(dataSource);
-            tableIngester.ingest(TEST_SCHEMA, testTable);
-            log.debug("ingested table");
+            tableIngester.ingest(testSchemaName, testTable);
+            log.info("ingested table");
 
             // compare database and tap_schema
-            SchemaDesc schemaDesc = tapSchemaDAO.getSchema(TEST_SCHEMA, true);
+            SchemaDesc schemaDesc = tapSchemaDAO.getSchema(testSchemaName, true);
             Assert.assertNotNull("schema", schemaDesc);
 
             TableDesc tableDesc = tapSchemaDAO.getTable(testTable);
@@ -158,10 +142,14 @@ public class TableIngesterTest {
             List<ColumnDesc> tapSchemaColumns = tableDesc.getColumnDescs();
             for (ColumnDesc databaseColumn: databaseColumns) {
                 boolean found = false;
-                log.debug("database column: " + databaseColumn.getColumnName());
+                log.info("database column: " + databaseColumn.getColumnName());
                 for (ColumnDesc tapSchemaColumn : tapSchemaColumns) {
                     log.debug("tap_schema column: " + tapSchemaColumn.getColumnName());
                     if (databaseColumn.getColumnName().equals(tapSchemaColumn.getColumnName())) {
+                        log.info("compare: " + tapSchemaColumn.getDatatype() + " vs " + databaseColumn.getDatatype());
+                        // NOTE: TapDataType.equals() is lax when comparing fixed size and variable size so while
+                        // the TableIngester DOES NOT assign column sizes to arrays it goes unnoticed here even
+                        // though the test table has explicit sizes specified on input
                         Assert.assertEquals("datatype", databaseColumn.getDatatype(), tapSchemaColumn.getDatatype());
                         found = true;
                         break;
@@ -191,7 +179,7 @@ public class TableIngesterTest {
     @Test
     public void testVerifyTableMetadata() {
         String testTableName = "testVerifyTableMetadata";
-        String testTable = TEST_SCHEMA + "." + testTableName;
+        String testTable = testSchemaName + "." + testTableName;
 
         try {
             // cleanup
@@ -203,42 +191,49 @@ public class TableIngesterTest {
             }
 
             // create test table in the database
-            TableDesc ingestTable = getTableDesc(TEST_SCHEMA, testTable);
+            TableDesc ingestTable = getTableDesc(testSchemaName, testTable);
             tableCreator.createTable(ingestTable);
             log.debug("created database table: " + testTable);
 
             try (Connection connection = dataSource.getConnection()) {
                 DatabaseMetaData metaData = connection.getMetaData();
-                try (ResultSet rs = metaData.getColumns(null, TEST_SCHEMA, testTableName.toLowerCase(), null)) {
+                try (ResultSet rs = metaData.getColumns(null, testSchemaName, testTableName.toLowerCase(), null)) {
                     while (rs.next()) {
                         String colName = rs.getString("COLUMN_NAME");
+                        String ctype = rs.getString("TYPE_NAME");
+                        //int clen = rs.getInt("COLUMN_SIZE");
+                        
                         switch (colName) {
                             case "e7":
-                                Assert.assertEquals("interval", "polygon", rs.getString("TYPE_NAME"));
+                                Assert.assertEquals("interval", "polygon", ctype);
                                 break;
                             case "e8":
-                                Assert.assertEquals("point", "spoint", rs.getString("TYPE_NAME"));
+                                Assert.assertEquals("point", "spoint", ctype);
                                 break;
                             case "e9":
-                                Assert.assertEquals("circle", "scircle", rs.getString("TYPE_NAME"));
+                                Assert.assertEquals("circle", "scircle", ctype);
                                 break;
                             case "e10":
-                                Assert.assertEquals("polygon", "spoly", rs.getString("TYPE_NAME"));
+                                Assert.assertEquals("polygon", "spoly", ctype);
                                 break;
                             case "a11":
-                                Assert.assertEquals("short[]", "_int2", rs.getString("TYPE_NAME"));
+                                Assert.assertEquals("short[]", "_int2", ctype);
+                                //Assert.assertEquals(8, clen);
                                 break;
                             case "a12":
-                                Assert.assertEquals("int[]", "_int4", rs.getString("TYPE_NAME"));
+                                Assert.assertEquals("int[]", "_int4", ctype);
+                                //Assert.assertEquals(16, clen);
                                 break;
                             case "a13":
-                                Assert.assertEquals("long[]", "_int8", rs.getString("TYPE_NAME"));
+                                Assert.assertEquals("long[]", "_int8", ctype);
+                                //Assert.assertEquals(64, clen);
                                 break;
                             case "a14":
-                                Assert.assertEquals("float[]", "_float4", rs.getString("TYPE_NAME"));
+                                Assert.assertEquals("float[]", "_float4", ctype);
                                 break;
                             case "a15":
-                                Assert.assertEquals("double[]", "_float8", rs.getString("TYPE_NAME"));
+                                Assert.assertEquals("double[]", "_float8", ctype);
+                                //Assert.assertEquals(2, clen);
                                 break;
                             default:
                                 Assert.fail("unexpected column: " + colName);
@@ -260,11 +255,10 @@ public class TableIngesterTest {
         }
     }
 
-    @Ignore
     @Test
     public void testPrintTableMetadata() {
         String testTableName = "testPrintTableMetadata";
-        String testTable = TEST_SCHEMA + "." + testTableName;
+        String testTable = testSchemaName + "." + testTableName;
         try {
             // cleanup
             TableCreator tableCreator = new TableCreator(dataSource);
@@ -275,7 +269,7 @@ public class TableIngesterTest {
             }
 
             // create test table in the database
-            TableDesc ingestTable = getTableDesc(TEST_SCHEMA, testTable);
+            TableDesc ingestTable = getTableDesc(testSchemaName, testTable);
             tableCreator.createTable(ingestTable);
             log.info("created database table: " + testTable);
 
@@ -304,13 +298,13 @@ public class TableIngesterTest {
             try (Connection connection = dataSource.getConnection()) {
                 // create an index on the table
                 JdbcTemplate jdbc = new JdbcTemplate(dataSource);
-                String index = "CREATE UNIQUE INDEX a11_idx ON int_test_schema.testPrintTableMetadata (a11)";
+                String index = "CREATE UNIQUE INDEX a11_idx ON " + testSchemaName + ".testPrintTableMetadata (a11)";
                 log.info("sql:\n" + index);
                 jdbc.execute(index);
 
                 log.info("column metadata");
                 DatabaseMetaData metaData = connection.getMetaData();
-                try (ResultSet rs = metaData.getColumns(null, TEST_SCHEMA, testTableName.toLowerCase(), null)) {
+                try (ResultSet rs = metaData.getColumns(null, testSchemaName, testTableName.toLowerCase(), null)) {
                     while (rs.next()) {
                         String colName = rs.getString("COLUMN_NAME");
                         log.info(String.format("columnName: %s", colName));
@@ -321,7 +315,7 @@ public class TableIngesterTest {
                 }
 
                 log.info("index metadata");
-                try (ResultSet rs = metaData.getIndexInfo(null, TEST_SCHEMA, testTableName.toLowerCase(), false, false)) {
+                try (ResultSet rs = metaData.getIndexInfo(null, testSchemaName, testTableName.toLowerCase(), false, false)) {
                     while (rs.next()) {
                         String colName = rs.getString("COLUMN_NAME");
                         log.info(String.format("columnName: %s", colName));
@@ -353,10 +347,10 @@ public class TableIngesterTest {
         tableDesc.getColumnDescs().add(new ColumnDesc(tableName, "e10", TapDataType.POLYGON));
         // arrays
         tableDesc.getColumnDescs().add(new ColumnDesc(tableName, "a11", new TapDataType("short", "8", null)));
-        tableDesc.getColumnDescs().add(new ColumnDesc(tableName, "a12", new TapDataType("int", "*12", null)));
-        tableDesc.getColumnDescs().add(new ColumnDesc(tableName, "a13", new TapDataType("long", "*", null)));
+        tableDesc.getColumnDescs().add(new ColumnDesc(tableName, "a12", new TapDataType("int", "16", null)));
+        tableDesc.getColumnDescs().add(new ColumnDesc(tableName, "a13", new TapDataType("long", "64*", null)));
         tableDesc.getColumnDescs().add(new ColumnDesc(tableName, "a14", new TapDataType("float", "*", null)));
-        tableDesc.getColumnDescs().add(new ColumnDesc(tableName, "a15", new TapDataType("double", "*", null)));
+        tableDesc.getColumnDescs().add(new ColumnDesc(tableName, "a15", new TapDataType("double", "2", null)));
 
         return tableDesc;
     }

@@ -71,17 +71,16 @@ package ca.nrc.cadc.tap.schema;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.IdentityManager;
-import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.X500IdentityManager;
 import ca.nrc.cadc.db.ConnectionConfig;
 import ca.nrc.cadc.db.DBConfig;
 import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.tap.db.TestUtil;
 import ca.nrc.cadc.util.Log4jInit;
 import java.security.Principal;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 import javax.sql.DataSource;
@@ -95,17 +94,14 @@ import org.opencadc.gms.GroupURI;
  *
  * @author pdowler
  */
-public class TapSchemaDAOTest {
+public class TapSchemaDAOTest extends TestUtil {
 
     private static final Logger log = Logger.getLogger(TapSchemaDAOTest.class);
 
     static {
-        Log4jInit.setLevel("ca.nrc.cadc.tap.schema", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
         Log4jInit.setLevel("ca.nrc.cadc.db.version", Level.INFO);
     }
-
-    private DataSource dataSource;
-    private final String TEST_SCHEMA = "intTest";
 
     public TapSchemaDAOTest() {
         // create a datasource and register with JNDI
@@ -124,7 +120,7 @@ public class TapSchemaDAOTest {
             // add test schema so other test content will satisfy FK constraints
             TapSchemaDAO dao = new TapSchemaDAO();
             dao.setDataSource(dataSource);
-            SchemaDesc sd = new SchemaDesc(TEST_SCHEMA);
+            SchemaDesc sd = new SchemaDesc(testSchemaName);
             dao.put(sd);
         } catch (Exception ex) {
             log.error("setup failed", ex);
@@ -186,7 +182,7 @@ public class TapSchemaDAOTest {
         try {
             TapSchemaDAO dao = new TapSchemaDAO();
             dao.setDataSource(dataSource);
-            String testTable = TEST_SCHEMA + ".round_trip";
+            String testTable = testSchemaName + ".round_trip";
             
             try {
                 dao.delete(testTable);
@@ -197,7 +193,7 @@ public class TapSchemaDAOTest {
             TableDesc td = dao.getTable(testTable);
             Assert.assertNull("initial setup", td);
 
-            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            TableDesc orig = new TableDesc(testSchemaName, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c1", TapDataType.SHORT));
@@ -230,7 +226,7 @@ public class TapSchemaDAOTest {
         try {
             TapSchemaDAO dao = new TapSchemaDAO();
             dao.setDataSource(dataSource);
-            String testTable = TEST_SCHEMA + ".round_trip";
+            String testTable = testSchemaName + ".round_trip";
             
             try {
                 dao.delete(testTable);
@@ -241,7 +237,7 @@ public class TapSchemaDAOTest {
             TableDesc td = dao.getTable(testTable);
             Assert.assertNull("initial setup", td);
 
-            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            TableDesc orig = new TableDesc(testSchemaName, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
             
@@ -278,7 +274,7 @@ public class TapSchemaDAOTest {
             TapSchemaDAO dao = new TapSchemaDAO();
             dao.setDataSource(dataSource);
             
-            String testTable = TEST_SCHEMA + ".testUpdateTableAddColumn";
+            String testTable = testSchemaName + ".testUpdateTableAddColumn";
             try {
                 dao.delete(testTable);
             } catch (ResourceNotFoundException ex) {
@@ -288,7 +284,7 @@ public class TapSchemaDAOTest {
             TableDesc td = dao.getTable(testTable);
             Assert.assertNull("initial setup", td);
 
-            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            TableDesc orig = new TableDesc(testSchemaName, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
             
@@ -317,7 +313,7 @@ public class TapSchemaDAOTest {
             TapSchemaDAO dao = new TapSchemaDAO();
             dao.setDataSource(dataSource);
             
-            String testTable = TEST_SCHEMA + ".testUpdateTableRenameColumn";
+            String testTable = testSchemaName + ".testUpdateTableRenameColumn";
             try {
                 dao.delete(testTable);
             } catch (ResourceNotFoundException ex) {
@@ -327,7 +323,7 @@ public class TapSchemaDAOTest {
             TableDesc td = dao.getTable(testTable);
             Assert.assertNull("initial setup", td);
 
-            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            TableDesc orig = new TableDesc(testSchemaName, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
             
@@ -355,7 +351,7 @@ public class TapSchemaDAOTest {
             TapSchemaDAO dao = new TapSchemaDAO();
             dao.setDataSource(dataSource);
             
-            String testTable = TEST_SCHEMA + ".testUpdateTableChangeColumnDatatype";
+            String testTable = testSchemaName + ".testUpdateTableChangeColumnDatatype";
             try {
                 dao.delete(testTable);
             } catch (ResourceNotFoundException ex) {
@@ -365,7 +361,7 @@ public class TapSchemaDAOTest {
             TableDesc td = dao.getTable(testTable);
             Assert.assertNull("initial setup", td);
 
-            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            TableDesc orig = new TableDesc(testSchemaName, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
             

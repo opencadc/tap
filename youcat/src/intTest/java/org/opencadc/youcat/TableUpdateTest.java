@@ -73,28 +73,18 @@ import ca.nrc.cadc.auth.RunnableAction;
 import ca.nrc.cadc.db.ConnectionConfig;
 import ca.nrc.cadc.db.DBConfig;
 import ca.nrc.cadc.db.DBUtil;
-import ca.nrc.cadc.net.HttpDownload;
 import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.net.HttpPost;
-import ca.nrc.cadc.net.HttpUpload;
-import ca.nrc.cadc.net.OutputStreamWrapper;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.uws.ExecutionPhase;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.JobReader;
-import ca.nrc.cadc.vosi.TableWriter;
-import ca.nrc.cadc.vosi.actions.TableDescHandler;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.net.URL;
 import java.sql.DatabaseMetaData;
 import java.util.Map;
@@ -194,9 +184,9 @@ public class TableUpdateTest extends AbstractTablesTest {
             TapPermissions tp = new TapPermissions(null, true, null, null);
             super.setPerms(schemaOwner, testSchemaName, tp, 200);
 
-            // create test table and schema
+            // pre-cleanup, create test table and schema
             String testTable = testSchemaName + ".test_ingest_table";
-            TableDesc td = doCreateTable(schemaOwner, testTable);
+            final TableDesc orig = doCreateTable(schemaOwner, testTable);
 
             // delete the schema from tap_schema
             try {
@@ -207,9 +197,24 @@ public class TableUpdateTest extends AbstractTablesTest {
 
             // run the ingest
             doIngestTable(schemaOwner, testTable, ExecutionPhase.COMPLETED);
+            
+            TableDesc td = tapSchemaDAO.getTable(testTable);
+            Assert.assertNotNull(td);
+            log.info("found: " + td.getTableName() + " apiCreated=" + td.apiCreated);
+            Assert.assertEquals(orig.getColumnDescs().size(), td.getColumnDescs().size());
+            for (ColumnDesc ocd : orig.getColumnDescs()) {
+                ColumnDesc cd = td.getColumn(ocd.getColumnName());
+                Assert.assertNotNull(ocd.getColumnName(), cd);
+                Assert.assertEquals(ocd.getDatatype(), cd.getDatatype()); // TapDataType.equals() is lax
+                log.info("found: " + cd.getColumnName() + " " + cd.getDatatype());
+            }
+            
+            // enable cleanup
+            td.apiCreated = true;
+            tapSchemaDAO.put(td);
 
             // cleanup on success
-            doDelete(schemaOwner, testTable, false);
+            //doDelete(schemaOwner, testTable, false);
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);

@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2018.                            (c) 2018.
+*  (c) 2024.                            (c) 2024.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,135 +62,43 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
-*
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.db;
+package ca.nrc.cadc.tap.pg;
 
-import ca.nrc.cadc.dali.Circle;
-import ca.nrc.cadc.dali.DoubleInterval;
-import ca.nrc.cadc.dali.Point;
-import ca.nrc.cadc.dali.Polygon;
-import ca.nrc.cadc.tap.schema.ColumnDesc;
-import ca.nrc.cadc.tap.schema.TapDataType;
+import ca.nrc.cadc.db.ConnectionConfig;
+import ca.nrc.cadc.db.DBConfig;
+import ca.nrc.cadc.db.DBUtil;
+import ca.nrc.cadc.util.Log4jInit;
+import javax.sql.DataSource;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 
 /**
- * Interface to convert ADQL data types to a database
- * specific data types.
  *
- * @author jburke
+ * @author pdowler
  */
-public interface DatabaseDataType
-{
-    /**
-     * Get the database type for the specified column. This is for use in create
-     * table statements, casts, etc.
-     *
-     * @param columnDesc ADQL description of the column
-     * @return database specific data type
-     */
-    String getDataType(ColumnDesc columnDesc);
+public abstract class TestUtil {
+    private static final Logger log = Logger.getLogger(TestUtil.class);
 
-    /**
-     * Get the column type as a java.sql.Types constant.
-     * 
-     * @param columnDesc
-     * @return one of the java.sql.Types values
-     */
-    Integer getType(ColumnDesc columnDesc);
+    static {
+        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
+    }
     
-    /**
-     * Convert a database data type to a a TAP data type.
-     * 
-     * @param datatype the database data type
-     * @param length length of the column or null
-     * @return a TapDataType
-     */
-    TapDataType getTapDataType(String datatype, Integer length);
+    protected final String testSchemaName = "tap_schema";
+    protected DataSource dataSource;
     
-    /**
-     * Get an optional USING qualifier for index creation. If you don't know what this
-     * is just return null.
-     * 
-     * @param columnDesc
-     * @return 
-     * @throws IllegalArgumentException if unique==true and the column type or qualifier 
-     *  does not support unique indices
-     */
-    String getIndexUsingQualifier(ColumnDesc columnDesc, boolean unique);
-    
-    /**
-     * Get an optional operator for index creation. If you don't know what this
-     * is just return null.
-     * @param columnDesc
-     * @return 
-     */
-    String getIndexColumnOperator(ColumnDesc columnDesc);
-    
-    /**
-     * Convert TAP-1.0 ADQL/STC point value to a database object for insert.
-     * 
-     * @param pos
-     * @return 
-     */
-    Object getPointObject(ca.nrc.cadc.stc.Position pos);
-
-    /**
-     * Convert TAP-1.0 ADQL/STC region value to a database object for insert.
-     * 
-     * @param reg
-     * @return 
-     */
-    Object getRegionObject(ca.nrc.cadc.stc.Region reg);
-    
-    /**
-     * Convert DALI-1.1 point to a database object for insert.
-     * 
-     * @param p
-     * @return 
-     */
-    Object getPointObject(Point p);
-    
-    /**
-     * Convert DALI-1.1 circle to a database object for insert.
-     * 
-     * @param c
-     * @return 
-     */
-    Object getCircleObject(Circle c);
-    
-    /**
-     * Convert DALI-1.1 polygon to a database object for insert.
-     * 
-     * @param poly
-     * @return 
-     */
-    Object getPolygonObject(Polygon poly);
-
-    /**
-     * Convert DALI-1.1 interval to a database object for insert.
-     * @param inter
-     * @return 
-     */
-    Object getIntervalObject(DoubleInterval inter);
-
-    /**
-     * Convert an array of DALI-1.1 intervals to a database object for insert.
-     * @param inter
-     * @return 
-     */
-    Object getIntervalArrayObject(DoubleInterval[] inter);
-    
-    Object getArrayObject(short[] val);
-    
-    Object getArrayObject(int[] val);
-    
-    Object getArrayObject(long[] val);
-    
-    Object getArrayObject(float[] val);
-    
-    Object getArrayObject(double[] val);
-
+    public TestUtil() {
+        // create a datasource and register with JNDI
+        try {
+            DBConfig conf = new DBConfig();
+            ConnectionConfig cc = conf.getConnectionConfig("TAP_SCHEMA_TEST", "cadctest");
+            dataSource = DBUtil.getDataSource(cc);
+            log.info("configured data source: " + cc.getServer() + "," + cc.getDatabase() + "," + cc.getDriver() + "," + cc.getURL());
+        } catch (Exception ex) {
+            log.error("setup failed", ex);
+            throw new IllegalStateException("failed to create DataSource", ex);
+        }
+    }
 }

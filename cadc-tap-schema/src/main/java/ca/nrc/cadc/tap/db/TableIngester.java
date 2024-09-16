@@ -186,7 +186,6 @@ public class TableIngester {
         DatabaseMetaData databaseMetaData = dataSource.getConnection().getMetaData();
         log.debug(String.format("querying DatabaseMetadata for schema=%s table=%s", schemaName, unqualifiedTableName));
         //TODO too pg specific? table names are stored lower case in the system tables queried for the metadata
-        ResultSet columnInfo = databaseMetaData.getColumns(null, schemaName, unqualifiedTableName.toLowerCase(), null);
         ResultSet indexInfo = databaseMetaData.getIndexInfo(null, schemaName, unqualifiedTableName.toLowerCase(), false, false);
         // get column names for indexed columns
         List<String> indexedColumns = new ArrayList<String>();
@@ -199,12 +198,20 @@ public class TableIngester {
         // build TableDesc
         TableDesc tableDesc = new TableDesc(schemaName, tableName);
         tableDesc.tableType = TableDesc.TableType.TABLE;
-        tableDesc.apiCreated = true;
         log.debug(String.format("creating TableDesc %s %s", schemaName, tableName));
+        //TODO too pg specific? table names are stored lower case in the system tables queried for the metadata
+        ResultSet columnInfo = databaseMetaData.getColumns(null, schemaName, unqualifiedTableName.toLowerCase(), null);
         while (columnInfo.next()) {
             String columnName = columnInfo.getString("COLUMN_NAME");
             String columnType = columnInfo.getString("TYPE_NAME");
-            TapDataType tapDataType = this.databaseDataType.getTapDataType(columnType);
+            TapDataType tapDataType = databaseDataType.getTapDataType(columnType, null);
+            if (TapDataType.CHAR.getDatatype().equals(tapDataType.getDatatype()) && tapDataType.xtype == null) {
+                Integer colSize = columnInfo.getInt("COLUMN_SIZE"); // int
+                if (colSize == 1) {
+                    colSize = null; // length 1 means scalar in TAP
+                }
+                tapDataType = databaseDataType.getTapDataType(columnType, colSize);
+            }
             log.debug(String.format("creating ColumnDesc %s %s %s", tableName, columnName, tapDataType));
             ColumnDesc columnDesc = new ColumnDesc(tableName, columnName, tapDataType);
             columnDesc.indexed = indexedColumns.contains(columnName);

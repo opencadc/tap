@@ -92,7 +92,7 @@ import org.springframework.jdbc.core.RowMapper;
  *
  * @author pdowler
  */
-public class TableCreatorTest {
+public class TableCreatorTest extends TestUtil {
     private static final Logger log = Logger.getLogger(TableCreatorTest.class);
 
     static {
@@ -101,26 +101,14 @@ public class TableCreatorTest {
         //Log4jInit.setLevel("ca.nrc.cadc.profiler", Level.INFO);
     }
     
-    private DataSource dataSource;
-    private final String TEST_SCHEMA = "tap_schema";
-    
     public TableCreatorTest() { 
-        // create a datasource and register with JNDI
-        try {
-            DBConfig conf = new DBConfig();
-            ConnectionConfig cc = conf.getConnectionConfig("TAP_SCHEMA_TEST", "cadctest");
-            dataSource = DBUtil.getDataSource(cc);
-            log.info("configured data source: " + cc.getServer() + "," + cc.getDatabase() + "," + cc.getDriver() + "," + cc.getURL());
-        } catch (Exception ex) {
-            log.error("setup failed", ex);
-            throw new IllegalStateException("failed to create DataSource", ex);
-        }
+        super();
     }
     
     @Test
     public void testCreateTable() {
         try {
-            String testTable = TEST_SCHEMA + ".testCreateTable";
+            String testTable = testSchemaName + ".testCreateTable";
             // cleanup
             TableCreator tc = new TableCreator(dataSource);
             try {
@@ -129,7 +117,7 @@ public class TableCreatorTest {
                 log.debug("cleanup-before-test failed");
             }
             
-            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            TableDesc orig = new TableDesc(testSchemaName, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
             orig.getColumnDescs().add(new ColumnDesc(testTable, "e7", TapDataType.INTERVAL));
             orig.getColumnDescs().add(new ColumnDesc(testTable, "e8", TapDataType.POINT));
@@ -160,7 +148,7 @@ public class TableCreatorTest {
     @Test
     public void testCreateIndex() {
         try {
-            String testTable = TEST_SCHEMA + ".testCreateIndex";
+            String testTable = testSchemaName + ".testCreateIndex";
             // cleanup
             TableCreator tc = new TableCreator(dataSource);
             try {
@@ -169,7 +157,7 @@ public class TableCreatorTest {
                 log.debug("cleanup-before-test failed");
             }
             
-            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            TableDesc orig = new TableDesc(testSchemaName, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
             orig.getColumnDescs().add(new ColumnDesc(testTable, "e7", TapDataType.INTERVAL));
             orig.getColumnDescs().add(new ColumnDesc(testTable, "e8", TapDataType.POINT));
