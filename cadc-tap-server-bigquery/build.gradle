@@ -1,0 +1,49 @@
+plugins {
+    id "java"
+    id "maven"
+    id 'maven-publish'
+    id 'checkstyle'
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+    // tmp to resolve uk.ac.starlink
+    jcenter()
+}
+
+apply from: '../opencadc.gradle'
+
+sourceCompatibility = 1.8
+
+group = 'org.opencadc'
+
+version = '1.0.5'
+
+description = 'OpenCADC TAP-1.1 tap server plugin (BigQuery)'
+def git_url = 'https://github.com/opencadc/tap'
+
+dependencies {
+    implementation 'org.opencadc:cadc-tap-schema:[1.1.22,)'
+    implementation 'org.opencadc:cadc-tap-server:[1.1.7,)'
+    implementation 'org.opencadc:cadc-adql:[1.1.10,)'
+    implementation 'org.opencadc:cadc-jsqlparser-compat:[0.6.4,)'
+
+    testImplementation 'junit:junit:[4.0,5.0)'
+    testImplementation 'org.opencadc:cadc-util:[1.6,)'
+    testImplementation 'xerces:xercesImpl:[2.0,)'
+}
+
+publishing {
+
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = "https://maven.pkg.github.com/burwood/tap-bigquery"
+            credentials {
+               username = System.getenv("GITHUB_ACTOR")
+               password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
+}
