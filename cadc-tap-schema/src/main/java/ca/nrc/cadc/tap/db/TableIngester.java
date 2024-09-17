@@ -89,6 +89,13 @@ import javax.security.auth.Subject;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
+/**
+ * Utility to read a table description from the database and generate a TableDesc 
+ * that could be used to validate or add to the tap_schema.
+ * 
+ * @see TableUpdateRunner.ingestTable
+ * @author pdowler
+ */
 public class TableIngester {
     private static final Logger log = Logger.getLogger(TableIngester.class);
 
@@ -105,7 +112,7 @@ public class TableIngester {
         log.debug("loaded: " + databaseDataType.getClass().getName());
     }
 
-    public void ingest(String schemaName, String tableName) {
+    public TableDesc getTableDesc(String schemaName, String tableName) {
         // create the table description
         TableDesc ingestTable;
         try {
@@ -115,70 +122,15 @@ public class TableIngester {
                     tableName, e.getMessage()));
         }
 
-        // check the table is valid ADQL
-        try {
-            TapSchemaUtil.checkValidTableName(ingestTable.getTableName());
-        } catch (ADQLIdentifierException ex) {
-            throw new IllegalArgumentException("invalid table name: " + ingestTable.getTableName(), ex);
-        }
-        try {
-            for (ColumnDesc cd : ingestTable.getColumnDescs()) {
-                TapSchemaUtil.checkValidIdentifier(cd.getColumnName());
-            }
-        } catch (ADQLIdentifierException ex) {
-            throw new IllegalArgumentException(ex.getMessage());
-        }
-
         // make caller the table owner
         Subject caller = AuthenticationUtil.getCurrentSubject();
         TapPermissions tapPermissions = new TapPermissions();
-        tapPermissions.owner = caller;
         ingestTable.tapPermissions = tapPermissions;
-
-        DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
-        try {
-            tm.startTransaction();
-
-            // TODO: change getSchema() above to lockSchema() once implemented to prevent duplicate put
-            // add the schema to the tap_schema if it doesn't exist
-            SchemaDesc schemaDesc = tapSchemaDAO.getSchema(schemaName, true);
-            if (schemaDesc != null) {
-                log.debug(String.format("existing schema '%s' in tap_schema", schemaDesc.getSchemaName()));
-            }
-
-            // add the table to the tap_schema
-            TableDesc tableDesc = tapSchemaDAO.getTable(tableName, true);
-            if (tableDesc != null) {
-                throw new IllegalStateException(String.format("table already exists in tap_schema: %s", tableName));
-            }
-            tapSchemaDAO.put(ingestTable);
-            log.debug(String.format("added table '%s' to tap_schema", tableName));
-
-            tm.commitTransaction();
-        } catch (Exception ex) {
-            try {
-                log.error("update tap_schema failed - rollback", ex);
-                tm.rollbackTransaction();
-                log.error("update tap_schema failed - rollback: OK");
-            } catch (Exception oops) {
-                log.error("update tap_schema failed - rollback : FAIL", oops);
-            }
-            throw new RuntimeException(String.format("failed to update tap_schema with %s", tableName), ex);
-        } finally {
-            if (tm.isOpen()) {
-                log.error("BUG: open transaction in finally - trying to rollback");
-                try {
-                    tm.rollbackTransaction();
-                    log.error("BUG: rollback in finally: OK");
-                } catch (Exception oops) {
-                    log.error("BUG: rollback in finally: FAIL", oops);
-                }
-                throw new RuntimeException("BUG: open transaction in finally");
-            }
-        }
+        
+        return ingestTable;
     }
 
-    protected TableDesc createTableDesc(String schemaName, String tableName)
+    private TableDesc createTableDesc(String schemaName, String tableName)
             throws SQLException {
         log.debug(String.format("creating TableDesc for %s %s", schemaName, tableName));
         // get the table metadata

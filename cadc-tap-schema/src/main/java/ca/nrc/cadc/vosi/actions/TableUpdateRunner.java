@@ -67,6 +67,7 @@
 
 package ca.nrc.cadc.vosi.actions;
 
+import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.dali.ParamExtractor;
 import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
@@ -76,9 +77,11 @@ import ca.nrc.cadc.rest.SyncOutput;
 import ca.nrc.cadc.tap.PluginFactory;
 import ca.nrc.cadc.tap.db.TableCreator;
 import ca.nrc.cadc.tap.db.TableIngester;
+import ca.nrc.cadc.tap.schema.ADQLIdentifierException;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import ca.nrc.cadc.tap.schema.TapSchemaUtil;
 import ca.nrc.cadc.uws.ErrorSummary;
 import ca.nrc.cadc.uws.ErrorType;
 import ca.nrc.cadc.uws.ExecutionPhase;
@@ -93,6 +96,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import javax.naming.NamingException;
+import javax.security.auth.Subject;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
@@ -338,20 +342,20 @@ public class TableUpdateRunner implements JobRunner {
         log.debug("ingesting table " + tableName);
 
         PluginFactory pf = new PluginFactory();
-        TapSchemaDAO ts = pf.getTapSchemaDAO();
+        TapSchemaDAO tapSchemaDAO = pf.getTapSchemaDAO();
         DataSource ds = getDataSource();
-        ts.setDataSource(ds);
+        tapSchemaDAO.setDataSource(ds);
 
         // check write permissions to the tap_schema
         String schemaName = Util.getSchemaFromTable(tableName);
         try {
-            TablesAction.checkSchemaWritePermissions(ts, schemaName, logInfo);
+            TablesAction.checkSchemaWritePermissions(tapSchemaDAO, schemaName, logInfo);
         }  catch (ResourceNotFoundException | IOException ex) {
             throw new IllegalArgumentException("ingest schema not found in tap_schema: " + schemaName);
         }
 
         // check if table already exists in tap_schema
-        TableDesc tableDesc = ts.getTable(tableName);
+        TableDesc tableDesc = tapSchemaDAO.getTable(tableName);
         if (tableDesc != null) {
             throw new IllegalArgumentException("ingest table already exists in tap_schema: " + tableName);
         }
@@ -362,8 +366,28 @@ public class TableUpdateRunner implements JobRunner {
         try {
             tm.startTransaction();
             
-            tableIngester.ingest(schemaName, tableName);
+            TableDesc ingestable = tableIngester.getTableDesc(schemaName, tableName);
+            // check the table is valid ADQL name
+            try {
+                TapSchemaUtil.checkValidTableName(ingestable.getTableName());
+            } catch (ADQLIdentifierException ex) {
+                throw new IllegalArgumentException("invalid table name: " + ingestable.getTableName(), ex);
+            }
+            try {
+                for (ColumnDesc cd : ingestable.getColumnDescs()) {
+                    TapSchemaUtil.checkValidIdentifier(cd.getColumnName());
+                }
+            } catch (ADQLIdentifierException ex) {
+                throw new IllegalArgumentException(ex.getMessage());
+            }
             
+            // assign owner
+            ingestable.tapPermissions.owner = AuthenticationUtil.getCurrentSubject();
+            ingestable.apiCreated = false; // pre-existing table
+            
+            tapSchemaDAO.put(ingestable);
+            log.debug(String.format("added table '%s' to tap_schema", tableName));
+
             tm.commitTransaction();
         } catch (Exception ex) {
             boolean dbg = false;

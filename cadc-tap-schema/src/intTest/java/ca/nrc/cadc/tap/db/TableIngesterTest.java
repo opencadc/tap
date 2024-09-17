@@ -93,12 +93,8 @@ public class TableIngesterTest extends TestUtil {
         Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
     }
 
-    private final TapSchemaDAO tapSchemaDAO;
-
     public TableIngesterTest() {
         super();
-        this.tapSchemaDAO = new TapSchemaDAO();
-        this.tapSchemaDAO.setDataSource(this.dataSource);
     }
 
     @Test
@@ -112,33 +108,21 @@ public class TableIngesterTest extends TestUtil {
             } catch (Exception ignore) {
                 log.debug("database-cleanup-before-test failed for " + testTable);
             }
-            try {
-                tapSchemaDAO.delete(testTable);
-            } catch (Exception ignore) {
-                log.debug("tap_schema-cleanup-before-test failed for " + testTable);
-            }
 
             // create test table in the database
-            TableDesc ingestTable = getTableDesc(testSchemaName, testTable);
-            tableCreator.createTable(ingestTable);
+            TableDesc orig = getTableDesc(testSchemaName, testTable);
+            tableCreator.createTable(orig);
             log.info("created database table: " + testTable);
 
             // ingest table into the tap_schema
             TableIngester tableIngester = new TableIngester(dataSource);
-            tableIngester.ingest(testSchemaName, testTable);
+            TableDesc actual = tableIngester.getTableDesc(testSchemaName, testTable);
             log.info("ingested table");
 
             // check
 
-            // compare database and tap_schema
-            SchemaDesc schemaDesc = tapSchemaDAO.getSchema(testSchemaName, true);
-            Assert.assertNotNull("schema", schemaDesc);
-
-            TableDesc tableDesc = tapSchemaDAO.getTable(testTable);
-            Assert.assertNotNull("table", tableDesc);
-
-            List<ColumnDesc> databaseColumns = ingestTable.getColumnDescs();
-            List<ColumnDesc> tapSchemaColumns = tableDesc.getColumnDescs();
+            List<ColumnDesc> databaseColumns = orig.getColumnDescs();
+            List<ColumnDesc> tapSchemaColumns = actual.getColumnDescs();
             for (ColumnDesc databaseColumn: databaseColumns) {
                 boolean found = false;
                 log.info("database column: " + databaseColumn.getColumnName());
@@ -160,11 +144,6 @@ public class TableIngesterTest extends TestUtil {
                 log.debug("dropped table: " + testTable);
             } catch (Exception ignore) {
                 log.debug("database-cleanup-after-test failed for " + testTable);
-            }
-            try {
-                tapSchemaDAO.delete(testTable);
-            } catch (Exception ignore) {
-                log.debug("tap_schema-cleanup-after-test failed for " + testTable);
             }
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
@@ -273,11 +252,6 @@ public class TableIngesterTest extends TestUtil {
             } catch (Exception ignore) {
                 log.debug("database-cleanup-before-test failed for " + testTable);
             }
-            try {
-                tapSchemaDAO.delete(testTable);
-            } catch (Exception ignore) {
-                log.debug("tap_schema-cleanup-before-test failed for " + testTable);
-            }
 
             // create test table in the database with an unsupported data type
             JdbcTemplate jdbc = new JdbcTemplate(dataSource);
@@ -292,10 +266,10 @@ public class TableIngesterTest extends TestUtil {
             boolean success = false;
             try {
                 TableIngester tableIngester = new TableIngester(dataSource);
-                tableIngester.ingest(testSchemaName, testTable);
+                TableDesc actual = tableIngester.getTableDesc(testSchemaName, testTable);
+                Assert.fail("expected UnsupportedOperationException, got: " + actual);
             } catch (UnsupportedOperationException expected) {
-                log.info("expected exception: " + expected);
-                success = true;
+                log.info("caught expected exception: " + expected);
             }
 
             // cleanup
@@ -304,15 +278,6 @@ public class TableIngesterTest extends TestUtil {
                 log.debug("dropped table: " + testTable);
             } catch (Exception ignore) {
                 log.debug("database-cleanup-after-test failed for " + testTable);
-            }
-            try {
-                tapSchemaDAO.delete(testTable);
-            } catch (Exception ignore) {
-                log.debug("tap_schema-cleanup-after-test failed for " + testTable);
-            }
-
-            if (!success) {
-                Assert.fail("unsupported data type should throw an exception");
             }
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
