@@ -110,7 +110,7 @@ public class DeleteAction extends TablesAction {
         ts.setDataSource(ds);
         
         tm = new DatabaseTransactionManager(ds);
-        checkDropTablePermission(ts, tableName);
+        TablesAction.checkDropTablePermission(ts, tableName, logInfo);
             
         try {
             

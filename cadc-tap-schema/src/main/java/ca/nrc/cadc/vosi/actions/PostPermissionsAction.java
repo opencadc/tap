@@ -116,13 +116,13 @@ public class PostPermissionsAction extends TablesAction {
         // get the permissions first to ensure table exists and to ensure user
         // is allowed to view/modifiy permissions.
         if (Util.isSchemaName(name)) {
-            checkModifySchemaPermissions(dao, name);
+            TablesAction.checkModifySchemaPermissions(dao, name, logInfo);
             TapPermissions perms = dao.getSchemaPermissions(name);
             modifyPermissions(perms);
             log.debug("Setting schema permissions to: \n" + perms);
             dao.setSchemaPermissions(name, perms);
         } else if (Util.isTableName(name)) {
-            checkModifyTablePermissionsPermissions(dao, name);
+            TablesAction.checkModifyTablePermissions(dao, name, logInfo);
             TapPermissions perms = dao.getTablePermissions(name);
             modifyPermissions(perms);
             log.debug("Setting table permissions to: \n" + perms);

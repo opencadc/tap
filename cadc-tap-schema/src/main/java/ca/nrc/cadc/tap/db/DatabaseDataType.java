@@ -74,6 +74,7 @@ import ca.nrc.cadc.dali.DoubleInterval;
 import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.dali.Polygon;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
 
 /**
  * Interface to convert ADQL data types to a database
@@ -182,4 +183,12 @@ public interface DatabaseDataType
     Object getArrayObject(float[] val);
     
     Object getArrayObject(double[] val);
+
+    /**
+     * Convert a database data type to a a TAP data type.
+     * @param datatype the database data type
+     * @return a TapDataType
+     */
+    TapDataType getTapDataType(String datatype);
+
 }

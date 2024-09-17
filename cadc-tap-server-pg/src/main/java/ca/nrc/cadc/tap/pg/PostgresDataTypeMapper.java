@@ -110,6 +110,27 @@ public class PostgresDataTypeMapper extends BasicDataTypeMapper {
         dataTypes.put(new TapDataType("long", "*", null), new TypePair("bigint[]", null));
         dataTypes.put(new TapDataType("float", "*", null), new TypePair("real[]", null));
         dataTypes.put(new TapDataType("double", "*", null), new TypePair("double precision[]", null));
+
+        // DatabaseMetadata -> TAP_DATA_TYPE
+        // TYPE_NAME    DATA_TYPE   TAP_DATA_TYPE
+        // polygon      1111        INTERVAL
+        // spoint       1111        POINT
+        // scircle      1111        CIRCLE
+        // spoly        1111        POLYGON
+        // _int2        2003        short[]
+        // _int4        2003        int[]
+        // _int8        2003        long[]
+        // _float4      2003        float[]
+        // _float8      2003        double[]
+        dbDataTypes.put("polygon", TapDataType.INTERVAL);
+        dbDataTypes.put("spoint", TapDataType.POINT);
+        dbDataTypes.put("scircle", TapDataType.CIRCLE);
+        dbDataTypes.put("spoly", TapDataType.POLYGON);
+        dbDataTypes.put("_int2", new TapDataType("short", "*", null));
+        dbDataTypes.put("_int4", new TapDataType("int", "*", null));
+        dbDataTypes.put("_int8", new TapDataType("long", "*", null));
+        dbDataTypes.put("_float4", new TapDataType("float", "*", null));
+        dbDataTypes.put("_float8", new TapDataType("double", "*", null));
     }
 
     @Override
@@ -315,4 +336,5 @@ public class PostgresDataTypeMapper extends BasicDataTypeMapper {
             throw new RuntimeException("BUG: failed to convert long[] to PGobject", ex);
         }
     }
+
 }

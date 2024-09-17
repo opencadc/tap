@@ -123,7 +123,7 @@ public class GetAction extends TablesAction {
 
         TapSchemaDAO dao = getTapSchemaDAO();
         if (tableName != null) {
-            checkTableReadPermissions(dao, tableName);
+            checkTableReadPermissions(dao, tableName, logInfo);
             TableDesc td = dao.getTable(tableName);
             if (td == null) {
                 // currently, permission check already threw this
@@ -134,7 +134,7 @@ public class GetAction extends TablesAction {
             syncOutput.setHeader("Content-Type", "text/xml");
             tw.write(td, new OutputStreamWriter(syncOutput.getOutputStream()));
         } else if (schemaName != null) {
-            checkViewSchemaPermissions(dao, schemaName);
+            checkViewSchemaPermissions(dao, schemaName, logInfo);
             // TODO: TapSchemaDAO only supports schema only, ok for detail=min
             // should at least list tables for default detail
             // should provide columns at detail=max

@@ -75,7 +75,9 @@ import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.SyncOutput;
 import ca.nrc.cadc.tap.PluginFactory;
 import ca.nrc.cadc.tap.db.TableCreator;
+import ca.nrc.cadc.tap.db.TableIngester;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import ca.nrc.cadc.uws.ErrorSummary;
@@ -85,6 +87,7 @@ import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.server.JobRunner;
 import ca.nrc.cadc.uws.server.JobUpdater;
 import ca.nrc.cadc.uws.util.JobLogInfo;
+import java.io.IOException;
 import java.security.AccessControlException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -117,8 +120,9 @@ public class TableUpdateRunner implements JobRunner {
     private static final List<String> PARAM_NAMES = new ArrayList<String>();
 
     static {
-        PARAM_NAMES.add("table");
         PARAM_NAMES.add("index");
+        PARAM_NAMES.add("ingest");
+        PARAM_NAMES.add("table");
         PARAM_NAMES.add("unique");
     }
 
@@ -169,108 +173,22 @@ public class TableUpdateRunner implements JobRunner {
                     logInfo.setMessage("Could not set job phase to EXECUTING.");
                     return;
                 }
-                
                 log.debug(job.getID() + ": QUEUED -> EXECUTING [OK]");
 
+                // check for the requested operation
                 ParamExtractor pe = new ParamExtractor(PARAM_NAMES);
                 Map<String, List<String>> params = pe.getParameters(job.getParameterList());
-                String tableName = getSingleValue("table", params);
-                String columnName = getSingleValue("index", params);
-                boolean unique = "true".equals(getSingleValue("unique", params));
-                
-                // TODO: make create index optional and check for table load from URI params
-                
-                if (tableName == null) {
-                    throw new IllegalArgumentException("missing parameter 'table'");
+                String index = getSingleValue("index", params);
+                String ingest = getSingleValue("ingest", params);
+                if (index == null && ingest == null) {
+                    throw new IllegalArgumentException("one of 'index' or 'ingest' parameter must be specified");
+                } else if (index != null && ingest != null) {
+                    throw new IllegalArgumentException("'index' and 'ingest' parameters cannot be specified at the same time");
                 }
-                if (columnName == null) {
-                    throw new IllegalArgumentException("missing parameter 'index'");
-                }
-                
-                PluginFactory pf = new PluginFactory();
-                TapSchemaDAO ts = pf.getTapSchemaDAO();
-                DataSource ds = getDataSource();
-                ts.setDataSource(ds);
-                try {
-                    log.debug("Checking table write permission");
-                    TablesAction.checkTableWritePermissions(ts, tableName, logInfo);
-                } catch (ResourceNotFoundException ex) {
-                    throw new IllegalArgumentException("table not found: " + tableName);
-                }
-
-                TableDesc td = ts.getTable(tableName);
-                if (td == null) {
-                    // if this was not thrown in permission check above then we have an inconsistency between
-                    // the tap_schema content and the table ownership
-                    log.error("INCONSISTENT STATE: permission check says table " + tableName + "exists but it is not in tap_schema");
-                    throw new IllegalArgumentException("table not found: " + tableName);
-                }
-                
-                ColumnDesc cd = td.getColumn(columnName);
-                if (cd == null) {
-                    throw new IllegalArgumentException("column not found: " + columnName + " in table " + tableName);
-                }
-                
-                if (cd.indexed) {
-                    throw new IllegalArgumentException("column is already indexed: " + columnName + " in table " + tableName);
-                }
-
-                DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
-                try {
-                    tm.startTransaction();
-                    
-                    // create index
-                    TableCreator tc = new TableCreator(ds);
-                    tc.createIndex(cd, unique);
-                    
-                    // createIndex can take consierable time so our view of the column metadata could be out of date
-
-                    // write lock row in tap_schema.columns
-                    ts.put(cd);
-                    
-                    // get current values in case another thread has updated it
-                    cd = ts.getColumn(tableName, cd.getColumnName());
-                    
-                    // update tap_schema
-                    cd.indexed = true;
-                    ts.put(cd);
-
-                    tm.commitTransaction();
-                } catch (Exception ex) {
-                    boolean dbg = false;
-                    if (ex instanceof IllegalArgumentException || ex instanceof UnsupportedOperationException) {
-                        dbg = true;
-                    }
-                    try {
-                        if (dbg) {
-                            log.debug("create index and update tap_schema failed - rollback", ex);
-                        } else {
-                            log.error("create index and update tap_schema failed - rollback", ex);
-                        }
-                        tm.rollbackTransaction();
-                        if (dbg) {
-                            log.debug("create index and update tap_schema failed - rollback: OK");
-                        } else {
-                            log.error("create index and update tap_schema failed - rollback: OK");
-                        }
-                    } catch (Exception oops) {
-                        log.error("create index and update tap_schema - rollback : FAIL", oops);
-                    }
-                    if (ex instanceof IllegalArgumentException) {
-                        throw ex;
-                    }
-                    throw new RuntimeException("failed to update table " + tableName + " reason: " + ex.getMessage(), ex);
-                } finally {
-                    if (tm.isOpen()) {
-                        log.error("BUG: open transaction in finally - trying to rollback");
-                        try {
-                            tm.rollbackTransaction();
-                            log.error("BUG: rollback in finally: OK");
-                        } catch (Exception oops) {
-                            log.error("BUG: rollback in finally: FAIL", oops);
-                        }
-                        throw new RuntimeException("BUG: open transaction in finally");
-                    }
+                if (index != null) {
+                    indexTable(params);
+                } else {
+                    ingestTable(params);
                 }
 
                 ep = jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING, ExecutionPhase.COMPLETED, new Date());
@@ -303,6 +221,147 @@ public class TableUpdateRunner implements JobRunner {
         } finally {
 
         }
+    }
+
+    /**
+     * Add a index to a column in the tap_schema and create the index in the database.
+     * @param params list of request query parameters.
+     */
+    protected void indexTable(Map<String, List<String>> params) {
+        String tableName = getSingleValue("table", params);
+        String columnName = getSingleValue("index", params);
+        boolean unique = "true".equals(getSingleValue("unique", params));
+        log.debug(String.format("indexing table=%s column=%s unique=%s", tableName, columnName, unique));
+
+        if (tableName == null) {
+            throw new IllegalArgumentException("missing parameter 'table'");
+        }
+
+        PluginFactory pf = new PluginFactory();
+        TapSchemaDAO ts = pf.getTapSchemaDAO();
+        DataSource ds = getDataSource();
+        ts.setDataSource(ds);
+        try {
+            log.debug("Checking table write permission");
+            TablesAction.checkTableWritePermissions(ts, tableName, logInfo);
+        } catch (ResourceNotFoundException | IOException ex) {
+            throw new IllegalArgumentException("table not found: " + tableName);
+        }
+
+        TableDesc td = ts.getTable(tableName);
+        if (td == null) {
+            // if this was not thrown in permission check above then we have an inconsistency between
+            // the tap_schema content and the table ownership
+            log.error("INCONSISTENT STATE: permission check says table " + tableName + "exists but it is not in tap_schema");
+            throw new IllegalArgumentException("table not found: " + tableName);
+        }
+
+        ColumnDesc cd = td.getColumn(columnName);
+        if (cd == null) {
+            throw new IllegalArgumentException("column not found: " + columnName + " in table " + tableName);
+        }
+        if (cd.indexed) {
+            throw new IllegalArgumentException("column is already indexed: " + columnName + " in table " + tableName);
+        }
+
+        DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
+        try {
+            tm.startTransaction();
+
+            // create index
+            TableCreator tc = new TableCreator(ds);
+            tc.createIndex(cd, unique);
+
+            // createIndex can take considerable time so our view of the column metadata could be out of date
+
+            // write lock row in tap_schema.columns
+            ts.put(cd);
+
+            // get current values in case another thread has updated it
+            cd = ts.getColumn(tableName, cd.getColumnName());
+
+            // update tap_schema
+            cd.indexed = true;
+            ts.put(cd);
+
+            tm.commitTransaction();
+        } catch (Exception ex) {
+            boolean dbg = false;
+            if (ex instanceof IllegalArgumentException || ex instanceof UnsupportedOperationException) {
+                dbg = true;
+            }
+            try {
+                if (dbg) {
+                    log.debug("create index and update tap_schema failed - rollback", ex);
+                } else {
+                    log.error("create index and update tap_schema failed - rollback", ex);
+                }
+                tm.rollbackTransaction();
+                if (dbg) {
+                    log.debug("create index and update tap_schema failed - rollback: OK");
+                } else {
+                    log.error("create index and update tap_schema failed - rollback: OK");
+                }
+            } catch (Exception oops) {
+                log.error("create index and update tap_schema - rollback : FAIL", oops);
+            }
+            if (ex instanceof IllegalArgumentException) {
+                throw ex;
+            }
+            throw new RuntimeException("failed to update table " + tableName + " reason: " + ex.getMessage(), ex);
+        } finally {
+            if (tm.isOpen()) {
+                log.error("BUG: open transaction in finally - trying to rollback");
+                try {
+                    tm.rollbackTransaction();
+                    log.error("BUG: rollback in finally: OK");
+                } catch (Exception oops) {
+                    log.error("BUG: rollback in finally: FAIL", oops);
+                }
+                throw new RuntimeException("BUG: open transaction in finally");
+            }
+        }
+    }
+
+    /**
+     * Add the metadata for an existing table to the tap_schema.
+     *
+     * @param params list of request query parameters.
+     */
+    protected void ingestTable(Map<String, List<String>> params) {
+        boolean ingest = "true".equals(getSingleValue("ingest", params));
+        if (!ingest) {
+            throw new IllegalStateException("'ingest' parameter specified but value is 'false', ingest cancelled");
+        }
+
+        String tableName = getSingleValue("table", params);
+        if (tableName == null) {
+            throw new IllegalArgumentException("missing parameter 'table'");
+        }
+        log.debug("ingesting table " + tableName);
+
+        PluginFactory pf = new PluginFactory();
+        TapSchemaDAO ts = pf.getTapSchemaDAO();
+        DataSource ds = getDataSource();
+        ts.setDataSource(ds);
+
+        // check write permissions to the tap_schema
+        String schemaName = Util.getSchemaFromTable(tableName);
+        try {
+            TablesAction.checkSchemaWritePermissions(ts, schemaName, logInfo);
+        }  catch (ResourceNotFoundException | IOException ex) {
+            throw new IllegalArgumentException("ingest schema not found in tap_schema: " + schemaName);
+        }
+
+        // check if table already exists in tap_schema
+        TableDesc tableDesc = ts.getTable(tableName);
+        if (tableDesc != null) {
+            throw new IllegalArgumentException("ingest table already exists in tap_schema: " + tableName);
+        }
+
+        // add the table to the tap_schema
+        TableIngester tableIngester = new TableIngester(ds);
+        tableIngester.ingest(schemaName, tableName);
     }
 
     private String getSingleValue(String pname, Map<String, List<String>> params) {
