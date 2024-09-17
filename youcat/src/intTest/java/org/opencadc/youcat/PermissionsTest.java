@@ -459,7 +459,7 @@ public class PermissionsTest extends AbstractTablesTest {
             this.doQuery(subjectWithGroups, certQueryURL, testTable, 200);
             this.doQuery(schemaOwner, certQueryURL, testTable, 200);
             
-            //doDelete(schemaOwner, testTable, false);
+            doDelete(schemaOwner, testTable, false);
         } catch (Exception t) {
             log.error("unexpected", t);
             Assert.fail("unexpected: " + t.getMessage());
@@ -546,13 +546,18 @@ public class PermissionsTest extends AbstractTablesTest {
         log.info("testOwnerQueryTablesTable()");
         try {
             clearSchemaPerms();
-            
+
+            String testTable = testSchemaName + ".testOwnerQueryTablesTable";
+            doCreateTable(schemaOwner, testTable);
+
             String query = "select schema_name from tap_schema.tables";
             
             VOTableDocument doc = doQueryWithResults(schemaOwner, certQueryURL, query);
             
             assertAuthtest1ReadResults(doc);
 
+            // cleanup on success
+            doDelete(schemaOwner, testTable, true);
         } catch (Exception t) {
             log.error("unexpected", t);
             Assert.fail("unexpected: " + t.getMessage());
@@ -565,6 +570,9 @@ public class PermissionsTest extends AbstractTablesTest {
         try {
             clearSchemaPerms();
             
+            String testTable = testSchemaName + ".testGroupAccessQueryTablesTable";
+            doCreateTable(schemaOwner, testTable);
+            
             GroupURI readGroup = new GroupURI(VALID_TEST_GROUP);
             TapPermissions tp = new TapPermissions(null, false, readGroup, null);
             this.setPerms(this.schemaOwner, testSchemaName, tp, 200);
@@ -575,6 +583,8 @@ public class PermissionsTest extends AbstractTablesTest {
             
             assertAuthtest1ReadResults(doc);
 
+            // cleanup on success
+            doDelete(schemaOwner, testTable, true);
         } catch (Exception t) {
             log.error("unexpected", t);
             Assert.fail("unexpected: " + t.getMessage());
@@ -606,13 +616,18 @@ public class PermissionsTest extends AbstractTablesTest {
         try {
             clearSchemaPerms();
             
-            String query = "select t.schema_name from tap_schema.tables t " +
-                "join tap_schema.columns c on t.table_name=c.table_name";
+            String testTable = testSchemaName + ".testOwnerQueryColumnsTable";
+            doCreateTable(schemaOwner, testTable);
+            
+            String query = "select t.schema_name from tap_schema.tables t" 
+                    + " join tap_schema.columns c on t.table_name=c.table_name";
             
             VOTableDocument doc = doQueryWithResults(schemaOwner, certQueryURL, query);
             
             assertAuthtest1ReadResults(doc);
 
+            // cleanup on success
+            doDelete(schemaOwner, testTable, true);
         } catch (Exception t) {
             log.error("unexpected", t);
             Assert.fail("unexpected: " + t.getMessage());
@@ -629,6 +644,9 @@ public class PermissionsTest extends AbstractTablesTest {
             TapPermissions tp = new TapPermissions(null, false, readGroup, null);
             this.setPerms(this.schemaOwner, testSchemaName, tp, 200);
             
+            String testTable = testSchemaName + ".testGroupQueryColumnsTable";
+            doCreateTable(schemaOwner, testTable);
+            
             String query = "select t.schema_name from tap_schema.tables t " +
                 "join tap_schema.columns c on t.table_name=c.table_name";
             
@@ -636,6 +654,8 @@ public class PermissionsTest extends AbstractTablesTest {
             
             assertAuthtest1ReadResults(doc);
 
+            // cleanup on success
+            doDelete(schemaOwner, testTable, true);
         } catch (Exception t) {
             log.error("unexpected", t);
             Assert.fail("unexpected: " + t.getMessage());

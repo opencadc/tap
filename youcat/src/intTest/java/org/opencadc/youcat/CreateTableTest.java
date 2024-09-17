@@ -184,7 +184,7 @@ public class CreateTableTest extends AbstractTablesTest {
             Assert.assertFalse("no result rows", iter.hasNext());
             
             // cleanup on success
-            //doDelete(schemaOwner, testTable, false);
+            doDelete(schemaOwner, testTable, false);
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -267,9 +267,8 @@ public class CreateTableTest extends AbstractTablesTest {
             Iterator<List<Object>> iter = tdata.iterator();
             Assert.assertFalse("no result rows", iter.hasNext());
             
-            
-            //doDelete(schemaOwner, testTable, false);
-            
+            // cleanup on success
+            doDelete(schemaOwner, testTable, false);
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);

@@ -184,15 +184,27 @@ public class TableUpdateTest extends AbstractTablesTest {
             TapPermissions tp = new TapPermissions(null, true, null, null);
             super.setPerms(schemaOwner, testSchemaName, tp, 200);
 
-            // pre-cleanup, create test table and schema
-            String testTable = testSchemaName + ".test_ingest_table";
+            final String testTable = testSchemaName + ".test_ingest_table";
+            
+            // delete the table from the database: 
+            // !apiCreated so cleanup in doCreateTable is not complete
+            try {
+                String drop = "DROP TABLE " + testTable;
+                JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+                jdbc.execute(drop);
+                log.info("successfully dropped: " + testTable);
+            } catch (Exception ignore) {
+                log.debug("ingest-table cleanup-before-test failed for " + testTable);
+            }
+            
+            // create test table and schema
             final TableDesc orig = doCreateTable(schemaOwner, testTable);
 
-            // delete the schema from tap_schema
+            // delete the table from tap_schema so we can ingest it
             try {
                 tapSchemaDAO.delete(testTable);
             } catch (Exception ignore) {
-                log.debug("tap_schema-cleanup-before-test failed for " + testTable);
+                log.debug("tap_schema cleanup-before-test failed for " + testTable);
             }
 
             // run the ingest
@@ -209,12 +221,19 @@ public class TableUpdateTest extends AbstractTablesTest {
                 log.info("found: " + cd.getColumnName() + " " + cd.getDatatype());
             }
             
-            // enable cleanup
-            td.apiCreated = true;
-            tapSchemaDAO.put(td);
-
             // cleanup on success
-            //doDelete(schemaOwner, testTable, false);
+            doDelete(schemaOwner, testTable, false);
+            
+            // delete the table from the database: 
+            // !apiCreated so cleanup in doCreateTable is not complete
+            try {
+                String drop = "DROP TABLE " + testTable;
+                JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+                jdbc.execute(drop);
+                log.info("successfully dropped: " + testTable);
+            } catch (Exception ignore) {
+                log.debug("ingest-table cleanup-before-test failed for " + testTable);
+            }
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -237,6 +256,12 @@ public class TableUpdateTest extends AbstractTablesTest {
             String testTable = testSchemaName + ".test_unsupported_datatype";
             String unsupportedDataType = "money";
             JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+            final String drop = String.format("DROP TABLE %s", testTable);
+            try {
+                jdbc.execute(drop);
+            } catch (Exception ignore) {
+                log.info("ignore: " + ignore);
+            }
             String sql = String.format("CREATE TABLE %s (c1 varchar(16), i1 integer, m1 %s)",
                     testTable, unsupportedDataType);
             log.debug("sql:\n" + sql);
@@ -252,9 +277,16 @@ public class TableUpdateTest extends AbstractTablesTest {
             } catch (UnsupportedOperationException expected) {
                 log.info("expected exception: " + expected);
             }
+            
+            TableDesc td = tapSchemaDAO.getTable(testTable);
+            Assert.assertNull(td);
 
-            // cleanup on success
-            doDelete(schemaOwner, testTable, true);
+            try {
+                jdbc.execute(drop);
+            } catch (Exception ignore) {
+                log.info("ignore: " + ignore);
+            }
+            
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
