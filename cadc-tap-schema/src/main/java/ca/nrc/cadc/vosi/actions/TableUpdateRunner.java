@@ -97,14 +97,12 @@ import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
 /**
- * TableUpdateRunner can be used for UWS async and sync jobs that modify a table.
+ * TableUpdateRunner can be used for UWS async jobs that modify a table.
  * Supported table modifications: 
  * <ul>
- * <li> async or sync: create (unique) index on  a single column </li>
+ * <li> create (unique) index on  a single column </li>
+ * <li> ingest and existing database table into the tap_schema</li>
  * </ul>
- * 
- * TODO: sync append rows from input stream, async append rows from URI
- * 
  * @author pdowler
  */
 public class TableUpdateRunner implements JobRunner {
@@ -360,7 +358,49 @@ public class TableUpdateRunner implements JobRunner {
 
         // add the table to the tap_schema
         TableIngester tableIngester = new TableIngester(ds);
-        tableIngester.ingest(schemaName, tableName);
+        DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
+        try {
+            tm.startTransaction();
+            
+            tableIngester.ingest(schemaName, tableName);
+            
+            tm.commitTransaction();
+        } catch (Exception ex) {
+            boolean dbg = false;
+            if (ex instanceof IllegalArgumentException || ex instanceof UnsupportedOperationException) {
+                dbg = true;
+            }
+            try {
+                if (dbg) {
+                    log.debug("ingest table and update tap_schema failed - rollback", ex);
+                } else {
+                    log.error("ingest table and update tap_schema failed - rollback", ex);
+                }
+                tm.rollbackTransaction();
+                if (dbg) {
+                    log.debug("ingest table and update tap_schema failed - rollback: OK");
+                } else {
+                    log.error("ingest table and update tap_schema failed - rollback: OK");
+                }
+            } catch (Exception oops) {
+                log.error("ingest table and update tap_schema - rollback : FAIL", oops);
+            }
+            if (ex instanceof IllegalArgumentException) {
+                throw ex;
+            }
+            throw new RuntimeException("failed to ingest table " + tableName + " reason: " + ex.getMessage(), ex);
+        } finally {
+            if (tm.isOpen()) {
+                log.error("BUG: open transaction in finally - trying to rollback");
+                try {
+                    tm.rollbackTransaction();
+                    log.error("BUG: rollback in finally: OK");
+                } catch (Exception oops) {
+                    log.error("BUG: rollback in finally: FAIL", oops);
+                }
+                throw new RuntimeException("BUG: open transaction in finally");
+            }
+        }
     }
 
     private String getSingleValue(String pname, Map<String, List<String>> params) {
