@@ -93,7 +93,6 @@ import org.apache.log4j.Logger;
  * Utility to read a table description from the database and generate a TableDesc 
  * that could be used to validate or add to the tap_schema.
  * 
- * @see TableUpdateRunner.ingestTable
  * @author pdowler
  */
 public class TableIngester {

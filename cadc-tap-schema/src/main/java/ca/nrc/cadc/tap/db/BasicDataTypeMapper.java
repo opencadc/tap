@@ -224,10 +224,11 @@ public class BasicDataTypeMapper implements DatabaseDataType {
     }
 
     /**
-     * Maps standard database datatypes to a TapDatatype. Database specific datatypes can by mapped in a sub class database specific mapper.
+     * Maps standard database datatypes to a TapDatatype. Database specific datatypes 
+     * can by mapped in a sub class database specific mapper.
      *
      * @param datatype database datatype
-     * @paeram length length of the column, posisbly null
+     * @param length length of the column, possibly null
      * @return TapDatatype
      */
     @Override
