@@ -73,7 +73,7 @@ import ca.nrc.cadc.auth.RunnableAction;
 import ca.nrc.cadc.auth.SSLUtil;
 import ca.nrc.cadc.net.FileContent;
 import ca.nrc.cadc.net.HttpDelete;
-import ca.nrc.cadc.net.HttpDownload;
+import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.net.HttpPost;
 import ca.nrc.cadc.net.HttpUpload;
 import ca.nrc.cadc.net.OutputStreamWrapper;
@@ -190,7 +190,7 @@ abstract class AbstractTablesTest {
         }
 
         URL getTableURL = new URL(certTablesURL.toExternalForm() + "/" + testTable);
-        HttpDownload check = new HttpDownload(getTableURL, new ByteArrayOutputStream());
+        HttpGet check = new HttpGet(getTableURL, new ByteArrayOutputStream());
         Subject.doAs(subject, new RunnableAction(check));
         Assert.assertEquals("table deleted", 404, check.getResponseCode());
     }
@@ -256,6 +256,7 @@ abstract class AbstractTablesTest {
         params.put("table", tableName);
         params.put("unique", Boolean.toString(unique));
         HttpPost post = new HttpPost(certUpdateURL, params, false);
+        post.setMaxRetries(0); // testing read-only and offline mode
         Subject.doAs(subject, new RunnableAction(post));
         Assert.assertNull("throwable", post.getThrowable());
         Assert.assertEquals("response code", 303, post.getResponseCode());
@@ -263,7 +264,7 @@ abstract class AbstractTablesTest {
         Assert.assertNotNull("jobURL", jobURL);
         log.info("create index job: " + jobURL);
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        HttpDownload get = new HttpDownload(jobURL, bos);
+        HttpGet get = new HttpGet(jobURL, bos);
         Subject.doAs(subject, new RunnableAction(get));
         Assert.assertNull("throwable", get.getThrowable());
         Assert.assertEquals("response code", 200, get.getResponseCode());
@@ -281,7 +282,7 @@ abstract class AbstractTablesTest {
         // wait for completion
         bos.reset();
         final URL blockURL = new URL(jobURL.toExternalForm() + "?WAIT=60");
-        HttpDownload block = new HttpDownload(blockURL, bos);
+        HttpGet block = new HttpGet(blockURL, bos);
         Subject.doAs(subject, new RunnableAction(block));
         Assert.assertNull("throwable", block.getThrowable());
         Assert.assertEquals("response code", 200, block.getResponseCode());
@@ -321,11 +322,12 @@ abstract class AbstractTablesTest {
             perms.append("rw-group=\n");
         }
         
-        log.info("Setting perms: " + perms);
+        log.info("Setting perms:\n" + perms);
         
         FileContent content = new FileContent(perms.toString(), "text/plain", Charset.forName("utf-8"));
         URL schemaURL = new URL(permsURL.toString() + "/" + name);
         HttpPost post = new HttpPost(schemaURL, content, false);
+        post.setMaxRetries(0); // testing read-only and offline mode
         Subject.doAs(subject, new RunnableAction(post));
         Assert.assertEquals(expectedCode, post.getResponseCode());
         
