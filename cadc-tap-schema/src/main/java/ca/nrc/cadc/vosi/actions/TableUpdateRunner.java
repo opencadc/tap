@@ -73,6 +73,8 @@ import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.log.WebServiceLogInfo;
 import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.rest.SyncOutput;
 import ca.nrc.cadc.tap.PluginFactory;
 import ca.nrc.cadc.tap.db.TableCreator;
@@ -96,7 +98,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import javax.naming.NamingException;
-import javax.security.auth.Subject;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
@@ -129,10 +130,25 @@ public class TableUpdateRunner implements JobRunner {
 
     private JobUpdater jobUpdater;
     private WebServiceLogInfo logInfo;
-
+    private boolean readable = true;
+    private boolean writable = true;
     protected Job job;
     
     public TableUpdateRunner() {
+    }
+
+    @Override
+    public void setAppName(String appName) {
+        String key = appName + RestAction.STATE_MODE_KEY;
+        String val = System.getProperty(key);
+        log.debug("initState: " + key + "=" + val);
+        if (RestAction.STATE_OFFLINE.equals(val)) {
+            this.readable = false;
+            this.writable = false;
+        } else if (RestAction.STATE_READ_ONLY.equals(val)) {
+            this.writable = false;
+        }
+        log.warn("setAppName: " + appName + " " + key + "=" + val + " -> " + readable + "," + writable);
     }
 
     @Override
@@ -175,7 +191,15 @@ public class TableUpdateRunner implements JobRunner {
                     return;
                 }
                 log.debug(job.getID() + ": QUEUED -> EXECUTING [OK]");
-
+                
+                // check service state
+                if (!writable) {
+                    if (readable) {
+                        throw new TransientException(RestAction.STATE_READ_ONLY_MSG, 180);
+                    }
+                    throw new TransientException(RestAction.STATE_OFFLINE_MSG, 180);
+                }
+                
                 // check for the requested operation
                 ParamExtractor pe = new ParamExtractor(PARAM_NAMES);
                 Map<String, List<String>> params = pe.getParameters(job.getParameterList());
@@ -194,15 +218,15 @@ public class TableUpdateRunner implements JobRunner {
 
                 ep = jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING, ExecutionPhase.COMPLETED, new Date());
                 logInfo.setSuccess(true);
-            } catch (AccessControlException ex) {
+            } catch (AccessControlException | IllegalArgumentException | ResourceNotFoundException ex) {
                 logInfo.setMessage(ex.getMessage());
                 logInfo.setSuccess(true);
                 ErrorSummary es = new ErrorSummary(ex.getMessage(), ErrorType.FATAL);
                 jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING, ExecutionPhase.ERROR, es, new Date());
-            } catch (IllegalArgumentException ex) {
+            } catch (TransientException ex) {
                 logInfo.setMessage(ex.getMessage());
                 logInfo.setSuccess(true);
-                ErrorSummary es = new ErrorSummary(ex.getMessage(), ErrorType.FATAL);
+                ErrorSummary es = new ErrorSummary(ex.getMessage(), ErrorType.TRANSIENT);
                 jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING, ExecutionPhase.ERROR, es, new Date());
             } catch (RuntimeException ex) {
                 logInfo.setMessage(ex.getMessage());
@@ -219,8 +243,6 @@ public class TableUpdateRunner implements JobRunner {
             } catch (Exception ex) {
                 log.error("failed to set job to error state", ex);
             }
-        } finally {
-
         }
     }
 
@@ -328,8 +350,11 @@ public class TableUpdateRunner implements JobRunner {
      * Add the metadata for an existing table to the tap_schema.
      *
      * @param params list of request query parameters.
+     * @throws IllegalArgumentException if the ingested table is invalid
+     * @throws ResourceNotFoundException if the target table is not found
      */
-    protected void ingestTable(Map<String, List<String>> params) {
+    protected void ingestTable(Map<String, List<String>> params) 
+            throws IllegalArgumentException, ResourceNotFoundException {
         boolean ingest = "true".equals(getSingleValue("ingest", params));
         if (!ingest) {
             throw new IllegalStateException("'ingest' parameter specified but value is 'false', ingest cancelled");
@@ -389,28 +414,23 @@ public class TableUpdateRunner implements JobRunner {
             log.debug(String.format("added table '%s' to tap_schema", tableName));
 
             tm.commitTransaction();
-        } catch (Exception ex) {
-            boolean dbg = false;
-            if (ex instanceof IllegalArgumentException || ex instanceof UnsupportedOperationException) {
-                dbg = true;
-            }
+        } catch (IllegalArgumentException | ResourceNotFoundException | UnsupportedOperationException ex) {
             try {
-                if (dbg) {
-                    log.debug("ingest table and update tap_schema failed - rollback", ex);
-                } else {
-                    log.error("ingest table and update tap_schema failed - rollback", ex);
-                }
+                log.debug("ingest table and update tap_schema failed - rollback", ex);
                 tm.rollbackTransaction();
-                if (dbg) {
-                    log.debug("ingest table and update tap_schema failed - rollback: OK");
-                } else {
-                    log.error("ingest table and update tap_schema failed - rollback: OK");
-                }
+                log.debug("ingest table and update tap_schema failed - rollback OK");
+            } catch (Exception oops) {
+                log.error("ingest table and update tap_schema failed - rollback: FAIL", ex);
+            }
+            throw ex;
+        } catch (Exception ex) {
+            
+            try {
+                log.error("ingest table and update tap_schema failed - rollback", ex);
+                tm.rollbackTransaction();
+                log.error("ingest table and update tap_schema failed - rollback: OK");
             } catch (Exception oops) {
                 log.error("ingest table and update tap_schema - rollback : FAIL", oops);
-            }
-            if (ex instanceof IllegalArgumentException) {
-                throw ex;
             }
             throw new RuntimeException("failed to ingest table " + tableName + " reason: " + ex.getMessage(), ex);
         } finally {

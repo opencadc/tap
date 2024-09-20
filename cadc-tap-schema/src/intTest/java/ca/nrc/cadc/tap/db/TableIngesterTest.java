@@ -69,11 +69,10 @@
 
 package ca.nrc.cadc.tap.db;
 
+import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
-import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
-import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import ca.nrc.cadc.util.Log4jInit;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -95,6 +94,22 @@ public class TableIngesterTest extends TestUtil {
 
     public TableIngesterTest() {
         super();
+    }
+
+    @Test
+    public void testNotFound() {
+        String testTable = testSchemaName + ".no_such_table";
+        try {
+            // ingest table into the tap_schema
+            TableIngester tableIngester = new TableIngester(dataSource);
+            TableDesc actual = tableIngester.getTableDesc(testSchemaName, testTable);
+            Assert.fail("expected Exception, got: " + actual);
+        } catch (ResourceNotFoundException expected) {
+            log.info("caught expected: " + expected);
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
     }
 
     @Test

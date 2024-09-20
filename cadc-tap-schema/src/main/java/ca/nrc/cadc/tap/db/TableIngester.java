@@ -71,6 +71,7 @@ package ca.nrc.cadc.tap.db;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
+import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.tap.PluginFactory;
 import ca.nrc.cadc.tap.schema.ADQLIdentifierException;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
@@ -111,7 +112,15 @@ public class TableIngester {
         log.debug("loaded: " + databaseDataType.getClass().getName());
     }
 
-    public TableDesc getTableDesc(String schemaName, String tableName) {
+    /**
+     * Read the table description of a table in the database.
+     * @param schemaName
+     * @param tableName
+     * @return the TableDesc with default permissions
+     * @throws ResourceNotFoundException if the table does not exist
+     */
+    public TableDesc getTableDesc(String schemaName, String tableName) 
+            throws ResourceNotFoundException {
         // create the table description
         TableDesc ingestTable;
         try {
@@ -130,11 +139,17 @@ public class TableIngester {
     }
 
     private TableDesc createTableDesc(String schemaName, String tableName)
-            throws SQLException {
+            throws SQLException, ResourceNotFoundException {
         log.debug(String.format("creating TableDesc for %s %s", schemaName, tableName));
         // get the table metadata
         String unqualifiedTableName = getUnqualifiedTableNameFromTable(tableName);
         DatabaseMetaData databaseMetaData = dataSource.getConnection().getMetaData();
+        ResultSet rs = databaseMetaData.getTables(null, schemaName, unqualifiedTableName, null);
+        if (rs != null && !rs.next()) {
+            log.debug("table does not exist: " + tableName);
+            throw new ResourceNotFoundException("database table not found: " + tableName);
+        }
+                
         log.debug(String.format("querying DatabaseMetadata for schema=%s table=%s", schemaName, unqualifiedTableName));
         //TODO too pg specific? table names are stored lower case in the system tables queried for the metadata
         ResultSet indexInfo = databaseMetaData.getIndexInfo(null, schemaName, unqualifiedTableName.toLowerCase(), false, false);
