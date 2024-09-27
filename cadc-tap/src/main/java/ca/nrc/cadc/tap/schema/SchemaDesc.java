@@ -99,6 +99,10 @@ public class SchemaDesc {
         return schemaName;
     }
 
+    public void setSchemaName(String schemaName) {
+        this.schemaName = schemaName;
+    }
+
     public List<TableDesc> getTableDescs() {
         return tableDescs;
     }

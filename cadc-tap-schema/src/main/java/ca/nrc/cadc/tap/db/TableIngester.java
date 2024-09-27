@@ -101,13 +101,10 @@ public class TableIngester {
 
     private final DataSource dataSource;
     private final DatabaseDataType databaseDataType;
-    private final TapSchemaDAO tapSchemaDAO;
 
     public TableIngester(DataSource dataSource) {
         this.dataSource = dataSource;
         PluginFactory pluginFactory = new PluginFactory();
-        this.tapSchemaDAO = pluginFactory.getTapSchemaDAO();
-        this.tapSchemaDAO.setDataSource(dataSource);
         this.databaseDataType = pluginFactory.getDatabaseDataType();
         log.debug("loaded: " + databaseDataType.getClass().getName());
     }
@@ -140,11 +137,11 @@ public class TableIngester {
 
     private TableDesc createTableDesc(String schemaName, String tableName)
             throws SQLException, ResourceNotFoundException {
-        log.debug(String.format("creating TableDesc for %s %s", schemaName, tableName));
         // get the table metadata
         String unqualifiedTableName = getUnqualifiedTableNameFromTable(tableName);
+        log.debug(String.format("creating TableDesc for %s %s aka %s", schemaName, unqualifiedTableName, tableName));
         DatabaseMetaData databaseMetaData = dataSource.getConnection().getMetaData();
-        ResultSet rs = databaseMetaData.getTables(null, schemaName, unqualifiedTableName, null);
+        ResultSet rs = databaseMetaData.getTables(null, schemaName.toLowerCase(), unqualifiedTableName.toLowerCase(), null);
         if (rs != null && !rs.next()) {
             log.debug("table does not exist: " + tableName);
             throw new ResourceNotFoundException("database table not found: " + tableName);
@@ -152,7 +149,7 @@ public class TableIngester {
                 
         log.debug(String.format("querying DatabaseMetadata for schema=%s table=%s", schemaName, unqualifiedTableName));
         //TODO too pg specific? table names are stored lower case in the system tables queried for the metadata
-        ResultSet indexInfo = databaseMetaData.getIndexInfo(null, schemaName, unqualifiedTableName.toLowerCase(), false, false);
+        ResultSet indexInfo = databaseMetaData.getIndexInfo(null, schemaName.toLowerCase(), unqualifiedTableName.toLowerCase(), false, false);
         // get column names for indexed columns
         List<String> indexedColumns = new ArrayList<String>();
         while (indexInfo.next()) {
@@ -166,7 +163,7 @@ public class TableIngester {
         tableDesc.tableType = TableDesc.TableType.TABLE;
         log.debug(String.format("creating TableDesc %s %s", schemaName, tableName));
         //TODO too pg specific? table names are stored lower case in the system tables queried for the metadata
-        ResultSet columnInfo = databaseMetaData.getColumns(null, schemaName, unqualifiedTableName.toLowerCase(), null);
+        ResultSet columnInfo = databaseMetaData.getColumns(null, schemaName.toLowerCase(), unqualifiedTableName.toLowerCase(), null);
         while (columnInfo.next()) {
             String columnName = columnInfo.getString("COLUMN_NAME");
             String columnType = columnInfo.getString("TYPE_NAME");

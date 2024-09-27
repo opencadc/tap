@@ -83,7 +83,6 @@ import java.util.HashSet;
 import java.util.Set;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
-import javax.sql.DataSource;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -143,18 +142,43 @@ public class TapSchemaDAOTest extends TestUtil {
             for (SchemaDesc sd : ts.getSchemaDescs()) {
                 if (sd.getSchemaName().equalsIgnoreCase("tap_schema")) {
                     foundTS = true;
-                    TableDesc ts_schemas = sd.getTable("tap_schema.schemas");
-                    Assert.assertNotNull("found tap_schema.schemas", ts_schemas);
+                    TableDesc td1 = sd.getTable("tap_schema.schemas");
+                    Assert.assertNotNull("found tap_schema.schemas", td1);
 
-                    TableDesc ts_tables = sd.getTable("tap_schema.tables");
-                    Assert.assertNotNull("found tap_schema.tables", ts_tables);
+                    TableDesc td2 = sd.getTable("tap_schema.tables");
+                    Assert.assertNotNull("found tap_schema.tables", td2);
 
-                    TableDesc ts_columns = sd.getTable("tap_schema.columns");
-                    Assert.assertNotNull("found tap_schema.columns", ts_columns);
+                    TableDesc td3 = sd.getTable("tap_schema.columns");
+                    Assert.assertNotNull("found tap_schema.columns", td3);
                 }
             }
 
             Assert.assertTrue("found tap_schema", foundTS);
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+    
+    @Test
+    public void testGetSchema() {
+        try {
+            TapSchemaDAO dao = new TapSchemaDAO();
+            dao.setDataSource(dataSource);
+            SchemaDesc sd = dao.getSchema("tap_schema", 0);
+            Assert.assertNotNull(sd);
+            log.info("found: " + sd);
+            Assert.assertTrue(sd.getTableDescs().isEmpty());
+            
+            sd = dao.getSchema("tap_schema", 1);
+            Assert.assertNotNull(sd);
+            Assert.assertFalse(sd.getTableDescs().isEmpty());
+            for (TableDesc td : sd.getTableDescs()) {
+                log.info("found: " + td);
+                Assert.assertTrue(td.getColumnDescs().isEmpty());
+            }
+            
+            // TODO: depth==2
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -389,7 +413,7 @@ public class TapSchemaDAOTest extends TestUtil {
             TapSchemaDAO dao = new TapSchemaDAO();
             dao.setDataSource(dataSource);
             
-            SchemaDesc sd = dao.getSchema("intTest", true);
+            SchemaDesc sd = dao.getSchema("intTest", 0);
             if (sd == null) {
                 sd = new SchemaDesc("intTest");
                 dao.put(sd);

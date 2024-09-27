@@ -148,7 +148,7 @@ public class TableUpdateRunner implements JobRunner {
         } else if (RestAction.STATE_READ_ONLY.equals(val)) {
             this.writable = false;
         }
-        log.warn("setAppName: " + appName + " " + key + "=" + val + " -> " + readable + "," + writable);
+        log.debug("setAppName: " + appName + " " + key + "=" + val + " -> " + readable + "," + writable);
     }
 
     @Override

@@ -63,33 +63,34 @@
 *                                       <http://www.gnu.org/licenses/>.
 *
 ************************************************************************
- */
+*/
 
 package ca.nrc.cadc.vosi.actions;
 
 import ca.nrc.cadc.net.ResourceNotFoundException;
-import ca.nrc.cadc.rest.RestAction;
+import ca.nrc.cadc.rest.InlineContentHandler;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import ca.nrc.cadc.tap.schema.TapSchemaLoader;
-import ca.nrc.cadc.vosi.TableSetWriter;
-import ca.nrc.cadc.vosi.TableWriter;
-import java.io.OutputStreamWriter;
-import java.security.AccessControlException;
-import javax.servlet.http.HttpServletResponse;
+import java.util.Set;
+import java.util.TreeSet;
+import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
 /**
- *
+ * Update schema or table metadata.
  * @author pdowler
  */
-public class GetAction extends TablesAction {
+public class PostAction extends TablesAction {
+    private static final Logger log = Logger.getLogger(PostAction.class);
 
-    private static final Logger log = Logger.getLogger(GetAction.class);
+    public PostAction() { 
+    }
 
-    public GetAction() {
+    @Override
+    protected InlineContentHandler getInlineContentHandler() {
+        return new TablesInputHandler(INPUT_TAG);
     }
 
     @Override
@@ -101,65 +102,93 @@ public class GetAction extends TablesAction {
             schemaName = target[0];
             tableName = target[1];
         }
-        log.debug("GET: " + schemaName + " " + tableName);
+        log.debug("target: " + schemaName + " " + tableName);
         
-        checkReadable();
-
-        final String detail = syncInput.getParameter("detail");
-        int depth = TapSchemaDAO.MIN_DEPTH;
-        // TODO: default depth used to be configurable... worth it?
-        if (tableName == null && schemaName == null) {
-            depth = TapSchemaDAO.TAB_DEPTH; // VOSI-tables-1.1 tableset
-            if ("min".equalsIgnoreCase(detail)) {
-                depth = TapSchemaDAO.TAB_DEPTH;
-            } else if ("max".equalsIgnoreCase(detail)) {
-                depth = TapSchemaDAO.MAX_DEPTH;
-            } else if (detail != null) {
-                throw new IllegalArgumentException("invalid parameter value detail=" + detail);
-            }
-        } else if (schemaName != null) {
-            if ("tab".equalsIgnoreCase(detail)) {
-                depth = TapSchemaDAO.TAB_DEPTH; // list tables
-            }
+        checkWritable();
+        
+        if (schemaName == null && tableName == null) {
+            throw new IllegalArgumentException("missing schema|table name in path");
         }
-
-        TapSchemaDAO dao = getTapSchemaDAO();
+        
+        TapSchemaDAO ts = getTapSchemaDAO();
         if (tableName != null) {
-            checkTableReadPermissions(dao, tableName, logInfo);
-            TableDesc td = dao.getTable(tableName);
-            if (td == null) {
-                // currently, permission check already threw this
-                throw new ResourceNotFoundException("table not found: " + tableName);
-            }
-            TableWriter tw = new TableWriter();
-            syncOutput.setCode(HttpServletResponse.SC_OK);
-            syncOutput.setHeader("Content-Type", "text/xml");
-            tw.write(td, new OutputStreamWriter(syncOutput.getOutputStream()));
-        } else if (schemaName != null) {
-            checkViewSchemaPermissions(dao, schemaName, logInfo);
-            // TODO: TapSchemaDAO only supports schema only, ok for detail=min
-            // should at least list tables for default detail
-            // should provide columns at detail=max
-            SchemaDesc sd = dao.getSchema(schemaName, depth);
-            if (sd == null) {
-                // currently, permission check already threw this
-                throw new ResourceNotFoundException("schema not found: " + schemaName);
-            }
-            TapSchema tapSchema = new TapSchema();
-            tapSchema.getSchemaDescs().add(sd);
-            
-            TableSetWriter tsw = new TableSetWriter();
-            syncOutput.setCode(HttpServletResponse.SC_OK);
-            syncOutput.setHeader("Content-Type", "text/xml");
-            tsw.write(tapSchema, new OutputStreamWriter(syncOutput.getOutputStream()));
+            TablesAction.checkTableWritePermissions(ts, tableName, logInfo);
+            updateTable(ts, schemaName, tableName);
         } else {
-            TapSchemaLoader loader = new TapSchemaLoader(dao);
-            TapSchema tapSchema = loader.load(depth);
-            
-            TableSetWriter tsw = new TableSetWriter();
-            syncOutput.setCode(HttpServletResponse.SC_OK);
-            syncOutput.setHeader("Content-Type", "text/xml");
-            tsw.write(tapSchema, new OutputStreamWriter(syncOutput.getOutputStream()));
+            TablesAction.checkSchemaWritePermissions(ts, schemaName, logInfo);
+            updateSchema(ts, schemaName);
         }
+        
+        syncOutput.setCode(204); // no content on success
+    }
+    
+    private void updateTable(TapSchemaDAO dao, String schemaName, String tableName) 
+            throws ResourceNotFoundException {
+        TableDesc inputTable = getInputTable(schemaName, tableName);
+        if (inputTable == null) {
+            throw new IllegalArgumentException("no input table");
+        }
+        
+        TableDesc cur = dao.getTable(tableName);
+        if (cur == null) {
+            throw new ResourceNotFoundException("not found: table " + tableName);
+        }
+        
+        // detect mismatched column list
+        Set<String> curCols = new TreeSet<>();
+        for (ColumnDesc cd : cur.getColumnDescs()) {
+            log.debug("update: cur = " + cd.getColumnName());
+            curCols.add(cd.getColumnName());
+        }
+        Set<String> tdCols = new TreeSet<>();
+        for (ColumnDesc cd : inputTable.getColumnDescs()) {
+            log.debug("update: td = " + cd.getColumnName());
+            tdCols.add(cd.getColumnName());
+        }
+        log.debug("update: " + curCols.size() + " vs " + tdCols.size());
+        if (curCols.size() != tdCols.size() || !curCols.containsAll(tdCols) || !tdCols.containsAll(curCols)) {
+            throw new UnsupportedOperationException("cannot add/remove/rename columns");
+        }
+
+        // merge allowed changes
+        int numCols = 0;
+        cur.description = inputTable.description;
+        cur.utype = inputTable.utype;
+        for (ColumnDesc cd : cur.getColumnDescs()) {
+            ColumnDesc inputCD = inputTable.getColumn(cd.getColumnName());
+            // above column match check should catch this, but just in case:
+            if (inputCD == null) {
+                throw new IllegalArgumentException("column missing from input table: " + cd.getColumnName());
+            }
+            if (!cd.getDatatype().equals(inputCD.getDatatype())) {
+                throw new UnsupportedOperationException("cannot change " + cd.getColumnName() + " from "
+                        + cd.getDatatype() + " -> " + inputCD.getDatatype());
+            }
+            cd.description = inputCD.description;
+            cd.ucd = inputCD.ucd;
+            cd.unit = inputCD.unit;
+            cd.utype = inputCD.utype;
+            numCols++;
+        }
+        if (numCols != cur.getColumnDescs().size()) {
+            throw new IllegalArgumentException("column list mismatch: cannot update");
+        }
+        // update
+        dao.put(cur);
+    }
+    
+    private void updateSchema(TapSchemaDAO dao, String schemaName) 
+            throws ResourceNotFoundException {
+        SchemaDesc inputSchema = getInputSchema(schemaName);
+        
+        SchemaDesc cur = dao.getSchema(schemaName, 0);
+        if (cur == null) {
+            throw new ResourceNotFoundException("not found: schema " + schemaName);
+        }
+        // merge allowed changes
+        cur.description = inputSchema.description;
+        cur.utype = inputSchema.utype;
+        // update
+        dao.put(cur);
     }
 }

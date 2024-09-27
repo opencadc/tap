@@ -89,7 +89,7 @@ import ca.nrc.cadc.uws.ExecutionPhase;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.JobReader;
 import ca.nrc.cadc.vosi.TableWriter;
-import ca.nrc.cadc.vosi.actions.TableDescHandler;
+import ca.nrc.cadc.vosi.actions.TablesInputHandler;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -127,6 +127,7 @@ abstract class AbstractTablesTest {
     
     static String VALID_TEST_GROUP = "ivo://cadc.nrc.ca/gms?YouCat-ReadWrite";
 
+    Subject admin;
     Subject anon;
     Subject schemaOwner;
     Subject subjectWithGroups;
@@ -143,7 +144,13 @@ abstract class AbstractTablesTest {
     
     AbstractTablesTest() { 
         try {
-            File cf = FileUtil.getFileFromResource(SCHEMA_OWNER_CERT, AbstractTablesTest.class);
+            anon = AuthenticationUtil.getAnonSubject();
+            
+            File cf = FileUtil.getFileFromResource(YOUCAT_ADMIN, AbstractTablesTest.class);
+            admin = SSLUtil.createSubject(cf);
+            log.debug("created admin: " + admin);
+            
+            cf = FileUtil.getFileFromResource(SCHEMA_OWNER_CERT, AbstractTablesTest.class);
             schemaOwner = SSLUtil.createSubject(cf);
             anon = AuthenticationUtil.getAnonSubject();
             log.debug("created schemaOwner: " + schemaOwner);
@@ -236,7 +243,7 @@ abstract class AbstractTablesTest {
             }
         };
         HttpUpload put = new HttpUpload(src, tableURL);
-        put.setContentType(TableDescHandler.VOSI_TABLE_TYPE);
+        put.setContentType(TablesInputHandler.VOSI_TABLE_TYPE);
         log.info("doCreateTable: " + tableURL);
         Subject.doAs(subject, new RunnableAction(put));
         log.info("doCreateTable: " + put.getResponseCode());

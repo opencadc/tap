@@ -96,12 +96,8 @@ public class TableIngesterTest extends TestUtil {
         Log4jInit.setLevel("ca.nrc.cadc.tap.schema", Level.INFO);
     }
 
-    private final TapSchemaDAO tapSchemaDAO;
-
     public TableIngesterTest() {
         super();
-        this.tapSchemaDAO = new TapSchemaDAO();
-        this.tapSchemaDAO.setDataSource(this.dataSource);
     }
 
     @Test
@@ -115,47 +111,35 @@ public class TableIngesterTest extends TestUtil {
             } catch (Exception ignore) {
                 log.debug("database-cleanup-before-test failed for " + testTable);
             }
-            try {
-                tapSchemaDAO.delete(testTable);
-            } catch (Exception ignore) {
-                log.debug("tap_schema-cleanup-before-test failed for " + testTable);
-            }
 
             // create test table in the database
             TableDesc ingestTable = getTableDesc(testSchemaName, testTable);
             tableCreator.createTable(ingestTable);
             log.info("created database table: " + testTable);
 
-            // ingest table into the tap_schema
+            // create description from db table
             TableIngester tableIngester = new TableIngester(dataSource);
-            tableIngester.ingest(testSchemaName, testTable);
-            log.info("ingested table");
+            TableDesc actual = tableIngester.getTableDesc(testSchemaName, testTable);
+            log.info("read table: " + actual);
 
-            // compare database and tap_schema
-            SchemaDesc schemaDesc = tapSchemaDAO.getSchema(testSchemaName, true);
-            Assert.assertNotNull("schema", schemaDesc);
-
-            TableDesc tableDesc = tapSchemaDAO.getTable(testTable);
-            Assert.assertNotNull("table", tableDesc);
-
-            List<ColumnDesc> databaseColumns = ingestTable.getColumnDescs();
-            List<ColumnDesc> tapSchemaColumns = tableDesc.getColumnDescs();
-            for (ColumnDesc databaseColumn: databaseColumns) {
+            List<ColumnDesc> expectedColumns = ingestTable.getColumnDescs();
+            List<ColumnDesc> actualColumns = actual.getColumnDescs();
+            for (ColumnDesc expectedCol: expectedColumns) {
                 boolean found = false;
-                log.info("database column: " + databaseColumn.getColumnName());
-                for (ColumnDesc tapSchemaColumn : tapSchemaColumns) {
-                    log.debug("tap_schema column: " + tapSchemaColumn.getColumnName());
-                    if (databaseColumn.getColumnName().equals(tapSchemaColumn.getColumnName())) {
-                        log.info("compare: " + tapSchemaColumn.getDatatype() + " vs " + databaseColumn.getDatatype());
+                log.info("database column: " + expectedCol.getColumnName());
+                for (ColumnDesc actualCol : actualColumns) {
+                    log.debug("tap_schema column: " + actualCol.getColumnName());
+                    if (expectedCol.getColumnName().equals(actualCol.getColumnName())) {
+                        log.info("compare: " + actualCol.getDatatype() + " vs " + expectedCol.getDatatype());
                         // NOTE: TapDataType.equals() is lax when comparing fixed size and variable size so while
                         // the TableIngester DOES NOT assign column sizes to arrays it goes unnoticed here even
                         // though the test table has explicit sizes specified on input
-                        Assert.assertEquals("datatype", databaseColumn.getDatatype(), tapSchemaColumn.getDatatype());
+                        Assert.assertEquals("datatype", expectedCol.getDatatype(), actualCol.getDatatype());
                         found = true;
                         break;
                     }
                 }
-                Assert.assertTrue("tap_schema column not found: " + databaseColumn, found);
+                Assert.assertTrue("tap_schema column not found: " + expectedCol, found);
             }
 
             // cleanup
@@ -165,90 +149,7 @@ public class TableIngesterTest extends TestUtil {
             } catch (Exception ignore) {
                 log.debug("database-cleanup-after-test failed for " + testTable);
             }
-            try {
-                tapSchemaDAO.delete(testTable);
-            } catch (Exception ignore) {
-                log.debug("tap_schema-cleanup-after-test failed for " + testTable);
-            }
-        } catch (Exception unexpected) {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
-        }
-    }
-
-    @Test
-    public void testVerifyTableMetadata() {
-        String testTableName = "testVerifyTableMetadata";
-        String testTable = testSchemaName + "." + testTableName;
-
-        try {
-            // cleanup
-            TableCreator tableCreator = new TableCreator(dataSource);
-            try {
-                tableCreator.dropTable(testTable);
-            } catch (Exception ignore) {
-                log.debug("database-cleanup-before-test failed for " + testTable);
-            }
-
-            // create test table in the database
-            TableDesc ingestTable = getTableDesc(testSchemaName, testTable);
-            tableCreator.createTable(ingestTable);
-            log.debug("created database table: " + testTable);
-
-            try (Connection connection = dataSource.getConnection()) {
-                DatabaseMetaData metaData = connection.getMetaData();
-                try (ResultSet rs = metaData.getColumns(null, testSchemaName, testTableName.toLowerCase(), null)) {
-                    while (rs.next()) {
-                        String colName = rs.getString("COLUMN_NAME");
-                        String ctype = rs.getString("TYPE_NAME");
-                        //int clen = rs.getInt("COLUMN_SIZE");
-                        
-                        switch (colName) {
-                            case "e7":
-                                Assert.assertEquals("interval", "polygon", ctype);
-                                break;
-                            case "e8":
-                                Assert.assertEquals("point", "spoint", ctype);
-                                break;
-                            case "e9":
-                                Assert.assertEquals("circle", "scircle", ctype);
-                                break;
-                            case "e10":
-                                Assert.assertEquals("polygon", "spoly", ctype);
-                                break;
-                            case "a11":
-                                Assert.assertEquals("short[]", "_int2", ctype);
-                                //Assert.assertEquals(8, clen);
-                                break;
-                            case "a12":
-                                Assert.assertEquals("int[]", "_int4", ctype);
-                                //Assert.assertEquals(16, clen);
-                                break;
-                            case "a13":
-                                Assert.assertEquals("long[]", "_int8", ctype);
-                                //Assert.assertEquals(64, clen);
-                                break;
-                            case "a14":
-                                Assert.assertEquals("float[]", "_float4", ctype);
-                                break;
-                            case "a15":
-                                Assert.assertEquals("double[]", "_float8", ctype);
-                                //Assert.assertEquals(2, clen);
-                                break;
-                            default:
-                                Assert.fail("unexpected column: " + colName);
-                        }
-                    }
-                }
-            }
-
-            // cleanup
-            try {
-                tableCreator.dropTable(testTable);
-                log.debug("dropped table: " + testTable);
-            } catch (Exception ignore) {
-                log.debug("database-cleanup-after-test failed for " + testTable);
-            }
+            
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -339,7 +240,8 @@ public class TableIngesterTest extends TestUtil {
         }
     }
 
-    TableDesc getTableDesc(String schemaName, String tableName) throws Exception {
+    // create table with PG specific extended types
+    private TableDesc getTableDesc(String schemaName, String tableName) throws Exception {
         final TableDesc tableDesc = new TableDesc(schemaName, tableName);
         tableDesc.getColumnDescs().add(new ColumnDesc(tableName, "e7", TapDataType.INTERVAL));
         tableDesc.getColumnDescs().add(new ColumnDesc(tableName, "e8", TapDataType.POINT));
