@@ -70,17 +70,12 @@
 package ca.nrc.cadc.tap.db;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.tap.PluginFactory;
-import ca.nrc.cadc.tap.schema.ADQLIdentifierException;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
-import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.tap.schema.TapPermissions;
-import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import ca.nrc.cadc.tap.schema.TapSchemaUtil;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -138,18 +133,20 @@ public class TableIngester {
     private TableDesc createTableDesc(String schemaName, String tableName)
             throws SQLException, ResourceNotFoundException {
         // get the table metadata
-        String unqualifiedTableName = getUnqualifiedTableNameFromTable(tableName);
-        log.debug(String.format("creating TableDesc for %s %s aka %s", schemaName, unqualifiedTableName, tableName));
+        String s = getUnqualifiedTableNameFromTable(tableName);
+        final String internalTableName = databaseDataType.toInternalDatabaseObjectName(s);
+        final String internalSchemaName = databaseDataType.toInternalDatabaseObjectName(schemaName);
+        log.debug(String.format("creating TableDesc for %s %s aka %s", internalSchemaName, internalTableName, tableName));
         DatabaseMetaData databaseMetaData = dataSource.getConnection().getMetaData();
-        ResultSet rs = databaseMetaData.getTables(null, schemaName.toLowerCase(), unqualifiedTableName.toLowerCase(), null);
+        ResultSet rs = databaseMetaData.getTables(null, internalSchemaName, internalTableName, null);
         if (rs != null && !rs.next()) {
             log.debug("table does not exist: " + tableName);
             throw new ResourceNotFoundException("database table not found: " + tableName);
         }
                 
-        log.debug(String.format("querying DatabaseMetadata for schema=%s table=%s", schemaName, unqualifiedTableName));
+        log.debug(String.format("querying DatabaseMetadata for schema=%s table=%s", internalSchemaName, internalTableName));
         //TODO too pg specific? table names are stored lower case in the system tables queried for the metadata
-        ResultSet indexInfo = databaseMetaData.getIndexInfo(null, schemaName.toLowerCase(), unqualifiedTableName.toLowerCase(), false, false);
+        ResultSet indexInfo = databaseMetaData.getIndexInfo(null, internalSchemaName, internalTableName, false, false);
         // get column names for indexed columns
         List<String> indexedColumns = new ArrayList<String>();
         while (indexInfo.next()) {
@@ -159,21 +156,21 @@ public class TableIngester {
         }
 
         // build TableDesc
-        TableDesc tableDesc = new TableDesc(schemaName, tableName);
+        TableDesc tableDesc = new TableDesc(schemaName, tableName); // as specified by caller
         tableDesc.tableType = TableDesc.TableType.TABLE;
-        log.debug(String.format("creating TableDesc %s %s", schemaName, tableName));
+        log.debug(String.format("creating TableDesc %s %s aka %s", internalSchemaName, internalTableName, tableName));
         //TODO too pg specific? table names are stored lower case in the system tables queried for the metadata
-        ResultSet columnInfo = databaseMetaData.getColumns(null, schemaName.toLowerCase(), unqualifiedTableName.toLowerCase(), null);
+        ResultSet columnInfo = databaseMetaData.getColumns(null, internalSchemaName, internalTableName, null);
         while (columnInfo.next()) {
             String columnName = columnInfo.getString("COLUMN_NAME");
             String columnType = columnInfo.getString("TYPE_NAME");
-            TapDataType tapDataType = databaseDataType.getTapDataType(columnType, null);
+            TapDataType tapDataType = databaseDataType.toTapDataType(columnType, null);
             if (TapDataType.CHAR.getDatatype().equals(tapDataType.getDatatype()) && tapDataType.xtype == null) {
                 Integer colSize = columnInfo.getInt("COLUMN_SIZE"); // int
                 if (colSize == 1) {
                     colSize = null; // length 1 means scalar in TAP
                 }
-                tapDataType = databaseDataType.getTapDataType(columnType, colSize);
+                tapDataType = databaseDataType.toTapDataType(columnType, colSize);
             }
             log.debug(String.format("creating ColumnDesc %s %s %s", tableName, columnName, tapDataType));
             ColumnDesc columnDesc = new ColumnDesc(tableName, columnName, tapDataType);

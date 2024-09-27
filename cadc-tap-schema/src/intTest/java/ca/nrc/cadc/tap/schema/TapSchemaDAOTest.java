@@ -395,12 +395,12 @@ public class TapSchemaDAOTest extends TestUtil {
             // change column datatype
             td.getColumnDescs().clear();
             td.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.INTEGER));
-            try {
-                dao.put(td);
-                Assert.fail("change column datatype succeeded - expected IllegalArgumentException");
-            } catch (UnsupportedOperationException expected) {
-                log.info("caught expected exception: " + expected);
-            }
+            dao.put(td);
+            
+            TableDesc actual = dao.getTable(testTable);
+            Assert.assertEquals(1, actual.getColumnDescs().size());
+            ColumnDesc acd = actual.getColumn("c0");
+            Assert.assertEquals(TapDataType.INTEGER, acd.getDatatype());
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);

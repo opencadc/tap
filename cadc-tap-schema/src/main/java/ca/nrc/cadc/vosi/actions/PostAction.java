@@ -134,21 +134,7 @@ public class PostAction extends TablesAction {
             throw new ResourceNotFoundException("not found: table " + tableName);
         }
         
-        // detect mismatched column list
-        Set<String> curCols = new TreeSet<>();
-        for (ColumnDesc cd : cur.getColumnDescs()) {
-            log.debug("update: cur = " + cd.getColumnName());
-            curCols.add(cd.getColumnName());
-        }
-        Set<String> tdCols = new TreeSet<>();
-        for (ColumnDesc cd : inputTable.getColumnDescs()) {
-            log.debug("update: td = " + cd.getColumnName());
-            tdCols.add(cd.getColumnName());
-        }
-        log.debug("update: " + curCols.size() + " vs " + tdCols.size());
-        if (curCols.size() != tdCols.size() || !curCols.containsAll(tdCols) || !tdCols.containsAll(curCols)) {
-            throw new UnsupportedOperationException("cannot add/remove/rename columns");
-        }
+        TapSchemaDAO.checkMismatchedColumnSet(cur, inputTable);
 
         // merge allowed changes
         int numCols = 0;

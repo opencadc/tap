@@ -83,6 +83,8 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import javax.security.auth.Subject;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
@@ -389,6 +391,24 @@ public class TapSchemaDAO {
                 "BUG: found " + columnDescs.size() + " columns matching " + tableName + " " + columnName);
     }
 
+    public static void checkMismatchedColumnSet(TableDesc cur, TableDesc td) {
+        // detect mismatched column list
+        Set<String> curCols = new TreeSet<>();
+        for (ColumnDesc cd : cur.getColumnDescs()) {
+            log.debug("update: cur = " + cd.getColumnName());
+            curCols.add(cd.getColumnName());
+        }
+        Set<String> tdCols = new TreeSet<>();
+        for (ColumnDesc cd : td.getColumnDescs()) {
+            log.debug("update: td = " + cd.getColumnName());
+            tdCols.add(cd.getColumnName());
+        }
+        log.debug("update: " + curCols.size() + " vs " + tdCols.size());
+        if (curCols.size() != tdCols.size() || !curCols.containsAll(tdCols) || !tdCols.containsAll(curCols)) {
+            throw new UnsupportedOperationException("cannot add/remove/rename columns");
+        }
+    }
+
     public void put(SchemaDesc sd) {
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
@@ -444,7 +464,12 @@ public class TapSchemaDAO {
         try {
             TableDesc cur = getTable(td.getTableName());
             boolean update = (cur != null);
-
+            
+            if (cur != null) {
+                // add/remove/rename columns not supported
+                checkMismatchedColumnSet(cur, td);
+            }
+            
             tm.startTransaction();
             prof.checkpoint("start-transaction");
 
@@ -454,7 +479,7 @@ public class TapSchemaDAO {
             jdbc.update(pts);
             prof.checkpoint("put-table");
 
-            // add/remove columns not supported so update flag is same for the table and
+            // add/remove/rename columns not supported so update flag is same for the table and
             // column(s)
             PutColumnStatement pcs = new PutColumnStatement(update);
             for (ColumnDesc cd : td.getColumnDescs()) {

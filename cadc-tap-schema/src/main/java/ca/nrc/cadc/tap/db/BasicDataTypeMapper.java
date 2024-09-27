@@ -225,14 +225,16 @@ public class BasicDataTypeMapper implements DatabaseDataType {
 
     /**
      * Maps standard database datatypes to a TapDatatype. Database specific datatypes 
-     * can by mapped in a sub class database specific mapper.
+     * can usually map custom types by adding entries to the dataTypes and dbDataTypes
+     * maps and letting this method work it out, but they may need to override
+     * this in some niche cases.
      *
      * @param datatype database datatype
      * @param length length of the column, possibly null
      * @return TapDatatype
      */
     @Override
-    public TapDataType getTapDataType(String datatype, Integer length) {
+    public TapDataType toTapDataType(String datatype, Integer length) {
         TapDataType ret = dbDataTypes.get(datatype);
         if (length != null) {
             String as = length.toString();
@@ -247,6 +249,17 @@ public class BasicDataTypeMapper implements DatabaseDataType {
         throw new UnsupportedOperationException("Unknown database datatype: " + datatype);
     }
 
+    /**
+     * Default implementation: return the name as is.
+     * @param name of a schema|table|column
+     * @return argument name unchanged
+     */
+    @Override
+    public String toInternalDatabaseObjectName(String name) {
+        return name;
+    }
+
+    
     /**
      * Find or create a TypePair for the specified data type. The current implementation
      * looks for exact matches in the dataTypes map and, if not found, it rechecks with
