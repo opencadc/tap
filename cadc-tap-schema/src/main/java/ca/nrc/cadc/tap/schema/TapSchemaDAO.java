@@ -308,8 +308,7 @@ public class TapSchemaDAO {
      * Get table description.
      * 
      * @param tableName
-     * @param shallow
-     *            true to only the table metadata
+     * @param depth
      * @return
      */
     public TableDesc getTable(String tableName, int depth) {
