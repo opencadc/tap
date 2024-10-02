@@ -103,13 +103,8 @@ public class TapSchemaDAOTest extends TestUtil {
     }
 
     public TapSchemaDAOTest() {
-        // create a datasource and register with JNDI
+        super();
         try {
-            DBConfig conf = new DBConfig();
-            ConnectionConfig cc = conf.getConnectionConfig("TAP_SCHEMA_TEST", "cadctest");
-            dataSource = DBUtil.getDataSource(cc);
-            log.info("configured data source: " + cc.getServer() + "," + cc.getDatabase() + "," + cc.getDriver() + "," + cc.getURL());
-            
             // init creates the tap_schema tables and populates with self-describing content
             log.info("InitDatabaseTS: START");
             InitDatabaseTS init = new InitDatabaseTS(dataSource, "cadctest", "tap_schema");
