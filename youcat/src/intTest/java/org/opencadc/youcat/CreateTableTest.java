@@ -75,22 +75,32 @@ import ca.nrc.cadc.dali.tables.votable.VOTableReader;
 import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
+import ca.nrc.cadc.net.FileContent;
 import ca.nrc.cadc.net.HttpDownload;
+import ca.nrc.cadc.net.HttpGet;
+import ca.nrc.cadc.net.HttpPost;
 import ca.nrc.cadc.net.HttpUpload;
 import ca.nrc.cadc.net.InputStreamWrapper;
 import ca.nrc.cadc.net.OutputStreamWrapper;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.tap.schema.TapPermissions;
+import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.vosi.InvalidTableSetException;
 import ca.nrc.cadc.vosi.TableReader;
-import ca.nrc.cadc.vosi.actions.TableDescHandler;
+import ca.nrc.cadc.vosi.TableSetReader;
+import ca.nrc.cadc.vosi.TableSetWriter;
+import ca.nrc.cadc.vosi.TableWriter;
+import ca.nrc.cadc.vosi.actions.TablesInputHandler;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.StringWriter;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -131,6 +141,41 @@ public class CreateTableTest extends AbstractTablesTest {
         }
     }
     
+    private static class StreamSchemaReader implements InputStreamWrapper {
+        List<SchemaDesc> schemas;
+        
+        @Override
+        public void read(InputStream in) throws IOException {
+            try {
+                TableSetReader r = new TableSetReader();
+                TapSchema ts = r.read(in);
+                this.schemas = ts.getSchemaDescs();
+            } catch (InvalidTableSetException ex) {
+                throw new RuntimeException("invalid table metadata: ", ex);
+            }
+        }
+    }
+
+    private SchemaDesc doVosiSchemaCheck(Subject caller, String schemaName) throws Exception {
+        // VOSI tables check (metadata)
+        URL getTableURL = new URL(anonTablesURL.toExternalForm() + "/" + schemaName);
+        StreamSchemaReader isw = new StreamSchemaReader();
+        HttpGet get = new HttpGet(getTableURL, isw);
+        log.info("doVosiCheck: " + getTableURL);
+        Subject.doAs(caller, new RunnableAction(get));
+        log.info("doVosiCheck: " + get.getResponseCode());
+        Assert.assertNull("throwable", get.getThrowable());
+        Assert.assertEquals("response code", 200, get.getResponseCode());
+        SchemaDesc sd = null;
+        for (SchemaDesc s : isw.schemas) {
+            if (schemaName.equals(s.getSchemaName())) {
+                sd = s;
+            }
+        }
+        Assert.assertNotNull(sd);
+        return sd;
+    }
+
     private TableDesc doVosiCheck(String testTable) throws Exception {
         // VOSI tables check (metadata)
         URL getTableURL = new URL(anonTablesURL.toExternalForm() + "/" + testTable);
@@ -165,13 +210,13 @@ public class CreateTableTest extends AbstractTablesTest {
     }
     
     @Test
-    public void testCreateQueryDropVOSI() {
+    public void testCreateQueryUpdateDropVOSI() {
         try {
             clearSchemaPerms();
             TapPermissions tp = new TapPermissions(null, true, null, null);
             super.setPerms(schemaOwner, testSchemaName, tp, 200);
             
-            String testTable = testSchemaName + ".testCreateQueryDropVOSI";
+            String testTable = testSchemaName + ".testCreateQueryUpdateDropVOSI";
             final TableDesc orig = doCreateTable(schemaOwner, testTable);
             TableDesc td = doVosiCheck(testTable);
             compare(orig, td);
@@ -183,8 +228,87 @@ public class CreateTableTest extends AbstractTablesTest {
             Iterator<List<Object>> iter = tdata.iterator();
             Assert.assertFalse("no result rows", iter.hasNext());
             
+            // modify table description
+            td.description = "updated by IntTest";
+            td.utype = "namespace:MyCustomModel";
+            final URL tableURL = new URL(certTablesURL.toExternalForm() + "/" + testTable);
+            TableWriter w = new TableWriter();
+            StringWriter sw = new StringWriter();
+            w.write(td, sw);
+            String xml = sw.toString();
+            log.info("updating...\n" + xml);
+            FileContent fc = new FileContent(xml, TablesInputHandler.VOSI_TABLE_TYPE, Charset.forName("UTF-8"));
+            HttpPost update = new HttpPost(tableURL, fc, false);
+            Subject.doAs(schemaOwner, new RunnableAction(update));
+            log.info("update: " + update.getResponseCode() + " " + update.getThrowable());
+            Assert.assertEquals(204, update.getResponseCode());
+            
+            TableDesc td2 = doVosiCheck(testTable);
+            compare(td, td2);
+            
+            final ColumnDesc c0 = td.getColumnDescs().get(0);
+            
+            log.info("illegal update: change column data type");
+            c0.getDatatype().xtype = "custom:thing";
+            sw = new StringWriter();
+            w.write(td, sw);
+            xml = sw.toString();
+            log.debug("illegal update:\n" + xml);
+            fc = new FileContent(xml, TablesInputHandler.VOSI_TABLE_TYPE, Charset.forName("UTF-8"));
+            update = new HttpPost(tableURL, fc, false);
+            Subject.doAs(schemaOwner, new RunnableAction(update));
+            log.info("update: " + update.getResponseCode() + " " + update.getThrowable());
+            Assert.assertEquals(400, update.getResponseCode());
+            Assert.assertTrue(update.getThrowable().getMessage().contains("TapDataType"));
+            c0.getDatatype().xtype = null;
+                    
+            log.info("illegal update: add column");
+            ColumnDesc ecd = new ColumnDesc(td.getTableName(), "add-by-update", TapDataType.CHAR);
+            td.getColumnDescs().add(ecd);
+            sw = new StringWriter();
+            w.write(td, sw);
+            xml = sw.toString();
+            log.debug("illegal update:\n" + xml);
+            fc = new FileContent(xml, TablesInputHandler.VOSI_TABLE_TYPE, Charset.forName("UTF-8"));
+            update = new HttpPost(tableURL, fc, false);
+            Subject.doAs(schemaOwner, new RunnableAction(update));
+            log.info("update: " + update.getResponseCode() + " " + update.getThrowable());
+            Assert.assertEquals(400, update.getResponseCode());
+            Assert.assertTrue(update.getThrowable().getMessage().contains("cannot add/remove/rename"));
+            td.getColumnDescs().remove(ecd);
+            
+            log.info("legal update: remove column");
+            td.getColumnDescs().remove(c0);
+            sw = new StringWriter();
+            w.write(td, sw);
+            xml = sw.toString();
+            log.debug("illegal update:\n" + xml);
+            fc = new FileContent(xml, TablesInputHandler.VOSI_TABLE_TYPE, Charset.forName("UTF-8"));
+            update = new HttpPost(tableURL, fc, false);
+            Subject.doAs(schemaOwner, new RunnableAction(update));
+            log.info("update: " + update.getResponseCode() + " " + update.getThrowable());
+            Assert.assertEquals(400, update.getResponseCode());
+            Assert.assertTrue(update.getThrowable().getMessage().contains("cannot add/remove/rename"));
+            
+            log.info("illegal update: rename column");
+            ColumnDesc rename = new ColumnDesc(td.getTableName(), c0.getColumnName() + "-renamed", c0.getDatatype());
+            td.getColumnDescs().remove(c0);
+            td.getColumnDescs().add(0, rename);
+            sw = new StringWriter();
+            w.write(td, sw);
+            xml = sw.toString();
+            log.debug("illegal update:\n" + xml);
+            fc = new FileContent(xml, TablesInputHandler.VOSI_TABLE_TYPE, Charset.forName("UTF-8"));
+            update = new HttpPost(tableURL, fc, false);
+            Subject.doAs(schemaOwner, new RunnableAction(update));
+            log.info("update: " + update.getResponseCode() + " " + update.getThrowable());
+            Assert.assertEquals(400, update.getResponseCode());
+            Assert.assertTrue(update.getThrowable().getMessage().contains("cannot add/remove/rename"));
+            td.getColumnDescs().remove(rename);
+            td.getColumnDescs().add(0, c0);
+            
             // cleanup on success
-            //doDelete(schemaOwner, testTable, false);
+            doDelete(schemaOwner, testTable, false);
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -247,12 +371,12 @@ public class CreateTableTest extends AbstractTablesTest {
             OutputStreamWrapper src = new OutputStreamWrapper() {
                 @Override
                 public void write(OutputStream out) throws IOException {
-                    VOTableWriter w = new VOTableWriter(TableDescHandler.VOTABLE_TYPE);
+                    VOTableWriter w = new VOTableWriter(TablesInputHandler.VOTABLE_TYPE);
                     w.write(doc, out);
                 }
             };
             HttpUpload put = new HttpUpload(src, tableURL);
-            put.setContentType(TableDescHandler.VOTABLE_TYPE);
+            put.setContentType(TablesInputHandler.VOTABLE_TYPE);
             Subject.doAs(schemaOwner, new RunnableAction(put));
             Assert.assertNull("throwable", put.getThrowable());
             Assert.assertEquals("response code", 200, put.getResponseCode());
@@ -267,9 +391,71 @@ public class CreateTableTest extends AbstractTablesTest {
             Iterator<List<Object>> iter = tdata.iterator();
             Assert.assertFalse("no result rows", iter.hasNext());
             
+            // cleanup on success
+            doDelete(schemaOwner, testTable, false);
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+
+    @Test
+    public void testCreateUpdateDropSchema() {
+        String schemaName = "test_create_schema";
+        
+        // TODO: use schemaOwner subject to determine the user name here
+        final String owner = "cadcauthtest1";
+        
+        try {
+            final URL schemaURL = new URL(certTablesURL.toExternalForm() + "/" + schemaName);
             
-            //doDelete(schemaOwner, testTable, false);
+            doDelete(admin, schemaName, true);
+
+            SchemaDesc orig = new SchemaDesc(schemaName);
+            orig.description = "original description";
+            TableSetWriter w = new TableSetWriter();
+            StringWriter sw = new StringWriter();
+            TapSchema ts = new TapSchema();
+            ts.getSchemaDescs().add(orig);
+            w.write(ts, sw);
+            String xml = sw.toString();
+            log.info("update description:\n" + xml);
+            FileContent fc = new FileContent(xml, TablesInputHandler.VOSI_SCHEMA_TYPE, Charset.forName("UTF-8"));
+            HttpUpload create = new HttpUpload(fc, schemaURL);
+            create.setRequestProperty("x-schema-owner", owner);
+            Subject.doAs(admin, new RunnableAction(create));
+            log.info("update: " + create.getResponseCode() + " " + create.getThrowable());
+            Assert.assertEquals(200, create.getResponseCode());
             
+            SchemaDesc sd = doVosiSchemaCheck(schemaOwner, schemaName);
+            Assert.assertNotNull(sd);
+            Assert.assertEquals(orig.getSchemaName(), sd.getSchemaName());
+            Assert.assertEquals(orig.description, sd.description);
+            Assert.assertEquals(orig.utype, sd.utype);
+            
+            log.info("update schema description and utype");
+            sd.description = "updated description " + System.currentTimeMillis();
+            sd.utype = "custom:data-model";
+            w = new TableSetWriter();
+            sw = new StringWriter();
+            ts = new TapSchema();
+            ts.getSchemaDescs().clear();
+            ts.getSchemaDescs().add(sd);
+            w.write(ts, sw);
+            xml = sw.toString();
+            log.info("update description:\n" + xml);
+            fc = new FileContent(xml, TablesInputHandler.VOSI_SCHEMA_TYPE, Charset.forName("UTF-8"));
+            HttpPost update = new HttpPost(schemaURL, fc, false);
+            Subject.doAs(schemaOwner, new RunnableAction(update));
+            log.info("update: " + update.getResponseCode() + " " + update.getThrowable());
+            Assert.assertEquals(204, update.getResponseCode());
+            
+            SchemaDesc sd2 = doVosiSchemaCheck(schemaOwner, schemaName);
+            Assert.assertEquals(sd.description, sd2.description);
+            Assert.assertEquals(sd.utype, sd2.utype);
+            
+            // cleanup on success
+            doDelete(admin, schemaName, false);
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);

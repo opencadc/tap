@@ -62,89 +62,119 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
-*
 ************************************************************************
 */
 
-package ca.nrc.cadc.vosi;
+package ca.nrc.cadc.vosi.actions;
 
+import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.rest.InlineContentHandler;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.schema.TapSchema;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.util.List;
+import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import java.util.Set;
+import java.util.TreeSet;
+import javax.sql.DataSource;
 import org.apache.log4j.Logger;
-import org.jdom2.Document;
-import org.jdom2.Element;
-import org.jdom2.JDOMException;
-import org.jdom2.Namespace;
 
 /**
- *
+ * Update schema or table metadata.
  * @author pdowler
  */
-public class TableSetReader extends TableSetParser
-{
-    private static final Logger log = Logger.getLogger(TableSetReader.class);
+public class PostAction extends TablesAction {
+    private static final Logger log = Logger.getLogger(PostAction.class);
 
-    private static final String TAP_TYPE = "vod:TAPType";
-    private static final String VOT_TYPE = "vod:VOTableType";
-    
-    public TableSetReader() { this(true); }
-    
-    public TableSetReader(boolean enableSchemaValidation)
-    {
-        super(enableSchemaValidation);
+    public PostAction() { 
     }
-    
-    public TapSchema read(InputStream istream)
-        throws IOException, InvalidTableSetException
-    {
-        return read(new InputStreamReader(istream));
+
+    @Override
+    protected InlineContentHandler getInlineContentHandler() {
+        return new TablesInputHandler(INPUT_TAG);
     }
-    
-    public TapSchema read(Reader reader)
-        throws IOException, InvalidTableSetException
-    {
-        try
-        {
-            Document doc = parse(reader);
-            return toTapSchema(doc);
+
+    @Override
+    public void doAction() throws Exception {
+        String schemaName = null;
+        String tableName = null;
+        String[] target = getTarget();
+        if (target != null) {
+            schemaName = target[0];
+            tableName = target[1];
         }
-        catch(JDOMException ex)
-        {
-            throw new InvalidTableSetException("invalid content", ex);
+        log.debug("target: " + schemaName + " " + tableName);
+        
+        checkWritable();
+        
+        if (schemaName == null && tableName == null) {
+            throw new IllegalArgumentException("missing schema|table name in path");
         }
+        
+        TapSchemaDAO ts = getTapSchemaDAO();
+        if (tableName != null) {
+            TablesAction.checkTableWritePermissions(ts, tableName, logInfo);
+            updateTable(ts, schemaName, tableName);
+        } else {
+            TablesAction.checkSchemaWritePermissions(ts, schemaName, logInfo);
+            updateSchema(ts, schemaName);
+        }
+        
+        syncOutput.setCode(204); // no content on success
     }
     
-    private TapSchema toTapSchema(Document doc)
-    {
-        TapSchema ret = new TapSchema();
-        Element root = doc.getRootElement();
-        Namespace xsi = root.getNamespace("xsi");
-        if ("tableset".equals(root.getName())) {
-            // content is element-form unqualified
-            List<Element> sels = root.getChildren("schema");
-            for (Element se : sels)
-            {
-                String sn = se.getChildTextTrim("name");
-                SchemaDesc sd = new SchemaDesc(sn);
-                sd.description = se.getChildTextTrim("description");
-                sd.utype = se.getChildTextTrim("utype");
-                
-                List<Element> tabs = se.getChildren("table");
-                for (Element te : tabs) {
-                    TableDesc td = TableReader.toTable(sn, te, xsi);
-                    String tn = td.getTableName();
-                    sd.getTableDescs().add(td);
-                }
-                ret.getSchemaDescs().add(sd);
+    private void updateTable(TapSchemaDAO dao, String schemaName, String tableName) 
+            throws ResourceNotFoundException {
+        TableDesc inputTable = getInputTable(schemaName, tableName);
+        if (inputTable == null) {
+            throw new IllegalArgumentException("no input table");
+        }
+        
+        TableDesc cur = dao.getTable(tableName);
+        if (cur == null) {
+            throw new ResourceNotFoundException("not found: table " + tableName);
+        }
+        
+        TapSchemaDAO.checkMismatchedColumnSet(cur, inputTable);
+
+        // merge allowed changes
+        int numCols = 0;
+        cur.description = inputTable.description;
+        cur.utype = inputTable.utype;
+        for (ColumnDesc cd : cur.getColumnDescs()) {
+            ColumnDesc inputCD = inputTable.getColumn(cd.getColumnName());
+            // above column match check should catch this, but just in case:
+            if (inputCD == null) {
+                throw new IllegalArgumentException("column missing from input table: " + cd.getColumnName());
             }
+            if (!cd.getDatatype().equals(inputCD.getDatatype())) {
+                throw new UnsupportedOperationException("cannot change " + cd.getColumnName() + " from "
+                        + cd.getDatatype() + " -> " + inputCD.getDatatype());
+            }
+            cd.description = inputCD.description;
+            cd.ucd = inputCD.ucd;
+            cd.unit = inputCD.unit;
+            cd.utype = inputCD.utype;
+            numCols++;
         }
-        return ret;
+        if (numCols != cur.getColumnDescs().size()) {
+            throw new IllegalArgumentException("column list mismatch: cannot update");
+        }
+        // update
+        dao.put(cur);
+    }
+    
+    private void updateSchema(TapSchemaDAO dao, String schemaName) 
+            throws ResourceNotFoundException {
+        SchemaDesc inputSchema = getInputSchema(schemaName);
+        
+        SchemaDesc cur = dao.getSchema(schemaName, 0);
+        if (cur == null) {
+            throw new ResourceNotFoundException("not found: schema " + schemaName);
+        }
+        // merge allowed changes
+        cur.description = inputSchema.description;
+        cur.utype = inputSchema.utype;
+        // update
+        dao.put(cur);
     }
 }

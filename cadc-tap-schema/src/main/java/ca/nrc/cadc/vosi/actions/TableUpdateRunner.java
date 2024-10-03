@@ -67,19 +67,23 @@
 
 package ca.nrc.cadc.vosi.actions;
 
+import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.dali.ParamExtractor;
 import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.log.WebServiceLogInfo;
 import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.rest.SyncOutput;
 import ca.nrc.cadc.tap.PluginFactory;
 import ca.nrc.cadc.tap.db.TableCreator;
 import ca.nrc.cadc.tap.db.TableIngester;
+import ca.nrc.cadc.tap.schema.ADQLIdentifierException;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
-import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import ca.nrc.cadc.tap.schema.TapSchemaUtil;
 import ca.nrc.cadc.uws.ErrorSummary;
 import ca.nrc.cadc.uws.ErrorType;
 import ca.nrc.cadc.uws.ExecutionPhase;
@@ -98,14 +102,12 @@ import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
 /**
- * TableUpdateRunner can be used for UWS async and sync jobs that modify a table.
+ * TableUpdateRunner can be used for UWS async jobs that modify a table.
  * Supported table modifications: 
  * <ul>
- * <li> async or sync: create (unique) index on  a single column </li>
+ * <li> create (unique) index on  a single column </li>
+ * <li> ingest and existing database table into the tap_schema</li>
  * </ul>
- * 
- * TODO: sync append rows from input stream, async append rows from URI
- * 
  * @author pdowler
  */
 public class TableUpdateRunner implements JobRunner {
@@ -128,10 +130,25 @@ public class TableUpdateRunner implements JobRunner {
 
     private JobUpdater jobUpdater;
     private WebServiceLogInfo logInfo;
-
+    private boolean readable = true;
+    private boolean writable = true;
     protected Job job;
     
     public TableUpdateRunner() {
+    }
+
+    @Override
+    public void setAppName(String appName) {
+        String key = appName + RestAction.STATE_MODE_KEY;
+        String val = System.getProperty(key);
+        log.debug("initState: " + key + "=" + val);
+        if (RestAction.STATE_OFFLINE.equals(val)) {
+            this.readable = false;
+            this.writable = false;
+        } else if (RestAction.STATE_READ_ONLY.equals(val)) {
+            this.writable = false;
+        }
+        log.debug("setAppName: " + appName + " " + key + "=" + val + " -> " + readable + "," + writable);
     }
 
     @Override
@@ -174,7 +191,15 @@ public class TableUpdateRunner implements JobRunner {
                     return;
                 }
                 log.debug(job.getID() + ": QUEUED -> EXECUTING [OK]");
-
+                
+                // check service state
+                if (!writable) {
+                    if (readable) {
+                        throw new TransientException(RestAction.STATE_READ_ONLY_MSG, 180);
+                    }
+                    throw new TransientException(RestAction.STATE_OFFLINE_MSG, 180);
+                }
+                
                 // check for the requested operation
                 ParamExtractor pe = new ParamExtractor(PARAM_NAMES);
                 Map<String, List<String>> params = pe.getParameters(job.getParameterList());
@@ -193,15 +218,15 @@ public class TableUpdateRunner implements JobRunner {
 
                 ep = jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING, ExecutionPhase.COMPLETED, new Date());
                 logInfo.setSuccess(true);
-            } catch (AccessControlException ex) {
+            } catch (AccessControlException | IllegalArgumentException | ResourceNotFoundException ex) {
                 logInfo.setMessage(ex.getMessage());
                 logInfo.setSuccess(true);
                 ErrorSummary es = new ErrorSummary(ex.getMessage(), ErrorType.FATAL);
                 jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING, ExecutionPhase.ERROR, es, new Date());
-            } catch (IllegalArgumentException ex) {
+            } catch (TransientException ex) {
                 logInfo.setMessage(ex.getMessage());
                 logInfo.setSuccess(true);
-                ErrorSummary es = new ErrorSummary(ex.getMessage(), ErrorType.FATAL);
+                ErrorSummary es = new ErrorSummary(ex.getMessage(), ErrorType.TRANSIENT);
                 jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING, ExecutionPhase.ERROR, es, new Date());
             } catch (RuntimeException ex) {
                 logInfo.setMessage(ex.getMessage());
@@ -218,8 +243,6 @@ public class TableUpdateRunner implements JobRunner {
             } catch (Exception ex) {
                 log.error("failed to set job to error state", ex);
             }
-        } finally {
-
         }
     }
 
@@ -327,8 +350,11 @@ public class TableUpdateRunner implements JobRunner {
      * Add the metadata for an existing table to the tap_schema.
      *
      * @param params list of request query parameters.
+     * @throws IllegalArgumentException if the ingested table is invalid
+     * @throws ResourceNotFoundException if the target table is not found
      */
-    protected void ingestTable(Map<String, List<String>> params) {
+    protected void ingestTable(Map<String, List<String>> params) 
+            throws IllegalArgumentException, ResourceNotFoundException {
         boolean ingest = "true".equals(getSingleValue("ingest", params));
         if (!ingest) {
             throw new IllegalStateException("'ingest' parameter specified but value is 'false', ingest cancelled");
@@ -341,27 +367,84 @@ public class TableUpdateRunner implements JobRunner {
         log.debug("ingesting table " + tableName);
 
         PluginFactory pf = new PluginFactory();
-        TapSchemaDAO ts = pf.getTapSchemaDAO();
+        TapSchemaDAO tapSchemaDAO = pf.getTapSchemaDAO();
         DataSource ds = getDataSource();
-        ts.setDataSource(ds);
+        tapSchemaDAO.setDataSource(ds);
 
         // check write permissions to the tap_schema
         String schemaName = Util.getSchemaFromTable(tableName);
         try {
-            TablesAction.checkSchemaWritePermissions(ts, schemaName, logInfo);
+            TablesAction.checkSchemaWritePermissions(tapSchemaDAO, schemaName, logInfo);
         }  catch (ResourceNotFoundException | IOException ex) {
             throw new IllegalArgumentException("ingest schema not found in tap_schema: " + schemaName);
         }
 
         // check if table already exists in tap_schema
-        TableDesc tableDesc = ts.getTable(tableName);
+        TableDesc tableDesc = tapSchemaDAO.getTable(tableName);
         if (tableDesc != null) {
             throw new IllegalArgumentException("ingest table already exists in tap_schema: " + tableName);
         }
 
         // add the table to the tap_schema
         TableIngester tableIngester = new TableIngester(ds);
-        tableIngester.ingest(schemaName, tableName);
+        DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
+        try {
+            tm.startTransaction();
+            
+            TableDesc ingestable = tableIngester.getTableDesc(schemaName, tableName);
+            // check the table is valid ADQL name
+            try {
+                TapSchemaUtil.checkValidTableName(ingestable.getTableName());
+            } catch (ADQLIdentifierException ex) {
+                throw new IllegalArgumentException("invalid table name: " + ingestable.getTableName(), ex);
+            }
+            try {
+                for (ColumnDesc cd : ingestable.getColumnDescs()) {
+                    TapSchemaUtil.checkValidIdentifier(cd.getColumnName());
+                }
+            } catch (ADQLIdentifierException ex) {
+                throw new IllegalArgumentException(ex.getMessage());
+            }
+            
+            // assign owner
+            ingestable.tapPermissions.owner = AuthenticationUtil.getCurrentSubject();
+            ingestable.apiCreated = false; // pre-existing table
+            
+            tapSchemaDAO.put(ingestable);
+            log.debug(String.format("added table '%s' to tap_schema", tableName));
+
+            tm.commitTransaction();
+        } catch (IllegalArgumentException | ResourceNotFoundException | UnsupportedOperationException ex) {
+            try {
+                log.debug("ingest table and update tap_schema failed - rollback", ex);
+                tm.rollbackTransaction();
+                log.debug("ingest table and update tap_schema failed - rollback OK");
+            } catch (Exception oops) {
+                log.error("ingest table and update tap_schema failed - rollback: FAIL", ex);
+            }
+            throw ex;
+        } catch (Exception ex) {
+            
+            try {
+                log.error("ingest table and update tap_schema failed - rollback", ex);
+                tm.rollbackTransaction();
+                log.error("ingest table and update tap_schema failed - rollback: OK");
+            } catch (Exception oops) {
+                log.error("ingest table and update tap_schema - rollback : FAIL", oops);
+            }
+            throw new RuntimeException("failed to ingest table " + tableName + " reason: " + ex.getMessage(), ex);
+        } finally {
+            if (tm.isOpen()) {
+                log.error("BUG: open transaction in finally - trying to rollback");
+                try {
+                    tm.rollbackTransaction();
+                    log.error("BUG: rollback in finally: OK");
+                } catch (Exception oops) {
+                    log.error("BUG: rollback in finally: FAIL", oops);
+                }
+                throw new RuntimeException("BUG: open transaction in finally");
+            }
+        }
     }
 
     private String getSingleValue(String pname, Map<String, List<String>> params) {

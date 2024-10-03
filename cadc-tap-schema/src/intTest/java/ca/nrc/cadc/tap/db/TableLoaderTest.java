@@ -1,48 +1,32 @@
 package ca.nrc.cadc.tap.db;
 
-import java.io.ByteArrayInputStream;
-import java.util.List;
-
-import javax.sql.DataSource;
-
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Test;
-import org.springframework.jdbc.core.JdbcTemplate;
-
-import ca.nrc.cadc.db.ConnectionConfig;
-import ca.nrc.cadc.db.DBConfig;
-import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.tap.db.TableCreatorTest.SimpleRowMapper;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.util.Log4jInit;
+import java.io.ByteArrayInputStream;
+import java.util.List;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.Test;
 import org.opencadc.tap.io.AsciiTableData;
+import org.springframework.jdbc.core.JdbcTemplate;
 
-public class TableLoaderTest {
+/**
+ * @author pdowler
+ */
+public class TableLoaderTest extends TestUtil {
 
     private static final Logger log = Logger.getLogger(TableLoaderTest.class);
 
     static {
-        Log4jInit.setLevel("ca.nrc.cadc.tap.db", Level.INFO);
+        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
     }
     
-    private DataSource dataSource;
-    private final String TEST_SCHEMA = "tap_schema";
-    
     public TableLoaderTest() { 
-        // create a datasource and register with JNDI
-        try {
-            DBConfig conf = new DBConfig();
-            ConnectionConfig cc = conf.getConnectionConfig("TAP_SCHEMA_TEST", "cadctest");
-            dataSource = DBUtil.getDataSource(cc);
-            log.info("configured data source: " + cc.getServer() + "," + cc.getDatabase() + "," + cc.getDriver() + "," + cc.getURL());
-        } catch (Exception ex) {
-            log.error("setup failed", ex);
-            throw new IllegalStateException("failed to create DataSource", ex);
-        }
+        super();
     }
     
     //@Test
@@ -63,8 +47,8 @@ public class TableLoaderTest {
     @Test
     public void testLoadCsvData() {
         try {
-            String testTable = TEST_SCHEMA + ".testLoadData";
-            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            String testTable = testSchemaName + ".testLoadData";
+            TableDesc orig = new TableDesc(testSchemaName, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c1", TapDataType.SHORT));

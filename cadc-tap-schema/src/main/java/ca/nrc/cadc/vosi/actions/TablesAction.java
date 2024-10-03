@@ -75,8 +75,12 @@ import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.tap.PluginFactory;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.SchemaDesc;
+import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import static ca.nrc.cadc.vosi.actions.PutAction.INPUT_TAG;
 import java.io.IOException;
 import java.security.AccessControlException;
 import java.security.Principal;
@@ -98,6 +102,8 @@ import org.opencadc.gms.IvoaGroupClient;
 public abstract class TablesAction extends RestAction {
     private static final Logger log = Logger.getLogger(TablesAction.class);
 
+    static final String INPUT_TAG = "inputTable";
+    
     public static String ADMIN_KEY = "-admin-principal";
     public static String CREATE_SCHEMA_KEY = "-create-schema-in-db";
     
@@ -177,6 +183,39 @@ public abstract class TablesAction extends RestAction {
         dao.setDataSource(ds);
         dao.setOrdered(true);
         return dao;
+    }
+    
+    protected TableDesc getInputTable(String schemaName, String tableName) {
+        Object in = syncInput.getContent(INPUT_TAG);
+        if (in == null) {
+            throw new IllegalArgumentException("no input: expected a document describing the table to create/update");
+        }
+        if (in instanceof TableDesc) {
+            TableDesc input = (TableDesc) in;
+            input.setSchemaName(schemaName);
+            input.setTableName(tableName);
+            // TODO: move this to PutAction (create only)
+            int c = 0;
+            for (ColumnDesc cd : input.getColumnDescs()) {
+                cd.setTableName(tableName);
+                cd.column_index = c++;
+            }
+            return input;
+        }
+        throw new RuntimeException("BUG: no input table");
+    }
+    
+    protected SchemaDesc getInputSchema(String schemaName) {
+        Object in = syncInput.getContent(INPUT_TAG);
+        if (in == null) {
+            throw new IllegalArgumentException("no input: expected a document describing the schema to create/update");
+        }
+        if (in instanceof SchemaDesc) {
+            SchemaDesc input = (SchemaDesc) in;
+            //input.setSchemaName(schemaName);
+            return input;
+        }
+        throw new RuntimeException("BUG: no input schema");
     }
 
     /**
@@ -573,7 +612,7 @@ public abstract class TablesAction extends RestAction {
         } catch (NamingException ex) {
             log.error("Failed to find JNDI key: " + jndiAdminKey, ex);
         }
-        return false;
+        throw new AccessControlException("permission denied");
     }
     
     boolean getCreateSchemaEnabled() {

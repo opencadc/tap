@@ -62,89 +62,43 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
-*
 ************************************************************************
 */
 
-package ca.nrc.cadc.vosi;
+package ca.nrc.cadc.tap.db;
 
-import ca.nrc.cadc.tap.schema.SchemaDesc;
-import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.schema.TapSchema;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.util.List;
+import ca.nrc.cadc.db.ConnectionConfig;
+import ca.nrc.cadc.db.DBConfig;
+import ca.nrc.cadc.db.DBUtil;
+import ca.nrc.cadc.util.Log4jInit;
+import javax.sql.DataSource;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.jdom2.Document;
-import org.jdom2.Element;
-import org.jdom2.JDOMException;
-import org.jdom2.Namespace;
 
 /**
  *
  * @author pdowler
  */
-public class TableSetReader extends TableSetParser
-{
-    private static final Logger log = Logger.getLogger(TableSetReader.class);
+public abstract class TestUtil {
+    private static final Logger log = Logger.getLogger(TestUtil.class);
 
-    private static final String TAP_TYPE = "vod:TAPType";
-    private static final String VOT_TYPE = "vod:VOTableType";
-    
-    public TableSetReader() { this(true); }
-    
-    public TableSetReader(boolean enableSchemaValidation)
-    {
-        super(enableSchemaValidation);
+    static {
+        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
     }
     
-    public TapSchema read(InputStream istream)
-        throws IOException, InvalidTableSetException
-    {
-        return read(new InputStreamReader(istream));
-    }
+    protected final String testSchemaName = "tap_schema";
+    protected DataSource dataSource;
     
-    public TapSchema read(Reader reader)
-        throws IOException, InvalidTableSetException
-    {
-        try
-        {
-            Document doc = parse(reader);
-            return toTapSchema(doc);
+    public TestUtil() {
+        // create a datasource and register with JNDI
+        try {
+            DBConfig conf = new DBConfig();
+            ConnectionConfig cc = conf.getConnectionConfig("TAP_SCHEMA_TEST", "cadctest");
+            dataSource = DBUtil.getDataSource(cc, true, true);
+            log.info("configured data source: " + cc.getServer() + "," + cc.getDatabase() + "," + cc.getDriver() + "," + cc.getURL());
+        } catch (Exception ex) {
+            log.error("setup failed", ex);
+            throw new IllegalStateException("failed to create DataSource", ex);
         }
-        catch(JDOMException ex)
-        {
-            throw new InvalidTableSetException("invalid content", ex);
-        }
-    }
-    
-    private TapSchema toTapSchema(Document doc)
-    {
-        TapSchema ret = new TapSchema();
-        Element root = doc.getRootElement();
-        Namespace xsi = root.getNamespace("xsi");
-        if ("tableset".equals(root.getName())) {
-            // content is element-form unqualified
-            List<Element> sels = root.getChildren("schema");
-            for (Element se : sels)
-            {
-                String sn = se.getChildTextTrim("name");
-                SchemaDesc sd = new SchemaDesc(sn);
-                sd.description = se.getChildTextTrim("description");
-                sd.utype = se.getChildTextTrim("utype");
-                
-                List<Element> tabs = se.getChildren("table");
-                for (Element te : tabs) {
-                    TableDesc td = TableReader.toTable(sn, te, xsi);
-                    String tn = td.getTableName();
-                    sd.getTableDescs().add(td);
-                }
-                ret.getSchemaDescs().add(sd);
-            }
-        }
-        return ret;
     }
 }

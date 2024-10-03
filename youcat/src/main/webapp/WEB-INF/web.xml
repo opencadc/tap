@@ -32,10 +32,6 @@
         ca.nrc.cadc.vosi
       </param-value>
     </init-param>
-        <init-param>
-            <param-name>logControlProperties</param-name>
-            <param-value>youcat-logControl.properties</param-value>
-        </init-param>
     <load-on-startup>1</load-on-startup>
   </servlet>
   
@@ -51,6 +47,10 @@
             <param-value>ca.nrc.cadc.vosi.actions.GetAction</param-value>
         </init-param>
         <init-param>
+            <param-name>post</param-name>
+            <param-value>ca.nrc.cadc.vosi.actions.PostAction</param-value>
+        </init-param>
+        <init-param>
             <param-name>put</param-name>
             <param-value>ca.nrc.cadc.vosi.actions.PutAction</param-value>
         </init-param>
@@ -58,12 +58,6 @@
             <param-name>delete</param-name>
             <param-value>ca.nrc.cadc.vosi.actions.DeleteAction</param-value>
         </init-param>
-        <!-- 
-        <init-param>
-            <param-name>post</param-name>
-            <param-value>ca.nrc.cadc.vosi.actions.PostAction</param-value>
-        </init-param>
-        -->
         <load-on-startup>2</load-on-startup>
     </servlet>
 
@@ -76,7 +70,7 @@
         </init-param>
         <init-param>
             <param-name>ca.nrc.cadc.rest.InlineContentHandler</param-name>
-            <param-value>org.opencadc.tap.tmp.HttpStorageManager</param-value>
+            <param-value>org.opencadc.tap.tmp.DelegatingStorageManager</param-value>
         </init-param>
         <init-param>
             <param-name>get</param-name>
@@ -102,7 +96,7 @@
     </init-param>
     <init-param>
         <param-name>ca.nrc.cadc.rest.InlineContentHandler</param-name>
-        <param-value>org.opencadc.tap.tmp.HttpStorageManager</param-value>
+        <param-value>org.opencadc.tap.tmp.DelegatingStorageManager</param-value>
     </init-param>
     <init-param>
         <param-name>get</param-name>
@@ -146,10 +140,6 @@
       <param-name>ca.nrc.cadc.vosi.AvailabilityPlugin</param-name>
       <param-value>org.opencadc.youcat.CatalogTapService</param-value>
     </init-param>
-      <init-param>
-          <param-name>availabilityProperties</param-name>
-          <param-value>youcat-availability.properties</param-value>
-      </init-param>
     <load-on-startup>3</load-on-startup>
   </servlet>
 
@@ -238,4 +228,23 @@
         <url-pattern>/logControl/*</url-pattern>
     </servlet-mapping>
     
+    <servlet>
+        <servlet-name>TempStorageServlet</servlet-name>
+        <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
+        <init-param>
+            <param-name>init</param-name>
+            <param-value>org.opencadc.tap.tmp.TempStorageInitAction</param-value>
+        </init-param>
+
+        <init-param>
+            <param-name>get</param-name>
+            <param-value>org.opencadc.tap.tmp.TempStorageGetAction</param-value>
+        </init-param>
+        <load-on-startup>3</load-on-startup>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>TempStorageServlet</servlet-name>
+        <url-pattern>/tmp/*</url-pattern>
+    </servlet-mapping>   
 </web-app>

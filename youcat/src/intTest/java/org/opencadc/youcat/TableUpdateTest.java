@@ -73,28 +73,18 @@ import ca.nrc.cadc.auth.RunnableAction;
 import ca.nrc.cadc.db.ConnectionConfig;
 import ca.nrc.cadc.db.DBConfig;
 import ca.nrc.cadc.db.DBUtil;
-import ca.nrc.cadc.net.HttpDownload;
 import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.net.HttpPost;
-import ca.nrc.cadc.net.HttpUpload;
-import ca.nrc.cadc.net.OutputStreamWrapper;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.uws.ExecutionPhase;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.JobReader;
-import ca.nrc.cadc.vosi.TableWriter;
-import ca.nrc.cadc.vosi.actions.TableDescHandler;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.net.URL;
 import java.sql.DatabaseMetaData;
 import java.util.Map;
@@ -194,22 +184,56 @@ public class TableUpdateTest extends AbstractTablesTest {
             TapPermissions tp = new TapPermissions(null, true, null, null);
             super.setPerms(schemaOwner, testSchemaName, tp, 200);
 
+            final String testTable = testSchemaName + ".test_ingest_table";
+            
+            // delete the table from the database: 
+            // !apiCreated so cleanup in doCreateTable is not complete
+            try {
+                String drop = "DROP TABLE " + testTable;
+                JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+                jdbc.execute(drop);
+                log.info("successfully dropped: " + testTable);
+            } catch (Exception ignore) {
+                log.debug("ingest-table cleanup-before-test failed for " + testTable);
+            }
+            
             // create test table and schema
-            String testTable = testSchemaName + ".test_ingest_table";
-            TableDesc td = doCreateTable(schemaOwner, testTable);
+            final TableDesc orig = doCreateTable(schemaOwner, testTable);
 
-            // delete the schema from tap_schema
+            // delete the table from tap_schema so we can ingest it
             try {
                 tapSchemaDAO.delete(testTable);
             } catch (Exception ignore) {
-                log.debug("tap_schema-cleanup-before-test failed for " + testTable);
+                log.debug("tap_schema cleanup-before-test failed for " + testTable);
             }
 
             // run the ingest
             doIngestTable(schemaOwner, testTable, ExecutionPhase.COMPLETED);
-
+            
+            TableDesc td = tapSchemaDAO.getTable(testTable);
+            Assert.assertNotNull(td);
+            log.info("found: " + td.getTableName() + " apiCreated=" + td.apiCreated);
+            Assert.assertEquals(orig.getColumnDescs().size(), td.getColumnDescs().size());
+            for (ColumnDesc ocd : orig.getColumnDescs()) {
+                ColumnDesc cd = td.getColumn(ocd.getColumnName());
+                Assert.assertNotNull(ocd.getColumnName(), cd);
+                Assert.assertEquals(ocd.getDatatype(), cd.getDatatype()); // TapDataType.equals() is lax
+                log.info("found: " + cd.getColumnName() + " " + cd.getDatatype());
+            }
+            
             // cleanup on success
             doDelete(schemaOwner, testTable, false);
+            
+            // delete the table from the database: 
+            // !apiCreated so cleanup in doCreateTable is not complete
+            try {
+                String drop = "DROP TABLE " + testTable;
+                JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+                jdbc.execute(drop);
+                log.info("successfully dropped: " + testTable);
+            } catch (Exception ignore) {
+                log.debug("ingest-table cleanup-before-test failed for " + testTable);
+            }
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -232,6 +256,12 @@ public class TableUpdateTest extends AbstractTablesTest {
             String testTable = testSchemaName + ".test_unsupported_datatype";
             String unsupportedDataType = "money";
             JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+            final String drop = String.format("DROP TABLE %s", testTable);
+            try {
+                jdbc.execute(drop);
+            } catch (Exception ignore) {
+                log.info("ignore: " + ignore);
+            }
             String sql = String.format("CREATE TABLE %s (c1 varchar(16), i1 integer, m1 %s)",
                     testTable, unsupportedDataType);
             log.debug("sql:\n" + sql);
@@ -247,9 +277,16 @@ public class TableUpdateTest extends AbstractTablesTest {
             } catch (UnsupportedOperationException expected) {
                 log.info("expected exception: " + expected);
             }
+            
+            TableDesc td = tapSchemaDAO.getTable(testTable);
+            Assert.assertNull(td);
 
-            // cleanup on success
-            doDelete(schemaOwner, testTable, true);
+            try {
+                jdbc.execute(drop);
+            } catch (Exception ignore) {
+                log.info("ignore: " + ignore);
+            }
+            
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);

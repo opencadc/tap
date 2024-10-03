@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2023.                            (c) 2023.
+*  (c) 2024.                            (c) 2024.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -173,19 +173,30 @@ public class TableSet
      */
     private Element toXmlElement(SchemaDesc sd, Namespace ns)
     {
-        Element eleSchema = new Element("schema", ns);
+        Element ret = new Element("schema", ns);
         Element ele;
         ele = new Element("name");
         if (sd.getSchemaName() == null)
             ele.setText(DEFAULT_SCHEMA);
         else
             ele.setText(sd.getSchemaName());
-        eleSchema.addContent(ele);
-        if (sd.getTableDescs() != null) for (TableDesc td : sd.getTableDescs())
-        {
-            eleSchema.addContent(toXmlElement(td, Namespace.NO_NAMESPACE));
+        ret.addContent(ele);
+        if (sd.description != null) {
+            ele = new Element("description");
+            ele.setText(sd.description);
+            ret.addContent(ele);
         }
-        return eleSchema;
+        if (sd.utype != null) {
+            ele = new Element("utype");
+            ele.setText(sd.utype);
+            ret.addContent(ele);
+        }
+        if (sd.getTableDescs() != null) {
+            for (TableDesc td : sd.getTableDescs()) {
+                ret.addContent(toXmlElement(td, Namespace.NO_NAMESPACE));
+            }
+        }
+        return ret;
     }
 
     /**

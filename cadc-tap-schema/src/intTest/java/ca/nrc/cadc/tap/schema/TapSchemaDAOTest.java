@@ -71,20 +71,18 @@ package ca.nrc.cadc.tap.schema;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.IdentityManager;
-import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.X500IdentityManager;
 import ca.nrc.cadc.db.ConnectionConfig;
 import ca.nrc.cadc.db.DBConfig;
 import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.tap.db.TestUtil;
 import ca.nrc.cadc.util.Log4jInit;
 import java.security.Principal;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
-import javax.sql.DataSource;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -95,26 +93,18 @@ import org.opencadc.gms.GroupURI;
  *
  * @author pdowler
  */
-public class TapSchemaDAOTest {
+public class TapSchemaDAOTest extends TestUtil {
 
     private static final Logger log = Logger.getLogger(TapSchemaDAOTest.class);
 
     static {
-        Log4jInit.setLevel("ca.nrc.cadc.tap.schema", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
         Log4jInit.setLevel("ca.nrc.cadc.db.version", Level.INFO);
     }
 
-    private DataSource dataSource;
-    private final String TEST_SCHEMA = "intTest";
-
     public TapSchemaDAOTest() {
-        // create a datasource and register with JNDI
+        super();
         try {
-            DBConfig conf = new DBConfig();
-            ConnectionConfig cc = conf.getConnectionConfig("TAP_SCHEMA_TEST", "cadctest");
-            dataSource = DBUtil.getDataSource(cc);
-            log.info("configured data source: " + cc.getServer() + "," + cc.getDatabase() + "," + cc.getDriver() + "," + cc.getURL());
-            
             // init creates the tap_schema tables and populates with self-describing content
             log.info("InitDatabaseTS: START");
             InitDatabaseTS init = new InitDatabaseTS(dataSource, "cadctest", "tap_schema");
@@ -124,7 +114,7 @@ public class TapSchemaDAOTest {
             // add test schema so other test content will satisfy FK constraints
             TapSchemaDAO dao = new TapSchemaDAO();
             dao.setDataSource(dataSource);
-            SchemaDesc sd = new SchemaDesc(TEST_SCHEMA);
+            SchemaDesc sd = new SchemaDesc(testSchemaName);
             dao.put(sd);
         } catch (Exception ex) {
             log.error("setup failed", ex);
@@ -147,18 +137,43 @@ public class TapSchemaDAOTest {
             for (SchemaDesc sd : ts.getSchemaDescs()) {
                 if (sd.getSchemaName().equalsIgnoreCase("tap_schema")) {
                     foundTS = true;
-                    TableDesc ts_schemas = sd.getTable("tap_schema.schemas");
-                    Assert.assertNotNull("found tap_schema.schemas", ts_schemas);
+                    TableDesc td1 = sd.getTable("tap_schema.schemas");
+                    Assert.assertNotNull("found tap_schema.schemas", td1);
 
-                    TableDesc ts_tables = sd.getTable("tap_schema.tables");
-                    Assert.assertNotNull("found tap_schema.tables", ts_tables);
+                    TableDesc td2 = sd.getTable("tap_schema.tables");
+                    Assert.assertNotNull("found tap_schema.tables", td2);
 
-                    TableDesc ts_columns = sd.getTable("tap_schema.columns");
-                    Assert.assertNotNull("found tap_schema.columns", ts_columns);
+                    TableDesc td3 = sd.getTable("tap_schema.columns");
+                    Assert.assertNotNull("found tap_schema.columns", td3);
                 }
             }
 
             Assert.assertTrue("found tap_schema", foundTS);
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+    
+    @Test
+    public void testGetSchema() {
+        try {
+            TapSchemaDAO dao = new TapSchemaDAO();
+            dao.setDataSource(dataSource);
+            SchemaDesc sd = dao.getSchema("tap_schema", 0);
+            Assert.assertNotNull(sd);
+            log.info("found: " + sd);
+            Assert.assertTrue(sd.getTableDescs().isEmpty());
+            
+            sd = dao.getSchema("tap_schema", 1);
+            Assert.assertNotNull(sd);
+            Assert.assertFalse(sd.getTableDescs().isEmpty());
+            for (TableDesc td : sd.getTableDescs()) {
+                log.info("found: " + td);
+                Assert.assertTrue(td.getColumnDescs().isEmpty());
+            }
+            
+            // TODO: depth==2
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -186,7 +201,7 @@ public class TapSchemaDAOTest {
         try {
             TapSchemaDAO dao = new TapSchemaDAO();
             dao.setDataSource(dataSource);
-            String testTable = TEST_SCHEMA + ".round_trip";
+            String testTable = testSchemaName + ".round_trip";
             
             try {
                 dao.delete(testTable);
@@ -197,7 +212,7 @@ public class TapSchemaDAOTest {
             TableDesc td = dao.getTable(testTable);
             Assert.assertNull("initial setup", td);
 
-            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            TableDesc orig = new TableDesc(testSchemaName, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c1", TapDataType.SHORT));
@@ -230,7 +245,7 @@ public class TapSchemaDAOTest {
         try {
             TapSchemaDAO dao = new TapSchemaDAO();
             dao.setDataSource(dataSource);
-            String testTable = TEST_SCHEMA + ".round_trip";
+            String testTable = testSchemaName + ".round_trip";
             
             try {
                 dao.delete(testTable);
@@ -241,7 +256,7 @@ public class TapSchemaDAOTest {
             TableDesc td = dao.getTable(testTable);
             Assert.assertNull("initial setup", td);
 
-            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            TableDesc orig = new TableDesc(testSchemaName, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
             
@@ -278,7 +293,7 @@ public class TapSchemaDAOTest {
             TapSchemaDAO dao = new TapSchemaDAO();
             dao.setDataSource(dataSource);
             
-            String testTable = TEST_SCHEMA + ".testUpdateTableAddColumn";
+            String testTable = testSchemaName + ".testUpdateTableAddColumn";
             try {
                 dao.delete(testTable);
             } catch (ResourceNotFoundException ex) {
@@ -288,7 +303,7 @@ public class TapSchemaDAOTest {
             TableDesc td = dao.getTable(testTable);
             Assert.assertNull("initial setup", td);
 
-            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            TableDesc orig = new TableDesc(testSchemaName, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
             
@@ -317,7 +332,7 @@ public class TapSchemaDAOTest {
             TapSchemaDAO dao = new TapSchemaDAO();
             dao.setDataSource(dataSource);
             
-            String testTable = TEST_SCHEMA + ".testUpdateTableRenameColumn";
+            String testTable = testSchemaName + ".testUpdateTableRenameColumn";
             try {
                 dao.delete(testTable);
             } catch (ResourceNotFoundException ex) {
@@ -327,7 +342,7 @@ public class TapSchemaDAOTest {
             TableDesc td = dao.getTable(testTable);
             Assert.assertNull("initial setup", td);
 
-            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            TableDesc orig = new TableDesc(testSchemaName, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
             
@@ -355,7 +370,7 @@ public class TapSchemaDAOTest {
             TapSchemaDAO dao = new TapSchemaDAO();
             dao.setDataSource(dataSource);
             
-            String testTable = TEST_SCHEMA + ".testUpdateTableChangeColumnDatatype";
+            String testTable = testSchemaName + ".testUpdateTableChangeColumnDatatype";
             try {
                 dao.delete(testTable);
             } catch (ResourceNotFoundException ex) {
@@ -365,7 +380,7 @@ public class TapSchemaDAOTest {
             TableDesc td = dao.getTable(testTable);
             Assert.assertNull("initial setup", td);
 
-            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            TableDesc orig = new TableDesc(testSchemaName, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
             
@@ -375,12 +390,12 @@ public class TapSchemaDAOTest {
             // change column datatype
             td.getColumnDescs().clear();
             td.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.INTEGER));
-            try {
-                dao.put(td);
-                Assert.fail("change column datatype succeeded - expected IllegalArgumentException");
-            } catch (UnsupportedOperationException expected) {
-                log.info("caught expected exception: " + expected);
-            }
+            dao.put(td);
+            
+            TableDesc actual = dao.getTable(testTable);
+            Assert.assertEquals(1, actual.getColumnDescs().size());
+            ColumnDesc acd = actual.getColumn("c0");
+            Assert.assertEquals(TapDataType.INTEGER, acd.getDatatype());
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -393,7 +408,7 @@ public class TapSchemaDAOTest {
             TapSchemaDAO dao = new TapSchemaDAO();
             dao.setDataSource(dataSource);
             
-            SchemaDesc sd = dao.getSchema("intTest", true);
+            SchemaDesc sd = dao.getSchema("intTest", 0);
             if (sd == null) {
                 sd = new SchemaDesc("intTest");
                 dao.put(sd);
