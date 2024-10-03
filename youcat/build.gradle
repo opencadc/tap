@@ -34,9 +34,10 @@ dependencies {
     compile 'org.opencadc:cadc-adql:[1.1.14,)'
     compile 'org.opencadc:cadc-uws:[1.0.2,)'
     compile 'org.opencadc:cadc-uws-server:[1.2.22,)'
-    compile 'org.opencadc:cadc-tap-schema:[1.1.32,)'
-    compile 'org.opencadc:cadc-tap-server:[1.1.24,)'
-    compile 'org.opencadc:cadc-tap-server-pg:[1.1.0,)'
+    compile 'org.opencadc:cadc-tap:[1.1.17,)'
+    compile 'org.opencadc:cadc-tap-schema:[1.2.1,)'
+    compile 'org.opencadc:cadc-tap-server:[1.1.25,)'
+    compile 'org.opencadc:cadc-tap-server-pg:[1.1.1,)'
     compile 'org.opencadc:cadc-adql:[1.1.4,)'
     compile 'org.opencadc:cadc-vosi:[1.4.3,2.0)'
     compile 'org.opencadc:cadc-registry:[1.7.2,)'
@@ -51,12 +52,13 @@ dependencies {
     intTestCompile 'org.opencadc:cadc-test-uws:[1.1.1,)'
     intTestCompile 'org.opencadc:cadc-test-vosi:[1.0.11,)'
     intTestCompile 'org.opencadc:cadc-test-tap:[1.1,)'
+
+    intTestRuntime 'org.postgresql:postgresql:[42.2,43.0)'
 }
 
 configurations {
   // this are provided by tomcat
   runtime.exclude group: 'javax.servlet'
-  runtime.exclude group: 'org.postgresql'
 
   // pulled by stil,unused, critical CVEs:
   runtime.exclude group: 'org.yaml', module: 'snakeyaml'

@@ -75,8 +75,12 @@ import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.tap.PluginFactory;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.SchemaDesc;
+import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import static ca.nrc.cadc.vosi.actions.PutAction.INPUT_TAG;
 import java.io.IOException;
 import java.security.AccessControlException;
 import java.security.Principal;
@@ -98,6 +102,8 @@ import org.opencadc.gms.IvoaGroupClient;
 public abstract class TablesAction extends RestAction {
     private static final Logger log = Logger.getLogger(TablesAction.class);
 
+    static final String INPUT_TAG = "inputTable";
+    
     public static String ADMIN_KEY = "-admin-principal";
     public static String CREATE_SCHEMA_KEY = "-create-schema-in-db";
     
@@ -168,7 +174,7 @@ public abstract class TablesAction extends RestAction {
     /**
      * Create and configure a TapSchemaDAO instance. 
      * 
-     * @return 
+     * @return a TapSchemaDAO instance.
      */
     protected final TapSchemaDAO getTapSchemaDAO() {
         PluginFactory pf = new PluginFactory();
@@ -179,10 +185,53 @@ public abstract class TablesAction extends RestAction {
         return dao;
     }
     
-    // schema owner can drop
-    // table owner can drop
-    // no group permissions used
-    void checkDropTablePermission(TapSchemaDAO dao, String tableName)
+    protected TableDesc getInputTable(String schemaName, String tableName) {
+        Object in = syncInput.getContent(INPUT_TAG);
+        if (in == null) {
+            throw new IllegalArgumentException("no input: expected a document describing the table to create/update");
+        }
+        if (in instanceof TableDesc) {
+            TableDesc input = (TableDesc) in;
+            input.setSchemaName(schemaName);
+            input.setTableName(tableName);
+            // TODO: move this to PutAction (create only)
+            int c = 0;
+            for (ColumnDesc cd : input.getColumnDescs()) {
+                cd.setTableName(tableName);
+                cd.column_index = c++;
+            }
+            return input;
+        }
+        throw new RuntimeException("BUG: no input table");
+    }
+    
+    protected SchemaDesc getInputSchema(String schemaName) {
+        Object in = syncInput.getContent(INPUT_TAG);
+        if (in == null) {
+            throw new IllegalArgumentException("no input: expected a document describing the schema to create/update");
+        }
+        if (in instanceof SchemaDesc) {
+            SchemaDesc input = (SchemaDesc) in;
+            //input.setSchemaName(schemaName);
+            return input;
+        }
+        throw new RuntimeException("BUG: no input schema");
+    }
+
+    /**
+     * Check if the calling user has permission to drop the specified table from the TAP schema.
+     * A user can drop a table if:
+     * <ul>
+     * <li>the user is the owner of the table's schema</li>
+     * <li>the user is the owner of the table</li>
+     * </ul>
+     * @param dao DAO for the TAP schema
+     * @param tableName the table to check for drop permission
+     * @param logInfo webservice logging
+     * @throws AccessControlException if the user does not have drop permissions for the table.
+     * @throws ResourceNotFoundException if the table or table's schema are not found in the TAP schema.
+     */
+    public static void checkDropTablePermission(TapSchemaDAO dao, String tableName, WebServiceLogInfo logInfo)
             throws AccessControlException, ResourceNotFoundException {
         
         String schemaName = Util.getSchemaFromTable(tableName);
@@ -195,18 +244,33 @@ public abstract class TablesAction extends RestAction {
             throw new ResourceNotFoundException("table not found: " + tableName);
         }
         if (Util.isOwner(schemaPermissions)) {
-            super.logInfo.setMessage("drop table allowed: schema owner");
+            logInfo.setMessage("drop table allowed: schema owner");
             return;
         }
         if (Util.isOwner(tablePermissions)) {
-            super.logInfo.setMessage("drop table allowed: table owner");
+            logInfo.setMessage("drop table allowed: table owner");
             return;
         }
         throw new AccessControlException("permission denied");
     }
-    
-    // schema owner can view schema permissions 
-    TapPermissions checkViewSchemaPermissions(TapSchemaDAO dao, String schemaName)
+
+    /**
+     * Check if the calling user has view permissions for the specified schema.
+     * A user can view the permissions for a schema if ons the following is true:
+     * <ul>
+     * <li>the schema does not have an owner</li>
+     * <li>the schema is public</li>
+     * <li>the user is the owner of the schema</li>
+     * <li>the user is the configured admin of the TAP service</li>
+     * </ul>
+     * @param dao DAO for the TAP schema
+     * @param schemaName the schema to check for view permission
+     * @param logInfo webservice logging
+     * @return the TapPermissions for the specified schema.
+     * @throws AccessControlException if the user does not have view permissions for the schema.
+     * @throws ResourceNotFoundException if the schema is not found in the TAP schema.
+     */
+    TapPermissions checkViewSchemaPermissions(TapSchemaDAO dao, String schemaName, WebServiceLogInfo logInfo)
             throws AccessControlException, ResourceNotFoundException {
         
         TapPermissions schemaPermissions = dao.getSchemaPermissions(schemaName);
@@ -214,26 +278,40 @@ public abstract class TablesAction extends RestAction {
             throw new ResourceNotFoundException("schema not found: " + schemaName);
         }
         if (schemaPermissions.owner == null) {
-            super.logInfo.setMessage("view table allowed: null schema owner");
+            logInfo.setMessage("view table allowed: null schema owner");
             return schemaPermissions;
         }
         if (schemaPermissions.isPublic) {
-            super.logInfo.setMessage("view table allowed: public schema");
+            logInfo.setMessage("view table allowed: public schema");
             return schemaPermissions;
         }
         if (Util.isOwner(schemaPermissions)) {
-            super.logInfo.setMessage("view schema permissions allowed: schema owner");
+            logInfo.setMessage("view schema permissions allowed: schema owner");
             return schemaPermissions;
         }
         if (checkIsAdmin()) {
-            super.logInfo.setMessage("view schema permissions allowed: admin");
+            logInfo.setMessage("view schema permissions allowed: admin");
             return schemaPermissions;
         }
         throw new AccessControlException("permission denied");
     }
-    
-    // schema owner can modify schema permissions 
-    void checkModifySchemaPermissions(TapSchemaDAO dao, String schemaName)
+
+    /**
+     * Check if the calling user has permission to modify permissions for the specified schema.
+     * A user has permission to modify a schema's permissions if:
+     * <ul>
+     * <li>the user is the owner of the schema</li>
+     * </ul>
+     * A user cannot update schema permissions if they are a member of a schema's read-write group
+     * because they could remove themselves from the read-write group and lose access the the schema.
+     *
+     * @param dao DAO for the TAP schema
+     * @param schemaName the schema to check for modify permissions
+     * @param logInfo webservice logging
+     * @throws AccessControlException if the user does not have permission to modify the schema's permissions.
+     * @throws ResourceNotFoundException if the schema is not found in the TAP schema.
+     */
+    public static void checkModifySchemaPermissions(TapSchemaDAO dao, String schemaName, WebServiceLogInfo logInfo)
             throws AccessControlException, ResourceNotFoundException {
         
         TapPermissions schemaPermissions = dao.getSchemaPermissions(schemaName);
@@ -241,14 +319,28 @@ public abstract class TablesAction extends RestAction {
             throw new ResourceNotFoundException("schema not found: " + schemaName);
         }
         if (Util.isOwner(schemaPermissions)) {
-            super.logInfo.setMessage("modify schema permissions allowed: schema owner");
+            logInfo.setMessage("modify schema permissions allowed: schema owner");
             return;
         }
         throw new AccessControlException("permission denied");
     }
-    
-    // schema owner and table owner can view table permissions 
-    TapPermissions checkViewTablePermissions(TapSchemaDAO dao, String tableName)
+
+    /**
+     * Check if the calling user has permissions to view the permissions for the specified table.
+     * A user has permission to view a table's permissions if ons the following is true:
+     * <ul>
+     * <li>the user is the owner of table's schema</li>
+     * <li>the user is the owner of the table</li>
+     * <li>the user is the configured admin of the TAP service</li>
+     * </ul>
+     * @param dao DAO for the TAP schema
+     * @param tableName the table to check for view permission
+     * @param logInfo webservice logging
+     * @return the TapPermissions for the specified table.
+     * @throws AccessControlException if the user does not have permission to view the table's permissions.
+     * @throws ResourceNotFoundException if the table is not found in the TAP schema.
+     */
+    public TapPermissions checkViewTablePermissions(TapSchemaDAO dao, String tableName, WebServiceLogInfo logInfo)
             throws AccessControlException, ResourceNotFoundException {
         
         String schemaName = Util.getSchemaFromTable(tableName);
@@ -262,22 +354,37 @@ public abstract class TablesAction extends RestAction {
             throw new ResourceNotFoundException("table not found: " + tableName);
         }
         if (Util.isOwner(schemaPermissions)) {
-            super.logInfo.setMessage("view table permissions allowed: schema owner");
+            logInfo.setMessage("view table permissions allowed: schema owner");
             return tablePermissions;
         }
         if (Util.isOwner(tablePermissions)) {
-            super.logInfo.setMessage("view table permissions allowed: table owner");
+            logInfo.setMessage("view table permissions allowed: table owner");
             return tablePermissions;
         }
         if (checkIsAdmin()) {
-            super.logInfo.setMessage("view table permissions allowed: admin");
+            logInfo.setMessage("view table permissions allowed: admin");
             return tablePermissions;
         }
         throw new AccessControlException("permission denied");
     }
-    
-    // schema owner and table owner can modify table permissions 
-    void checkModifyTablePermissionsPermissions(TapSchemaDAO dao, String tableName)
+
+    /**
+     * Check if the calling user has permission to modify permissions for the specified table.
+     * A user has permission to modify a table's permissions if:
+     * <ul>
+     * <li>the user is the owner of the schema</li>
+     * <li>the user is the owner of the table</li>
+     * </ul>
+     * A user cannot update table permissions if they are a member of a table's read-write group
+     * because they could remove themselves from the read-write group and lose access the the table.
+     *
+     * @param dao DAO for the TAP schema
+     * @param tableName the table to check for modify permission
+     * @param logInfo webservice logging
+     * @throws AccessControlException if the user does not have permission to modify the table's permissions.
+     * @throws ResourceNotFoundException if the table or table's schema is not found in the TAP schema.
+     */
+    public static void checkModifyTablePermissions(TapSchemaDAO dao, String tableName, WebServiceLogInfo logInfo)
             throws AccessControlException, ResourceNotFoundException {
         
         String schemaName = Util.getSchemaFromTable(tableName);
@@ -290,19 +397,39 @@ public abstract class TablesAction extends RestAction {
             throw new ResourceNotFoundException("table not found: " + tableName);
         }
         if (Util.isOwner(schemaPermissions)) {
-            super.logInfo.setMessage("modify table permissions allowed: schema owner");
+            logInfo.setMessage("modify table permissions allowed: schema owner");
             return;
         }
         if (Util.isOwner(tablePermissions)) {
-            super.logInfo.setMessage("modify table permissions allowed: table owner");
+            logInfo.setMessage("modify table permissions allowed: table owner");
             return;
         }
         throw new AccessControlException("permission denied");
     }
-    
-    // if anon or authenticated check public
-    // if authenticated check schema and table owners, readGroups, readWriteGroups
-    void checkTableReadPermissions(TapSchemaDAO dao, String tableName)
+
+    /**
+     * Check is the calling user has read permission for a table.
+     * A user has read permission for a table if one of the following is true:
+     * <ul>
+     * <li>if the table's schema does not have an owner</li>
+     * <li>if the table's schema is public</li>
+     * <li>if the table does not have an owner</li>
+     * <li>if the table is public</li>
+     * <li>if the user is the owner of the table</li>
+     * <li>if the user is the owner of the table's schema</li>
+     * <li>if the user is the configured admin of the TAP service</li>
+     * <li>if the user is a member of a table's read or read-write group</li>
+     * <li>if the user is a member of a schema's read or read-write group</li>
+     * </ul>
+     * @param dao DAO for the TAP schema
+     * @param tableName the table to check for read permission
+     * @param logInfo webservice logging
+     * @throws AccessControlException if the user does not have read permission to the table.
+     * @throws IOException if there is an error retrieving group memberships.
+     * @throws InterruptedException if there is an error querying for group membership.
+     * @throws ResourceNotFoundException if the table is not found in the TAP schema.
+     */
+    public void checkTableReadPermissions(TapSchemaDAO dao, String tableName, WebServiceLogInfo logInfo)
             throws AccessControlException, IOException, InterruptedException, ResourceNotFoundException {
         
         TapPermissions tablePermissions = dao.getTablePermissions(tableName);
@@ -317,33 +444,33 @@ public abstract class TablesAction extends RestAction {
             throw new ResourceNotFoundException("schema not found: " + schemaName);
         }
         if (schemaPermissions.owner == null) {
-            super.logInfo.setMessage("view table allowed: null schema owner");
+            logInfo.setMessage("view table allowed: null schema owner");
             return;
         }
         if (schemaPermissions.isPublic) {
-            super.logInfo.setMessage("view table allowed: public schema");
+            logInfo.setMessage("view table allowed: public schema");
             return;
         }
 
         if (tablePermissions.owner == null) {
-            super.logInfo.setMessage("view table allowed: null table owner");
+            logInfo.setMessage("view table allowed: null table owner");
             return;
         }
         if (tablePermissions.isPublic) {
-            super.logInfo.setMessage("view table allowed: public table");
+            logInfo.setMessage("view table allowed: public table");
             return;
         }
         
         if (Util.isOwner(tablePermissions)) {
-            super.logInfo.setMessage("view table allowed: table owner");
+            logInfo.setMessage("view table allowed: table owner");
             return;
         }
         if (Util.isOwner(schemaPermissions)) {
-            super.logInfo.setMessage("view table allowed: schema owner");
+            logInfo.setMessage("view table allowed: schema owner");
             return;
         }
         if (checkIsAdmin()) {
-            super.logInfo.setMessage("view table allowed: admin");
+            logInfo.setMessage("view table allowed: admin");
             return;
         }
         
@@ -367,22 +494,47 @@ public abstract class TablesAction extends RestAction {
         
         GroupURI permittingGroup = Util.getPermittedGroup(groupClient, readGroups);
         if (permittingGroup != null) {
-            super.logInfo.setMessage("view table allowed: member of group " + permittingGroup);
+            logInfo.setMessage("view table allowed: member of group " + permittingGroup);
             return;
         }
 
         throw new AccessControlException("permission denied");
     }
-    
+
+    /**
+     * Check if the calling user has write permission to the specified table.
+     * A user has write permission to a table if one of the following is true:
+     * <ul>
+     * <li>the user is the owner of the table</li>
+     * <li>the user is a member of one of the table's read-write groups</li>
+     * </ul>
+     * @param dao DAO for the TAP schema
+     * @param tableName the table to check for write permissions
+     * @throws AccessControlException if the user does not have write permission to the table.
+     * @throws IOException if there is an error retrieving group memberships.
+     * @throws ResourceNotFoundException if the table is not found in the TAP schema.
+     */
     public void checkTableWritePermissions(TapSchemaDAO dao, String tableName)
             throws AccessControlException, IOException, ResourceNotFoundException {
         
         TablesAction.checkTableWritePermissions(dao, tableName, logInfo);
     }
-    
-    // if authenticated table owners, readWriteGroup members
-    // static method here so that TableUpdateRunner can make this call
-    static void checkTableWritePermissions(TapSchemaDAO dao, String tableName, WebServiceLogInfo logInfo)
+
+    /**
+     * Check if the calling user has write permission to the specified table.
+     * A user has write permission to a table if one of the following is true:
+     * <ul>
+     * <li>the user is the owner of the table</li>
+     * <li>the user is a member of one of the table's read-write groups</li>
+     * </ul>
+     * @param dao DAO for the TAP schema
+     * @param tableName the table to check for write permissions
+     * @param logInfo webservice logging
+     * @throws AccessControlException if the user does not have write permission to the table.
+     * @throws IOException if there is an error retrieving group memberships.
+     * @throws ResourceNotFoundException if the table is not found in the TAP schema.
+     */
+    public static void checkTableWritePermissions(TapSchemaDAO dao, String tableName, WebServiceLogInfo logInfo)
             throws AccessControlException, IOException, ResourceNotFoundException {
         
         TapPermissions tablePermissions = dao.getTablePermissions(tableName); 
@@ -405,9 +557,22 @@ public abstract class TablesAction extends RestAction {
         }
         throw new AccessControlException("permission denied");
     }
-    
-    // if authenticated check schema owner and readWriteGroup
-    void checkSchemaWritePermissions(TapSchemaDAO dao, String schemaName) 
+
+    /**
+     * Check if the calling user has write permission to the specified schema.
+     * A user has write permission to a schema if one of the following is true:
+     * <ul>
+     * <li>the user is the owner of the schema</li>
+     * <li>the user is a member of one of the schema's read-write group</li>
+     * </ul>
+     * @param dao DAO for the TAP schema
+     * @param schemaName the schema to check for write permissions
+     * @param logInfo webservice logging
+     * @throws AccessControlException if the user does not have write permission to the schema.
+     * @throws IOException if there is an error retrieving group memberships.
+     * @throws ResourceNotFoundException if the schema is not found in the TAP schema.
+     */
+    public static void checkSchemaWritePermissions(TapSchemaDAO dao, String schemaName, WebServiceLogInfo logInfo)
             throws AccessControlException, IOException, ResourceNotFoundException {
         
         TapPermissions schemaPermissions = dao.getSchemaPermissions(schemaName);
@@ -415,7 +580,7 @@ public abstract class TablesAction extends RestAction {
             throw new ResourceNotFoundException("not found: " + schemaName);
         }
         if (Util.isOwner(schemaPermissions)) {
-            super.logInfo.setMessage("schema write allowed: schema owner");
+            logInfo.setMessage("schema write allowed: schema owner");
             return;
         }
         final IvoaGroupClient groupClient = new IvoaGroupClient();
@@ -424,7 +589,7 @@ public abstract class TablesAction extends RestAction {
             permittedGroups.add(schemaPermissions.readWriteGroup);
             GroupURI permittedGroup = Util.getPermittedGroup(groupClient, permittedGroups);
             if (permittedGroup != null) {
-                super.logInfo.setMessage("schema write allowed: member of table group " + permittedGroup);
+                logInfo.setMessage("schema write allowed: member of table group " + permittedGroup);
                 return;
             }
         }
@@ -447,7 +612,7 @@ public abstract class TablesAction extends RestAction {
         } catch (NamingException ex) {
             log.error("Failed to find JNDI key: " + jndiAdminKey, ex);
         }
-        return false;
+        throw new AccessControlException("permission denied");
     }
     
     boolean getCreateSchemaEnabled() {

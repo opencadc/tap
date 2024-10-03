@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2011.                            (c) 2011.
+*  (c) 2024.                            (c) 2024.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -126,17 +126,18 @@ public class TableSetReader extends TableSetParser
         TapSchema ret = new TapSchema();
         Element root = doc.getRootElement();
         Namespace xsi = root.getNamespace("xsi");
-        if ("tableset".equals(root.getName()))
-        {
+        if ("tableset".equals(root.getName())) {
             // content is element-form unqualified
             List<Element> sels = root.getChildren("schema");
             for (Element se : sels)
             {
                 String sn = se.getChildTextTrim("name");
                 SchemaDesc sd = new SchemaDesc(sn);
+                sd.description = se.getChildTextTrim("description");
+                sd.utype = se.getChildTextTrim("utype");
+                
                 List<Element> tabs = se.getChildren("table");
-                for (Element te : tabs)
-                {
+                for (Element te : tabs) {
                     TableDesc td = TableReader.toTable(sn, te, xsi);
                     String tn = td.getTableName();
                     sd.getTableDescs().add(td);

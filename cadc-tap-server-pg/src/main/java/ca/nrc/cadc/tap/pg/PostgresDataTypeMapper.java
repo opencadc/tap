@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2018.                            (c) 2018.
+*  (c) 2024.                            (c) 2024.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -110,6 +110,25 @@ public class PostgresDataTypeMapper extends BasicDataTypeMapper {
         dataTypes.put(new TapDataType("long", "*", null), new TypePair("bigint[]", null));
         dataTypes.put(new TapDataType("float", "*", null), new TypePair("real[]", null));
         dataTypes.put(new TapDataType("double", "*", null), new TypePair("double precision[]", null));
+
+        // pg-specific type label for char(n) columns
+        dbDataTypes.put("bpchar", TapDataType.CHAR);                    // code to assign optional length
+        
+        dbDataTypes.put("polygon", TapDataType.INTERVAL);
+        dbDataTypes.put("spoint", TapDataType.POINT);
+        dbDataTypes.put("scircle", TapDataType.CIRCLE);
+        dbDataTypes.put("spoly", TapDataType.POLYGON);
+        // preceding underscore means array
+        dbDataTypes.put("_int2", new TapDataType("short", "*", null));
+        dbDataTypes.put("_int4", new TapDataType("int", "*", null));
+        dbDataTypes.put("_int8", new TapDataType("long", "*", null));
+        dbDataTypes.put("_float4", new TapDataType("float", "*", null));
+        dbDataTypes.put("_float8", new TapDataType("double", "*", null));
+    }
+
+    @Override
+    public String toInternalDatabaseObjectName(String name) {
+        return name.toLowerCase();
     }
 
     @Override
@@ -315,4 +334,5 @@ public class PostgresDataTypeMapper extends BasicDataTypeMapper {
             throw new RuntimeException("BUG: failed to convert long[] to PGobject", ex);
         }
     }
+
 }

@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2018.                            (c) 2018.
+*  (c) 2024.                            (c) 2024.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -65,50 +65,116 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.schema;
+package ca.nrc.cadc.vosi.actions;
 
-import ca.nrc.cadc.db.version.InitDatabase;
-import java.net.URL;
+import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.rest.InlineContentHandler;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.SchemaDesc;
+import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import java.util.Set;
+import java.util.TreeSet;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
 /**
- *
+ * Update schema or table metadata.
  * @author pdowler
  */
-public class InitDatabaseTS extends InitDatabase {
-    private static final Logger log = Logger.getLogger(InitDatabaseTS.class);
+public class PostAction extends TablesAction {
+    private static final Logger log = Logger.getLogger(PostAction.class);
 
-    public static final String MODEL_NAME = "TAP_SCHEMA";
-    public static final String MODEL_VERSION = "1.2.1";
-    public static final String PREV_MODEL_VERSION = "1.2.0";
-
-    static String[] CREATE_SQL = new String[] {
-        "tap_schema.ModelVersion.sql",
-        "tap_schema.KeyValue.sql",
-        "tap_schema11.sql",
-        "tap_schema_self11.sql",
-        "tap_schema.permissions.sql"
-    };
-
-    static String[] UPGRADE_SQL = new String[]{
-        "tap_schema.upgrade-1.2.1.sql"
-    };
-    
-    public InitDatabaseTS(DataSource dataSource, String database, String schema) {
-        super(dataSource, database, schema, MODEL_NAME, MODEL_VERSION, PREV_MODEL_VERSION);
-        for (String s : CREATE_SQL) {
-            createSQL.add(s);
-        }
-        for (String s : UPGRADE_SQL) {
-            upgradeSQL.add(s);
-        }
+    public PostAction() { 
     }
 
     @Override
-    protected URL findSQL(String fname) {
-        return InitDatabaseTS.class.getClassLoader().getResource("postgresql/" + fname);
+    protected InlineContentHandler getInlineContentHandler() {
+        return new TablesInputHandler(INPUT_TAG);
     }
- 
+
+    @Override
+    public void doAction() throws Exception {
+        String schemaName = null;
+        String tableName = null;
+        String[] target = getTarget();
+        if (target != null) {
+            schemaName = target[0];
+            tableName = target[1];
+        }
+        log.debug("target: " + schemaName + " " + tableName);
+        
+        checkWritable();
+        
+        if (schemaName == null && tableName == null) {
+            throw new IllegalArgumentException("missing schema|table name in path");
+        }
+        
+        TapSchemaDAO ts = getTapSchemaDAO();
+        if (tableName != null) {
+            TablesAction.checkTableWritePermissions(ts, tableName, logInfo);
+            updateTable(ts, schemaName, tableName);
+        } else {
+            TablesAction.checkSchemaWritePermissions(ts, schemaName, logInfo);
+            updateSchema(ts, schemaName);
+        }
+        
+        syncOutput.setCode(204); // no content on success
+    }
     
+    private void updateTable(TapSchemaDAO dao, String schemaName, String tableName) 
+            throws ResourceNotFoundException {
+        TableDesc inputTable = getInputTable(schemaName, tableName);
+        if (inputTable == null) {
+            throw new IllegalArgumentException("no input table");
+        }
+        
+        TableDesc cur = dao.getTable(tableName);
+        if (cur == null) {
+            throw new ResourceNotFoundException("not found: table " + tableName);
+        }
+        
+        TapSchemaDAO.checkMismatchedColumnSet(cur, inputTable);
+
+        // merge allowed changes
+        int numCols = 0;
+        cur.description = inputTable.description;
+        cur.utype = inputTable.utype;
+        for (ColumnDesc cd : cur.getColumnDescs()) {
+            ColumnDesc inputCD = inputTable.getColumn(cd.getColumnName());
+            // above column match check should catch this, but just in case:
+            if (inputCD == null) {
+                throw new IllegalArgumentException("column missing from input table: " + cd.getColumnName());
+            }
+            if (!cd.getDatatype().equals(inputCD.getDatatype())) {
+                throw new UnsupportedOperationException("cannot change " + cd.getColumnName() + " from "
+                        + cd.getDatatype() + " -> " + inputCD.getDatatype());
+            }
+            cd.description = inputCD.description;
+            cd.ucd = inputCD.ucd;
+            cd.unit = inputCD.unit;
+            cd.utype = inputCD.utype;
+            numCols++;
+        }
+        if (numCols != cur.getColumnDescs().size()) {
+            throw new IllegalArgumentException("column list mismatch: cannot update");
+        }
+        // update
+        dao.put(cur);
+    }
+    
+    private void updateSchema(TapSchemaDAO dao, String schemaName) 
+            throws ResourceNotFoundException {
+        SchemaDesc inputSchema = getInputSchema(schemaName);
+        
+        SchemaDesc cur = dao.getSchema(schemaName, 0);
+        if (cur == null) {
+            throw new ResourceNotFoundException("not found: schema " + schemaName);
+        }
+        // merge allowed changes
+        cur.description = inputSchema.description;
+        cur.utype = inputSchema.utype;
+        // update
+        dao.put(cur);
+    }
 }

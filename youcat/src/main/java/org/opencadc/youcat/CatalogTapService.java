@@ -239,8 +239,8 @@ public class CatalogTapService implements AvailabilityPlugin {
         String key = appName + RestAction.STATE_MODE_KEY;
         if (RestAction.STATE_OFFLINE.equalsIgnoreCase(state)) {
             System.setProperty(key, RestAction.STATE_OFFLINE);
-        //} else if (RestAction.STATE_READ_ONLY.equalsIgnoreCase(state)) {
-        //    System.setProperty(key, RestAction.STATE_READ_ONLY);
+        } else if (RestAction.STATE_READ_ONLY.equalsIgnoreCase(state)) {
+            System.setProperty(key, RestAction.STATE_READ_ONLY);
         } else if (RestAction.STATE_READ_WRITE.equalsIgnoreCase(state)) {
             System.setProperty(key, RestAction.STATE_READ_WRITE);
         } else {
