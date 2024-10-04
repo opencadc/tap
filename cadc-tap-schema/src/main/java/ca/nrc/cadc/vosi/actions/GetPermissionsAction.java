@@ -104,9 +104,9 @@ public class GetPermissionsAction extends TablesAction {
         TapSchemaDAO dao = getTapSchemaDAO();
         TapPermissions permissions = null;
         if (Util.isSchemaName(name)) {
-            permissions = checkViewSchemaPermissions(dao, name);
+            permissions = checkViewSchemaPermissions(dao, name, logInfo);
         } else if (Util.isTableName(name)) {
-            permissions = checkViewTablePermissions(dao, name);
+            permissions = checkViewTablePermissions(dao, name, logInfo);
         } else {
             throw new IllegalArgumentException("No such object: " + name);
         }

@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2018.                            (c) 2018.
+*  (c) 2024.                            (c) 2024.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -74,6 +74,7 @@ import ca.nrc.cadc.dali.DoubleInterval;
 import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.dali.Polygon;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
 
 /**
  * Interface to convert ADQL data types to a database
@@ -101,13 +102,37 @@ public interface DatabaseDataType
     Integer getType(ColumnDesc columnDesc);
     
     /**
-     * Get an optional USING qualifier for index creation. If you don't know what this
-     * is just return null.
+     * Convert a database data type to a a TAP data type. This is only used by
+     * the TableIngester to read a database table and create a TAP table description
+     * of it.
+     * 
+     * @param datatype the database data type
+     * @param length length of the column or null
+     * @return a TapDataType
+     */
+    TapDataType toTapDataType(String datatype, Integer length);
+    
+    /**
+     * Convert the argument database object name (schema, table, column)
+     * into a suitable internal representation for use with the JDBC
+     * DatabaseMetadata API. For example, in postgresql this method would
+     * convert the argument to lower case because that database backend uses
+     * lower case internally. This is only used by the TableIngester to find
+     * and read table structure from the database.
+     * 
+     * @param name a schema|table|column name
+     * @return internal name
+     */
+    String toInternalDatabaseObjectName(String name);
+    
+    /**
+     * Get an optional USING qualifier for index creation.
      * 
      * @param columnDesc
-     * @return 
+     * @param unique
+     * @return USING qualifier or null if not applicable
      * @throws IllegalArgumentException if unique==true and the column type or qualifier 
-     *  does not support unique indices
+     *      does not support unique indices
      */
     String getIndexUsingQualifier(ColumnDesc columnDesc, boolean unique);
     
@@ -182,4 +207,5 @@ public interface DatabaseDataType
     Object getArrayObject(float[] val);
     
     Object getArrayObject(double[] val);
+
 }

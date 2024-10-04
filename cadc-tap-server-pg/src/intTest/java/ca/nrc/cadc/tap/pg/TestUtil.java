@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2018.                            (c) 2018.
+*  (c) 2024.                            (c) 2024.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -65,50 +65,40 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.schema;
+package ca.nrc.cadc.tap.pg;
 
-import ca.nrc.cadc.db.version.InitDatabase;
-import java.net.URL;
+import ca.nrc.cadc.db.ConnectionConfig;
+import ca.nrc.cadc.db.DBConfig;
+import ca.nrc.cadc.db.DBUtil;
+import ca.nrc.cadc.util.Log4jInit;
 import javax.sql.DataSource;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 /**
  *
  * @author pdowler
  */
-public class InitDatabaseTS extends InitDatabase {
-    private static final Logger log = Logger.getLogger(InitDatabaseTS.class);
+public abstract class TestUtil {
+    private static final Logger log = Logger.getLogger(TestUtil.class);
 
-    public static final String MODEL_NAME = "TAP_SCHEMA";
-    public static final String MODEL_VERSION = "1.2.1";
-    public static final String PREV_MODEL_VERSION = "1.2.0";
-
-    static String[] CREATE_SQL = new String[] {
-        "tap_schema.ModelVersion.sql",
-        "tap_schema.KeyValue.sql",
-        "tap_schema11.sql",
-        "tap_schema_self11.sql",
-        "tap_schema.permissions.sql"
-    };
-
-    static String[] UPGRADE_SQL = new String[]{
-        "tap_schema.upgrade-1.2.1.sql"
-    };
+    static {
+        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
+    }
     
-    public InitDatabaseTS(DataSource dataSource, String database, String schema) {
-        super(dataSource, database, schema, MODEL_NAME, MODEL_VERSION, PREV_MODEL_VERSION);
-        for (String s : CREATE_SQL) {
-            createSQL.add(s);
-        }
-        for (String s : UPGRADE_SQL) {
-            upgradeSQL.add(s);
+    protected final String testSchemaName = "tap_schema";
+    protected DataSource dataSource;
+    
+    public TestUtil() {
+        // create a datasource and register with JNDI
+        try {
+            DBConfig conf = new DBConfig();
+            ConnectionConfig cc = conf.getConnectionConfig("TAP_SCHEMA_TEST", "cadctest");
+            dataSource = DBUtil.getDataSource(cc);
+            log.info("configured data source: " + cc.getServer() + "," + cc.getDatabase() + "," + cc.getDriver() + "," + cc.getURL());
+        } catch (Exception ex) {
+            log.error("setup failed", ex);
+            throw new IllegalStateException("failed to create DataSource", ex);
         }
     }
-
-    @Override
-    protected URL findSQL(String fname) {
-        return InitDatabaseTS.class.getClassLoader().getResource("postgresql/" + fname);
-    }
- 
-    
 }

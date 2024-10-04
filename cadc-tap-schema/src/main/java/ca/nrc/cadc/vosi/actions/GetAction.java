@@ -103,27 +103,29 @@ public class GetAction extends TablesAction {
         }
         log.debug("GET: " + schemaName + " " + tableName);
         
-        if (!readable) {
-            throw new AccessControlException(RestAction.STATE_OFFLINE_MSG);
-        }
+        checkReadable();
 
+        final String detail = syncInput.getParameter("detail");
         int depth = TapSchemaDAO.MIN_DEPTH;
         // TODO: default depth used to be configurable... worth it?
-        if (tableName == null) {
-            // always give the caller what they ask for
-            String detail = syncInput.getParameter("detail");
+        if (tableName == null && schemaName == null) {
+            depth = TapSchemaDAO.TAB_DEPTH; // VOSI-tables-1.1 tableset
             if ("min".equalsIgnoreCase(detail)) {
-                depth = TapSchemaDAO.MIN_DEPTH;
+                depth = TapSchemaDAO.TAB_DEPTH;
             } else if ("max".equalsIgnoreCase(detail)) {
                 depth = TapSchemaDAO.MAX_DEPTH;
             } else if (detail != null) {
                 throw new IllegalArgumentException("invalid parameter value detail=" + detail);
             }
+        } else if (schemaName != null) {
+            if ("tab".equalsIgnoreCase(detail)) {
+                depth = TapSchemaDAO.TAB_DEPTH; // list tables
+            }
         }
 
         TapSchemaDAO dao = getTapSchemaDAO();
         if (tableName != null) {
-            checkTableReadPermissions(dao, tableName);
+            checkTableReadPermissions(dao, tableName, logInfo);
             TableDesc td = dao.getTable(tableName);
             if (td == null) {
                 // currently, permission check already threw this
@@ -134,11 +136,11 @@ public class GetAction extends TablesAction {
             syncOutput.setHeader("Content-Type", "text/xml");
             tw.write(td, new OutputStreamWriter(syncOutput.getOutputStream()));
         } else if (schemaName != null) {
-            checkViewSchemaPermissions(dao, schemaName);
+            checkViewSchemaPermissions(dao, schemaName, logInfo);
             // TODO: TapSchemaDAO only supports schema only, ok for detail=min
             // should at least list tables for default detail
             // should provide columns at detail=max
-            SchemaDesc sd = dao.getSchema(schemaName, (depth == TapSchemaDAO.MIN_DEPTH));
+            SchemaDesc sd = dao.getSchema(schemaName, depth);
             if (sd == null) {
                 // currently, permission check already threw this
                 throw new ResourceNotFoundException("schema not found: " + schemaName);
