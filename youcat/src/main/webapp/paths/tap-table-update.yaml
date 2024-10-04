@@ -2,7 +2,13 @@ get:
     summary: UWS 1.1
     description: async job listing
     parameters: {}
-    responses: {}
+    responses:
+        200:
+            $ref: ../components/uws-responses.yaml#/job-listing
+        401:
+            $ref: ../components/std-responses.yaml#/not-authenticated
+        403:
+            $ref: ../components/std-responses.yaml#/permission-denied
 post:
     summary: TAP table-update 1.2
     description: TAP asynchronous table update (create UWS Job); can only specify one operation
@@ -32,5 +38,9 @@ post:
           schema:
               type: boolean
     responses:
-        "303":
-          description: standard UWS redirect to the created job
+        303:
+            $ref: ../components/uws-responses.yaml#/created
+        401:
+            $ref: ../components/std-responses.yaml#/not-authenticated
+        403:
+            $ref: ../components/std-responses.yaml#/permission-denied
