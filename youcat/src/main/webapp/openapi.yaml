@@ -1,10 +1,17 @@
 openapi: 3.1.0
 info:
-  title: user-managed TAP service (youcat)
-  version: "1.0"
-  description: This is more or less the current TAP-1.1 standard.
+  title: prototype TAP-1.2 with user managed tables
+  #version: "1.2"
+  description: |
+    This is more or less the current TAP-1.1 standard with some TAP-1.2
+    extensions from the CADC/CANFAR youcat service
 servers:
-- url: /youcat
+- url: /tap
+
+## note: any of the $ref values below can be URLs to external (standard) OpenAPI
+## components; examples below are commented out but would work if the resources
+## were available at that location
+
 paths:
     /sync:
         $ref: ./paths/tap-sync.yaml
@@ -13,37 +20,38 @@ paths:
         $ref: ./paths/tap-async.yaml
     /async/{jobID}:
         $ref: ./paths/uws-job.yaml
-        #$ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/uws-job.yaml
+        #$ref: https://example.net/std/openapi/uws-job.yaml
     /async/{jobID}/phase:
         $ref: ./paths/uws-job-phase.yaml
-        #$ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/uws-job-phase.yaml
-    ## TODO: more resources under /async/{jobID}??
+        #$ref: https://example.net/std/openapi/uws-job-phase.yaml
+    ## TODO: more resources under /async/{jobID}?
 
     /tables:
         $ref: ./paths/vosi-tableset.yaml
-        #$ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/vosi-tableset.yaml
+        #$ref: https://example.net/std/openapi/vosi-tableset.yaml
     /tables/{name}:
         $ref: ./paths/vosi-table.yaml
-        #$ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/vosi-table.yaml
+        #$ref: https://example.net/std/openapi/vosi-table.yaml
 
     /table-update:
         $ref: ./paths/tap-table-update.yaml
     /table-update/{jobID}:
         $ref: ./paths/uws-job.yaml
-        #$ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/uws-job.yaml
+        #$ref: https://example.net/std/openapi/uws-job.yaml
     /table-update/{jobID}/phase:
         $ref: ./paths/uws-job-phase.yaml
-        #$ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/uws-job-phase.yaml
-    ## TODO: more resources under /table-update/{jobID}??
-    
+        #$ref: https://example.net/std/openapi/uws-job-phase.yaml
+    ## TODO: more resources under /async/{jobID}?
+
     /load/{name}:
         $ref: ./paths/tap-load.yaml
-
-    ## TODO: set permissions
         
+    ## TODO: youcat has a mechanism to set permissions on schemas and tables
+    ##       that is embarassingly simple/limited/bad
+
     /availability:
         $ref: ./paths/vosi-availability.yaml
-        #$ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/vosi-availability.yaml
+        #$ref: https://example.net/std/openapi//vosi-availability.yaml
     /capabilities:
         $ref: ./paths/vosi-capabilities.yaml
-        #$ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/vosi-capabilities.yaml
+        #$ref: https://example.net/std/openapi/vosi-capabilities.yaml

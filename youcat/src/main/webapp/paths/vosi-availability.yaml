@@ -1,4 +1,5 @@
 head:
+    operationId: availability-heartbeat
     tag: VOSI
     summary: VOSI Availability heartbeat check
     description: |
@@ -7,8 +8,8 @@ head:
     responses:
         200:
           description: service is reachable
-        ## TBD: response code for read-only mode? off line mode?
 get:
+    operationId: availability-check
     tag: VOSI
     summary: VOSI Availability full check
     description: |
@@ -23,28 +24,6 @@ get:
             text/xml:
               schema:
                 $ref: '#/components/schemas/availability'
-post:
-    tag: VOSI
-    summary: (CADC extension) modify the state (availability) of a running service
-    description: |
-        An operator can modify the state of a service instance to put it into one of
-        three modes: offline, read-only, and read-write (normal). The detailed meaning of
-        these modes depends on the nature of the service.
-    parameters:
-        - name: STATE
-          in: query
-          description: new service state
-          required: true
-          schema:
-            type: string
-            enum: [ReadWrite, ReadOnly, Offline]
-    responses:
-        204:
-            description: service state updated
-        401:
-            $ref: ../components/std-responses.yaml#/not-authenticated
-        403:
-            $ref: ../components/std-responses.yaml#/permission-denied
 
 components:
     schemas:

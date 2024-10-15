@@ -1,4 +1,5 @@
 head:
+    operationId: capabilities-probe
     tag: VOSI
     summary: VOSI Capabilities
     description: |
@@ -16,6 +17,7 @@ head:
         403:
             description: authentication succeed, caller is not permitted to make requests
 get:
+    operationId: capabilities-get
     tag: VOSI
     summary: VOSI Capabilities
     description: Get the set of VOResource capability descriptions for this service.

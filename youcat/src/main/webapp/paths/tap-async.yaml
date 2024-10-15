@@ -1,4 +1,5 @@
 get:
+    operationId: query-job-list
     summary: UWS 1.1
     description: async job listing
     parameters:
@@ -10,6 +11,7 @@ get:
         403:
             $ref: ../components/std-responses.yaml#/permission-denied
 post:
+    operationId: query-job-create
     summary: TAP-async 1.1
     description: TAP asynchronous query endpoint (create UWS Job)
     parameters:

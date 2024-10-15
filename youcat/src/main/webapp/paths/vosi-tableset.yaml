@@ -1,4 +1,5 @@
 get:
+    operationId: vosi-tableset-get
     tag: VOSI
     tag:  table metadata
     summary: VOSI Tables

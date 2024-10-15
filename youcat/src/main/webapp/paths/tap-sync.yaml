@@ -1,4 +1,5 @@
 get:
+    operationId: sync-query-job-get
     summary: TAP-sync 1.1
     description: TAP synchronous query endpoint
     parameters:
@@ -20,6 +21,7 @@ get:
         403:
             $ref: ../components/std-responses.yaml#/permission-denied
 post:
+    operationId: sync-query-job-create
     summary: TAP-sync 1.1
     description: TAP synchronous query endpoint
     parameters:
