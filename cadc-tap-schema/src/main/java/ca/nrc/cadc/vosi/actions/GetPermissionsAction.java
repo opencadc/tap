@@ -101,7 +101,7 @@ public class GetPermissionsAction extends TablesAction {
         }
         log.debug("name: " + name);
         
-        checkWritable();
+        checkReadable();
         
         TapSchemaDAO dao = getTapSchemaDAO();
         TapPermissions permissions = null;
