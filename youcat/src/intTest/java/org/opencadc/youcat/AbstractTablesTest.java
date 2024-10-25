@@ -180,9 +180,15 @@ abstract class AbstractTablesTest {
         }
     }
     
-    void doDelete(Subject subject, String testTable, boolean fnf) throws Exception {
+    void doDelete(Subject subject, String tableName, boolean fnf) throws Exception {
+        if (!tableName.startsWith(testSchemaName + ".")) {
+            throw new RuntimeException("TEST BUG: attempt to create table " + tableName
+                + " Not in test schema " + testSchemaName);
+        }
+        
+        URL tableURL = new URL(certTablesURL.toExternalForm() + "/" + tableName);
+        
         // delete
-        URL tableURL = new URL(certTablesURL.toExternalForm() + "/" + testTable);
         HttpDelete del = new HttpDelete(tableURL, false);
         log.info("doDelete: " + tableURL);
         Subject.doAs(subject, new RunnableAction(del));
@@ -196,13 +202,17 @@ abstract class AbstractTablesTest {
             throw (Exception) del.getThrowable();
         }
 
-        URL getTableURL = new URL(certTablesURL.toExternalForm() + "/" + testTable);
-        HttpGet check = new HttpGet(getTableURL, new ByteArrayOutputStream());
+        HttpGet check = new HttpGet(tableURL, new ByteArrayOutputStream());
         Subject.doAs(subject, new RunnableAction(check));
         Assert.assertEquals("table deleted", 404, check.getResponseCode());
     }
     
     TableDesc doCreateTable(Subject subject, String tableName) throws Exception {
+        if (!tableName.startsWith(testSchemaName + ".")) {
+            throw new RuntimeException("TEST BUG: attempt to create table " + tableName
+                + " Not in test schema " + testSchemaName);
+        }
+
         // cleanup just in case
         doDelete(subject, tableName, true);
 
@@ -255,6 +265,11 @@ abstract class AbstractTablesTest {
     }
     
     void doCreateIndex(Subject subject, String tableName, String indexCol, boolean unique, ExecutionPhase expected, String emsg) throws Exception {
+        if (!tableName.startsWith(testSchemaName + ".")) {
+            throw new RuntimeException("TEST BUG: attempt to create table " + tableName
+                + " Not in test schema " + testSchemaName);
+        }
+
         Assert.assertNotNull("found async table-update URL", certUpdateURL);
         
         // create job
@@ -311,7 +326,10 @@ abstract class AbstractTablesTest {
     }
     
     protected void setPerms(Subject subject, String name, TapPermissions tp, int expectedCode) throws MalformedURLException {
-        
+        if (!name.equals(testSchemaName) && !name.startsWith(testSchemaName + ".")) {
+            throw new RuntimeException("TEST BUG: attempt to change permissions on " + name
+                + " Not in test schema " + testSchemaName);
+        }
         StringBuilder perms = new StringBuilder();
         if (tp.isPublic != null) {
             perms.append("public=").append(Boolean.toString(tp.isPublic)).append("\n");
