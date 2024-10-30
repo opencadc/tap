@@ -401,17 +401,16 @@ public class CreateTableTest extends AbstractTablesTest {
 
     @Test
     public void testCreateUpdateDropSchema() {
-        String schemaName = "test_create_schema";
         
         // TODO: use schemaOwner subject to determine the user name here
         final String owner = "cadcauthtest1";
         
         try {
-            final URL schemaURL = new URL(certTablesURL.toExternalForm() + "/" + schemaName);
+            final URL schemaURL = new URL(certTablesURL.toExternalForm() + "/" + testCreateSchema);
             
-            doDelete(admin, schemaName, true);
+            doDelete(admin, testCreateSchema, true);
 
-            SchemaDesc orig = new SchemaDesc(schemaName);
+            SchemaDesc orig = new SchemaDesc(testCreateSchema);
             orig.description = "original description";
             TableSetWriter w = new TableSetWriter();
             StringWriter sw = new StringWriter();
@@ -427,7 +426,7 @@ public class CreateTableTest extends AbstractTablesTest {
             log.info("update: " + create.getResponseCode() + " " + create.getThrowable());
             Assert.assertEquals(200, create.getResponseCode());
             
-            SchemaDesc sd = doVosiSchemaCheck(schemaOwner, schemaName);
+            SchemaDesc sd = doVosiSchemaCheck(schemaOwner, testCreateSchema);
             Assert.assertNotNull(sd);
             Assert.assertEquals(orig.getSchemaName(), sd.getSchemaName());
             Assert.assertEquals(orig.description, sd.description);
@@ -450,12 +449,12 @@ public class CreateTableTest extends AbstractTablesTest {
             log.info("update: " + update.getResponseCode() + " " + update.getThrowable());
             Assert.assertEquals(204, update.getResponseCode());
             
-            SchemaDesc sd2 = doVosiSchemaCheck(schemaOwner, schemaName);
+            SchemaDesc sd2 = doVosiSchemaCheck(schemaOwner, testCreateSchema);
             Assert.assertEquals(sd.description, sd2.description);
             Assert.assertEquals(sd.utype, sd2.utype);
             
             // cleanup on success
-            doDelete(admin, schemaName, false);
+            doDelete(admin, testCreateSchema, false);
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
