@@ -92,34 +92,21 @@ import org.springframework.jdbc.core.RowMapper;
  *
  * @author pdowler
  */
-public class TableCreatorTest {
+public class TableCreatorTest extends TestUtil {
     private static final Logger log = Logger.getLogger(TableCreatorTest.class);
 
     static {
-        Log4jInit.setLevel("ca.nrc.cadc.tap.db", Level.INFO);
-        //Log4jInit.setLevel("ca.nrc.cadc.profiler", Level.INFO);
+        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
     }
     
-    private DataSource dataSource;
-    private final String TEST_SCHEMA = "tap_schema";
-    
     public TableCreatorTest() { 
-        // create a datasource and register with JNDI
-        try {
-            DBConfig conf = new DBConfig();
-            ConnectionConfig cc = conf.getConnectionConfig("TAP_SCHEMA_TEST", "cadctest");
-            dataSource = DBUtil.getDataSource(cc);
-            log.info("configured data source: " + cc.getServer() + "," + cc.getDatabase() + "," + cc.getDriver() + "," + cc.getURL());
-        } catch (Exception ex) {
-            log.error("setup failed", ex);
-            throw new IllegalStateException("failed to create DataSource", ex);
-        }
+        super();
     }
     
     @Test
     public void testCreateTable() {
         try {
-            String testTable = TEST_SCHEMA + ".testCreateTable";
+            String testTable = testSchemaName + ".testCreateTable";
             // cleanup
             TableCreator tc = new TableCreator(dataSource);
             try {
@@ -128,7 +115,7 @@ public class TableCreatorTest {
                 log.debug("cleanup-before-test failed");
             }
             
-            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            TableDesc orig = new TableDesc(testSchemaName, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c1", TapDataType.SHORT));
@@ -161,7 +148,7 @@ public class TableCreatorTest {
     @Test
     public void testCreateIndex() {
         try {
-            String testTable = TEST_SCHEMA + ".testCreateIndex";
+            String testTable = testSchemaName + ".testCreateIndex";
             // cleanup
             TableCreator tc = new TableCreator(dataSource);
             try {
@@ -170,7 +157,7 @@ public class TableCreatorTest {
                 log.debug("cleanup-before-test failed");
             }
             
-            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            TableDesc orig = new TableDesc(testSchemaName, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
             ColumnDesc col = new ColumnDesc(testTable, "c0", TapDataType.STRING);
             orig.getColumnDescs().add(col);
@@ -199,7 +186,7 @@ public class TableCreatorTest {
     @Test
     public void testCreateUniqueIndex() {
         try {
-            String testTable = TEST_SCHEMA + ".testCreateUniqueIndex";
+            String testTable = testSchemaName + ".testCreateUniqueIndex";
             // cleanup
             TableCreator tc = new TableCreator(dataSource);
             try {
@@ -208,7 +195,7 @@ public class TableCreatorTest {
                 log.debug("cleanup-before-test failed");
             }
             
-            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            TableDesc orig = new TableDesc(testSchemaName, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
             ColumnDesc col = new ColumnDesc(testTable, "c0", TapDataType.STRING);
             orig.getColumnDescs().add(col);
@@ -248,8 +235,8 @@ public class TableCreatorTest {
     @Test
     public void testInvalidTableName() {
         try {
-            String testTable = TEST_SCHEMA + ".testInvalidTableName;drop table tap_schema.tables";
-            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            String testTable = testSchemaName + ".testInvalidTableName;drop table tap_schema.tables";
+            TableDesc orig = new TableDesc(testSchemaName, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
             
@@ -267,8 +254,8 @@ public class TableCreatorTest {
     @Test
     public void testInvalidColumnName() {
         try {
-            String testTable = TEST_SCHEMA + ".testInvalidColumnName;drop table tap_schema.tables";
-            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            String testTable = testSchemaName + ".testInvalidColumnName;drop table tap_schema.tables";
+            TableDesc orig = new TableDesc(testSchemaName, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
             

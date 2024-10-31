@@ -67,6 +67,8 @@
 
 package ca.nrc.cadc.vosi.actions;
 
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
@@ -99,14 +101,14 @@ public class GetPermissionsAction extends TablesAction {
         }
         log.debug("name: " + name);
         
-        checkWritable();
+        checkReadable();
         
         TapSchemaDAO dao = getTapSchemaDAO();
         TapPermissions permissions = null;
         if (Util.isSchemaName(name)) {
-            permissions = checkViewSchemaPermissions(dao, name);
+            permissions = checkViewSchemaPermissions(dao, name, logInfo);
         } else if (Util.isTableName(name)) {
-            permissions = checkViewTablePermissions(dao, name);
+            permissions = checkViewTablePermissions(dao, name, logInfo);
         } else {
             throw new IllegalArgumentException("No such object: " + name);
         }
@@ -137,10 +139,8 @@ public class GetPermissionsAction extends TablesAction {
         if (s == null) {
             return "";
         }
-        if (s.getPrincipals(X500Principal.class).size() > 0) {
-            return s.getPrincipals(X500Principal.class).iterator().next().getName();
-        }
-        return "";
+        IdentityManager im = AuthenticationUtil.getIdentityManager();
+        return im.toDisplayString(s);
     }
             
     private String getGroupString(GroupURI group) {

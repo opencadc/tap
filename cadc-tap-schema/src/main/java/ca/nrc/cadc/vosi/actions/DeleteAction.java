@@ -71,12 +71,13 @@ package ca.nrc.cadc.vosi.actions;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.profiler.Profiler;
-import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.tap.db.TableCreator;
+import ca.nrc.cadc.tap.schema.SchemaDesc;
+import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import java.security.AccessControlException;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * Drop table. This action drops a database table and removes the description
@@ -92,34 +93,108 @@ public class DeleteAction extends TablesAction {
 
     @Override
     public void doAction() throws Exception {
-        String tableName = getTableName();
-        log.debug("DELETE: " + tableName);
+        String[] target = getTarget();
+        String schemaName = target[0];
+        String tableName = target[1];
+        log.debug("DELETE: schema=" + schemaName + " table=" + tableName);
         
         checkWritable();
         
-        if (tableName == null) {
-            throw new IllegalArgumentException("Missing table name in path.");
+        if (tableName == null && schemaName == null) {
+            throw new IllegalArgumentException("missing schema|table name in path");
         }
         
-        Profiler prof = new Profiler(DeleteAction.class);
-        DatabaseTransactionManager tm = null;
-
-        DataSource ds = getDataSource();
         TapSchemaDAO ts = getTapSchemaDAO();
+        if (tableName != null) {
+            TablesAction.checkDropTablePermission(ts, tableName, logInfo);
+            dropTable(ts, tableName);
+        } else {
+            checkIsAdmin();
+            dropSchema(ts, schemaName);
+        }
+            
+        syncOutput.setCode(200);
+    }
+    
+    private void dropSchema(TapSchemaDAO ts, String schemaName) throws ResourceNotFoundException {
+        Profiler prof = new Profiler(DeleteAction.class);
+        DataSource ds = getDataSource();
         ts.setDataSource(ds);
-        
-        tm = new DatabaseTransactionManager(ds);
-        checkDropTablePermission(ts, tableName);
-            
+        DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
         try {
+            tm.startTransaction();
+            prof.checkpoint("start-transaction");
             
+            // if the schema was created with the API and is empty: drop
+            // otherwise only delete the table from the tap_schema
+            SchemaDesc schemaDesc = ts.getSchema(schemaName, 0);
+            if (schemaDesc == null) {
+                throw new ResourceNotFoundException("not found: " + schemaName);
+            }
+            // TapSchemaDAO checks that schema is empty
+            
+            if (getCreateSchemaEnabled() && schemaDesc.apiCreated) {
+                String sql = "DROP SCHEMA " + schemaName;
+                JdbcTemplate jdbc = new JdbcTemplate(ds);
+                log.debug(sql);
+                jdbc.execute(sql);
+                prof.checkpoint("delete-table");
+            }
+            
+            // remove from tap_schema last to minimise locking
+            ts.deleteSchema(schemaName);
+            prof.checkpoint("delete-from-tap-schema");
+            
+            tm.commitTransaction();
+            prof.checkpoint("commit-transaction");
+        } catch (ResourceNotFoundException | UnsupportedOperationException rethrow) { 
+            if (tm != null && tm.isOpen()) {
+                tm.rollbackTransaction();
+            }
+            throw rethrow;
+        } catch (Exception ex) {
+            try {
+                log.error("DELETE failed - rollback", ex);
+                tm.rollbackTransaction();
+                prof.checkpoint("rollback-transaction");
+                log.error("DELETE failed - rollback: OK");
+            } catch (Exception oops) {
+                log.error("DELETE failed - rollback : FAIL", oops);
+            }
+            // TODO: categorise failures better
+            throw new RuntimeException("failed to delete " + schemaName, ex);
+        } finally { 
+            if (tm.isOpen()) {
+                log.error("BUG: open transaction in finally - trying to rollback");
+                try {
+                    tm.rollbackTransaction();
+                    prof.checkpoint("rollback-transaction");
+                    log.error("BUG: rollback in finally: OK");
+                } catch (Exception oops) {
+                    log.error("BUG: rollback in finally: FAIL", oops);
+                }
+            }
+        }
+    }
+
+    private void dropTable(TapSchemaDAO ts, String tableName) throws ResourceNotFoundException {
+        Profiler prof = new Profiler(DeleteAction.class);
+        DataSource ds = getDataSource();
+        ts.setDataSource(ds);
+        DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
+        try {
             tm.startTransaction();
             prof.checkpoint("start-transaction");
             
             // drop table
             TableCreator tc = new TableCreator(ds);
-            tc.dropTable(tableName);
-            prof.checkpoint("delete-table");
+            // if the table was created with the API, drop the table,
+            // otherwise only delete the table from the tap_schema
+            TableDesc tableDesc = ts.getTable(tableName);
+            if (tableDesc.apiCreated) {
+                tc.dropTable(tableName);
+                prof.checkpoint("delete-table");
+            }
             
             // remove from tap_schema last to minimise locking
             ts.delete(tableName);
@@ -155,7 +230,5 @@ public class DeleteAction extends TablesAction {
                 }
             }
         }
-        
-        syncOutput.setCode(200);
     }
 }

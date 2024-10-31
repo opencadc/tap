@@ -72,6 +72,7 @@ import ca.nrc.cadc.dali.DoubleInterval;
 import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.dali.Polygon;
 import ca.nrc.cadc.dali.tables.votable.VOTableUtil;
+import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.stc.Position;
 import ca.nrc.cadc.stc.Region;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
@@ -118,6 +119,11 @@ public class BasicDataTypeMapper implements DatabaseDataType {
      */
     protected final Map<TapDataType, TypePair> dataTypes = new HashMap<>();
 
+    /**
+     * Mapping of database data types to VOTable data types.
+     */
+    protected final Map<String, TapDataType> dbDataTypes = new HashMap<>();
+
     public BasicDataTypeMapper() {
         // votable type -> db type
         dataTypes.put(TapDataType.BOOLEAN, new TypePair("BOOLEAN", Types.BOOLEAN));
@@ -131,6 +137,33 @@ public class BasicDataTypeMapper implements DatabaseDataType {
         dataTypes.put(TapDataType.STRING, new TypePair("CHAR", Types.CHAR));
         dataTypes.put(TapDataType.TIMESTAMP, new TypePair("TIMESTAMP", Types.TIMESTAMP));
         dataTypes.put(TapDataType.URI, new TypePair("CHAR", Types.CHAR));
+
+        // DatabaseMetadata -> TAP_DATA_TYPE
+        // TYPE_NAME    DATA_TYPE   TAP_DATA_TYPE
+        // bool         -7          BOOLEAN
+        // bpchar       1           CHAR
+        // varchar 4096 12          STRING or URI
+        // int2         5           SHORT
+        // int4         4           INTEGER
+        // int8        -5           LONG
+        // float4       7           FLOAT
+        // float8       8           DOUBLE
+        // timestamp    93          TIMESTAMP
+        dbDataTypes.put("bool", TapDataType.BOOLEAN);
+        dbDataTypes.put("int2", TapDataType.SHORT);
+        dbDataTypes.put("int4", TapDataType.INTEGER);
+        dbDataTypes.put("int8", TapDataType.LONG);
+        dbDataTypes.put("float4", TapDataType.FLOAT);
+        dbDataTypes.put("float8", TapDataType.DOUBLE);
+        dbDataTypes.put("float8", TapDataType.DOUBLE);
+        
+        // TODO: bpchar is postgresql specific?
+        dbDataTypes.put("bpchar", TapDataType.CHAR);                    // code to assign optional length
+        
+        dbDataTypes.put("char", TapDataType.CHAR);                      // code to assign optional length
+        dbDataTypes.put("varchar", new TapDataType("char", "*", null)); // code to assign optional length
+        dbDataTypes.put("text", new TapDataType("char", "*", null));    // code to assign optional length
+        dbDataTypes.put("timestamp", TapDataType.TIMESTAMP);
     }
 
     /**
@@ -189,7 +222,43 @@ public class BasicDataTypeMapper implements DatabaseDataType {
     public String getIndexColumnOperator(ColumnDesc columnDesc) {
         return null;
     }
-    
+
+    /**
+     * Maps standard database datatypes to a TapDatatype. Database specific datatypes 
+     * can usually map custom types by adding entries to the dataTypes and dbDataTypes
+     * maps and letting this method work it out, but they may need to override
+     * this in some niche cases.
+     *
+     * @param datatype database datatype
+     * @param length length of the column, possibly null
+     * @return TapDatatype
+     */
+    @Override
+    public TapDataType toTapDataType(String datatype, Integer length) {
+        TapDataType ret = dbDataTypes.get(datatype);
+        if (length != null) {
+            String as = length.toString();
+            if (ret.isVarSize()) {
+                as += "*";
+            }
+            ret = new TapDataType(ret.getDatatype(), as, null); // only for char(N) and varchar(N)
+        }
+        if (ret != null) {
+            return ret;
+        }
+        throw new UnsupportedOperationException("Unknown database datatype: " + datatype);
+    }
+
+    /**
+     * Default implementation: return the name as is.
+     * @param name of a schema|table|column
+     * @return argument name unchanged
+     */
+    @Override
+    public String toInternalDatabaseObjectName(String name) {
+        return name;
+    }
+
     
     /**
      * Find or create a TypePair for the specified data type. The current implementation

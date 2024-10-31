@@ -127,12 +127,10 @@ public class CatalogTapService implements AvailabilityPlugin {
         boolean isGood = true;
         String note = "service is accepting queries";
         try {
-            String state = getState();
+            final String state = getState();
             if (RestAction.STATE_OFFLINE.equals(state)) {
+                // no further checks needed
                 return new Availability(false, RestAction.STATE_OFFLINE_MSG);
-            }
-            if (RestAction.STATE_READ_ONLY.equals(state)) {
-                return new Availability(false, RestAction.STATE_READ_ONLY_MSG);
             }
 
             // ReadWrite: proceed with live checks
@@ -220,6 +218,11 @@ public class CatalogTapService implements AvailabilityPlugin {
             } catch (Exception ex) {
                 throw new CheckException("cadc-tap-tmp check: " + ex, ex);
             }
+            
+            if (RestAction.STATE_READ_ONLY.equals(state)) {
+                isGood = false;
+                note = RestAction.STATE_READ_ONLY_MSG;
+            }
                 
         } catch (CheckException ce) {
             // tests determined that the resource is not working
@@ -239,8 +242,8 @@ public class CatalogTapService implements AvailabilityPlugin {
         String key = appName + RestAction.STATE_MODE_KEY;
         if (RestAction.STATE_OFFLINE.equalsIgnoreCase(state)) {
             System.setProperty(key, RestAction.STATE_OFFLINE);
-        //} else if (RestAction.STATE_READ_ONLY.equalsIgnoreCase(state)) {
-        //    System.setProperty(key, RestAction.STATE_READ_ONLY);
+        } else if (RestAction.STATE_READ_ONLY.equalsIgnoreCase(state)) {
+            System.setProperty(key, RestAction.STATE_READ_ONLY);
         } else if (RestAction.STATE_READ_WRITE.equalsIgnoreCase(state)) {
             System.setProperty(key, RestAction.STATE_READ_WRITE);
         } else {

@@ -76,38 +76,40 @@ import ca.nrc.cadc.rest.InlineContentException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.tap.schema.TapSchemaUtil;
 import ca.nrc.cadc.util.StringUtil;
 import ca.nrc.cadc.vosi.InvalidTableSetException;
 import ca.nrc.cadc.vosi.TableReader;
+import ca.nrc.cadc.vosi.TableSetReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
-import java.util.Properties;
 import org.apache.log4j.Logger;
 
 /**
  *
  * @author pdowler
  */
-public class TableDescHandler implements InlineContentHandler {
-    private static final Logger log = Logger.getLogger(TableDescHandler.class);
+public class TablesInputHandler implements InlineContentHandler {
+    private static final Logger log = Logger.getLogger(TablesInputHandler.class);
 
     private static final long BYTE_LIMIT = 1024 * 1024L; // 1 MiB
     public static final String VOSI_TABLE_TYPE = "text/xml";
     public static final String VOTABLE_TYPE = "application/x-votable+xml";
-    //public static final String VOSI_SCHEMA_TYPE = "text/xml;content=schema";
+    public static final String VOSI_SCHEMA_TYPE = "application/x-vosi-schema";
     // VOSI tableset schema cannot carry owner information
-    public static final String VOSI_SCHEMA_TYPE = "text/plain"; // key = value
+    //public static final String VOSI_SCHEMA_TYPE = "text/plain"; // key = value
     
     private String objectTag;
     
-    public TableDescHandler(String objectTag) { 
+    public TablesInputHandler(String objectTag) { 
         this.objectTag = objectTag;
     }
 
     @Override
     public Content accept(String name, String contentType, InputStream in) throws InlineContentException, IOException {
+        log.debug("accept: " + name + " " + contentType);
         try {
             String schemaOwner = null;
             SchemaDesc sch = null;
@@ -117,21 +119,16 @@ public class TableDescHandler implements InlineContentHandler {
                 String str = StringUtil.readFromInputStream(istream, "UTF-8");
                 log.debug("raw input:\n" + str);
                 
-                //TableSetReader tsr = new TableSetReader(false);  // schema validation causes default arraysize="1" to be injected
-                //TapSchema ts = tsr.read(new StringReader(str));
-                //if (ts.getSchemaDescs().isEmpty() || ts.getSchemaDescs().size() > 1) {
-                //    throw new IllegalArgumentException("invalid input: expected 1 schema in " + VOSI_SCHEMA_TYPE
-                //        + " found: " + ts.getSchemaDescs().size());
-                //}
-                // TODO: reject if there are tables in schema
-                //sch = ts.getSchemaDescs().get(0);
-                Properties props = new Properties();
-                props.load(new StringReader(str));
-                schemaOwner = props.getProperty("owner");
+                TableSetReader tsr = new TableSetReader(false);  // schema validation causes default arraysize="1" to be injected
+                TapSchema ts = tsr.read(new StringReader(str));
+                if (ts.getSchemaDescs().isEmpty() || ts.getSchemaDescs().size() > 1) {
+                    throw new IllegalArgumentException("invalid input: expected 1 schema in " + VOSI_SCHEMA_TYPE
+                        + " found: " + ts.getSchemaDescs().size());
+                }
+                sch = ts.getSchemaDescs().get(0);
             } else if (VOSI_TABLE_TYPE.equalsIgnoreCase(contentType)) {
                 ByteCountInputStream istream = new ByteCountInputStream(in, BYTE_LIMIT);
                 String xml = StringUtil.readFromInputStream(istream, "UTF-8");
-                
                 TableReader tr = new TableReader(false); // schema validation causes default arraysize="1" to be injected
                 log.debug("raw input:\n" + xml);
                 tab = tr.read(new StringReader(xml));
@@ -144,8 +141,8 @@ public class TableDescHandler implements InlineContentHandler {
             InlineContentHandler.Content ret = new InlineContentHandler.Content();
             ret.name = objectTag;
             ret.value = tab;
-            if (schemaOwner != null) {
-                ret.value = schemaOwner;
+            if (sch != null) {
+                ret.value = sch;
             }
             return ret;
         } catch (InvalidTableSetException ex) {

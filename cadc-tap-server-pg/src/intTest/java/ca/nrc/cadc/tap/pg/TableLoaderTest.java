@@ -87,7 +87,7 @@ import org.junit.Test;
 import org.opencadc.tap.io.AsciiTableData;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-public class TableLoaderTest {
+public class TableLoaderTest extends TestUtil {
 
     private static final Logger log = Logger.getLogger(TableLoaderTest.class);
 
@@ -96,27 +96,15 @@ public class TableLoaderTest {
         Log4jInit.setLevel("ca.nrc.cadc.tap.db", Level.INFO);
     }
     
-    private DataSource dataSource;
-    private final String TEST_SCHEMA = "tap_schema";
-    
     public TableLoaderTest() { 
-        // create a datasource and register with JNDI
-        try {
-            DBConfig conf = new DBConfig();
-            ConnectionConfig cc = conf.getConnectionConfig("TAP_SCHEMA_TEST", "cadctest");
-            dataSource = DBUtil.getDataSource(cc);
-            log.info("configured data source: " + cc.getServer() + "," + cc.getDatabase() + "," + cc.getDriver() + "," + cc.getURL());
-        } catch (Exception ex) {
-            log.error("setup failed", ex);
-            throw new IllegalStateException("failed to create DataSource", ex);
-        }
+        super();
     }
     
     @Test
     public void testLoadDALI() {
         try {
-            String testTable = TEST_SCHEMA + ".testLoadDALI";
-            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            String testTable = testSchemaName + ".testLoadDALI";
+            TableDesc orig = new TableDesc(testSchemaName, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
             orig.getColumnDescs().add(new ColumnDesc(testTable, "e7", TapDataType.INTERVAL));
             orig.getColumnDescs().add(new ColumnDesc(testTable, "e8", TapDataType.POINT));
@@ -164,8 +152,8 @@ public class TableLoaderTest {
     @Test
     public void testLoadArrays() {
         try {
-            String testTable = TEST_SCHEMA + ".testLoadArrays";
-            TableDesc orig = new TableDesc(TEST_SCHEMA, testTable);
+            String testTable = testSchemaName + ".testLoadArrays";
+            TableDesc orig = new TableDesc(testSchemaName, testTable);
             orig.tableType = TableDesc.TableType.TABLE;
             orig.getColumnDescs().add(new ColumnDesc(testTable, "a11", new TapDataType("short", "4", null)));
             orig.getColumnDescs().add(new ColumnDesc(testTable, "a12", new TapDataType("int", "*", null)));
