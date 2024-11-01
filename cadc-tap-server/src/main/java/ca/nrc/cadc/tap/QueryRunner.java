@@ -331,8 +331,12 @@ public class QueryRunner implements JobRunner
             TapQuery query = pfac.getTapQuery();
             query.setTapSchema(tapSchema);
             query.setExtraTables(tableDescs);
-            if (maxRows != null)
+            if (maxRows != null) {
+                if (maxRows == Integer.MAX_VALUE) {
+                    throw new IllegalArgumentException("Invalid MAXREC: " + maxRows + " (max " + (Integer.MAX_VALUE - 1) + ")");
+                }
                 query.setMaxRowCount(maxRows + 1); // +1 so the TableWriter can detect overflow
+            }
 
             log.debug("invoking TapQuery implementation: " + query.getClass().getCanonicalName());
             String sql = query.getSQL();
