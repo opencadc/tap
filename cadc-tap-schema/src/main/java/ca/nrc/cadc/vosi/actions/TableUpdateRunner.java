@@ -379,50 +379,46 @@ public class TableUpdateRunner implements JobRunner {
             throw new IllegalArgumentException("ingest schema not found in tap_schema: " + schemaName);
         }
 
-        // check if table already exists in tap_schema
+        log.debug("check if table already exists in tap_schema");
         TableDesc tableDesc = tapSchemaDAO.getTable(tableName);
         if (tableDesc != null) {
             throw new IllegalArgumentException("ingest table already exists in tap_schema: " + tableName);
         }
 
-        // add the table to the tap_schema
+        // note: this is outside the transaction because it uses low-level db to get
+        // database metadata
         TableIngester tableIngester = new TableIngester(ds);
+        log.debug("read table from database");
+        TableDesc ingestable = tableIngester.getTableDesc(schemaName, tableName);
+        // check the table is valid ADQL name
+        try {
+            TapSchemaUtil.checkValidTableName(ingestable.getTableName());
+        } catch (ADQLIdentifierException ex) {
+            throw new IllegalArgumentException("invalid table name: " + ingestable.getTableName(), ex);
+        }
+        try {
+            for (ColumnDesc cd : ingestable.getColumnDescs()) {
+                TapSchemaUtil.checkValidIdentifier(cd.getColumnName());
+            }
+        } catch (ADQLIdentifierException ex) {
+            throw new IllegalArgumentException(ex.getMessage());
+        }
+            
         DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
         try {
+            log.debug("start transaction");
             tm.startTransaction();
-            
-            TableDesc ingestable = tableIngester.getTableDesc(schemaName, tableName);
-            // check the table is valid ADQL name
-            try {
-                TapSchemaUtil.checkValidTableName(ingestable.getTableName());
-            } catch (ADQLIdentifierException ex) {
-                throw new IllegalArgumentException("invalid table name: " + ingestable.getTableName(), ex);
-            }
-            try {
-                for (ColumnDesc cd : ingestable.getColumnDescs()) {
-                    TapSchemaUtil.checkValidIdentifier(cd.getColumnName());
-                }
-            } catch (ADQLIdentifierException ex) {
-                throw new IllegalArgumentException(ex.getMessage());
-            }
             
             // assign owner
             ingestable.tapPermissions.owner = AuthenticationUtil.getCurrentSubject();
             ingestable.apiCreated = false; // pre-existing table
             
+            log.debug("put table to tap_schema");
             tapSchemaDAO.put(ingestable);
             log.debug(String.format("added table '%s' to tap_schema", tableName));
 
+            log.debug("commit transaction");
             tm.commitTransaction();
-        } catch (IllegalArgumentException | ResourceNotFoundException | UnsupportedOperationException ex) {
-            try {
-                log.debug("ingest table and update tap_schema failed - rollback", ex);
-                tm.rollbackTransaction();
-                log.debug("ingest table and update tap_schema failed - rollback OK");
-            } catch (Exception oops) {
-                log.error("ingest table and update tap_schema failed - rollback: FAIL", ex);
-            }
-            throw ex;
         } catch (Exception ex) {
             
             try {
