@@ -72,6 +72,7 @@ package ca.nrc.cadc.tap;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.dali.tables.ascii.AsciiTableWriter;
+import ca.nrc.cadc.dali.tables.parquet.ParquetWriter;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableField;
 import ca.nrc.cadc.dali.tables.votable.VOTableInfo;
@@ -140,6 +141,8 @@ public class DefaultTableWriter implements TableWriter
 //    private static final String TEXT_PLAIN = "text/plain";
     private static final String TEXT_TAB_SEPARATED_VALUES = "text/tab-separated-values";
     private static final String TEXT_XML = "text/xml";
+    private static final String APPLICATION_PARQUET = "application/vnd.apache.parquet";
+    private static final String PARQUET = "parquet";
 
     private static final Map<String,String> knownFormats = new TreeMap<String,String>();
 
@@ -155,6 +158,8 @@ public class DefaultTableWriter implements TableWriter
         knownFormats.put(TSV, TSV);
         knownFormats.put(RSS, RSS);
         knownFormats.put(APPLICATION_RSS, RSS);
+        knownFormats.put(APPLICATION_PARQUET, PARQUET);
+        knownFormats.put(PARQUET, PARQUET);
     }
 
     private Job job;
@@ -163,7 +168,7 @@ public class DefaultTableWriter implements TableWriter
     private String extension;
 
     // RssTableWriter not yet ported to cadcDALI
-    private ca.nrc.cadc.dali.tables.TableWriter<VOTableDocument> tableWriter;
+    private ca.nrc.cadc.dali.tables.TableWriter tableWriter;
     private RssTableWriter rssTableWriter;
     
     private FormatFactory formatFactory;
@@ -235,11 +240,12 @@ public class DefaultTableWriter implements TableWriter
     private void initFormat()
     {
         String format = ParameterUtil.findParameterValue(FORMAT, job.getParameterList());
-        if (format == null)
+        if (format == null) {
             format = ParameterUtil.findParameterValue(FORMAT_ALT, job.getParameterList());
-        if (format == null)
+        }
+        if (format == null) {
             format = VOTABLE;
-        
+        }
         String type = knownFormats.get(format.toLowerCase());
         if (type == null && errorWriter) {
             type = VOTABLE;
@@ -247,29 +253,29 @@ public class DefaultTableWriter implements TableWriter
         } else if (type == null) {
             throw new UnsupportedOperationException("unknown format: " + format);
         }
-        
-        if (type.equals(VOTABLE) && format.equals(VOTABLE))
+
+        if (type.equals(VOTABLE) && format.equals(VOTABLE)) {
             format = APPLICATION_VOTABLE_XML;
-        
+        }
         // Create the table writer (handle RSS the old way for now)
         // Note: This needs to be done before the write method is called so the contentType
         // can be determined from the table writer.
 
-        if (type.equals(RSS))
-        {
+        if (type.equals(RSS)) {
             rssTableWriter = new RssTableWriter();
             rssTableWriter.setJob(job);
             // for error handling
             tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
-        }
-        else if (type.equals(VOTABLE)) {
+        } else if (type.equals(VOTABLE)) {
             tableWriter = new VOTableWriter(format);
         } else if (type.equals(CSV)) {
             tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.CSV);
         } else if (type.equals(TSV)) {
             tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
+        } else if (type.equals(PARQUET)) {
+            tableWriter = new ParquetWriter();
         }
-    
+
         if (tableWriter == null) {
             throw new UnsupportedOperationException("unsupported format: " + type);
         }
@@ -303,10 +309,13 @@ public class DefaultTableWriter implements TableWriter
 
     @Override
     public void write(ResultSet rs, OutputStream out, Long maxrec)
-            throws IOException
-    {
-        Writer writer = new BufferedWriter(new OutputStreamWriter(out, "UTF-8"));
-        this.write(rs, writer, maxrec);
+            throws IOException {
+        if (this.getContentType().equals("application/vnd.apache.parquet")) {
+            tableWriter.write(rs, out, maxrec == null ? Long.MAX_VALUE : maxrec);
+        } else {
+            Writer writer = new BufferedWriter(new OutputStreamWriter(out, "UTF-8"));
+            this.write(rs, writer, maxrec);
+        }
     }
 
     @Override
@@ -397,7 +406,7 @@ public class DefaultTableWriter implements TableWriter
             tableWriter.write(votableDocument, out, maxrec);
         else
             tableWriter.write(votableDocument, out);
-        
+
         this.rowcount = tableData.getRowCount();
     }
 
@@ -407,7 +416,7 @@ public class DefaultTableWriter implements TableWriter
         if (serviceDocument == null) {
             return null;
         }
-        
+
         String filename = columnID + ".xml"; // for error reporting
         // find specified endpoint
         for (VOTableResource metaResource : serviceDocument.getResources()) {
