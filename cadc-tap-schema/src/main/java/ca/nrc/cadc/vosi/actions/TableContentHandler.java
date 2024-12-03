@@ -114,6 +114,9 @@ public class TableContentHandler implements InlineContentHandler {
         if (tableName == null) {
             throw new IllegalArgumentException("Missing table name in path");
         }
+        if (contentType == null) {
+            throw new IllegalArgumentException("Table Content-Type is required.");
+        }
 
         TapSchemaDAO ts = parent.getTapSchemaDAO();
         parent.checkTableWritePermissions(ts, tableName);
@@ -125,9 +128,6 @@ public class TableContentHandler implements InlineContentHandler {
 
         log.debug("Content-Type: " + contentType);
         TableDataInputStream tableData = null;
-        if (contentType == null) {
-            throw new IllegalArgumentException("Table Content-Type is requried.");
-        }
         if (contentType.equals(CONTENT_TYPE_CSV) || contentType.equals(CONTENT_TYPE_TSV)) {
             tableData = new AsciiTableData(inputStream, contentType);
         }
