@@ -384,24 +384,23 @@ public class DefaultTableWriter implements TableWriter
         // list columnIDs that we recognize
         addMetaResources(votableDocument, serviceIDs);
 
-        if(!this.getContentType().equals("application/vnd.apache.parquet")) {
-            VOTableInfo info = new VOTableInfo("QUERY_STATUS", "OK");
+        VOTableInfo info = new VOTableInfo("QUERY_STATUS", "OK");
+        resultsResource.getInfos().add(info);
+
+        DateFormat df = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
+        Date now = new Date();
+        VOTableInfo info2 = new VOTableInfo("QUERY_TIMESTAMP", df.format(now));
+        resultsResource.getInfos().add(info2);
+
+        // for documentation, add the query to the table as an info element
+        if (queryInfo != null) {
+            info = new VOTableInfo("QUERY", queryInfo);
             resultsResource.getInfos().add(info);
-
-            DateFormat df = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
-            Date now = new Date();
-            VOTableInfo info2 = new VOTableInfo("QUERY_TIMESTAMP", df.format(now));
-            resultsResource.getInfos().add(info2);
-
-            // for documentation, add the query to the table as an info element
-            if (queryInfo != null) {
-                info = new VOTableInfo("QUERY", queryInfo);
-                resultsResource.getInfos().add(info);
-            }
-
-            ResultSetTableData tableData = new ResultSetTableData(rs, formats);
-            resultsTable.setTableData(tableData);
         }
+
+        ResultSetTableData tableData = new ResultSetTableData(rs, formats);
+        resultsTable.setTableData(tableData);
+        
         if (maxrec != null)
             tableWriter.write(votableDocument, out, maxrec);
         else
