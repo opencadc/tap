@@ -168,7 +168,7 @@ public class DefaultTableWriter implements TableWriter
     private String extension;
 
     // RssTableWriter not yet ported to cadcDALI
-    private ca.nrc.cadc.dali.tables.TableWriter tableWriter;
+    private ca.nrc.cadc.dali.tables.TableWriter<VOTableDocument> tableWriter;
     private RssTableWriter rssTableWriter;
     
     private FormatFactory formatFactory;
