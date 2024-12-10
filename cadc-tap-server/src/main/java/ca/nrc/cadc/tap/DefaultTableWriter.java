@@ -311,7 +311,8 @@ public class DefaultTableWriter implements TableWriter
     public void write(ResultSet rs, OutputStream out, Long maxrec)
             throws IOException {
         if (this.getContentType().equals("application/vnd.apache.parquet")) {
-            tableWriter.write(rs, out, maxrec == null ? Long.MAX_VALUE : maxrec);
+            VOTableDocument voTableDocument = prepareVOTableDocument(rs);
+            tableWriter.write(voTableDocument, out, maxrec == null ? Long.MAX_VALUE : maxrec);
         } else {
             Writer writer = new BufferedWriter(new OutputStreamWriter(out, "UTF-8"));
             this.write(rs, writer, maxrec);
@@ -322,6 +323,75 @@ public class DefaultTableWriter implements TableWriter
     public void write(ResultSet rs, Writer out) throws IOException
     {
         this.write(rs, out, null);
+    }
+
+    private VOTableDocument prepareVOTableDocument(ResultSet rs) throws IOException {
+        VOTableDocument votableDocument = new VOTableDocument();
+
+        VOTableResource resultsResource = new VOTableResource("results");
+        VOTableTable resultsTable = new VOTableTable();
+
+        // get the formats based on the selectList
+        List<Format<Object>> formats = formatFactory.getFormats(selectList);
+
+        List<String> serviceIDs = new ArrayList<String>();
+
+        // Add the metadata elements.
+        addVOTableMetadata(formats, resultsTable, serviceIDs);
+
+        resultsResource.setTable(resultsTable);
+        votableDocument.getResources().add(resultsResource);
+
+        // Add the "meta" resources to describe services for each columnID in list columnIDs that we recognize
+        addMetaResources(votableDocument, serviceIDs);
+
+        setVOTableInfo(resultsResource);
+
+        ResultSetTableData tableData = new ResultSetTableData(rs, formats);
+        resultsTable.setTableData(tableData);
+        this.rowcount = tableData.getRowCount(); // TODO: it was getting set after the write method was called
+
+        return votableDocument;
+    }
+
+    private void addVOTableMetadata(List<Format<Object>> formats, VOTableTable resultsTable, List<String> serviceIDs) {
+        int listIndex = 0;
+        for (TapSelectItem resultCol : selectList)
+        {
+            VOTableField newField = createVOTableField(resultCol);
+
+            Format<Object> format = formats.get(listIndex);
+            log.debug("format: " + listIndex + " " + format.getClass().getName());
+            newField.setFormat(format);
+
+            resultsTable.getFields().add(newField);
+
+            if (newField.id != null)
+            {
+                if ( !serviceIDs.contains(newField.id) )
+                    serviceIDs.add(newField.id);
+                else
+                    newField.id = null; // avoid multiple ID with same value in output
+            }
+
+            listIndex++;
+        }
+    }
+
+    private void setVOTableInfo(VOTableResource resultsResource) {
+        VOTableInfo info = new VOTableInfo("QUERY_STATUS", "OK");
+        resultsResource.getInfos().add(info);
+
+        DateFormat df = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
+        Date now = new Date();
+        VOTableInfo info2 = new VOTableInfo("QUERY_TIMESTAMP", df.format(now));
+        resultsResource.getInfos().add(info2);
+
+        // for documentation, add the query to the table as an info element
+        if (queryInfo != null) {
+            info = new VOTableInfo("QUERY", queryInfo);
+            resultsResource.getInfos().add(info);
+        }
     }
 
     @Override
@@ -343,70 +413,14 @@ public class DefaultTableWriter implements TableWriter
                 rssTableWriter.write(rs, out);
             return;
         }
-        
-        VOTableDocument votableDocument = new VOTableDocument();
 
-        VOTableResource resultsResource = new VOTableResource("results");
-        VOTableTable resultsTable = new VOTableTable();
+        VOTableDocument votableDocument = prepareVOTableDocument(rs);
 
-        // get the formats based on the selectList
-        List<Format<Object>> formats = formatFactory.getFormats(selectList);
-
-        List<String> serviceIDs = new ArrayList<String>();
-        int listIndex = 0;
-
-        // Add the metadata elements.
-        for (TapSelectItem resultCol : selectList)
-        {
-            VOTableField newField = createVOTableField(resultCol);
-
-            Format<Object> format = formats.get(listIndex);
-            log.debug("format: " + listIndex + " " + format.getClass().getName());
-            newField.setFormat(format);
-
-            resultsTable.getFields().add(newField);
-
-            if (newField.id != null)
-            {
-                if ( !serviceIDs.contains(newField.id) )
-                    serviceIDs.add(newField.id);
-                else
-                    newField.id = null; // avoid multiple ID with same value in output
-            }
-
-            listIndex++;
-        }
-
-        resultsResource.setTable(resultsTable);
-        votableDocument.getResources().add(resultsResource);
-
-        // Add the "meta" resources to describe services for each columnID in
-        // list columnIDs that we recognize
-        addMetaResources(votableDocument, serviceIDs);
-
-        VOTableInfo info = new VOTableInfo("QUERY_STATUS", "OK");
-        resultsResource.getInfos().add(info);
-
-        DateFormat df = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
-        Date now = new Date();
-        VOTableInfo info2 = new VOTableInfo("QUERY_TIMESTAMP", df.format(now));
-        resultsResource.getInfos().add(info2);
-
-        // for documentation, add the query to the table as an info element
-        if (queryInfo != null) {
-            info = new VOTableInfo("QUERY", queryInfo);
-            resultsResource.getInfos().add(info);
-        }
-
-        ResultSetTableData tableData = new ResultSetTableData(rs, formats);
-        resultsTable.setTableData(tableData);
-        
         if (maxrec != null)
             tableWriter.write(votableDocument, out, maxrec);
         else
             tableWriter.write(votableDocument, out);
 
-        this.rowcount = tableData.getRowCount();
     }
 
     // HACK: need to allow an ObsCore.access_url formatter to access this info
