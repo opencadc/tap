@@ -67,17 +67,19 @@
 
 package ca.nrc.cadc.vosi.actions;
 
+import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
+import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
 import ca.nrc.cadc.net.ResourceNotFoundException;
-import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import ca.nrc.cadc.tap.schema.TapSchemaLoader;
+import ca.nrc.cadc.tap.schema.TapSchemaUtil;
 import ca.nrc.cadc.vosi.TableSetWriter;
 import ca.nrc.cadc.vosi.TableWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
-import java.security.AccessControlException;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;
 
@@ -131,10 +133,24 @@ public class GetAction extends TablesAction {
                 // currently, permission check already threw this
                 throw new ResourceNotFoundException("table not found: " + tableName);
             }
-            TableWriter tw = new TableWriter();
-            syncOutput.setCode(HttpServletResponse.SC_OK);
-            syncOutput.setHeader("Content-Type", "text/xml");
-            tw.write(td, new OutputStreamWriter(syncOutput.getOutputStream()));
+
+            // If the Accept header = application/x-votable+xml,
+            // output the TableDesc as a VOTable
+            String accept = syncInput.getHeader("Accept");
+            if (VOTableWriter.CONTENT_TYPE.equals(accept)) {
+                VOTableDocument doc = TapSchemaUtil.createVOTable(td);
+                VOTableWriter  tw = new VOTableWriter(VOTableWriter.CONTENT_TYPE);
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                tw.write(doc, bos);
+                syncOutput.setCode(HttpServletResponse.SC_OK);
+                syncOutput.setHeader("Content-Type", VOTableWriter.CONTENT_TYPE);
+                tw.write(doc, new OutputStreamWriter(syncOutput.getOutputStream()));
+            } else {
+                TableWriter tw = new TableWriter();
+                syncOutput.setCode(HttpServletResponse.SC_OK);
+                syncOutput.setHeader("Content-Type", "text/xml");
+                tw.write(td, new OutputStreamWriter(syncOutput.getOutputStream()));
+            }
         } else if (schemaName != null) {
             checkViewSchemaPermissions(dao, schemaName, logInfo);
             // TODO: TapSchemaDAO only supports schema only, ok for detail=min
