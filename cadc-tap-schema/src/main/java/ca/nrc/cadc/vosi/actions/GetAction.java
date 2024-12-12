@@ -138,13 +138,11 @@ public class GetAction extends TablesAction {
             // output the TableDesc as a VOTable
             String accept = syncInput.getHeader("Accept");
             if (VOTableWriter.CONTENT_TYPE.equals(accept)) {
-                VOTableDocument doc = TapSchemaUtil.createVOTable(td);
-                VOTableWriter  tw = new VOTableWriter(VOTableWriter.CONTENT_TYPE);
-                ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                tw.write(doc, bos);
+                VOTableDocument vot = TapSchemaUtil.createVOTable(td);
+                VOTableWriter tw = new VOTableWriter();
                 syncOutput.setCode(HttpServletResponse.SC_OK);
                 syncOutput.setHeader("Content-Type", VOTableWriter.CONTENT_TYPE);
-                tw.write(doc, new OutputStreamWriter(syncOutput.getOutputStream()));
+                tw.write(vot, new OutputStreamWriter(syncOutput.getOutputStream()));
             } else {
                 TableWriter tw = new TableWriter();
                 syncOutput.setCode(HttpServletResponse.SC_OK);
