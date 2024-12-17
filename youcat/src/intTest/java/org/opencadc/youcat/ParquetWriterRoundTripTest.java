@@ -1,6 +1,7 @@
 package org.opencadc.youcat;
 
 import ca.nrc.cadc.dali.tables.parquet.ParquetReader;
+import ca.nrc.cadc.dali.tables.parquet.ParquetReader.TableShape;
 import ca.nrc.cadc.net.HttpPost;
 import ca.nrc.cadc.reg.Standards;
 import org.apache.log4j.Logger;
@@ -8,10 +9,10 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.opencadc.tap.TapClient;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -33,7 +34,7 @@ public class ParquetWriterRoundTripTest {
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         HttpPost httpPost = new HttpPost(url, params, out);
-        httpPost.prepare();
+        httpPost.run();
 
         if (httpPost.getThrowable() != null) {
             log.error("Post failed", httpPost.getThrowable());
@@ -45,19 +46,19 @@ public class ParquetWriterRoundTripTest {
 
         String contentType = httpPost.getContentType();
         Assert.assertEquals("application/vnd.apache.parquet", contentType);
-        String writerResponse = httpPost.getResponseBody();
 
-        Path filePath = Path.of("/tmp/pqop.parquet");
         try {
-            // Write bytes to the file
-            Files.write(filePath, writerResponse.getBytes());
-            log.info("filepath: " + filePath.toAbsolutePath());
-
             ParquetReader reader = new ParquetReader();
-            String readerResponse = reader.read("/tmp/pqop.parquet");
-            Assert.assertEquals("Worked", readerResponse);
+            InputStream inputStream = new ByteArrayInputStream(out.toByteArray());
+            TableShape readerResponse = reader.read(inputStream);
+
+            log.info(readerResponse.getColumnCount() + " columns, " + readerResponse.getRecordCount() + " records");
+
+            Assert.assertTrue(readerResponse.getRecordCount() > 0);
+            Assert.assertTrue(readerResponse.getColumnCount() > 0);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("unexpected exception", e);
+            Assert.fail("unexpected exception: " + e);
         }
     }
 }
