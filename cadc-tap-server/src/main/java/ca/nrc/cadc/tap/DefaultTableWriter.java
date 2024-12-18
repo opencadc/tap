@@ -308,24 +308,25 @@ public class DefaultTableWriter implements TableWriter
     }
 
     @Override
-    public void write(ResultSet rs, OutputStream out, Long maxrec)
-            throws IOException {
-        if (this.getContentType().equals("application/vnd.apache.parquet")) {
-            VOTableDocument voTableDocument = prepareVOTableDocument(rs);
-            tableWriter.write(voTableDocument, out, maxrec == null ? Long.MAX_VALUE : maxrec);
-        } else {
-            Writer writer = new BufferedWriter(new OutputStreamWriter(out, "UTF-8"));
-            this.write(rs, writer, maxrec);
-        }
-    }
-
-    @Override
-    public void write(ResultSet rs, Writer out) throws IOException
+    public void write(ResultSet rs, OutputStream out, Long maxrec) throws IOException
     {
-        this.write(rs, out, null);
-    }
+        if (rs != null && log.isDebugEnabled())
+            try { log.debug("resultSet column count: " + rs.getMetaData().getColumnCount()); }
+            catch(Exception oops) { log.error("failed to check resultset column count", oops); }
 
-    private VOTableDocument prepareVOTableDocument(ResultSet rs) throws IOException {
+        if (rssTableWriter != null)
+        {
+            rssTableWriter.setJob(job);
+            rssTableWriter.setSelectList(selectList);
+            rssTableWriter.setFormatFactory(formatFactory);
+            rssTableWriter.setQueryInfo(queryInfo);
+            if (maxrec != null)
+                rssTableWriter.write(rs, out, maxrec);
+            else
+                rssTableWriter.write(rs, out);
+            return;
+        }
+
         VOTableDocument votableDocument = new VOTableDocument();
 
         VOTableResource resultsResource = new VOTableResource("results");
@@ -335,27 +336,9 @@ public class DefaultTableWriter implements TableWriter
         List<Format<Object>> formats = formatFactory.getFormats(selectList);
 
         List<String> serviceIDs = new ArrayList<String>();
+        int listIndex = 0;
 
         // Add the metadata elements.
-        addVOTableMetadata(formats, resultsTable, serviceIDs);
-
-        resultsResource.setTable(resultsTable);
-        votableDocument.getResources().add(resultsResource);
-
-        // Add the "meta" resources to describe services for each columnID in list columnIDs that we recognize
-        addMetaResources(votableDocument, serviceIDs);
-
-        setVOTableInfo(resultsResource);
-
-        ResultSetTableData tableData = new ResultSetTableData(rs, formats);
-        resultsTable.setTableData(tableData);
-        this.rowcount = tableData.getRowCount(); // TODO: it was getting set after the write method was called
-
-        return votableDocument;
-    }
-
-    private void addVOTableMetadata(List<Format<Object>> formats, VOTableTable resultsTable, List<String> serviceIDs) {
-        int listIndex = 0;
         for (TapSelectItem resultCol : selectList)
         {
             VOTableField newField = createVOTableField(resultCol);
@@ -376,9 +359,14 @@ public class DefaultTableWriter implements TableWriter
 
             listIndex++;
         }
-    }
 
-    private void setVOTableInfo(VOTableResource resultsResource) {
+        resultsResource.setTable(resultsTable);
+        votableDocument.getResources().add(resultsResource);
+
+        // Add the "meta" resources to describe services for each columnID in
+        // list columnIDs that we recognize
+        addMetaResources(votableDocument, serviceIDs);
+
         VOTableInfo info = new VOTableInfo("QUERY_STATUS", "OK");
         resultsResource.getInfos().add(info);
 
@@ -388,39 +376,21 @@ public class DefaultTableWriter implements TableWriter
         resultsResource.getInfos().add(info2);
 
         // for documentation, add the query to the table as an info element
-        if (queryInfo != null) {
+        if (queryInfo != null)
+        {
             info = new VOTableInfo("QUERY", queryInfo);
             resultsResource.getInfos().add(info);
         }
-    }
 
-    @Override
-    public void write(ResultSet rs, Writer out, Long maxrec) throws IOException
-    {
-        if (rs != null && log.isDebugEnabled())
-            try { log.debug("resultSet column count: " + rs.getMetaData().getColumnCount()); }
-            catch(Exception oops) { log.error("failed to check resultset column count", oops); }
-
-        if (rssTableWriter != null)
-        {
-            rssTableWriter.setJob(job);
-            rssTableWriter.setSelectList(selectList);
-            rssTableWriter.setFormatFactory(formatFactory);
-            rssTableWriter.setQueryInfo(queryInfo);
-            if (maxrec != null)
-                rssTableWriter.write(rs, out, maxrec);
-            else
-                rssTableWriter.write(rs, out);
-            return;
-        }
-
-        VOTableDocument votableDocument = prepareVOTableDocument(rs);
+        ResultSetTableData tableData = new ResultSetTableData(rs, formats);
+        resultsTable.setTableData(tableData);
 
         if (maxrec != null)
             tableWriter.write(votableDocument, out, maxrec);
         else
             tableWriter.write(votableDocument, out);
 
+        this.rowcount = tableData.getRowCount();
     }
 
     // HACK: need to allow an ObsCore.access_url formatter to access this info

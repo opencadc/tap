@@ -186,7 +186,6 @@ public class RssTableWriter implements TableWriter
     }
     
     
-    @Override
     public void write(ResultSet resultSet, Writer writer) throws IOException
     {
         this.write(resultSet, writer, Long.MAX_VALUE);
@@ -207,7 +206,6 @@ public class RssTableWriter implements TableWriter
         this.write(resultSet, writer, maxrec);
     }
 
-    @Override
     public void write(ResultSet resultSet, Writer out, Long maxrec) throws IOException
     {
         if (selectList == null)
