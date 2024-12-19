@@ -94,6 +94,8 @@ public class TableSetParser
     private static final Logger log = Logger.getLogger(TableSetParser.class);
 
     private Map<String,String> schemaMap;
+    private static final String TBD_NS_URI = "http://localhost/TBD/v1.0";
+    private final static String TBD_XSD = "TBD-v1.0.xsd";
 
     public TableSetParser()
     {
@@ -116,6 +118,10 @@ public class TableSetParser
             {
                 log.warn("failed to find resource: " + VOSI.TABLES_SCHEMA);
             }
+
+            String tbdURL = XmlUtil.getResourceUrlString(TBD_XSD, TableSetParser.class);
+            log.debug(TBD_NS_URI + " -> " + tbdURL);
+            schemaMap.put(TBD_NS_URI, tbdURL);
         }
     }
 

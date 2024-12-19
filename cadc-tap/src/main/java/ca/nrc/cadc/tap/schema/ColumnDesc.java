@@ -95,7 +95,7 @@ public class ColumnDesc
      * This can normally be left null as it is only needed for including additional resources in the 
      * VOTable output.
      */
-    public String id;
+    public String column_id;
 
     public ColumnDesc(String tableName, String columnName, TapDataType datatype)
     {
