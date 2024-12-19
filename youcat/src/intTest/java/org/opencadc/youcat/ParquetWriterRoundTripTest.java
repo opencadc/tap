@@ -2,6 +2,9 @@ package org.opencadc.youcat;
 
 import ca.nrc.cadc.dali.tables.parquet.ParquetReader;
 import ca.nrc.cadc.dali.tables.parquet.ParquetReader.TableShape;
+import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
+import ca.nrc.cadc.dali.tables.votable.VOTableInfo;
+import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.net.HttpPost;
 import ca.nrc.cadc.reg.Standards;
 import org.apache.log4j.Logger;
@@ -15,6 +18,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ParquetWriterRoundTripTest {
     private static final Logger log = Logger.getLogger(ParquetWriterRoundTripTest.class);
@@ -56,6 +60,32 @@ public class ParquetWriterRoundTripTest {
 
             Assert.assertTrue(readerResponse.getRecordCount() > 0);
             Assert.assertTrue(readerResponse.getColumnCount() > 0);
+
+            VOTableDocument voTableDocument = readerResponse.getVoTableDocument();
+
+            Assert.assertNotNull(voTableDocument.getResources());
+
+            VOTableResource results = voTableDocument.getResourceByType("results");
+            Assert.assertNotNull(results);
+
+            boolean queryFound = false;
+            boolean queryStatusFound = false;
+
+            for (VOTableInfo voTableInfo : results.getInfos()) {
+                if (voTableInfo.getName().equals("QUERY")) {
+                    queryFound = true;
+                    Assert.assertEquals(adql, voTableInfo.getValue());
+                } else if (voTableInfo.getName().equals("QUERY_STATUS")) {
+                    queryStatusFound = true;
+                    Assert.assertEquals("OK", voTableInfo.getValue());
+                }
+            }
+
+            Assert.assertTrue(queryFound);
+            Assert.assertTrue(queryStatusFound);
+
+            Assert.assertNotNull(results.getTable());
+            Assert.assertEquals(readerResponse.getColumnCount(), results.getTable().getFields().size());
         } catch (Exception e) {
             log.error("unexpected exception", e);
             Assert.fail("unexpected exception: " + e);
