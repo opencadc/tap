@@ -91,7 +91,7 @@ import org.junit.Test;
 public class TableSetReaderWriterTest {
     private static final Logger log = Logger.getLogger(TableSetReaderWriterTest.class);
     static {
-        Log4jInit.setLevel("ca.nrc.cadc.vosi", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.vosi", Level.INFO);
     }
 
     String DEFAULT_SCHEMA = "default";

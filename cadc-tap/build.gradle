@@ -31,3 +31,10 @@ dependencies {
     
     testCompile 'junit:junit:[4.1,5.0)'
 }
+
+// allow unit test access to VOSITable-ext xsd
+sourceSets {
+    test {
+        resources.srcDirs += 'src/main/resources'
+    }
+}

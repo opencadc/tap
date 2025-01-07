@@ -108,9 +108,10 @@ public class TableSet
     private final Namespace vod = XMLConstants.VODATASERVICE_NS;
 
     // move to cadc-vosi VOSI
-    public static final String TBD_PREFIX = "TBDNS";
-    public static final String TBD_NS_URI = "http://localhost/TBD/v1.0";
-    public static final Namespace TBD_NS = Namespace.getNamespace(TBD_PREFIX, TBD_NS_URI);
+    public static final String VTE_PREFIX = "vte";
+    public static final String VTE_XSD = "VOSITables-ext-v1.0.xsd";
+    public static final String VTE_NS_URI = "http://www.opencadc.org/xml/VOSITables-ext/v0.1";
+    public static final Namespace vte = Namespace.getNamespace(VTE_PREFIX, VTE_NS_URI);
 
     public TableSet(TapSchema tapSchema)
     {
@@ -146,7 +147,7 @@ public class TableSet
     {
         root.addNamespaceDeclaration(xsi);
         root.addNamespaceDeclaration(vod);
-        root.addNamespaceDeclaration(TBD_NS);
+        root.addNamespaceDeclaration(vte);
           
         // ivoa convention but not allowed by the VODataService schema
         //root.setAttribute("version", "1.1");
@@ -276,7 +277,7 @@ public class TableSet
             addChild(eleColumn, "flag", "indexed");
         }
         if (cd.column_id != null) {
-            eleColumn.setAttribute(new Attribute("column_id", cd.column_id, TBD_NS));
+            eleColumn.setAttribute(new Attribute("columnID", cd.column_id, vte));
         }
 
         return eleColumn;

@@ -181,7 +181,7 @@ public class TableReader extends TableSetParser
             cd.unit = ce.getChildTextTrim("unit");
             cd.utype = ce.getChildTextTrim("utype");
             //cd.indexed = "indexed".equals(ce.getChildTextTrim("flag"));
-            cd.column_id = ce.getAttributeValue("column_id", TableSet.TBD_NS);
+            cd.column_id = ce.getAttributeValue("columnID", TableSet.vte);
             td.getColumnDescs().add(cd);
         }
         

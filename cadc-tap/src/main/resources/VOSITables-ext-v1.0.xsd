@@ -2,13 +2,15 @@
 
 <xs:schema
         xmlns:xs="http://www.w3.org/2001/XMLSchema"
-        xmlns:TBDNS="http://localhost/TBD/v1.0"
-        targetNamespace="http://localhost/TBD/v1.0"
+        targetNamespace="http://www.opencadc.org/xml/VOSITables-ext/v0.1"
         attributeFormDefault="qualified">
 
-    <xs:attribute name="column_id">
+    <xs:attribute name="columnID">
         <xs:annotation>
             <xs:documentation>
+                An attribute intended for use on a column element only,
+                that uniquely identifies a column in a TAP service,
+                allowing reading and writing of an identifier.
             </xs:documentation>
         </xs:annotation>
         <xs:simpleType>
