@@ -72,7 +72,7 @@ create table tap_schema.columns11
 -- TAP-1.1 column_index
 	column_index   integer,
 -- extension: globally unique columnID for use as an XML ID attribute on the FIELD in VOTable output
-        id            varchar(32),
+    column_id     varchar(32),
 	
 -- extension: permissions for user-created content
     owner_id        varchar(32),

@@ -116,6 +116,10 @@ public class TableSetParser
             {
                 log.warn("failed to find resource: " + VOSI.TABLES_SCHEMA);
             }
+
+            String tbdURL = XmlUtil.getResourceUrlString(TableSet.VTE_XSD, TableSetParser.class);
+            log.debug(TableSet.VTE_NS_URI + " -> " + tbdURL);
+            schemaMap.put(TableSet.VTE_NS_URI, tbdURL);
         }
     }
 
