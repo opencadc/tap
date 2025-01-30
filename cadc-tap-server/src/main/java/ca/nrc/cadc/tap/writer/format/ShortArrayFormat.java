@@ -88,7 +88,7 @@ public class ShortArrayFormat extends AbstractResultSetFormat {
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
             throws SQLException {
-        return resultSet.getObject(columnIndex);
+        return unwrap(resultSet.getObject(columnIndex));
     }
 
     /**
@@ -102,6 +102,14 @@ public class ShortArrayFormat extends AbstractResultSetFormat {
     public String format(Object object) {
         if (object == null) {
             return "";
+        }
+
+        return fmt.format((short[]) object);
+    }
+
+    public short[] unwrap(Object object) {
+        if (object == null) {
+            return null;
         }
 
         if (object instanceof java.sql.Array) {
@@ -123,7 +131,7 @@ public class ShortArrayFormat extends AbstractResultSetFormat {
         }
 
         if (object instanceof short[]) {
-            return fmt.format((short[]) object);
+            return (short[]) object;
         }
 
         throw new IllegalArgumentException(this.getClass().getSimpleName() + ": " + object.getClass().getCanonicalName() + " not supported.");

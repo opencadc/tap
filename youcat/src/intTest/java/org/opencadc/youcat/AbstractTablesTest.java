@@ -352,6 +352,7 @@ abstract class AbstractTablesTest {
         HttpPost post = new HttpPost(schemaURL, content, false);
         post.setMaxRetries(0); // testing read-only and offline mode
         Subject.doAs(subject, new RunnableAction(post));
+        System.out.println(post.getThrowable().getMessage());
         Assert.assertEquals(expectedCode, post.getResponseCode());
         
     }
