@@ -143,16 +143,25 @@ public class AuthQueryTest {
 
         private URL url;
         private Map<String, Object> params;
+        ByteArrayOutputStream out;
+        String contentType;
 
         public SyncQueryAction(URL url, Map<String, Object> params) {
             this.url = url;
             this.params = params;
+            this.out = new ByteArrayOutputStream();
+            this.contentType = "application/x-votable+xml";
+        }
+        public SyncQueryAction(URL url, Map<String, Object> params, ByteArrayOutputStream out, String contentType) {
+            this.url = url;
+            this.params = params;
+            this.out = out;
+            this.contentType = contentType;
         }
 
         @Override
         public String run()
                 throws Exception {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
             HttpPost doit = new HttpPost(url, params, out);
             doit.run();
 
@@ -170,7 +179,7 @@ public class AuthQueryTest {
             log.debug("contentType: " + contentType);
             log.debug("respnse:\n" + result);
 
-            Assert.assertEquals("application/x-votable+xml", contentType);
+            Assert.assertEquals(this.contentType, contentType);
 
             return result;
         }

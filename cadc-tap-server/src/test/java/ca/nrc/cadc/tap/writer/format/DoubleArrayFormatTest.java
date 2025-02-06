@@ -141,7 +141,7 @@ public class DoubleArrayFormatTest
     public void testFormatWrappedDouble()
     {
         LOG.debug("testFormatPrimitiveDouble");
-        Object object = new Double[] { 1.0, 2.0 };
+        Object object = new double[] { 1.0, 2.0 };
         DoubleArrayFormat instance = new DoubleArrayFormat();
         String expResult = "1.0 2.0";
         String result = instance.format(object);
