@@ -22,8 +22,8 @@ dependencies {
     implementation 'org.jdom:jdom2:[2.0,)'
 
     implementation 'org.opencadc:cadc-util:[1.6,)'
-    implementation 'org.opencadc:cadc-tap:[1.1.0,1.2)'
-    implementation 'org.opencadc:cadc-tap-schema:[1.1.28,)'
+    implementation 'org.opencadc:cadc-tap:[1.1.8,1.2)'
+    implementation 'org.opencadc:cadc-tap-schema:[1.2.4,)'
     implementation 'org.opencadc:cadc-vosi:[1.4.2,)'
     implementation 'org.opencadc:cadc-dali:[1.2.19,)'
     implementation 'org.opencadc:cadc-registry:[1.4,)'
