@@ -36,7 +36,7 @@ dependencies {
     compile 'org.opencadc:cadc-uws-server:[1.2.22,)'
     compile 'org.opencadc:cadc-tap:[1.1.17,)'
     compile 'org.opencadc:cadc-tap-schema:[1.2.4,)'
-    compile 'org.opencadc:cadc-tap-server:[1.1.26,)'
+    compile 'org.opencadc:cadc-tap-server:[1.1.27,)'
     compile 'org.opencadc:cadc-tap-server-pg:[1.1.1,)'
     compile 'org.opencadc:cadc-adql:[1.1.4,)'
     compile 'org.opencadc:cadc-vosi:[1.4.3,2.0)'
@@ -52,6 +52,7 @@ dependencies {
     intTestCompile 'org.opencadc:cadc-test-uws:[1.1.1,)'
     intTestCompile 'org.opencadc:cadc-test-vosi:[1.0.11,)'
     intTestCompile 'org.opencadc:cadc-test-tap:[1.1,)'
+    intTestCompile 'org.opencadc:cadc-tap-schema:[1.2.4,)'
 
     intTestRuntime 'org.postgresql:postgresql:[42.2,43.0)'
 }
