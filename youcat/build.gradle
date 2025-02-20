@@ -29,14 +29,14 @@ dependencies {
  
     compile 'org.opencadc:cadc-util:[1.9.6,2.0)'
     runtime 'org.opencadc:cadc-log:[1.1.1,)'
-    compile 'org.opencadc:cadc-rest:[1.3.16,)'
-    compile 'org.opencadc:cadc-dali:[1.2.12,)'
+    compile 'org.opencadc:cadc-rest:[1.4.2,)'
+    compile 'org.opencadc:cadc-dali:[1.2.19,)'
     compile 'org.opencadc:cadc-adql:[1.1.14,)'
     compile 'org.opencadc:cadc-uws:[1.0.2,)'
     compile 'org.opencadc:cadc-uws-server:[1.2.22,)'
     compile 'org.opencadc:cadc-tap:[1.1.17,)'
     compile 'org.opencadc:cadc-tap-schema:[1.2.4,)'
-    compile 'org.opencadc:cadc-tap-server:[1.1.26,)'
+    compile 'org.opencadc:cadc-tap-server:[1.1.27,)'
     compile 'org.opencadc:cadc-tap-server-pg:[1.1.1,)'
     compile 'org.opencadc:cadc-adql:[1.1.4,)'
     compile 'org.opencadc:cadc-vosi:[1.4.3,2.0)'
@@ -46,12 +46,13 @@ dependencies {
 
     runtime 'org.opencadc:cadc-vos:[1.1,2.0)'
     runtime 'org.opencadc:cadc-access-control-identity:[1.1.0,)'
-    
+   
     testCompile 'junit:junit:[4.0,)'
     intTestCompile 'org.opencadc:cadc-tap:[1.0,)'
     intTestCompile 'org.opencadc:cadc-test-uws:[1.1.1,)'
     intTestCompile 'org.opencadc:cadc-test-vosi:[1.0.11,)'
     intTestCompile 'org.opencadc:cadc-test-tap:[1.1,)'
+    intTestCompile 'org.opencadc:cadc-tap-schema:[1.2.4,)'
 
     intTestRuntime 'org.postgresql:postgresql:[42.2,43.0)'
 }
@@ -62,4 +63,18 @@ configurations {
 
   // pulled by stil,unused, critical CVEs:
   runtime.exclude group: 'org.yaml', module: 'snakeyaml'
+
+  // pull by parquet-avro
+  runtime.exclude group: 'com.sun.jersey'
+  runtime.exclude group: 'com.sun.jersey.contribs'
+  runtime.exclude group: 'com.google.inject'
+  runtime.exclude group: 'com.google.inject.extensions'
+  runtime.exclude group: 'com.github.pjfanning'
+  runtime.exclude group: 'javax.servlet'
+  runtime.exclude group: 'javax.servlet.jsp'
+  runtime.exclude group: 'org.apache.httpcomponents'
+  runtime.exclude group: 'org.apache.kerby'
+  runtime.exclude group: 'org.eclipse.jetty'
+  runtime.exclude group: 'org.eclipse.jetty'
+  runtime.exclude group: 'io.netty'
 }
