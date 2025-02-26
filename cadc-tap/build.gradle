@@ -1,6 +1,5 @@
 plugins {
-    id "java"
-    id "maven"
+    id "java-library"
     id 'maven-publish'
     id 'checkstyle'
 }
@@ -12,7 +11,7 @@ repositories {
 
 apply from: '../opencadc.gradle'
 
-sourceCompatibility = 1.8
+sourceCompatibility = 11
 
 group = 'org.opencadc'
 version = '1.1.18'
@@ -21,13 +20,13 @@ description = 'OpenCADC TAP-1.1 tap client library'
 def git_url = 'https://github.com/opencadc/tap'
 
 dependencies {
-    compile 'org.apache.commons:commons-csv:[1.6,1.7)'
+    implementation 'org.apache.commons:commons-csv:[1.6,1.7)'
     
-    compile 'org.opencadc:cadc-util:[1.6.3,2.0)'
-    compile 'org.opencadc:cadc-registry:[1.7.2,2.0)'
-    compile 'org.opencadc:cadc-dali:[1.2,2.0)'
-    compile 'org.opencadc:cadc-vosi:[1.0,2.0)'
-    compile 'org.opencadc:cadc-gms:[1.0,)'
+    implementation 'org.opencadc:cadc-util:[1.6.3,2.0)'
+    implementation 'org.opencadc:cadc-registry:[1.7.2,2.0)'
+    implementation 'org.opencadc:cadc-dali:[1.2,2.0)'
+    implementation 'org.opencadc:cadc-vosi:[1.0,2.0)'
+    implementation 'org.opencadc:cadc-gms:[1.0,)'
     
-    testCompile 'junit:junit:[4.1,5.0)'
+    testImplementation 'junit:junit:[4.1,5.0)'
 }
