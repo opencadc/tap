@@ -1,6 +1,5 @@
 plugins {
-    id "java"
-    id "maven"
+    id "java-library"
     id 'maven-publish'
     id 'checkstyle'
 }
@@ -12,7 +11,7 @@ repositories {
 
 apply from: '../opencadc.gradle'
 
-sourceCompatibility = 1.8
+sourceCompatibility = 11
 
 group = 'org.opencadc'
 
@@ -22,12 +21,10 @@ description = 'OpenCADC TAP-1.1 tap server plugin (PostgreSQL+pgsphere)'
 def git_url = 'https://github.com/opencadc/tap'
 
 dependencies {
-    compile 'org.opencadc:cadc-dali-pg:[0.1,)'
-    compile 'org.opencadc:cadc-adql:[1.1.14,)'
-    compile 'org.opencadc:cadc-tap-schema:[1.2.1, )'
-    compile 'org.opencadc:cadc-tap-server:[1.1.7, )'
+    implementation 'org.opencadc:cadc-dali-pg:[0.1,)'
+    implementation 'org.opencadc:cadc-adql:[1.1.14,)'
+    implementation 'org.opencadc:cadc-tap-schema:[1.2.1, )'
+    implementation 'org.opencadc:cadc-tap-server:[1.1.7, )'
 
-    testCompile 'junit:junit:[4.0,5.0)'
-    testCompile 'org.opencadc:cadc-util:[1.2,)'
-    testCompile 'xerces:xercesImpl:[2.0,)'
+    testImplementation 'junit:junit:[4.0,5.0)'
 }
