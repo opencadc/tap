@@ -85,6 +85,11 @@ create table tap_schema.columns11
 )
 ;
 
+create unique index column_id_unique_not_null
+    on tap_schema.columns11 (column_id)
+    where column_id is not null
+;
+
 create table tap_schema.keys11
 (
 	key_id        varchar(64)  NOT NULL,

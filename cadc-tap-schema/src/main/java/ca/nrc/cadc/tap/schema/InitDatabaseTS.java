@@ -80,7 +80,7 @@ public class InitDatabaseTS extends InitDatabase {
     private static final Logger log = Logger.getLogger(InitDatabaseTS.class);
 
     public static final String MODEL_NAME = "TAP_SCHEMA";
-    public static final String MODEL_VERSION = "1.2.4";
+    public static final String MODEL_VERSION = "1.2.5";
     public static final String PREV_MODEL_VERSION = "1.2.1";
 
     static String[] CREATE_SQL = new String[] {
@@ -92,7 +92,7 @@ public class InitDatabaseTS extends InitDatabase {
     };
 
     static String[] UPGRADE_SQL = new String[]{
-        "tap_schema.upgrade-1.2.4.sql"
+        "tap_schema.upgrade-1.2.5.sql"
     };
     
     public InitDatabaseTS(DataSource dataSource, String database, String schema) {
