@@ -37,5 +37,5 @@ dependencies {
     testImplementation 'junit:junit:[4.0,5.0)'
     testImplementation 'xerces:xercesImpl:[2.0,3.0)'
     
-    intTestRuntime 'org.postgresql:postgresql:[42.2.8,)'
+    intTestImplementation 'org.postgresql:postgresql:[42.2.8,)'
 }
