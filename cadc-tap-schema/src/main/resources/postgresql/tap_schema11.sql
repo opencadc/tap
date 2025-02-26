@@ -85,7 +85,7 @@ create table tap_schema.columns11
 )
 ;
 
-create unique index column_id_unique_not_null
+create unique index columns_column_id
     on tap_schema.columns11 (column_id)
     where column_id is not null
 ;
