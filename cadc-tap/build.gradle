@@ -1,5 +1,5 @@
 plugins {
-    id "java-library"
+    id 'java-library'
     id 'maven-publish'
     id 'checkstyle'
 }
@@ -24,9 +24,9 @@ dependencies {
     
     implementation 'org.opencadc:cadc-util:[1.6.3,2.0)'
     implementation 'org.opencadc:cadc-registry:[1.7.2,2.0)'
-    implementation 'org.opencadc:cadc-dali:[1.2,2.0)'
     implementation 'org.opencadc:cadc-vosi:[1.0,2.0)'
     implementation 'org.opencadc:cadc-gms:[1.0,)'
+    api 'org.opencadc:cadc-dali:[1.2,2.0)'
     
     testImplementation 'junit:junit:[4.1,5.0)'
 }

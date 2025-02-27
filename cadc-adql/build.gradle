@@ -1,5 +1,5 @@
 plugins {
-    id "java-library"
+    id 'java-library'
     id 'maven-publish'
     id 'checkstyle'
 }
@@ -27,6 +27,9 @@ dependencies {
     implementation 'org.opencadc:cadc-tap-server:[1.1,)'
     implementation 'org.opencadc:cadc-tap-schema:[1.1.28,)'
     implementation 'org.opencadc:cadc-jsqlparser-compat:[0.6.4,)'
+    implementation 'org.opencadc:cadc-cdp:[1.4.0,)'
+    implementation 'org.opencadc:cadc-uws:[1.0,2.0)'
+    implementation 'org.opencadc:cadc-uws-server:[1.2.7,)'
 
     testImplementation 'junit:junit:4.13'
 }
