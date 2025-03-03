@@ -37,6 +37,7 @@ dependencies {
     implementation 'org.opencadc:cadc-registry:[1.7.2,)'
     implementation 'org.opencadc:cadc-gms:[1.0.4,2.0)'
     implementation 'org.opencadc:cadc-tap-tmp:[1.1.5,)'
+    implementation 'org.opencadc:cadc-cdp:[1.4.0,)'
 
     runtimeOnly 'org.opencadc:cadc-log:[1.1.1,)'
     runtimeOnly 'org.opencadc:cadc-vos:[1.1,2.0)'
