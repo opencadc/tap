@@ -1,10 +1,11 @@
 configurations {
     checkstyleDep
-    intTestImplementation.extendsFrom testImplementation
+    intTestCompile.extendsFrom testCompile
+    intTestRuntime.extendsFrom testRuntime
 }
 
 dependencies {
-    testImplementation 'com.puppycrawl.tools:checkstyle:8.2'
+    testCompile 'com.puppycrawl.tools:checkstyle:8.2'
     checkstyleDep 'org.opencadc:cadc-quality:[1.0,)'
 }
 
@@ -16,12 +17,15 @@ checkstyle {
 }
 
 sourceSets {
+    test {
+        resources.srcDirs += 'src/test/resources'
+    }
     intTest {
         java {
             compileClasspath += main.output + test.output
-            runtimeClasspath += compileClasspath
+            runtimeClasspath += main.output + test.output
         }
-        resources.srcDirs += file('src/intTest/resources')
+        resources.srcDir file('src/intTest/resources')
         resources.srcDirs += new File(System.getenv('A') + '/test-certificates/')
     }
 }
@@ -30,14 +34,14 @@ sourceSets {
 // gradle not displaying fail build status when warnings reported -->
 
 tasks.withType(Checkstyle).each { checkstyleTask ->
-   checkstyleTask.doLast {
-       reports.all { report ->
-           def outputFile = report.destination
-           if (outputFile.exists() && outputFile.text.contains("<error ")) {
-               throw new GradleException("There were checkstyle warnings! For more info check $outputFile")
-           }
-       }
-   }
+    checkstyleTask.doLast {
+        reports.all { report ->
+            def outputFile = report.destination
+            if (outputFile.exists() && outputFile.text.contains("<error ")) {
+                throw new GradleException("There were checkstyle warnings! For more info check $outputFile")
+            }
+        }
+    }
 }
 
 tasks.withType(Test) {
@@ -71,20 +75,4 @@ intTest {
         events "PASSED", "FAILED", "SKIPPED"
         // "STARTED",
     }
-}
-
-pluginManager.withPlugin('maven-publish') {
-  // configure maven-publish to support publishToMavenLocal
-    publishing {
-        publications {
-            thisLibrary(MavenPublication) {
-                from components.java
-            }
-        }
-    }
-}
-
-// backwards compat usage
-task install {
-    dependsOn 'publishToMavenLocal'
 }
