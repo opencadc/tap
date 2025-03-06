@@ -148,7 +148,11 @@ public class JDOMVOTableParser implements VOTableParser
             final VOTableDocument doc = voTableReader.read(byteCountInputStream);
             final VOTableResource vr = doc.getResourceByType("results");
             final VOTableTable voTableTable = vr.getTable();
-
+            
+            if (voTableTable == null || voTableTable.getTableData() == null) {
+                // empty
+                return doc;
+            }
             if (uploadLimits.columnLimit != null && voTableTable.getFields().size() > uploadLimits.columnLimit) {
                 throw new IllegalArgumentException("Column count exceeds maximum of " + uploadLimits.columnLimit);
             }

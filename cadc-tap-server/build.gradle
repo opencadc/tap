@@ -15,7 +15,7 @@ sourceCompatibility = 11
 
 group = 'org.opencadc'
 
-version = '1.1.27'
+version = '1.1.28'
 
 description = 'OpenCADC TAP-1.1 tap server library'
 def git_url = 'https://github.com/opencadc/tap'
@@ -34,4 +34,6 @@ dependencies {
     testImplementation 'xerces:xercesImpl:[2.0,)'
     testImplementation 'org.jdom:jaxen-jdom:1.0-FCS'
     testImplementation 'org.apache.commons:commons-lang3:[3.14.0, )'
+
+    intTestImplementation 'org.postgresql:postgresql:[42.2.8,)'
 }
