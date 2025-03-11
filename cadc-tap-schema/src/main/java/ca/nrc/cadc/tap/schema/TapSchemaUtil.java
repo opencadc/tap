@@ -132,7 +132,7 @@ public class TapSchemaUtil {
                 column.getDatatype().getDatatype(), column.getDatatype().arraysize);
         vtf.xtype = column.getDatatype().xtype;
         vtf.description = column.description;
-        vtf.id = column.id;
+        vtf.id = column.column_id;
         vtf.ucd = column.ucd;
         vtf.unit = column.unit;
         vtf.utype = column.utype;
@@ -150,7 +150,7 @@ public class TapSchemaUtil {
         TapDataType dt = new TapDataType(field.getDatatype(), field.getArraysize(), field.xtype);
         ColumnDesc ret = new ColumnDesc(tableName, field.getName(), dt);
         ret.description = field.description;
-        ret.id = field.id;
+        ret.column_id = field.id;
         ret.ucd = field.ucd;
         ret.unit = field.unit;
         ret.utype = field.utype;

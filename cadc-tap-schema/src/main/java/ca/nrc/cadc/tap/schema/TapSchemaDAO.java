@@ -126,7 +126,7 @@ public class TapSchemaDAO {
     protected String orderTablesClause = " ORDER BY schema_name,table_index,table_name";
 
     private String[] tsColumnsCols = new String[] { "description", "utype", "ucd", "unit", "datatype", "arraysize",
-        "xtype", "principal", "indexed", "std", "id", "column_index", "table_name", "column_name" };
+        "xtype", "principal", "indexed", "std", "column_id", "column_index", "table_name", "column_name" };
     protected String orderColumnsClause = " ORDER BY table_name,column_index,column_name";
 
     private String[] tsKeysCols = new String[] { "key_id", "from_table", "target_table", "description,utype" };
@@ -1281,7 +1281,7 @@ public class TapSchemaDAO {
             PreparedStatement ps = conn.prepareStatement(sql);
 
             // description, utype, ucd, unit, datatype, arraysize, xtype, principal,
-            // indexed, std, id,
+            // indexed, std, column_id,
             // table_name, column_name
             sb = new StringBuilder();
             int col = 1;
@@ -1295,7 +1295,7 @@ public class TapSchemaDAO {
             safeSetBoolean(sb, ps, col++, column.principal);
             safeSetBoolean(sb, ps, col++, column.indexed);
             safeSetBoolean(sb, ps, col++, column.std);
-            safeSetString(sb, ps, col++, column.id);
+            safeSetString(sb, ps, col++, column.column_id);
             safeSetInteger(sb, ps, col++, column.column_index);
             safeSetString(sb, ps, col++, column.getTableName());
             safeSetString(sb, ps, col++, column.getColumnName());
@@ -1666,7 +1666,7 @@ public class TapSchemaDAO {
             col.principal = intToBoolean(rs.getInt("principal"));
             col.indexed = intToBoolean(rs.getInt("indexed"));
             col.std = intToBoolean(rs.getInt("std"));
-            col.id = rs.getString("id");
+            col.column_id = rs.getString("column_id");
             col.column_index = rs.getInt("column_index");
             
             return col;
