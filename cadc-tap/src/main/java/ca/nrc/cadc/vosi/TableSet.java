@@ -93,7 +93,7 @@ import org.jdom2.Namespace;
 public class TableSet
 {
     @SuppressWarnings("unused")
-    private static Logger log = Logger.getLogger(TableSet.class);
+    private static final Logger log = Logger.getLogger(TableSet.class);
 
     private static final String ADQL_PREFIX = "adql";
     private static final String VOTABLE_PREFIX = "votable";
@@ -103,9 +103,15 @@ public class TableSet
 
     private TapSchema tapSchema;
 
-    private Namespace xsi = W3CConstants.XSI_NS;
-    private Namespace vosi = VOSI.TABLES_NS;
-    private Namespace vod = XMLConstants.VODATASERVICE_NS;
+    private final Namespace xsi = W3CConstants.XSI_NS;
+    private final Namespace vosi = VOSI.TABLES_NS;
+    private final Namespace vod = XMLConstants.VODATASERVICE_NS;
+
+    // move to cadc-vosi VOSI
+    public static final String VTE_PREFIX = "vte";
+    public static final String VTE_XSD = "VOSITables-ext-v1.0.xsd";
+    public static final String VTE_NS_URI = "http://www.opencadc.org/xml/VOSITables-ext/v0.1";
+    public static final Namespace vte = Namespace.getNamespace(VTE_PREFIX, VTE_NS_URI);
 
     public TableSet(TapSchema tapSchema)
     {
@@ -141,6 +147,7 @@ public class TableSet
     {
         root.addNamespaceDeclaration(xsi);
         root.addNamespaceDeclaration(vod);
+        root.addNamespaceDeclaration(vte);
           
         // ivoa convention but not allowed by the VODataService schema
         //root.setAttribute("version", "1.1");
@@ -231,8 +238,7 @@ public class TableSet
      * @param cd
      * @return
      */
-    private Element toXmlElement(ColumnDesc cd)
-    {
+    private Element toXmlElement(ColumnDesc cd) {
         Element eleColumn = new Element("column");
         addChild(eleColumn, "name", cd.getColumnName());
         addChild(eleColumn, "description", cd.description);
@@ -244,11 +250,9 @@ public class TableSet
         
         String[] parts = tt.getDatatype().split(":");
         // unprefixed datatype is a VOTable type by default
-        if (parts.length == 1 || isVOTableType(parts))
-        {
+        if (parts.length == 1 || isVOTableType(parts)) {
             Element eleDt = addChild(eleColumn, "dataType", tt.getDatatype());
-            if (eleDt != null)
-            {
+            if (eleDt != null) {
                 Attribute attType = new Attribute("type", vod.getPrefix() + ":VOTableType", xsi);
                 eleDt.setAttribute(attType);
                 if (tt.arraysize != null)
@@ -256,25 +260,25 @@ public class TableSet
                 if (tt.xtype != null)
                     eleDt.setAttribute("extendedType", tt.xtype);
             }
-        }
-        else if (isTapType(parts)) // backwards compatibility for TAP-1.0
-        {
+        } else if (isTapType(parts)) { // backwards compatibility for TAP-1.0
             Element eleDt = addChild(eleColumn, "dataType", parts[1]);
-            if (eleDt != null)
-            {
+            if (eleDt != null) {
                 Attribute attType = new Attribute("type", vod.getPrefix() + ":TAPType", xsi);
                 eleDt.setAttribute(attType);
                 if (tt.arraysize != null && !tt.isVarSize()) // assume single digit
                     eleDt.setAttribute("size", tt.arraysize);
             }
         }
-        else // custom type
-        {
+        else { // custom type
             log.warn("cannot convert " + cd + " to a legal VODataService column element, skipping");
             return null;
         }
-        if (cd.indexed)
+        if (cd.indexed) {
             addChild(eleColumn, "flag", "indexed");
+        }
+        if (cd.column_id != null) {
+            eleColumn.setAttribute(new Attribute("columnID", cd.column_id, vte));
+        }
 
         return eleColumn;
     }
