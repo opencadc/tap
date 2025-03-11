@@ -34,4 +34,6 @@ dependencies {
     testImplementation 'xerces:xercesImpl:[2.0,)'
     testImplementation 'org.jdom:jaxen-jdom:1.0-FCS'
     testImplementation 'org.apache.commons:commons-lang3:[3.14.0, )'
+
+    intTestImplementation 'org.postgresql:postgresql:[42.2.8,)'
 }
