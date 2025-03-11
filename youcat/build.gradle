@@ -45,11 +45,10 @@ dependencies {
    
     testImplementation 'junit:junit:[4.0,)'
 
-    intTestImplementation 'org.opencadc:cadc-tap:[1.0,)'
     intTestImplementation 'org.opencadc:cadc-test-uws:[1.1.1,)'
     intTestImplementation 'org.opencadc:cadc-test-vosi:[1.0.11,)'
     intTestImplementation 'org.opencadc:cadc-test-tap:[1.1,)'
-    intTestImplementation 'org.opencadc:cadc-tap-schema:[1.2.4,)'
+    intTestImplementation 'uk.ac.starlink:stil:[4.0,5.0)'
 
     intTestRuntimeOnly 'org.postgresql:postgresql:[42.2,43.0)'
 }
