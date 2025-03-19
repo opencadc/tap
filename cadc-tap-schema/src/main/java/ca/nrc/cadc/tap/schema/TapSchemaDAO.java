@@ -778,7 +778,12 @@ public class TapSchemaDAO {
      * @throws ResourceNotFoundException
      */
     public void setTablePermissions(String tableName, TapPermissions tp) throws ResourceNotFoundException {
-
+        IdentityManager im = AuthenticationUtil.getIdentityManager();
+        tp.ownerID = im.toOwner(tp.owner);
+        if (tp.ownerID == null) {
+            throw new UnsupportedOperationException("unable to map schema owner '"
+                    + im.toDisplayString(tp.owner) + "' to a persistent owner object using " + im.getClass().getName());
+        }
         // update tables permissions
         PutPermissionsStatement stp = new PutPermissionsStatement(tablesTableName, "table_name", tableName, tp);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
