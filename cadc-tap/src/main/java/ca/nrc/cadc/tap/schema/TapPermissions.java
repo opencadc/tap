@@ -85,6 +85,7 @@ import org.opencadc.gms.GroupURI;
 public class TapPermissions {
     
     public Subject owner;
+    public Object ownerID;
     public Boolean isPublic;
     public GroupURI readGroup;
     public GroupURI readWriteGroup;

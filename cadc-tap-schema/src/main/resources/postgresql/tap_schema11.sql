@@ -15,7 +15,7 @@ create table tap_schema.schemas11
         schema_index  integer,
 	
 -- extension: permissions for user-created content
-    owner_id        varchar(32),
+    owner_id        varchar(256),
     read_anon       integer,
     read_only_group  varchar(128),
     read_write_group varchar(128),
@@ -38,7 +38,7 @@ create table tap_schema.tables11
 	table_index   integer,
 
 -- extension: permissions for user-created content
-    owner_id        varchar(32),
+    owner_id        varchar(256),
     read_anon       integer,
     read_only_group  varchar(128),
     read_write_group varchar(128),
