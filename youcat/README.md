@@ -98,7 +98,7 @@ directly into the database server.
 
 See <a href="https://github.com/opencadc/tap/tree/master/cadc-tap-tmp">cadc-tap-tmp</a>.
 
-## youcat.properties
+### youcat.properties
 
 The youcat.properties configures some admin and optional functions of the service.
 ```
