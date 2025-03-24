@@ -75,7 +75,7 @@ create table tap_schema.columns11
     column_id     varchar(32),
 	
 -- extension: permissions for user-created content
-    owner_id        varchar(32),
+    owner_id        varchar(256),
     read_anon       integer,
     read_only_group  varchar(128),
     read_write_group varchar(128),

@@ -6,3 +6,4 @@ create unique index columns_column_id on tap_schema.columns11 (column_id) where 
 
 alter table tap_schema.schemas11 alter column owner_id set data type varchar(256);
 alter table tap_schema.tables11 alter column owner_id set data type varchar(256);
+alter table tap_schema.columns11 alter column owner_id set data type varchar(256);
