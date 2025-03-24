@@ -750,6 +750,12 @@ public class TapSchemaDAO {
      * @throws ResourceNotFoundException
      */
     public void setSchemaPermissions(String schemaName, TapPermissions tp) throws ResourceNotFoundException {
+        IdentityManager im = AuthenticationUtil.getIdentityManager();
+        tp.ownerID = im.toOwner(tp.owner);
+        if (tp.ownerID == null) {
+            throw new UnsupportedOperationException("unable to map schema owner '"
+                    + im.toDisplayString(tp.owner) + "' to a persistent owner object using " + im.getClass().getName());
+        }
         PutPermissionsStatement ssp = new PutPermissionsStatement(schemasTableName, "schema_name", schemaName, tp);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         int rows = jdbc.update(ssp);
@@ -772,7 +778,12 @@ public class TapSchemaDAO {
      * @throws ResourceNotFoundException
      */
     public void setTablePermissions(String tableName, TapPermissions tp) throws ResourceNotFoundException {
-
+        IdentityManager im = AuthenticationUtil.getIdentityManager();
+        tp.ownerID = im.toOwner(tp.owner);
+        if (tp.ownerID == null) {
+            throw new UnsupportedOperationException("unable to map schema owner '"
+                    + im.toDisplayString(tp.owner) + "' to a persistent owner object using " + im.getClass().getName());
+        }
         // update tables permissions
         PutPermissionsStatement stp = new PutPermissionsStatement(tablesTableName, "table_name", tableName, tp);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
@@ -1099,6 +1110,7 @@ public class TapSchemaDAO {
             this.tp = tp;
         }
 
+        @Override
         public PreparedStatement createPreparedStatement(Connection conn) throws SQLException {
             StringBuilder sb = new StringBuilder();
             int colIndex = 1;
@@ -1120,17 +1132,8 @@ public class TapSchemaDAO {
             StringBuilder vals = new StringBuilder();
             vals.append("values: ");
 
-            IdentityManager identityManager = AuthenticationUtil.getIdentityManager();
-            if (identityManager == null) {
-                throw new IllegalStateException(
-                        "failed to load IdentityManager implementation - cannot update permissions");
-            }
-            log.debug("IdentityManager: " + identityManager);
-            Subject owner = tp.owner;
-            Object ownerVal = identityManager.toOwner(owner);
-
-            if (ownerVal != null) {
-                safeSetString(vals, prep, colIndex++, ownerVal.toString());
+            if (tp.ownerID != null) {
+                safeSetString(vals, prep, colIndex++, tp.ownerID.toString());
             } else {
                 safeSetString(vals, prep, colIndex++, null);
             }

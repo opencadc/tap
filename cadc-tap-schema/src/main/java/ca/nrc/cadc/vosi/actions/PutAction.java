@@ -69,6 +69,7 @@ package ca.nrc.cadc.vosi.actions;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.net.ResourceAlreadyExistsException;
 import ca.nrc.cadc.profiler.Profiler;
@@ -79,6 +80,7 @@ import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import java.security.Principal;
 import javax.security.auth.Subject;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
@@ -134,13 +136,24 @@ public class PutAction extends TablesAction {
         if (inputSchema == null || owner == null) {
             throw new IllegalArgumentException("no input schema & owner");
         }
-        Subject s = new Subject();
-        s.getPrincipals().add(new HttpPrincipal(owner));
+        
+        IdentityManager im = AuthenticationUtil.getIdentityManager();
+        Subject s;
+        if (owner.startsWith("openid ")) {
+            String oid = owner.replace("openid ", "");
+            s = im.toSubject(oid);
+        } else {
+            // this will only work if the IdentityManager.augment call below
+            // can map HttpPrincipal to the desired owner type
+            s = new Subject();
+            HttpPrincipal op = new HttpPrincipal(owner);
+            s.getPrincipals().add(op);
+        }
         
         // flag schema as created using the TAP API
         inputSchema.apiCreated = true;
         TapPermissions perms = new TapPermissions();
-        perms.owner = AuthenticationUtil.getIdentityManager().augment(s);
+        perms.owner = im.augment(s);
         
         String[] createSQL = new String[] {
             "CREATE SCHEMA " + schema,
@@ -167,6 +180,16 @@ public class PutAction extends TablesAction {
             ts.setSchemaPermissions(schema, perms);
             
             tm.commitTransaction();
+        } catch (UnsupportedOperationException ex) {
+            try {
+                log.debug("PUT failed - rollback", ex);
+                tm.rollbackTransaction();
+                log.debug("PUT failed - rollback: OK");
+            } catch (Exception oops) {
+                log.error("PUT failed - rollback : FAIL", oops);
+            }
+            log.debug("createSchema: " + schema + " FAIL");
+            throw ex;
         } catch (Exception ex) {
             try {
                 log.error("PUT failed - rollback", ex);
@@ -176,7 +199,7 @@ public class PutAction extends TablesAction {
                 log.error("PUT failed - rollback : FAIL", oops);
             }
             log.debug("createSchema: " + schema + " FAIL");
-            // TODO: categorise failures better
+            
             throw new RuntimeException("failed to create schema " + schema, ex);
         } finally {
             
