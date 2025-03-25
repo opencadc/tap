@@ -2,19 +2,21 @@ package org.opencadc.youcat;
 
 import ca.nrc.cadc.dali.tables.parquet.ParquetReader;
 import ca.nrc.cadc.dali.tables.parquet.ParquetReader.TableShape;
-import ca.nrc.cadc.dali.tables.votable.*;
+import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
+import ca.nrc.cadc.dali.tables.votable.VOTableField;
+import ca.nrc.cadc.dali.tables.votable.VOTableInfo;
+import ca.nrc.cadc.dali.tables.votable.VOTableReader;
+import ca.nrc.cadc.dali.tables.votable.VOTableResource;
+import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.net.FileContent;
 import ca.nrc.cadc.net.HttpPost;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.vosi.actions.TableContentHandler;
-import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Test;
-import org.opencadc.tap.TapClient;
-
-import javax.security.auth.Subject;
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -22,6 +24,11 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Map;
 import java.util.TreeMap;
+import javax.security.auth.Subject;
+import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.Test;
+import org.opencadc.tap.TapClient;
 
 public class ParquetWriterRoundTripTest extends AbstractTablesTest {
     private static final Logger log = Logger.getLogger(ParquetWriterRoundTripTest.class);

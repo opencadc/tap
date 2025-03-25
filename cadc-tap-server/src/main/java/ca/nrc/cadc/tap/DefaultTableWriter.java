@@ -72,7 +72,6 @@ package ca.nrc.cadc.tap;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.dali.tables.ascii.AsciiTableWriter;
-import ca.nrc.cadc.dali.tables.parquet.ParquetWriter;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableField;
 import ca.nrc.cadc.dali.tables.votable.VOTableInfo;
@@ -90,16 +89,13 @@ import ca.nrc.cadc.tap.writer.RssTableWriter;
 import ca.nrc.cadc.tap.writer.format.FormatFactory;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.ParameterUtil;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.Reader;
-import java.io.Writer;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -158,8 +154,14 @@ public class DefaultTableWriter implements TableWriter
         knownFormats.put(TSV, TSV);
         knownFormats.put(RSS, RSS);
         knownFormats.put(APPLICATION_RSS, RSS);
-        knownFormats.put(APPLICATION_PARQUET, PARQUET);
-        knownFormats.put(PARQUET, PARQUET);
+        try {
+            // optional plugin
+            Class clz = Class.forName("ca.nrc.cadc.dali.tables.parquet.ParquetWriter");
+            knownFormats.put(APPLICATION_PARQUET, PARQUET);
+            knownFormats.put(PARQUET, PARQUET);
+        } catch (ClassNotFoundException ex) {
+            log.debug("class not found: ca.nrc.cadc.dali.tables.parquet.ParquetWriter - disabling parquet output");
+        }
     }
 
     private Job job;
@@ -273,7 +275,12 @@ public class DefaultTableWriter implements TableWriter
         } else if (type.equals(TSV)) {
             tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
         } else if (type.equals(PARQUET)) {
-            tableWriter = new ParquetWriter();
+            try {
+                Class clz = Class.forName("ca.nrc.cadc.dali.tables.parquet.ParquetWriter");
+                tableWriter = (ca.nrc.cadc.dali.tables.TableWriter<VOTableDocument>) clz.getConstructor().newInstance();
+            } catch (Exception ex) {
+                log.warn("caller requested " + PARQUET + " output but failed to load ParquetWriter");
+            }
         }
 
         if (tableWriter == null) {
