@@ -75,6 +75,4 @@ configurations {
   runtime.exclude group: 'org.eclipse.jetty'
   runtime.exclude group: 'org.eclipse.jetty'
   runtime.exclude group: 'io.netty'
-  runtime.exclude module: 'slf4j-reload4j'
-  runtime.exclude module: 'reload4j'
 }
