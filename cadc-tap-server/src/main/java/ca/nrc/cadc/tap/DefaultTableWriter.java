@@ -140,6 +140,8 @@ public class DefaultTableWriter implements TableWriter
     private static final String APPLICATION_PARQUET = "application/vnd.apache.parquet";
     private static final String PARQUET = "parquet";
 
+    private static final String PARQUET_CLASS_NAME = "ca.nrc.cadc.dali.tables.parquet.ParquetWriter";
+    
     private static final Map<String,String> knownFormats = new TreeMap<String,String>();
 
     static
@@ -156,7 +158,7 @@ public class DefaultTableWriter implements TableWriter
         knownFormats.put(APPLICATION_RSS, RSS);
         try {
             // optional plugin
-            Class clz = Class.forName("ca.nrc.cadc.dali.tables.parquet.ParquetWriter");
+            Class clz = Class.forName(PARQUET_CLASS_NAME);
             knownFormats.put(APPLICATION_PARQUET, PARQUET);
             knownFormats.put(PARQUET, PARQUET);
         } catch (ClassNotFoundException ex) {
@@ -276,7 +278,7 @@ public class DefaultTableWriter implements TableWriter
             tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
         } else if (type.equals(PARQUET)) {
             try {
-                Class clz = Class.forName("ca.nrc.cadc.dali.tables.parquet.ParquetWriter");
+                Class clz = Class.forName(PARQUET_CLASS_NAME);
                 tableWriter = (ca.nrc.cadc.dali.tables.TableWriter<VOTableDocument>) clz.getConstructor().newInstance();
             } catch (Exception ex) {
                 log.warn("caller requested " + PARQUET + " output but failed to load ParquetWriter");
