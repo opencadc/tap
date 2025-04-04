@@ -76,58 +76,52 @@ import java.sql.SQLException;
  * Formats a byte[] into a String.
  *
  */
-public class ByteArrayFormat extends AbstractResultSetFormat
-{
+public class ByteArrayFormat extends AbstractResultSetFormat {
+
     private ca.nrc.cadc.dali.util.ByteArrayFormat bfmt = new ca.nrc.cadc.dali.util.ByteArrayFormat();
-    
+
     @Override
-    public String format(Object t)
-    {
-        if (t == null)
+    public String format(Object t) {
+        if (t == null) {
             return "";
-        if (t instanceof byte[])
-        {
+        }
+        if (t instanceof byte[]) {
             return bfmt.format((byte[]) t);
         }
         throw new IllegalArgumentException(t.getClass().getCanonicalName() + " not supported.");
     }
 
-    
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
-            throws SQLException
-    {
+            throws SQLException {
         Object object = resultSet.getObject(columnIndex);
-        if (object == null)
+        if (object == null) {
             return null;
-        
-        if (object instanceof java.sql.Array)
-        {
-            try
-            {
+        }
+
+        if (object instanceof java.sql.Array) {
+            try {
                 java.sql.Array array = (java.sql.Array) object;
                 object = array.getArray();
-            }
-            catch (SQLException e)
-            {
+            } catch (SQLException e) {
                 throw new IllegalArgumentException("Error accessing array data for " + object.getClass().getCanonicalName(), e);
             }
         }
-        
-        if (object instanceof Byte[])
-        {
+
+        if (object instanceof Byte[]) {
             Byte[] ba = (Byte[]) object;
             byte[] ret = new byte[ba.length];
-            for (int i=0; i<ba.length; i++)
+            for (int i = 0; i < ba.length; i++) {
                 ret[i] = ba[i]; // unbox
+            }
             object = ret;
         }
-        
-        if (object instanceof byte[])
+
+        if (object instanceof byte[]) {
             return object;
-        
+        }
+
         throw new IllegalArgumentException(this.getClass().getSimpleName() + ": " + object.getClass().getCanonicalName() + " not supported.");
     }
 
-    
 }

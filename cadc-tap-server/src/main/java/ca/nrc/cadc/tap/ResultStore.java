@@ -65,25 +65,23 @@
 *  $Revision: 4 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.tap;
 
+import ca.nrc.cadc.dali.tables.TableWriter;
+import ca.nrc.cadc.uws.Job;
 import java.io.IOException;
 import java.net.URL;
 import java.sql.ResultSet;
-
-import ca.nrc.cadc.dali.tables.TableWriter;
-import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
-import ca.nrc.cadc.uws.Job;
 
 /**
  * Interface to store a result set or error message.
  *
  * @author jburke
  */
-public interface ResultStore
-{
+public interface ResultStore {
+
     /**
      * Set the job performing the store operation. The implementation
      * may use this to perform custom actions, logging, etc.
@@ -95,17 +93,19 @@ public interface ResultStore
     /**
      * Store the ResultSet and returns an
      * URL to the stored file.
+     *
      * @param rs ResultSet to store.
      * @param writer TableWriter.
      * @return an URL to the stored ResultSet.
      * @throws IOException
      */
     URL put(ResultSet rs, TableWriter<ResultSet> writer)
-        throws IOException;
-    
+            throws IOException;
+
     /**
      * Store the ResultSet and returns an
      * URL to the stored file.
+     *
      * @param rs ResultSet to store.
      * @param writer TableWriter.
      * @param maxrec max rows value to pass to TableWriter
@@ -113,7 +113,7 @@ public interface ResultStore
      * @throws IOException
      */
     URL put(ResultSet rs, TableWriter<ResultSet> writer, Integer maxrec)
-        throws IOException;
+            throws IOException;
 
     /**
      * Stores the Throwable using the specified writer and returns a
@@ -125,7 +125,7 @@ public interface ResultStore
      * @throws IOException
      */
     URL put(Throwable t, TableWriter writer)
-        throws IOException;
+            throws IOException;
 
     /**
      * Set the content type of the stored file.

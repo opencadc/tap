@@ -65,7 +65,7 @@
 *  $Revision: 5 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.tap;
 
@@ -79,35 +79,32 @@ import java.util.Map;
  *
  * @author pdowler
  */
-public abstract class AbstractTapQuery implements TapQuery
-{
+public abstract class AbstractTapQuery implements TapQuery {
+
     protected Job job;
     protected TapSchema tapSchema;
     protected Map<String, TableDesc> extraTables;
     protected Integer maxRowCount;
-    
-    protected AbstractTapQuery() { }
 
-    public void setJob(Job job)
-    {
+    protected AbstractTapQuery() {
+    }
+
+    public void setJob(Job job) {
         this.job = job;
     }
-    
+
     @Override
-    public void setTapSchema(TapSchema tapSchema)
-    {
+    public void setTapSchema(TapSchema tapSchema) {
         this.tapSchema = tapSchema;
     }
 
     @Override
-    public void setExtraTables(Map<String, TableDesc> extraTables)
-    {
+    public void setExtraTables(Map<String, TableDesc> extraTables) {
         this.extraTables = extraTables;
     }
 
     @Override
-    public void setMaxRowCount(Integer maxRowCount)
-    {
+    public void setMaxRowCount(Integer maxRowCount) {
         this.maxRowCount = maxRowCount;
     }
 
@@ -122,12 +119,11 @@ public abstract class AbstractTapQuery implements TapQuery
 
     /**
      * The default implementation returns null.
-     * 
+     *
      * @return null
      */
     @Override
-    public String getInfo()
-    {
+    public String getInfo() {
         return null;
     }
 }

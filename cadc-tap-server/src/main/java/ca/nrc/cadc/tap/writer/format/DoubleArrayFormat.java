@@ -106,9 +106,9 @@ public class DoubleArrayFormat extends AbstractResultSetFormat {
 
     /**
      * Convert a variety of ResultSet.getObject(int) return values to double[].
-     * 
+     *
      * @param object
-     * @return 
+     * @return
      */
     public double[] unwrap(Object object) {
         if (object == null) {

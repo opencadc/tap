@@ -69,134 +69,122 @@
 
 package ca.nrc.cadc.tap.writer;
 
+import ca.nrc.cadc.dali.util.Format;
+import ca.nrc.cadc.tap.writer.format.ResultSetFormat;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLWarning;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
-
-import ca.nrc.cadc.dali.util.Format;
-import ca.nrc.cadc.tap.writer.format.ResultSetFormat;
-import java.sql.SQLWarning;
 import org.apache.log4j.Logger;
 
-public class ResultSetIterator implements Iterator<List<Object>>
-{
+public class ResultSetIterator implements Iterator<List<Object>> {
+
     private static final Logger log = Logger.getLogger(ResultSetIterator.class);
-    
+
     private ResultSet rs;
     private boolean hasNext;
     private List<Format<Object>> formats;
-    private long numRows = 0l;
-    private long prevRows = -1l;
-    private long prevTime = -1l;
+    private long numRows = 0L;
+    private long prevRows = -1L;
+    private long prevTime = -1L;
 
-    public ResultSetIterator(ResultSet rs, List<Format<Object>> formats)
-    {
+    public ResultSetIterator(ResultSet rs, List<Format<Object>> formats) {
 
-        if (rs != null && formats != null)
-        {
-            try
-            {
-                if (rs.getMetaData().getColumnCount() != formats.size())
+        if (rs != null && formats != null) {
+            try {
+                if (rs.getMetaData().getColumnCount() != formats.size()) {
                     throw new IllegalArgumentException("Wrong number of formats for result set.");
-            }
-            catch (SQLException e)
-            {
+                }
+            } catch (SQLException e) {
                 throw new RuntimeException(e.getMessage());
             }
         }
 
         this.rs = rs;
         this.formats = formats;
-        if (rs == null)
-        {
+        if (rs == null) {
             this.hasNext = false;
             return;
         }
-        try
-        {
+        try {
             this.hasNext = rs.next();
-        }
-        catch(SQLException ex)
-        {
+        } catch (SQLException ex) {
             hasNext = false;
             throw new RuntimeException("initial ResultSet.next() failed: " + ex.getMessage(), ex);
         }
     }
 
     /**
-     * 
+     *
      * @return number of rows returned
      */
-    public long getRowCount()
-    {
+    public long getRowCount() {
         return numRows;
     }
-    
-    
 
     @Override
-    public boolean hasNext()
-    {
+    public boolean hasNext() {
         return hasNext;
     }
 
     @Override
-    public List<Object> next()
-    {
-        if (prevTime < 0l)
+    public List<Object> next() {
+        if (prevTime < 0L) {
             prevTime = System.currentTimeMillis();
-        if (prevRows < 0l)
-            prevRows = 0l;
-        
-        try
-        {
+        }
+        if (prevRows < 0L) {
+            prevRows = 0L;
+        }
+
+        try {
             // If no more rows in the ResultSet throw a NoSuchElementException.
-            if (!hasNext)
+            if (!hasNext) {
                 throw new NoSuchElementException("No more rows in the ResultSet");
+            }
 
             // check/clear interrupted flag and throw if necessary
-            if ( Thread.interrupted() )
+            if (Thread.interrupted()) {
                 throw new RuntimeException(new InterruptedException());
-            
+            }
+
             List<Object> next = new ArrayList<>();
             Object nextObj = null;
             Format<Object> nextFormat = null;
 
-            for (int columnIndex = 1; columnIndex <= rs.getMetaData().getColumnCount(); columnIndex++)
-            {
+            for (int columnIndex = 1; columnIndex <= rs.getMetaData().getColumnCount(); columnIndex++) {
                 nextFormat = formats.get(columnIndex - 1);
-                if (nextFormat instanceof ResultSetFormat)
+                if (nextFormat instanceof ResultSetFormat) {
                     nextObj = ((ResultSetFormat) nextFormat).extract(rs, columnIndex);
-                else
+                } else {
                     nextObj = rs.getObject(columnIndex);
+                }
                 next.add(nextObj);
             }
-            
+
             // Get the next row.
             try {
                 hasNext = rs.next();
-            } catch(SQLException ex) {
+            } catch (SQLException ex) {
                 hasNext = false;
                 throw new RuntimeException("ResultSet.next() failed: " + ex.getMessage(), ex);
             }
-            
+
             numRows++;
             SQLWarning sw = rs.getWarnings();
-            while (sw != null)
-            {
+            while (sw != null) {
                 log.warn("result set warning: " + sw.getMessage());
                 sw = sw.getNextWarning();
             }
             rs.clearWarnings();
-            
+
             // track rate we are able to output rows
             long t1 = System.currentTimeMillis();
             long dt = t1 - prevTime;
-            if (dt >= 10000l || !hasNext) // every 10 sec
-            {
+            if (dt >= 10000L || !hasNext) {
+                // every 10 sec
                 long dr = numRows - prevRows;
                 double rate = 1000.0 * ((double) dr) / ((double) dt); // rows/sec
                 StringBuilder sb = new StringBuilder();
@@ -204,24 +192,20 @@ public class ResultSetIterator implements Iterator<List<Object>>
                 sb.append(dr).append(" rows in ").append(dt).append("ms");
                 sb.append(" = ").append(rate).append(" rows/sec ").append(numRows);
                 log.debug(sb.toString());
-             
+
                 prevRows = numRows;
                 prevTime = t1;
             }
 
-            
             return next;
-        }
-        catch (SQLException e)
-        {
+        } catch (SQLException e) {
             hasNext = false;
             throw new RuntimeException("failed to process row " + numRows + " from ResultSet: " + e.getMessage(), e);
         }
     }
 
     @Override
-    public void remove()
-    {
+    public void remove() {
         throw new UnsupportedOperationException();
     }
 }

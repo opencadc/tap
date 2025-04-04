@@ -65,7 +65,7 @@
 *  $Revision: 4 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.tap;
 
@@ -128,8 +128,8 @@ import org.apache.log4j.Logger;
  *
  * @author pdowler
  */
-public class QueryRunner implements JobRunner
-{
+public class QueryRunner implements JobRunner {
+
     private static final Logger log = Logger.getLogger(QueryRunner.class);
 
     private static final String queryDataSourceName = "jdbc/tapuser";
@@ -140,39 +140,33 @@ public class QueryRunner implements JobRunner
     private SyncOutput syncOutput;
     private WebServiceLogInfo logInfo;
 
-    public QueryRunner() { }
+    public QueryRunner() {
+    }
 
     @Override
-    public void setJob(Job job)
-    {
+    public void setJob(Job job) {
         this.job = job;
     }
 
     @Override
-    public void setJobUpdater(JobUpdater ju)
-    {
+    public void setJobUpdater(JobUpdater ju) {
         this.jobUpdater = ju;
     }
 
     @Override
-    public void setSyncOutput(SyncOutput so)
-    {
+    public void setSyncOutput(SyncOutput so) {
         this.syncOutput = so;
     }
 
     @Override
-    public void run()
-    {
+    public void run() {
         logInfo = new JobLogInfo(job);
         log.info(logInfo.start());
         long start = System.currentTimeMillis();
 
-        try
-        {
+        try {
             doIt();
-        }
-        catch(Throwable ex)
-        {
+        } catch (Throwable ex) {
             log.error("unexpected exception", ex);
         }
 
@@ -180,59 +174,53 @@ public class QueryRunner implements JobRunner
         log.info(logInfo.end());
     }
 
-    
-    protected PluginFactoryImpl getPluginFactory()
-    {
+    protected PluginFactoryImpl getPluginFactory() {
         return new PluginFactoryImpl(job);
     }
-    
+
     /**
      * Get the DataSource to be used to execute the query. By default, this uses JNDI to
      * find an app-server supplied DataSource named <code>jdbc/tapuser</code>.
-     * 
+     *
      * @return
-     * @throws Exception 
+     * @throws Exception
      */
     protected DataSource getQueryDataSource()
-        throws Exception
-    {
+            throws Exception {
         log.debug("find DataSource via JNDI lookup...");
         Context initContext = new InitialContext();
         Context envContext = (Context) initContext.lookup("java:comp/env");
         return (DataSource) envContext.lookup(queryDataSourceName);
     }
-    
+
     /**
-     * Get the DataSource to be used to query the <code>tap_schema</code>. 
-     * 
+     * Get the DataSource to be used to query the <code>tap_schema</code>.     *
      * Backwards compatibility: by default, this calls getQueryDataSource().
-     * 
+     *
      * @return
-     * @throws Exception 
+     * @throws Exception
      */
     protected DataSource getTapSchemaDataSource() throws Exception {
         return getQueryDataSource();
     }
-    
+
     /**
-     * Get the DataSource to be used to insert uploaded tables into the database. 
-     * By default, this uses JNDI to find an app-server supplied DataSource named 
+     * Get the DataSource to be used to insert uploaded tables into the database.
+     * By default, this uses JNDI to find an app-server supplied DataSource named
      * <code>jdbc/tapuploadadm</code>.
-     * 
+     *
      * @return
-     * @throws Exception 
+     * @throws Exception
      */
     protected DataSource getUploadDataSource()
-        throws Exception
-    {
+            throws Exception {
         log.debug("find DataSource via JNDI lookup...");
         Context initContext = new InitialContext();
         Context envContext = (Context) initContext.lookup("java:comp/env");
         return (DataSource) envContext.lookup(uploadDataSourceName);
     }
-    
-    private void doIt()
-    {
+
+    private void doIt() {
         List<Result> diagnostics = new ArrayList<>();
 
         long t1 = System.currentTimeMillis();
@@ -246,20 +234,17 @@ public class QueryRunner implements JobRunner
         log.debug("loaded: " + pfac);
 
         ResultStore rs = null;
-        if (syncOutput == null)
-        {
+        if (syncOutput == null) {
             rs = pfac.getResultStore();
             log.debug("loaded: " + rs.getClass().getName());
         }
         int responseCodeOnUserFail = 400;   // default for TAP-1.1+
         int responseCodeOnPermissionDenied = 403;
         int responseCodeOnSystemFail = 500;
-        try
-        {
+        try {
             log.debug("try: QUEUED -> EXECUTING...");
             ExecutionPhase ep = jobUpdater.setPhase(job.getID(), ExecutionPhase.QUEUED, ExecutionPhase.EXECUTING, new Date());
-            if ( !ExecutionPhase.EXECUTING.equals(ep) )
-            {
+            if (!ExecutionPhase.EXECUTING.equals(ep)) {
                 ep = jobUpdater.getPhase(job.getID());
                 log.debug(job.getID() + ": QUEUED -> EXECUTING [FAILED] -- phase is " + ep);
                 logInfo.setSuccess(false);
@@ -268,35 +253,42 @@ public class QueryRunner implements JobRunner
             }
             log.debug(job.getID() + ": QUEUED -> EXECUTING [OK]");
 
-            t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
-            diagnostics.add(new Result("diag", URI.create("uws:executing:"+dt)));
+            t2 = System.currentTimeMillis();
+            dt = t2 - t1;
+            t1 = t2;
+            diagnostics.add(new Result("diag", URI.create("uws:executing:" + dt)));
 
             // start processing the job
             log.debug("invoking TapValidator for REQUEST and VERSION...");
             TapValidator tapValidator = new TapValidator();
             tapValidator.validateVersion(paramList);
-            if ("1.0".equals(tapValidator.getVersion()))
+            if ("1.0".equals(tapValidator.getVersion())) {
                 responseCodeOnUserFail = HttpURLConnection.HTTP_OK; // TAP-1.0
+            }
             tapValidator.validate(paramList);
 
             DataSource queryDataSource = getQueryDataSource();
+            if (queryDataSource == null) {
+                throw new RuntimeException("failed to find the query DataSource");
+            }
             DataSource tapSchemaDataSource = getTapSchemaDataSource();
+            if (tapSchemaDataSource == null) {
+                throw new RuntimeException("failed to find the tap_schema DataSource");
+            }
             // this one is optional, so take care
             DataSource uploadDataSource = null;
-            try
-            {
+            try {
                 uploadDataSource = getUploadDataSource();
-            }
-            catch (NameNotFoundException nex)
-            {
+            } catch (NameNotFoundException nex) {
                 log.debug(nex.toString());
             }
 
-            if (queryDataSource == null) // application server config issue
-                throw new RuntimeException("failed to find the query DataSource");
+            
 
-            t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
-            diagnostics.add(new Result("diag", URI.create("jndi:lookup:"+dt)));
+            t2 = System.currentTimeMillis();
+            dt = t2 - t1;
+            t1 = t2;
+            diagnostics.add(new Result("diag", URI.create("jndi:lookup:" + dt)));
 
             log.debug("reading TapSchema...");
             TapSchemaDAO dao = pfac.getTapSchemaDAO();
@@ -304,16 +296,17 @@ public class QueryRunner implements JobRunner
             TapSchemaLoader loader = new TapSchemaLoader(dao);
             TapSchema tapSchema = loader.load();
 
-            t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
-            diagnostics.add(new Result("diag", URI.create("read:tap_schema:"+dt)));
+            t2 = System.currentTimeMillis();
+            dt = t2 - t1;
+            t1 = t2;
+            diagnostics.add(new Result("diag", URI.create("read:tap_schema:" + dt)));
 
             log.debug("checking uploaded tables...");
             UploadManager uploadManager = pfac.getUploadManager();
             uploadManager.setDataSource(uploadDataSource);
             uploadManager.setDatabaseDataType(pfac.getDatabaseDataType());
             Map<String, TableDesc> tableDescs = uploadManager.upload(paramList, job.getID());
-            if (tableDescs != null)
-            {
+            if (tableDescs != null) {
                 log.debug("adding TAP_UPLOAD SchemaDesc to TapSchema...");
                 SchemaDesc tapUploadSchema = new SchemaDesc(uploadManager.getUploadSchema());
                 tapUploadSchema.getTableDescs().addAll(tableDescs.values());
@@ -325,7 +318,7 @@ public class QueryRunner implements JobRunner
             maxRecValidator.setTapSchema(tapSchema);
             maxRecValidator.setJob(job);
             maxRecValidator.setSynchronousMode(syncOutput != null);
-            Integer maxRows = maxRecValidator.validate();
+            final Integer maxRows = maxRecValidator.validate();
 
             log.debug("creating TapQuery implementation...");
             TapQuery query = pfac.getTapQuery();
@@ -348,17 +341,17 @@ public class QueryRunner implements JobRunner
             tableWriter.setSelectList(selectList);
             tableWriter.setQueryInfo(queryInfo);
 
-            t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
-            diagnostics.add(new Result("diag", URI.create("query:parse:"+dt)));
+            t2 = System.currentTimeMillis();
+            dt = t2 - t1;
+            t1 = t2;
+            diagnostics.add(new Result("diag", URI.create("query:parse:" + dt)));
 
             Connection connection = null;
             PreparedStatement pstmt = null;
             ResultSet resultSet = null;
             URL url = null;
-            try
-            {
-                if (maxRows == null || maxRows.intValue() > 0)
-                {
+            try {
+                if (maxRows == null || maxRows.intValue() > 0) {
                     log.debug("getting database connection...");
                     if (query.isTapSchemaQuery()) {
                         log.debug("tap_schema query");
@@ -368,15 +361,17 @@ public class QueryRunner implements JobRunner
                         connection = queryDataSource.getConnection();
                     }
 
-                    t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
-                    diagnostics.add(new Result("diag", URI.create("jndi:connect:"+dt)));
+                    t2 = System.currentTimeMillis();
+                    dt = t2 - t1;
+                    t1 = t2;
+                    diagnostics.add(new Result("diag", URI.create("jndi:connect:" + dt)));
 
                     // make fetch size (client batch size) small,
                     // and restrict to forward only so that client memory usage is minimal since
                     // we are only interested in reading the ResultSet once
                     log.debug("setAutoCommit: " + pfac.getAutoCommit());
                     connection.setAutoCommit(pfac.getAutoCommit());
-                    
+
                     pstmt = connection.prepareStatement(sql);
                     pstmt.setFetchDirection(ResultSet.FETCH_FORWARD);
                     if (maxRows == null || maxRows > 1000) {
@@ -385,39 +380,39 @@ public class QueryRunner implements JobRunner
                     } else {
                         log.debug("maxRows = " + maxRows + ": not setting fetchSize");
                     }
-                    
 
                     log.debug("executing query: " + sql);
                     resultSet = pstmt.executeQuery();
                     log.debug("result set: " + resultSet.getClass().getName());
                 }
 
-                t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
-                diagnostics.add(new Result("diag", URI.create("query:execute:"+dt)));
-                
+                t2 = System.currentTimeMillis();
+                dt = t2 - t1;
+                t1 = t2;
+                diagnostics.add(new Result("diag", URI.create("query:execute:" + dt)));
+
                 String filename = "result_" + job.getID() + "." + tableWriter.getExtension();
                 String contentType = tableWriter.getContentType();
-                
-                if (syncOutput != null)
-                {
-                    
+
+                if (syncOutput != null) {
+
                     log.debug("streaming output: " + contentType);
                     syncOutput.setHeader("Content-Type", contentType);
-                    String disp = "inline; filename=\""+filename+"\"";
+                    String disp = "inline; filename=\"" + filename + "\"";
                     syncOutput.setHeader("Content-Disposition", disp);
-                    if (maxRows == null)
+                    if (maxRows == null) {
                         tableWriter.write(resultSet, syncOutput.getOutputStream());
-                    else
+                    } else {
                         tableWriter.write(resultSet, syncOutput.getOutputStream(), maxRows.longValue());
+                    }
 
-                    t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
-                    diagnostics.add(new Result("diag", URI.create("query:stream:"+dt)));
-                }
-                else if (rs != null)
-                {
+                    t2 = System.currentTimeMillis();
+                    dt = t2 - t1;
+                    t1 = t2;
+                    diagnostics.add(new Result("diag", URI.create("query:stream:" + dt)));
+                } else if (rs != null) {
                     ep = jobUpdater.getPhase(job.getID());
-                    if (ExecutionPhase.ABORTED.equals(ep))
-                    {
+                    if (ExecutionPhase.ABORTED.equals(ep)) {
                         log.debug(job.getID() + ": found phase = ABORTED before writing results - DONE");
                         return;
                     }
@@ -428,164 +423,148 @@ public class QueryRunner implements JobRunner
                     rs.setContentType(contentType);
                     url = rs.put(resultSet, tableWriter, maxRows);
 
-                    t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
-                    diagnostics.add(new Result("diag", URI.create("query:store:"+dt)));
-                }
-                else
+                    t2 = System.currentTimeMillis();
+                    dt = t2 - t1;
+                    t1 = t2;
+                    diagnostics.add(new Result("diag", URI.create("query:store:" + dt)));
+                } else {
                     throw new RuntimeException("BUG: both syncOutput and ResultStore are null");
-                
+                }
+
                 log.debug("executing query... " + tableWriter.getRowCount() + " rows [OK]");
                 // note: final chosen here because we could in theory write intermediate rowcounts or state
                 // as suggested by Dave Morris 
-                diagnostics.add(new Result("rowcount", URI.create("final:"+tableWriter.getRowCount())));
-            }
-            catch (SQLException ex)
-            {
+                diagnostics.add(new Result("rowcount", URI.create("final:" + tableWriter.getRowCount())));
+            } catch (SQLException ex) {
                 log.error("SQL Execution error.", ex);
                 throw ex;
-            }
-            finally
-            {
-                if (connection != null)
-                {
+            } finally {
+                if (connection != null) {
                     try {
                         if (!pfac.getAutoCommit()) {
                             connection.setAutoCommit(true);
                         }
-                    } catch (Throwable ignore) { }
-                    try
-                    {
+                    } catch (Throwable ignore) {
+                        log.debug("failed to set connection auto commit = true", ignore);
+                    }
+                    try {
                         if (resultSet != null) {
                             resultSet.close();
                         }
+                    } catch (Throwable ignore) {
+                        log.debug("failed to close resultset", ignore);
                     }
-                    catch (Throwable ignore) { }
-                    try
-                    {
+                    try {
                         if (pstmt != null) {
                             pstmt.close();
                         }
+                    } catch (Throwable ignore) {
+                        log.debug("failed to close prepared statement", ignore);
                     }
-                    catch (Throwable ignore) { }
-                    try
-                    {
+                    try {
                         connection.close();
+                    } catch (Throwable ignore) {
+                        log.debug("failed to close connection", ignore);
                     }
-                    catch (Throwable ignore) { }
                 }
             }
 
-            if (syncOutput != null)
-            {
+            if (syncOutput != null) {
                 log.debug("[sync] setting ExecutionPhase = " + ExecutionPhase.COMPLETED + " diag: " + diagnostics.size());
                 jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING, ExecutionPhase.COMPLETED, diagnostics, new Date());
-            }
-            else
-            {
-                try
-                {
+            } else {
+                try {
                     Result res = new Result("result", new URI(url.toExternalForm()));
                     diagnostics.add(res);
                     log.debug("[async] setting ExecutionPhase = " + ExecutionPhase.COMPLETED + " result+diag: " + diagnostics.size());
                     jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING, ExecutionPhase.COMPLETED, diagnostics, new Date());
-                }
-                catch (URISyntaxException e)
-                {
+                } catch (URISyntaxException e) {
                     log.error("BUG: URL is not a URI: " + url.toExternalForm(), e);
                     throw e;
                 }
             }
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             logInfo.setMessage(t.getMessage());
             int errorCode;
-            if (t instanceof IllegalArgumentException || t instanceof UnsupportedOperationException)
-            {
+            if (t instanceof IllegalArgumentException || t instanceof UnsupportedOperationException) {
                 logInfo.setSuccess(true);
                 errorCode = responseCodeOnUserFail;
-            }
-            else if (t instanceof AccessControlException)
-            {
+            } else if (t instanceof AccessControlException) {
                 logInfo.setSuccess(true);
                 errorCode = responseCodeOnPermissionDenied;
-            }
-            else
-            {
+            } else {
                 logInfo.setSuccess(false);
                 errorCode = responseCodeOnSystemFail;
             }
             String errorMessage = null;
             URL errorURL = null;
-            try
-            {
-                t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
-                diagnostics.add(new Result("diag", URI.create("fail:"+dt)));
+            try {
+                t2 = System.currentTimeMillis();
+                dt = t2 - t1;
+                t1 = t2;
+                diagnostics.add(new Result("diag", URI.create("fail:" + dt)));
 
                 errorMessage = t.getClass().getSimpleName() + ":" + t.getMessage();
                 log.debug("BADNESS", t);
                 log.debug("Error message: " + errorMessage);
-                
+
                 log.debug("creating TableWriter for error...");
                 TableWriter ewriter = pfac.getErrorWriter();
-                
+
                 // write to buffer so we can determine content-length
                 ByteArrayOutputStream bos = new ByteArrayOutputStream();
                 ewriter.write(t, bos);
                 String emsg = bos.toString();
                 String filename = "error_" + job.getID() + "." + ewriter.getExtension();
-                if (syncOutput != null)
-                {
+                if (syncOutput != null) {
                     syncOutput.setCode(errorCode);
                     syncOutput.setHeader("Content-Type", ewriter.getErrorContentType());
                     syncOutput.setHeader("Content-Length", Integer.toString(emsg.length()));
-                    String disp = "inline; filename=\""+filename+"\"";
+                    String disp = "inline; filename=\"" + filename + "\"";
                     syncOutput.setHeader("Content-Disposition", disp);
                     Writer w = new OutputStreamWriter(syncOutput.getOutputStream());
                     w.write(emsg);
                     w.flush();
-                    
-                    t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
-                    diagnostics.add(new Result("diag", URI.create("fail:stream:"+dt)));
-                }
-                else if (rs != null)
-                {
+
+                    t2 = System.currentTimeMillis();
+                    dt = t2 - t1;
+                    t1 = t2;
+                    diagnostics.add(new Result("diag", URI.create("fail:stream:" + dt)));
+                } else if (rs != null) {
                     rs.setJob(job);
                     rs.setFilename(filename);
                     rs.setContentType(ewriter.getContentType());
                     errorURL = rs.put(t, ewriter);
 
-                    t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
-                    diagnostics.add(new Result("diag", URI.create("fail:store:"+dt)));
-                }
-                else
+                    t2 = System.currentTimeMillis();
+                    dt = t2 - t1;
+                    t1 = t2;
+                    diagnostics.add(new Result("diag", URI.create("fail:store:" + dt)));
+                } else {
                     throw new RuntimeException("BUG: both syncOutput and ResultStore are null");
+                }
 
                 log.debug("Error URL: " + errorURL);
                 ErrorSummary es = new ErrorSummary(errorMessage, ErrorType.FATAL, errorURL);
                 log.debug("setting ExecutionPhase = " + ExecutionPhase.ERROR);
                 // TODO: add diagnostics to final job state when failing; requires cadc-uws-server support
                 jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING, ExecutionPhase.ERROR, es, new Date());
-            }
-            catch (Throwable th2)
-            {
+            } catch (Throwable th2) {
                 log.error("failed to persist error", th2);
-                t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
-                diagnostics.add(new Result("diag", URI.create("fail:fail:store:"+dt)));
+                t2 = System.currentTimeMillis();
+                dt = t2 - t1;
+                t1 = t2;
+                diagnostics.add(new Result("diag", URI.create("fail:fail:store:" + dt)));
                 // this is really bad: try without the document
                 log.debug("setting ExecutionPhase = " + ExecutionPhase.ERROR);
                 ErrorSummary es = new ErrorSummary(errorMessage, ErrorType.FATAL);
-                try
-                {
+                try {
                     // TODO: add diagnostics to final job state when failing; requires cadc-uws-server support
                     jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING, ExecutionPhase.ERROR, es, new Date());
+                } catch (Throwable t3) {
+                    log.debug("failed to update job from executing to error", t3);
                 }
-                catch(Throwable ignore) { }
             }
-        }
-        finally
-        {
-            
         }
     }
 

@@ -65,7 +65,8 @@
 *  $Revision: 4 $
 *
 ************************************************************************
-*/
+ */
+
 package ca.nrc.cadc.tap.upload;
 
 import ca.nrc.cadc.tap.UploadManager;
@@ -85,8 +86,8 @@ import org.apache.log4j.Logger;
  *
  * @author jburke
  */
-public class UploadParameters
-{
+public class UploadParameters {
+
     private static final Logger log = Logger.getLogger(UploadParameters.class);
 
     /**
@@ -101,13 +102,12 @@ public class UploadParameters
      * @param parameters List of upload parameters.
      * @param jobID the UWS Job ID.
      */
-    public UploadParameters(List<Parameter> parameters, String jobID)
-    {
+    public UploadParameters(List<Parameter> parameters, String jobID) {
         uploadTables = new ArrayList<UploadTable>();
 
         process(parameters, jobID);
     }
-    
+
     /**
      * Parse each parameter in the List and create a List of UploadTable
      * to describe each upload table.
@@ -115,28 +115,28 @@ public class UploadParameters
      * @param parameters List of upload parameters.
      * @param jobID the UWS Job ID.
      */
-    protected void process(List<Parameter> parameters, String jobID)
-    {
-        if (parameters == null || parameters.isEmpty())
+    protected void process(List<Parameter> parameters, String jobID) {
+        if (parameters == null || parameters.isEmpty()) {
             return;
+        }
 
         // Check each parameter in the list.
         log.debug("process: " + parameters.size() + " params");
-        for (Parameter parameter : parameters)
-        {
+        for (Parameter parameter : parameters) {
             log.debug("parameter: " + parameter);
             // Skip if parameter isn't named UPLOAD.
-            if (parameter == null || !parameter.getName().equals(UploadManager.UPLOAD))
+            if (parameter == null || !parameter.getName().equals(UploadManager.UPLOAD)) {
                 continue;
+            }
 
             // Throw an exception if a UPLOAD parameter doesn't have a value.
-            if (parameter.getValue() == null || parameter.getValue().isEmpty())
+            if (parameter.getValue() == null || parameter.getValue().isEmpty()) {
                 throw new UnsupportedOperationException("UPLOAD parameter is empty " + parameter.getName());
+            }
 
             // Parameter values can be semicolon delimited.
             String[] values = parameter.getValue().split(";");
-            for (String value : values)
-            {
+            for (String value : values) {
                 log.debug("value: " + value);
                 // Table name and uri or param are comma delimited.
                 String[] tableNameUri = value.split(",");
@@ -147,85 +147,73 @@ public class UploadParameters
             }
         }
     }
-    
+
     /**
      * Validates that the table name in the UPLOAD parameter is a valid ADQL
      * table name.
-     * 
+     *
      * @param parameter a single UPLOAD parameter.
      * @param tableNameUri String[] containing table name and VOTable URI string.
      * @return validated table name.
      * @throws UnsupportedOperationException if the table name is invalid.
      */
     protected String validateTableName(Parameter parameter, String[] tableNameUri)
-        throws UnsupportedOperationException
-    {
+            throws UnsupportedOperationException {
         log.debug("validateTableName: " + parameter + " " + StringUtil.toString(tableNameUri));
-        
+
         String tableName;
-        try
-        {
+        try {
             tableName = tableNameUri[0];
-        }
-        catch (IndexOutOfBoundsException e)
-        {
+        } catch (IndexOutOfBoundsException e) {
             throw new UnsupportedOperationException("UPLOAD table name is missing: " + parameter);
         }
-        
+
         // Does table name start with a valid schema.
         int index = tableName.indexOf('.');
-        if (index >= 0)
-        {
+        if (index >= 0) {
             String schema = tableName.substring(0, index);
-            if (!schema.equalsIgnoreCase(UploadManager.SCHEMA))
+            if (!schema.equalsIgnoreCase(UploadManager.SCHEMA)) {
                 throw new UnsupportedOperationException("UPLOAD table schema name is invalid: " + tableName);
-            if (tableName.length() == index + 1)
+            }
+            if (tableName.length() == index + 1) {
                 throw new UnsupportedOperationException("UPLOAD table name is missing: " + tableName);
+            }
             tableName = tableName.substring(index + 1);
         }
-        
-        try
-        {
+
+        try {
             TapSchemaUtil.checkValidIdentifier(tableName);
-        }
-        catch (ADQLIdentifierException e)
-        {
+        } catch (ADQLIdentifierException e) {
             throw new UnsupportedOperationException("UPLOAD table name not a valid ADQL identifier: " + tableName, e);
         }
-        
+
         // duplicate table names are not allowed.
-        for (UploadTable uploadTable : uploadTables)
-        {
-            if (uploadTable.tableName.equals(tableName))
+        for (UploadTable uploadTable : uploadTables) {
+            if (uploadTable.tableName.equals(tableName)) {
                 throw new UnsupportedOperationException("UPLOAD table name is a duplicate: " + tableName);
+            }
         }
         return tableName;
     }
-    
+
     /**
      * Validates that the URI string in the UPLOAD parameter is a valid URI.
-     * 
+     *
      * @param parameter a single UPLOAD parameter.
      * @param tableNameUri String[] containing table name and VOTable URI string.
      * @return valid URI to the VOTable.
      * @throws IllegalStateException if the URI is invalid.
      */
     protected URI validateURI(Parameter parameter, String[] tableNameUri)
-        throws UnsupportedOperationException
-    {
-        URI uri;        
-        try
-        {
+            throws UnsupportedOperationException {
+        URI uri;
+        try {
             return new URI(tableNameUri[1]);
-        }
-        catch (IndexOutOfBoundsException e)
-        {
+        } catch (IndexOutOfBoundsException e) {
             throw new UnsupportedOperationException("UPLOAD URI is missing: " + parameter);
-        }
-        catch (URISyntaxException e)
-        {
+        } catch (URISyntaxException e) {
             throw new UnsupportedOperationException("UPLOAD URI is invalid: " + tableNameUri[1]);
         }
     }
-    
+
 }

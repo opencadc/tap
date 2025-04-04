@@ -76,8 +76,7 @@ import java.sql.SQLException;
  * Alternate format interface that allows for database
  * specific object extraction. 
  */
-public interface ResultSetFormat
-{
+public interface ResultSetFormat {
     /**
      * Extract a value object from the specified column of the result set.
      * 

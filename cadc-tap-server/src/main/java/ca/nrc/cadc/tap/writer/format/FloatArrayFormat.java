@@ -76,15 +76,14 @@ import java.sql.SQLException;
  *
  * @author pdowler
  */
-public class FloatArrayFormat extends AbstractResultSetFormat
-{
-    private static final ca.nrc.cadc.dali.util.FloatArrayFormat fmt 
+public class FloatArrayFormat extends AbstractResultSetFormat {
+
+    private static final ca.nrc.cadc.dali.util.FloatArrayFormat fmt
             = new ca.nrc.cadc.dali.util.FloatArrayFormat();
-    
+
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
-            throws SQLException
-    {
+            throws SQLException {
         return unwrap(resultSet.getObject(columnIndex));
     }
 
@@ -105,26 +104,21 @@ public class FloatArrayFormat extends AbstractResultSetFormat
         return fmt.format((float[]) object);
     }
 
-    public float[] unwrap(Object object)
-    {
-        if (object == null)
+    public float[] unwrap(Object object) {
+        if (object == null) {
             return null;
+        }
 
-        if (object instanceof java.sql.Array)
-        {
-            try
-            {
+        if (object instanceof java.sql.Array) {
+            try {
                 java.sql.Array array = (java.sql.Array) object;
                 object = array.getArray();
-            }
-            catch (SQLException e)
-            {
+            } catch (SQLException e) {
                 throw new IllegalArgumentException("Error accessing array data for " + object.getClass().getCanonicalName(), e);
             }
         }
-        
-        if (object instanceof Float[])
-        {
+
+        if (object instanceof Float[]) {
             Float[] arr = (Float[]) object;
             float[] tmp = new float[arr.length];
             for (int i = 0; i < arr.length; i++) {
@@ -132,9 +126,10 @@ public class FloatArrayFormat extends AbstractResultSetFormat
             }
             object = tmp;
         }
-        
-        if (object instanceof float[])
+
+        if (object instanceof float[]) {
             return (float[]) object;
+        }
 
         throw new IllegalArgumentException(this.getClass().getSimpleName() + ": " + object.getClass().getCanonicalName() + " not supported.");
     }

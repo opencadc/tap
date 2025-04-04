@@ -65,7 +65,7 @@
 *  $Revision: 4 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.tap.upload;
 
@@ -77,26 +77,27 @@ import java.util.List;
 /**
  * Interface to parse a VOTable and extract the meta data describing the
  * VOTAble and access the VOTable data.
- * 
+ *
  * @author jburke
  */
-public interface VOTableParser
-{
+public interface VOTableParser {
+
     /**
      * Set the Upload Table details.
-     * @param upload        The upload table descriptor.
-     * @throws VOTableParserException   For any parsing exceptions.
+     *
+     * @param upload The upload table descriptor.
+     * @throws VOTableParserException For any parsing exceptions.
      */
     void setUpload(UploadTable upload) throws VOTableParserException;
-    
+
     /**
      * Get a TableDesc of the VOTable.
      *
-     * @throws VOTableParserException if unable to parse the VOTable.
      * @return TableDesc of the VOTable.
+     * @throws VOTableParserException if unable to parse the VOTable.
      */
-    TableDesc getTableDesc() 
-        throws IOException, VOTableParserException;
+    TableDesc getTableDesc()
+            throws IOException, VOTableParserException;
 
     /**
      * Returns an Iterator to the VOTable data.
