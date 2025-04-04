@@ -69,6 +69,7 @@
 
 package ca.nrc.cadc.tap;
 
+import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.log.WebServiceLogInfo;
 import ca.nrc.cadc.rest.SyncOutput;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
@@ -88,7 +89,6 @@ import ca.nrc.cadc.uws.util.JobLogInfo;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -139,6 +139,10 @@ public class QueryRunner implements JobRunner {
     private JobUpdater jobUpdater;
     private SyncOutput syncOutput;
     private WebServiceLogInfo logInfo;
+    
+    private final int responseCodeOnUserFail = 400;
+    private final int responseCodeOnPermissionDenied = 403;
+    private final int responseCodeOnSystemFail = 500;
 
     public QueryRunner() {
     }
@@ -238,9 +242,7 @@ public class QueryRunner implements JobRunner {
             rs = pfac.getResultStore();
             log.debug("loaded: " + rs.getClass().getName());
         }
-        int responseCodeOnUserFail = 400;   // default for TAP-1.1+
-        int responseCodeOnPermissionDenied = 403;
-        int responseCodeOnSystemFail = 500;
+        
         try {
             log.debug("try: QUEUED -> EXECUTING...");
             ExecutionPhase ep = jobUpdater.setPhase(job.getID(), ExecutionPhase.QUEUED, ExecutionPhase.EXECUTING, new Date());
@@ -259,18 +261,7 @@ public class QueryRunner implements JobRunner {
             diagnostics.add(new Result("diag", URI.create("uws:executing:" + dt)));
 
             // start processing the job
-            log.debug("invoking TapValidator for REQUEST and VERSION...");
-            TapValidator tapValidator = new TapValidator();
-            tapValidator.validateVersion(paramList);
-            if ("1.0".equals(tapValidator.getVersion())) {
-                responseCodeOnUserFail = HttpURLConnection.HTTP_OK; // TAP-1.0
-            }
-            tapValidator.validate(paramList);
-
-            DataSource queryDataSource = getQueryDataSource();
-            if (queryDataSource == null) {
-                throw new RuntimeException("failed to find the query DataSource");
-            }
+            
             DataSource tapSchemaDataSource = getTapSchemaDataSource();
             if (tapSchemaDataSource == null) {
                 throw new RuntimeException("failed to find the tap_schema DataSource");
@@ -282,8 +273,6 @@ public class QueryRunner implements JobRunner {
             } catch (NameNotFoundException nex) {
                 log.debug(nex.toString());
             }
-
-            
 
             t2 = System.currentTimeMillis();
             dt = t2 - t1;
@@ -332,20 +321,35 @@ public class QueryRunner implements JobRunner {
             }
 
             log.debug("invoking TapQuery implementation: " + query.getClass().getCanonicalName());
-            String sql = query.getSQL();
-            List<TapSelectItem> selectList = query.getSelectList();
-            String queryInfo = query.getInfo();
+            final List<TapSelectItem> selectList = query.getSelectList();
+            final String queryInfo = query.getInfo();
+            final String sql = query.getSQL();
 
             log.debug("creating TapTableWriter...");
             TableWriter tableWriter = pfac.getTableWriter();
             tableWriter.setSelectList(selectList);
             tableWriter.setQueryInfo(queryInfo);
+            VOTableDocument vot = tableWriter.generateOutputTable();
+            if (vot != null) {
+                log.warn("data-less VOTable available!");
+            }
 
             t2 = System.currentTimeMillis();
             dt = t2 - t1;
             t1 = t2;
             diagnostics.add(new Result("diag", URI.create("query:parse:" + dt)));
 
+            // TODO: 
+            //   option: store some or all of the intermediaste state (data-less vot, select-list, sql)
+            //   option: proceed to executing the SQL query via JDBC
+            //   option: set phase=HELD and return
+            
+            // prepare to execute the querry
+            DataSource queryDataSource = getQueryDataSource();
+            if (queryDataSource == null) {
+                throw new RuntimeException("failed to find the query DataSource");
+            }
+            
             Connection connection = null;
             PreparedStatement pstmt = null;
             ResultSet resultSet = null;

@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2025.                            (c) 2025.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -127,13 +127,10 @@ public class DefaultTableWriter implements TableWriter {
     public static final String RSS = "rss";
 
     // content-types
-    //private static final String APPLICATION_FITS = "application/fits";
     private static final String APPLICATION_VOTABLE_XML = "application/x-votable+xml";
     private static final String APPLICATION_RSS = "application/rss+xml";
     private static final String TEXT_XML_VOTABLE = "text/xml;content=x-votable"; // the SIAv1 mimetype
     private static final String TEXT_CSV = "text/csv";
-    //private static final String TEXT_HTML = "text/html";
-    //private static final String TEXT_PLAIN = "text/plain";
     private static final String TEXT_TAB_SEPARATED_VALUES = "text/tab-separated-values";
     private static final String TEXT_XML = "text/xml";
     private static final String APPLICATION_PARQUET = "application/vnd.apache.parquet";
@@ -141,7 +138,7 @@ public class DefaultTableWriter implements TableWriter {
 
     private static final String PARQUET_CLASS_NAME = "ca.nrc.cadc.dali.tables.parquet.ParquetWriter";
 
-    private static final Map<String, String> knownFormats = new TreeMap<String, String>();
+    private static final Map<String, String> knownFormats = new TreeMap<>();
 
     static {
         knownFormats.put(APPLICATION_VOTABLE_XML, VOTABLE);
@@ -160,7 +157,7 @@ public class DefaultTableWriter implements TableWriter {
             knownFormats.put(APPLICATION_PARQUET, PARQUET);
             knownFormats.put(PARQUET, PARQUET);
         } catch (ClassNotFoundException ex) {
-            log.debug("class not found: ca.nrc.cadc.dali.tables.parquet.ParquetWriter - disabling parquet output");
+            log.debug("class not found: ca.nrc.cadc.dali.tables.parquet.ParquetWriter - no parquet output");
         }
     }
 
@@ -284,6 +281,7 @@ public class DefaultTableWriter implements TableWriter {
         this.extension = tableWriter.getExtension();
     }
 
+    @Override
     public void setFormatFactory(FormatFactory formatFactory) {
         this.formatFactory = formatFactory;
     }
@@ -313,6 +311,7 @@ public class DefaultTableWriter implements TableWriter {
             }
         }
 
+        // HACK: delegate everything to an alternate TAP TableWriter
         if (rssTableWriter != null) {
             rssTableWriter.setJob(job);
             rssTableWriter.setSelectList(selectList);
@@ -326,43 +325,60 @@ public class DefaultTableWriter implements TableWriter {
             return;
         }
 
+        VOTableDocument votableDocument = generateOutputTable();
+        VOTableTable resultsTable = votableDocument.getResourceByType("results").getTable();
+
+        // get the formats based on the selectList; some of these are ResultSetFormat
+        // and used by ResultSetTableData to extract from JDBC
+        List<Format<Object>> formats = formatFactory.getFormats(selectList);
+        for (int i = 0; i < formats.size(); i++) {
+            // attach format object to field so the tableWriter can use 
+            // Format.format(Object) or other future methods
+            resultsTable.getFields().get(i).setFormat(formats.get(i));
+        }
+
+        // attach dynamic table data
+        ResultSetTableData tableData = new ResultSetTableData(rs, formats);
+        resultsTable.setTableData(tableData);
+
+        if (maxrec != null) {
+            tableWriter.write(votableDocument, out, maxrec);
+        } else {
+            tableWriter.write(votableDocument, out);
+        }
+
+        this.rowcount = tableData.getRowCount();
+    }
+    
+    @Override
+    public VOTableDocument generateOutputTable() throws IOException {
+        if (rssTableWriter != null) {
+            return null; // ugh
+        }
+
         VOTableDocument votableDocument = new VOTableDocument();
 
         VOTableResource resultsResource = new VOTableResource("results");
         VOTableTable resultsTable = new VOTableTable();
+        resultsResource.setTable(resultsTable);
+        votableDocument.getResources().add(resultsResource);
 
-        // get the formats based on the selectList
-        List<Format<Object>> formats = formatFactory.getFormats(selectList);
-
-        List<String> serviceIDs = new ArrayList<String>();
-        int listIndex = 0;
-
-        // Add the metadata elements.
+        // extract select list field ID values
+        List<String> serviceIDs = new ArrayList<>();
         for (TapSelectItem resultCol : selectList) {
             VOTableField newField = createVOTableField(resultCol);
-
-            Format<Object> format = formats.get(listIndex);
-            log.debug("format: " + listIndex + " " + format.getClass().getName());
-            newField.setFormat(format);
-
             resultsTable.getFields().add(newField);
-
             if (newField.id != null) {
                 if (!serviceIDs.contains(newField.id)) {
                     serviceIDs.add(newField.id);
                 } else {
-                    newField.id = null; // avoid multiple ID with same value in output
+                    // avoid multiple ID with same value in output
+                    // e.g. duplicate columns from a join
+                    newField.id = null;
                 }
             }
-
-            listIndex++;
         }
-
-        resultsResource.setTable(resultsTable);
-        votableDocument.getResources().add(resultsResource);
-
-        // Add the "meta" resources to describe services for each columnID in
-        // list columnIDs that we recognize
+        // add meta resources aka service descriptors for selected IDs
         addMetaResources(votableDocument, serviceIDs);
 
         VOTableInfo info = new VOTableInfo("QUERY_STATUS", "OK");
@@ -378,17 +394,8 @@ public class DefaultTableWriter implements TableWriter {
             info = new VOTableInfo("QUERY", queryInfo);
             resultsResource.getInfos().add(info);
         }
-
-        ResultSetTableData tableData = new ResultSetTableData(rs, formats);
-        resultsTable.setTableData(tableData);
-
-        if (maxrec != null) {
-            tableWriter.write(votableDocument, out, maxrec);
-        } else {
-            tableWriter.write(votableDocument, out);
-        }
-
-        this.rowcount = tableData.getRowCount();
+        
+        return votableDocument;
     }
 
     // HACK: need to allow an ObsCore.access_url formatter to access this info
@@ -443,6 +450,7 @@ public class DefaultTableWriter implements TableWriter {
         return null;
     }
 
+    // read a votable document in the config dir
     private static VOTableDocument getDoc(String sid) throws IOException {
         File configDir = new File(System.getProperty("user.home") + "/config");
         String filename = sid + ".xml";
@@ -467,12 +475,25 @@ public class DefaultTableWriter implements TableWriter {
         return serviceDocument;
     }
 
-    private void addMetaResources(VOTableDocument votableDocument, List<String> serviceIDs)
+    /**
+     * Optionally add meta resources to the VOTableDocument. These are expected to be
+     * DataLink service descriptors that go with the columns (fields) in the select list.
+     * Normally, fields get an ID if one is assigned in the tap_schema metadata. The default
+     * implementation uses the <code>fieldIDs</code> valeus to find service descriptor templates,
+     * optionally process them to add the accessURL, and add them to the document. 
+     * Find is currently: look for a file named {fieldID}.xml in the {user.home}/config
+     * directory.
+     * 
+     * @param votableDocument the document to add meta resources to
+     * @param fieldIDs list of FIELD ID attributes for items in the select list
+     * @throws IOException if failing to read files from the config dir
+     */
+    protected void addMetaResources(VOTableDocument votableDocument, List<String> fieldIDs)
             throws IOException {
         RegistryClient regClient = new RegistryClient();
-        for (String serviceID : serviceIDs) {
-            VOTableDocument serviceDocument = getDoc(serviceID);
-            String filename = serviceID + ".xml";
+        for (String fid : fieldIDs) {
+            VOTableDocument serviceDocument = getDoc(fid);
+            String filename = fid + ".xml";
             if (serviceDocument == null) {
                 return;
             }
@@ -529,7 +550,7 @@ public class DefaultTableWriter implements TableWriter {
             VOTableField newField = new VOTableField(resultCol.getName(), tt.getDatatype(), tt.arraysize);
             newField.xtype = tt.xtype;
             newField.description = resultCol.description;
-            newField.id = resultCol.id;
+            newField.id = resultCol.columnID;
             newField.utype = resultCol.utype;
             newField.ucd = resultCol.ucd;
             newField.unit = resultCol.unit;
