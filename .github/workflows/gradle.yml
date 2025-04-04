@@ -21,13 +21,13 @@ jobs:
       run: cd cadc-jsqlparser-compat && ../gradlew --info clean build javadoc install
 
     - name: build and test cadc-tap
-      run: cd cadc-tap && ../gradlew --info clean build javadoc install
+      run: cd cadc-tap && ../gradlew --info clean build javadoc checkstyleMain install
 
     - name: build and test cadc-tap-schema
-      run: cd cadc-tap-schema && ../gradlew --info clean build javadoc install
+      run: cd cadc-tap-schema && ../gradlew --info clean build javadoc checkstyleMain install
       
     - name: build and test cadc-tap-server
-      run: cd cadc-tap-server && ../gradlew --info clean build javadoc install
+      run: cd cadc-tap-server && ../gradlew --info clean build javadoc checkstyleMain install
       
     - name: build and test cadc-adql
       run: cd cadc-adql && ../gradlew --info clean build javadoc install

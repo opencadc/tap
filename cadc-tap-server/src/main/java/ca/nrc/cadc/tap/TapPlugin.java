@@ -75,7 +75,6 @@ import ca.nrc.cadc.uws.Job;
  *
  * @author pdowler
  */
-public interface TapPlugin 
-{
+public interface TapPlugin {
     void setJob(Job job);
 }

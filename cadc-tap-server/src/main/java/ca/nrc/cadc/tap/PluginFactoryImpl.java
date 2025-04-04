@@ -81,12 +81,7 @@ import org.apache.log4j.Logger;
 
 /**
  * Class for setting up the parsing of query parameters (LANG and associated
- * parameters), instantiating, and executing a suitable TapQUery implementation.
- * <p>
- * This class supports extension by delegating calls to a subclass of itself
- * named ca..nrc.cadc.tap.impl.QueryProcessorImpl. Delegate implementation
- * is optional. The purpose of creating  a delegate is to override the default binding
- * of LANG values to TapQuery implementation classes via the getLangBindings() method.
+ * parameters), instantiating, and executing a suitable TapQuery implementation.
  *
  * @author pdowler
  */
@@ -116,7 +111,7 @@ public class PluginFactoryImpl extends PluginFactory {
         Class c;
         String langStr = config.getProperty(TapQuery.class.getName() + ".langValues");
         if (langStr != null) {
-            String langs[] = langStr.split(" ");
+            String[] langs = langStr.split(" ");
             for (String lang : langs) {
                 String cname = config.getProperty(lang);
                 if (cname != null) {

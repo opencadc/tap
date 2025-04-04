@@ -78,8 +78,8 @@ import java.util.List;
  * FormatFactory interface.
  *
  */
-public interface FormatFactory extends TapPlugin
-{
+public interface FormatFactory extends TapPlugin {
+
     List<Format<Object>> getFormats(List<TapSelectItem> selectList);
 
     Format<Object> getFormat(TapSelectItem selectitem);

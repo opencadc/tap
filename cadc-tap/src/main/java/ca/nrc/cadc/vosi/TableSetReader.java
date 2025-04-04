@@ -65,7 +65,7 @@
 *  $Revision: 5 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.vosi;
 
@@ -87,55 +87,48 @@ import org.jdom2.Namespace;
  *
  * @author pdowler
  */
-public class TableSetReader extends TableSetParser
-{
+public class TableSetReader extends TableSetParser {
     private static final Logger log = Logger.getLogger(TableSetReader.class);
 
     private static final String TAP_TYPE = "vod:TAPType";
     private static final String VOT_TYPE = "vod:VOTableType";
-    
-    public TableSetReader() { this(true); }
-    
-    public TableSetReader(boolean enableSchemaValidation)
-    {
+
+    public TableSetReader() {
+        this(true);
+    }
+
+    public TableSetReader(boolean enableSchemaValidation) {
         super(enableSchemaValidation);
     }
-    
+
     public TapSchema read(InputStream istream)
-        throws IOException, InvalidTableSetException
-    {
+            throws IOException, InvalidTableSetException {
         return read(new InputStreamReader(istream));
     }
-    
+
     public TapSchema read(Reader reader)
-        throws IOException, InvalidTableSetException
-    {
-        try
-        {
+            throws IOException, InvalidTableSetException {
+        try {
             Document doc = parse(reader);
             return toTapSchema(doc);
-        }
-        catch(JDOMException ex)
-        {
+        } catch (JDOMException ex) {
             throw new InvalidTableSetException("invalid content", ex);
         }
     }
-    
-    private TapSchema toTapSchema(Document doc)
-    {
+
+    private TapSchema toTapSchema(Document doc) {
         TapSchema ret = new TapSchema();
         Element root = doc.getRootElement();
         Namespace xsi = root.getNamespace("xsi");
         if ("tableset".equals(root.getName())) {
             // content is element-form unqualified
             List<Element> sels = root.getChildren("schema");
-            for (Element se : sels)
-            {
+            for (Element se : sels) {
                 String sn = se.getChildTextTrim("name");
                 SchemaDesc sd = new SchemaDesc(sn);
                 sd.description = se.getChildTextTrim("description");
                 sd.utype = se.getChildTextTrim("utype");
-                
+
                 List<Element> tabs = se.getChildren("table");
                 for (Element te : tabs) {
                     TableDesc td = TableReader.toTable(sn, te, xsi);

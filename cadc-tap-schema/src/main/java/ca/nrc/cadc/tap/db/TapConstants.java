@@ -65,15 +65,15 @@
 *  $Revision: 4 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.tap.db;
 
 /**
  * Constants from various TAP specifications.
  */
-public class TapConstants
-{
+public class TapConstants {
+
     public static final String TAP10_SMALLINT = "adql:SMALLINT";
     public static final String TAP10_INTEGER = "adql:INTEGER";
     public static final String TAP10_BIGINT = "adql:BIGINT";

@@ -78,7 +78,6 @@ import ca.nrc.cadc.tap.schema.TapSchemaLoader;
 import ca.nrc.cadc.tap.schema.TapSchemaUtil;
 import ca.nrc.cadc.vosi.TableSetWriter;
 import ca.nrc.cadc.vosi.TableWriter;
-import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;

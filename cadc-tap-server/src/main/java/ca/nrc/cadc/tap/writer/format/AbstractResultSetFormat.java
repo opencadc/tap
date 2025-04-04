@@ -67,7 +67,6 @@
 
 package ca.nrc.cadc.tap.writer.format;
 
-
 import ca.nrc.cadc.dali.util.Format;
 import java.sql.ResultSet;
 import java.sql.SQLException;

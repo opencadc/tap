@@ -77,78 +77,63 @@ import java.util.Map;
 
 /**
  * Class to represent a TAP_SCHEMA.
- * 
+ *
  */
-public class TapSchema
-{
+public class TapSchema {
+
     protected final List<SchemaDesc> schemaDescs = new ArrayList<>();
     protected final List<FunctionDesc> functionDescs = new ArrayList<>();
-    
+
     /**
      * Default no-arg constructor.
      */
-    public TapSchema()
-    {
+    public TapSchema() {
     }
 
     public static void assertNotNull(Class caller, String name, Object test)
-        throws IllegalArgumentException
-    {
-        if (test == null)
+            throws IllegalArgumentException {
+        if (test == null) {
             throw new IllegalArgumentException(caller.getSimpleName() + ": null " + name);
+        }
     }
-    
-    /**
-     * Setters and getters.
-     * 
-     */
-    public final List<SchemaDesc> getSchemaDescs()
-    {
+
+    public final List<SchemaDesc> getSchemaDescs() {
         return schemaDescs;
     }
-    
-    public SchemaDesc getSchema(String schemaName)
-    {
-        for (SchemaDesc sd : schemaDescs)
-        {
-            if (sd.getSchemaName().equalsIgnoreCase(schemaName))
+
+    public SchemaDesc getSchema(String schemaName) {
+        for (SchemaDesc sd : schemaDescs) {
+            if (sd.getSchemaName().equalsIgnoreCase(schemaName)) {
                 return sd;
-        }
-        return null;
-    }
-    
-    public TableDesc findTable(String tableName)
-    {
-        for (SchemaDesc sd : schemaDescs)
-        {
-            TableDesc td = sd.getTable(tableName);
-            if (td != null)
-                return td;
+            }
         }
         return null;
     }
 
-    public final List<FunctionDesc> getFunctionDescs()
-    {
+    public TableDesc findTable(String tableName) {
+        for (SchemaDesc sd : schemaDescs) {
+            TableDesc td = sd.getTable(tableName);
+            if (td != null) {
+                return td;
+            }
+        }
+        return null;
+    }
+
+    public final List<FunctionDesc> getFunctionDescs() {
         return functionDescs;
     }
 
-    /**
-     * @return String representation of the TapSchema.
-     */
     @Override
-    public String toString()
-    {
+    public String toString() {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
         pw.println("TapSchema[");
-        for (SchemaDesc schemaDesc : schemaDescs)
-        {
+        for (SchemaDesc schemaDesc : schemaDescs) {
             pw.print("\t");
             pw.println(schemaDesc);
         }
-        for (FunctionDesc functionDesc : functionDescs)
-        {
+        for (FunctionDesc functionDesc : functionDescs) {
             pw.print("\t");
             pw.println(functionDesc);
         }

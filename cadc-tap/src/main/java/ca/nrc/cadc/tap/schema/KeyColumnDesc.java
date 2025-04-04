@@ -71,38 +71,32 @@ package ca.nrc.cadc.tap.schema;
 
 /**
  * Descriptor Class to represent a TAP_SCHEMA.key_columns table.
- * 
+ *
  */
-public class KeyColumnDesc
-{
+public class KeyColumnDesc {
     private String keyID;
     private String fromColumn;
     private String targetColumn;
 
-    public KeyColumnDesc(String keyID, String fromColumn, String targetColumn)
-    {
+    public KeyColumnDesc(String keyID, String fromColumn, String targetColumn) {
         this.keyID = keyID;
         this.fromColumn = fromColumn;
         this.targetColumn = targetColumn;
     }
 
-    public String getKeyID()
-    {
+    public String getKeyID() {
         return keyID;
     }
 
-    public String getFromColumn()
-    {
+    public String getFromColumn() {
         return fromColumn;
     }
 
-    public String getTargetColumn()
-    {
+    public String getTargetColumn() {
         return targetColumn;
     }
 
-    public String toString()
-    {
+    public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("KeyColumn[");
         sb.append(keyID).append(",");

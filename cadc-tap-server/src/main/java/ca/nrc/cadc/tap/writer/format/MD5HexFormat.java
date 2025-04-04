@@ -65,10 +65,9 @@
 *  $Revision: 5 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.tap.writer.format;
-
 
 import ca.nrc.cadc.dali.util.MD5Format;
 import java.sql.ResultSet;
@@ -79,29 +78,29 @@ import org.apache.log4j.Logger;
  *
  * @author pdowler
  */
-public class MD5HexFormat extends AbstractResultSetFormat
-{
+public class MD5HexFormat extends AbstractResultSetFormat {
+
     private static final Logger log = Logger.getLogger(MD5HexFormat.class);
 
     private ByteArrayFormat bfmt = new ByteArrayFormat(); // extract
     private MD5Format fmt = new MD5Format(); // format
-    
-    public MD5HexFormat() { super(); }
 
-    public Object extract(ResultSet resultSet, int columnIndex) throws SQLException
-    {
+    public MD5HexFormat() {
+        super();
+    }
+
+    public Object extract(ResultSet resultSet, int columnIndex) throws SQLException {
         return bfmt.extract(resultSet, columnIndex);
     }
-    
+
     @Override
-    public String format(Object object)
-    {
-        if (object == null)
+    public String format(Object object) {
+        if (object == null) {
             return "";
-        if (object instanceof byte[])
-        {
+        }
+        if (object instanceof byte[]) {
             return fmt.format((byte[]) object);
         }
-        throw new IllegalArgumentException(object.getClass().getCanonicalName() + " not supported.");
+        throw new IllegalArgumentException(object.getClass().getCanonicalName() + " not supported");
     }
 }

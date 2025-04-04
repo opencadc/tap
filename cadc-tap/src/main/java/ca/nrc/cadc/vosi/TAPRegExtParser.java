@@ -65,55 +65,43 @@
 *  $Revision: 4 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.vosi;
 
 import ca.nrc.cadc.xml.XmlUtil;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.log4j.Logger;
-import org.jdom2.Document;
-import org.jdom2.JDOMException;
-import org.jdom2.input.SAXBuilder;
 
 /**
  * Simple parser that reads a TAP capabilities document with full schema validation enabled.
  * Note: will probably add a reader class if/when it becomes useful to have an object model for
  * the TAP capabilities.
- * 
+ *
  * @author pdowler
  */
-public class TAPRegExtParser extends CapabilitiesParser
-{
+public class TAPRegExtParser extends CapabilitiesParser {
+
     private static final Logger log = Logger.getLogger(TAPRegExtParser.class);
 
     private static final String TAPREGEXT_SCHEMA = "TAPRegExt-v1.0.xsd";
     private static final String TAPREGEXT_NAMESPACE = "http://www.ivoa.net/xml/TAPRegExt/v1.0";
 
-    public TAPRegExtParser()
-    {
+    public TAPRegExtParser() {
         this(true);
     }
 
-    public TAPRegExtParser(boolean enableSchemaValidation)
-    {
+    public TAPRegExtParser(boolean enableSchemaValidation) {
         super(enableSchemaValidation);
 
-        if (enableSchemaValidation)
-        {
+        if (enableSchemaValidation) {
             String url = XmlUtil.getResourceUrlString(TAPREGEXT_SCHEMA, TAPRegExtParser.class);
-            if (url != null)
-            {
+            if (url != null) {
                 log.debug(TAPREGEXT_NAMESPACE + " -> " + url);
                 addSchemaLocation(TAPREGEXT_NAMESPACE, url);
-            }
-            else
+            } else {
                 log.warn("failed to find resource: " + TAPREGEXT_SCHEMA);
+            }
         }
-            
+
     }
 }

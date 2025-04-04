@@ -65,7 +65,7 @@
 *  $Revision: 5 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.tap;
 
@@ -75,15 +75,15 @@ import java.util.List;
 
 /**
  * Extends the DALI TableWriter interface to be more TAP-specific.
- * 
+ *
  * @author pdowler
  */
-public interface TableWriter extends ca.nrc.cadc.dali.tables.TableWriter<ResultSet>, TapPlugin
-{
+public interface TableWriter extends ca.nrc.cadc.dali.tables.TableWriter<ResultSet>, TapPlugin {
+
     void setFormatFactory(FormatFactory ff);
-    
+
     public void setSelectList(List<TapSelectItem> selectList);
-    
+
     public void setQueryInfo(String queryInfo);
 
     @Override
@@ -91,6 +91,6 @@ public interface TableWriter extends ca.nrc.cadc.dali.tables.TableWriter<ResultS
 
     @Override
     public String getExtension();
-    
+
     public long getRowCount();
 }

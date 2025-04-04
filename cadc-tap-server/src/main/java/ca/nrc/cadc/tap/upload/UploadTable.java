@@ -65,7 +65,7 @@
 *  $Revision: 4 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.tap.upload;
 
@@ -73,44 +73,31 @@ import java.net.URI;
 
 /**
  * Class to describe a TAP upload table.
- * 
+ *
  * @author jburke
  */
-public class UploadTable
-{   
-    /**
-     * UWS Job id.
-     */
+public class UploadTable {
+
     public String jobID;
-    
-    /*
-     * The upload table name.
-     */
     public String tableName;
-    
-    /**
-     * URI to the VOTable.
-     */
     public URI uri;
 
     /**
      * Constructor takes the table name, the URI to the VOTable,
      * and the UWS Job ID.
-     * 
+     *
      * @param tableName name of the upload table.
      * @param uri URI to the VOTable.
      * @param jobID id of the UWS job.
      */
-    public UploadTable(String tableName, String jobID, URI uri)
-    {
+    public UploadTable(String tableName, String jobID, URI uri) {
         this.tableName = tableName;
         this.jobID = jobID;
         this.uri = uri;
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("UploadTable[");
         sb.append(tableName);

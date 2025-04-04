@@ -71,7 +71,6 @@ package ca.nrc.cadc.tap.schema;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.log4j.Logger;
 
 /**
@@ -118,8 +117,8 @@ public class TapSchemaLoader {
         }
         
         schema.getSchemaDescs().removeAll(toRemove);
-        log.debug("user has read access on " + schema.getSchemaDescs().size() +
-            " of " + total + " schemas");
+        log.debug("user has read access on " + schema.getSchemaDescs().size() 
+                + " of " + total + " schemas");
         return schema;
     }
     

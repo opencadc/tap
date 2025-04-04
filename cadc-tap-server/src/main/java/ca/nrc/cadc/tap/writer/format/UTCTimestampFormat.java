@@ -69,20 +69,19 @@
 
 package ca.nrc.cadc.tap.writer.format;
 
+import ca.nrc.cadc.date.DateUtil;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.util.Calendar;
 import java.util.Date;
 
-import ca.nrc.cadc.date.DateUtil;
-
 /**
  * Formats a Date or Timestamp in UTC into a String.
  *
  */
-public class UTCTimestampFormat extends AbstractResultSetFormat
-{
+public class UTCTimestampFormat extends AbstractResultSetFormat {
+
     private DateFormat dateFormat = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
 
     /**
@@ -96,9 +95,12 @@ public class UTCTimestampFormat extends AbstractResultSetFormat
      */
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
-        throws SQLException
-    {
-        return resultSet.getTimestamp(columnIndex, Calendar.getInstance(DateUtil.UTC));
+            throws SQLException {
+        Object object = resultSet.getTimestamp(columnIndex, Calendar.getInstance(DateUtil.UTC));
+        if (object == null) {
+            return null;
+        }
+        return DateUtil.toDate(object);
     }
 
     /**
@@ -106,27 +108,17 @@ public class UTCTimestampFormat extends AbstractResultSetFormat
      * in UTC ISO8601 date format.
      *
      * @param object to format.
-     * @return String representation of the object.
-     * @throws  UnsupportedOperationException if a Date cannot be contructed
-     *          from the object.
+     * @return String representation of the object
      */
     @Override
-    public String format(Object object)
-    {
-        if (object == null)
+    public String format(Object object) {
+        if (object == null) {
             return "";
-        Date date = null;
-        if (object instanceof Date)
-            date = (Date) object;
-        if (object instanceof java.sql.Date)
-            date = DateUtil.toDate(object);
-        if (object instanceof java.sql.Timestamp)
-            date = DateUtil.toDate(object);
-
-        if (date != null)
+        }
+        if (object instanceof Date) {
+            Date date = (Date) object;
             return dateFormat.format(date);
-        else
-            throw new UnsupportedOperationException("formatting " + object.getClass().getName() + " " + object);
+        }
+        throw new IllegalArgumentException(object.getClass().getCanonicalName() + " not supported");
     }
-
 }

@@ -69,34 +69,29 @@
 
 package ca.nrc.cadc.tap.writer;
 
+import ca.nrc.cadc.dali.tables.TableData;
+import ca.nrc.cadc.dali.util.Format;
 import java.sql.ResultSet;
 import java.util.Iterator;
 import java.util.List;
 
-import ca.nrc.cadc.dali.tables.TableData;
-import ca.nrc.cadc.dali.util.Format;
-
-public class ResultSetTableData implements TableData
-{
+public class ResultSetTableData implements TableData {
 
     ResultSetIterator iterator;
 
-    public ResultSetTableData(ResultSet rs, List<Format<Object>> formats)
-    {
+    public ResultSetTableData(ResultSet rs, List<Format<Object>> formats) {
         this.iterator = new ResultSetIterator(rs, formats);
     }
 
     @Override
-    public Iterator<List<Object>> iterator()
-    {
+    public Iterator<List<Object>> iterator() {
         return iterator;
     }
 
     /**
      * @return number of rows converted from ResultSet to TableData
      */
-    public long getRowCount()
-    {
+    public long getRowCount() {
         return iterator.getRowCount();
     }
 }

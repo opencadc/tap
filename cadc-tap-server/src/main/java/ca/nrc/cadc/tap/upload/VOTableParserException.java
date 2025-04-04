@@ -65,7 +65,7 @@
 *  $Revision: 4 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.tap.upload;
 
@@ -73,20 +73,17 @@ package ca.nrc.cadc.tap.upload;
  *
  * @author jburke
  */
-public class VOTableParserException extends Exception
-{
-    public VOTableParserException(String msg)
-    {
+public class VOTableParserException extends Exception {
+
+    public VOTableParserException(String msg) {
         super(msg);
     }
 
-    public VOTableParserException(Throwable cause)
-    {
+    public VOTableParserException(Throwable cause) {
         super(cause);
     }
 
-    public VOTableParserException(String msg, Throwable cause)
-    {
+    public VOTableParserException(String msg, Throwable cause) {
         super(msg, cause);
     }
 

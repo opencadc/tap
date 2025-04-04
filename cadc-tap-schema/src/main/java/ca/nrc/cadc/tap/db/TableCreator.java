@@ -290,20 +290,18 @@ public class TableCreator {
     private String generateCreate(TableDesc td) {
         StringBuilder sb = new StringBuilder();
         sb.append("CREATE TABLE ");
-        sb.append(td.getTableName()).append( "(");
-        for (int i = 0; i < td.getColumnDescs().size(); i++)
-        {
+        sb.append(td.getTableName()).append("(");
+        for (int i = 0; i < td.getColumnDescs().size(); i++) {
             ColumnDesc columnDesc = td.getColumnDescs().get(i);
             sb.append(columnDesc.getColumnName());
             sb.append(" ");
             sb.append(ddType.getDataType(columnDesc));
             sb.append(" null ");
-            if (i + 1 < td.getColumnDescs().size())
+            if (i + 1 < td.getColumnDescs().size()) {
                 sb.append(", ");
+            }
         }
-        
         sb.append(")");
-        
         return sb.toString();
     }
     
