@@ -245,7 +245,7 @@ public class TableSetReaderWriterTest {
                     Assert.assertEquals(ecd.ucd, acd.ucd);
                     Assert.assertEquals(ecd.unit, acd.unit);
                     Assert.assertEquals(ecd.utype, acd.utype);
-                    Assert.assertEquals(ecd.column_id, acd.column_id);
+                    Assert.assertEquals(ecd.columnID, acd.columnID);
                     
                     Assert.assertEquals(ecd.getColumnName(), edt.arraysize, adt.arraysize);
                     Assert.assertEquals(ecd.getColumnName(), edt.isVarSize(), adt.isVarSize());

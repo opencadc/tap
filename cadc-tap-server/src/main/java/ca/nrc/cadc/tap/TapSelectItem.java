@@ -106,7 +106,7 @@ public class TapSelectItem
         this.columnName = column.getColumnName();
         this.tableName = column.getTableName();
         this.description = column.description;
-        this.id = column.column_id;
+        this.id = column.columnID;
         this.indexed = column.indexed;
         this.principal = column.principal;
         this.std = column.std;

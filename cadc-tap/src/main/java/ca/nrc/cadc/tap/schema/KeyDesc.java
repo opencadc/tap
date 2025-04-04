@@ -74,58 +74,52 @@ import java.util.List;
 
 /**
  * Descriptor Class to represent a TAP_SCHEMA.keys table.
- * 
+ *
  */
-public class KeyDesc
-{
+public class KeyDesc {
     private String keyID;
     private String fromTable;
     private String targetTable;
     private List<KeyColumnDesc> keyColumnDescs = new ArrayList<KeyColumnDesc>();
-    
+
     public String description;
     public String utype;
 
-    public KeyDesc(String keyID, String fromTable, String targetTable)
-    {
+    public KeyDesc(String keyID, String fromTable, String targetTable) {
         this.keyID = keyID;
         this.fromTable = fromTable;
         this.targetTable = targetTable;
     }
 
-    public String getKeyID()
-    {
+    public String getKeyID() {
         return keyID;
     }
 
-    public String getFromTable()
-    {
+    public String getFromTable() {
         return fromTable;
     }
 
-    public String getTargetTable()
-    {
+    public String getTargetTable() {
         return targetTable;
     }
 
-    public List<KeyColumnDesc> getKeyColumnDescs()
-    {
+    public List<KeyColumnDesc> getKeyColumnDescs() {
         return keyColumnDescs;
     }
-    
+
     /**
      * @return String representation of the Key.
      */
-    public String toString()
-    {
+    public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("Key[");
         sb.append(keyID).append(",");
         sb.append(fromTable).append(",");
         sb.append(targetTable).append(",");
         sb.append("keyColumns[");
-        for (KeyColumnDesc keyColumnDesc : keyColumnDescs)
+        for (KeyColumnDesc keyColumnDesc : keyColumnDescs) {
             sb.append(keyColumnDesc);
+        }
         sb.append("]]");
         return sb.toString();
     }

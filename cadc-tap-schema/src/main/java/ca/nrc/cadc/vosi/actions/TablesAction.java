@@ -198,7 +198,7 @@ public abstract class TablesAction extends RestAction {
             int c = 0;
             for (ColumnDesc cd : input.getColumnDescs()) {
                 cd.setTableName(tableName);
-                cd.column_index = c++;
+                cd.columnIndex = c++;
             }
             return input;
         }

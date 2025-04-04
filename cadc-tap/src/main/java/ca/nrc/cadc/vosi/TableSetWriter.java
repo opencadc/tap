@@ -65,10 +65,9 @@
 *  $Revision: 5 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.vosi;
-
 
 import ca.nrc.cadc.tap.schema.TapSchema;
 import java.io.IOException;
@@ -82,15 +81,14 @@ import org.jdom2.output.XMLOutputter;
  *
  * @author pdowler
  */
-public class TableSetWriter 
-{
+public class TableSetWriter {
     private static final Logger log = Logger.getLogger(TableSetWriter.class);
 
-    public TableSetWriter() { }
-    
+    public TableSetWriter() {
+    }
+
     public void write(TapSchema ts, Writer writer)
-        throws IOException
-    {
+            throws IOException {
         TableSet tset = new TableSet(ts);
         Document doc = tset.getDocument();
         XMLOutputter out = new XMLOutputter(Format.getPrettyFormat());

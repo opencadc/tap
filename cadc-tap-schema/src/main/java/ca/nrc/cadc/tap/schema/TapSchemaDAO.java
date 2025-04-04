@@ -1190,7 +1190,7 @@ public class TapSchemaDAO {
             int col = 1;
             safeSetString(sb, ps, col++, schema.description);
             safeSetString(sb, ps, col++, schema.utype);
-            safeSetInteger(sb, ps, col++, schema.schema_index);
+            safeSetInteger(sb, ps, col++, schema.schemaIndex);
             safeSetBoolean(sb, ps, col++, schema.apiCreated);
             safeSetString(sb, ps, col++, schema.getSchemaName());
 
@@ -1298,8 +1298,8 @@ public class TapSchemaDAO {
             safeSetBoolean(sb, ps, col++, column.principal);
             safeSetBoolean(sb, ps, col++, column.indexed);
             safeSetBoolean(sb, ps, col++, column.std);
-            safeSetString(sb, ps, col++, column.column_id);
-            safeSetInteger(sb, ps, col++, column.column_index);
+            safeSetString(sb, ps, col++, column.columnID);
+            safeSetInteger(sb, ps, col++, column.columnIndex);
             safeSetString(sb, ps, col++, column.getTableName());
             safeSetString(sb, ps, col++, column.getColumnName());
             log.debug("values: " + sb.toString());
@@ -1605,7 +1605,7 @@ public class TapSchemaDAO {
 
             schemaDesc.description = rs.getString("description");
             schemaDesc.utype = rs.getString("utype");
-            schemaDesc.schema_index = rs.getInt("schema_index");
+            schemaDesc.schemaIndex = rs.getInt("schema_index");
             schemaDesc.apiCreated = rs.getInt("api_created") == 1;
             
             if (tapPermissionsMapper != null) {
@@ -1669,8 +1669,8 @@ public class TapSchemaDAO {
             col.principal = intToBoolean(rs.getInt("principal"));
             col.indexed = intToBoolean(rs.getInt("indexed"));
             col.std = intToBoolean(rs.getInt("std"));
-            col.column_id = rs.getString("column_id");
-            col.column_index = rs.getInt("column_index");
+            col.columnID = rs.getString("column_id");
+            col.columnIndex = rs.getInt("column_index");
             
             return col;
         }

@@ -152,7 +152,7 @@ public class TestUtil
                 ocd.ucd = "foo;bar";
                 ocd.unit = "deg";
                 ocd.utype = "foo:Bar.baz";
-                ocd.column_id = "ref";
+                ocd.columnID = "ref";
                 td.getColumnDescs().add(ocd);
                 
                 sd.getTableDescs().add(td);

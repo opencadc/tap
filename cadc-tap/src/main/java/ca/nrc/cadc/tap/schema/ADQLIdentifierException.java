@@ -67,16 +67,11 @@
 
 package ca.nrc.cadc.tap.schema;
 
-
-import org.apache.log4j.Logger;
-
 /**
  *
  * @author pdowler
  */
 public class ADQLIdentifierException extends Exception {
-    private static final Logger log = Logger.getLogger(ADQLIdentifierException.class);
-
     public ADQLIdentifierException(String msg) { 
         super(msg);
     }
