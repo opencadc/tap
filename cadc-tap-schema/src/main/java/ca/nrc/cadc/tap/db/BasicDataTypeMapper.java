@@ -72,7 +72,6 @@ import ca.nrc.cadc.dali.DoubleInterval;
 import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.dali.Polygon;
 import ca.nrc.cadc.dali.tables.votable.VOTableUtil;
-import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.stc.Position;
 import ca.nrc.cadc.stc.Region;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
@@ -307,12 +306,12 @@ public class BasicDataTypeMapper implements DatabaseDataType {
     }
 
     @Override
-    public Object getPointObject(Position pos) {
+    public Object getRegionObject(Region reg) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public Object getRegionObject(Region reg) {
+    public Object getPointObject(Position pos) {
         throw new UnsupportedOperationException();
     }
 

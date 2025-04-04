@@ -80,7 +80,6 @@ import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import static ca.nrc.cadc.vosi.actions.PutAction.INPUT_TAG;
 import java.io.IOException;
 import java.security.AccessControlException;
 import java.security.Principal;

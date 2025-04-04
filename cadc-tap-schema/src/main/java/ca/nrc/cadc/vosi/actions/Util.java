@@ -67,7 +67,6 @@
 
 package ca.nrc.cadc.vosi.actions;
 
-
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.cred.client.CredUtil;
 import ca.nrc.cadc.net.ResourceNotFoundException;
@@ -126,9 +125,9 @@ class Util {
         if (tp.owner == null) {
             return false;
         }
-        for (Principal oPrin : tp.owner.getPrincipals()) {
-            for (Principal cPrin : subject.getPrincipals()) {
-                if (AuthenticationUtil.equals(oPrin, cPrin)) {
+        for (Principal op : tp.owner.getPrincipals()) {
+            for (Principal cp : subject.getPrincipals()) {
+                if (AuthenticationUtil.equals(op, cp)) {
                     return true;
                 }
             }
@@ -165,19 +164,6 @@ class Util {
             throw new RuntimeException("UNEXPECTED: " + ex, ex);
         }
     }
-    
-//    public static GroupURI getWritePermissionsGroup(GroupClient groupClient, TapPermissions permissions) {
-//        Subject s = AuthenticationUtil.getCurrentSubject();
-//        if (s == null || s.getPrincipals() == null || s.getPrincipals().isEmpty()) {
-//            return null;
-//        }
-//        if (permissions.readWriteGroup != null &&
-//            isMember(groupClient, permissions.readWriteGroup.getURI())) {
-//            return permissions.readWriteGroup;
-//        }
-//        return null;
-//    }
-        
     
     private static boolean ensureCredentials() {
         try {

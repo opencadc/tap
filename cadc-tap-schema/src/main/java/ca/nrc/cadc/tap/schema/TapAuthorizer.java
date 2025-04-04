@@ -69,24 +69,15 @@
 
 package ca.nrc.cadc.tap.schema;
 
-import java.net.URI;
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.security.auth.Subject;
-
-import org.apache.log4j.Logger;
-import org.opencadc.gms.GroupClient;
-import org.opencadc.gms.GroupURI;
-import org.opencadc.gms.GroupUtil;
-
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.cred.client.CredUtil;
+import java.security.Principal;
+import java.util.Set;
+import java.util.TreeSet;
+import javax.security.auth.Subject;
+import org.apache.log4j.Logger;
+import org.opencadc.gms.GroupURI;
+import org.opencadc.gms.IvoaGroupClient;
 
 /**
  * Class that checks authorization on TapPermissions.
@@ -132,17 +123,8 @@ public class TapAuthorizer {
                 return true;
             }
             try {
-                if (tp.readGroup != null) {
-                    if (isMember(tp.readGroup)) {
-                        log.debug("caller member of read-only group " + tp.readGroup);
-                        return true;
-                    }
-                }
-                if (tp.readWriteGroup != null) {
-                    if (isMember(tp.readWriteGroup)) {
-                        log.debug("caller member of read-write group " + tp.readWriteGroup);
-                        return true;
-                    }
+                if (tp.readGroup != null || tp.readWriteGroup != null) {
+                    return isMember(tp.readGroup, tp.readWriteGroup);
                 }
             } catch (Exception e) {
                 log.error("error getting groups or checking credentials", e);
@@ -156,9 +138,9 @@ public class TapAuthorizer {
     private boolean isOwner(Subject owner, Subject caller) {
         Set<Principal> ownerPrincipals = owner.getPrincipals();
         Set<Principal> callerPrincipals = caller.getPrincipals();
-        for (Principal oPrin : ownerPrincipals) {
-            for (Principal cPrin : callerPrincipals) {
-                if (AuthenticationUtil.equals(oPrin, cPrin)) {
+        for (Principal op : ownerPrincipals) {
+            for (Principal cp : callerPrincipals) {
+                if (AuthenticationUtil.equals(op, cp)) {
                     return true;
                 }
             }
@@ -167,32 +149,27 @@ public class TapAuthorizer {
     }
 
     // check membership
-    private boolean isMember(GroupURI group) throws Exception {
-        GroupClient groupClient = GroupUtil.getGroupClient(group.getServiceID());
-        if (groupClient != null) {
-            
-            boolean hasCDPCreds = false;
-            try {
-                hasCDPCreds = CredUtil.checkCredentials();
-            } catch (Exception e) {
-                log.debug("Failed to check for valid CDP credentials needed for group membership check");
-                throw e;
+    private boolean isMember(GroupURI g1, GroupURI g2) throws Exception {
+        IvoaGroupClient groupClient = new IvoaGroupClient();
+        boolean hasCDPCreds = false;
+        try {
+            hasCDPCreds = CredUtil.checkCredentials();
+        } catch (Exception e) {
+            log.debug("Failed to check for valid CDP credentials needed for group membership check");
+            throw e;
+        }
+        if (hasCDPCreds) {
+            Set<GroupURI> groups = new TreeSet();
+            if (g1 != null) {
+                groups.add(g1);
             }
-            if (hasCDPCreds) {
-                List<GroupURI> memberships = groupClient.getMemberships();
-                if (memberships != null) {
-                    log.debug("user is a member of " + memberships.size() + " groups in service " + group.getServiceID());
-                    for (GroupURI next : memberships) {
-                        if (next.equals(group)) {
-                            return true;
-                        }
-                    }
-                } else {
-                    log.debug("User has no group memberships (null)");
-                }
-            } else {
-                log.debug("No CDP credentials availalbe to allow group membership check");
+            if (g2 != null) {
+                groups.add(g2);
             }
+            Set<GroupURI> membership = groupClient.getMemberships(groups);
+            return !membership.isEmpty();
+        } else {
+            log.debug("No CDP credentials available to allow group membership check");
         }
         return false;
     }

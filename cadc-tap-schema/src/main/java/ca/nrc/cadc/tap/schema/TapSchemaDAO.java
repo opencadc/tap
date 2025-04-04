@@ -108,7 +108,7 @@ public class TapSchemaDAO {
      * is expected to be appended to the tap_schema table names so that two versions
      * of the tap_schema tables can co-exist.
      */
-    protected final int TAP_VERSION = 11;
+    protected static final int TAP_VERSION = 11;
 
     // standard tap_schema table names
     protected String schemasTableName = "tap_schema.schemas" + TAP_VERSION;
@@ -462,7 +462,7 @@ public class TapSchemaDAO {
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
         try {
             TableDesc cur = getTable(td.getTableName());
-            boolean update = (cur != null);
+            final boolean update = (cur != null);
             
             if (cur != null) {
                 // add/remove/rename columns not supported
@@ -740,10 +740,8 @@ public class TapSchemaDAO {
     }
 
     /**
-     * Set the permissions of the schema identified by schemaName.
-     * 
-     * See the javadoc in TapPermissions for how null values of the permissions
-     * field are handled.
+     * Set the permissions of the schema identified by schemaName. See TapPermissions 
+     * for how null values of the permissions field are handled.
      * 
      * @param schemaName
      * @param tp
@@ -768,10 +766,8 @@ public class TapSchemaDAO {
     }
 
     /**
-     * Set the permissions of the schema identified by tableName.
-     * 
-     * See the javadoc in TapPermissions for how null values of the permissions
-     * field are handled.
+     * Set the permissions of the schema identified by tableName. See TapPermissions 
+     * for how null values of the permissions field are handled.
      * 
      * @param tableName
      * @param tp
@@ -819,12 +815,12 @@ public class TapSchemaDAO {
     }
 
     private class GetSchemasStatement implements PreparedStatementCreator {
-        private String tap_schema_tab;
+        private String schemasTab;
         private String schemaName;
         private String orderBy;
 
-        public GetSchemasStatement(String tap_schema_tab) {
-            this.tap_schema_tab = tap_schema_tab;
+        public GetSchemasStatement(String schemasTab) {
+            this.schemasTab = schemasTab;
         }
 
         public void setSchemaName(String schemaName) {
@@ -840,7 +836,7 @@ public class TapSchemaDAO {
             StringBuilder sb = new StringBuilder();
             sb.append("SELECT ").append(toCommaList(tsSchemaCols, 0));
             sb.append(",").append(toCommaList(accessControlCols, 0));
-            sb.append(" FROM ").append(tap_schema_tab);
+            sb.append(" FROM ").append(schemasTab);
 
             if (schemaName != null) {
                 sb.append(" WHERE schema_name = ?");
@@ -864,13 +860,13 @@ public class TapSchemaDAO {
     }
 
     private class GetTablesStatement implements PreparedStatementCreator {
-        private String tablesTN;
+        private String tablesTab;
         private String schemaName;
         private String tableName;
         private String orderBy;
 
-        public GetTablesStatement(String tablesTN) {
-            this.tablesTN = tablesTN;
+        public GetTablesStatement(String tablesTab) {
+            this.tablesTab = tablesTab;
         }
 
         public void setSchemaName(String schemaName) {
@@ -889,7 +885,7 @@ public class TapSchemaDAO {
             StringBuilder sb = new StringBuilder();
             sb.append("SELECT ").append(toCommaList(tsTablesCols, 0));
             sb.append(",").append(toCommaList(accessControlCols, 0));
-            sb.append(" FROM ").append(tablesTN);
+            sb.append(" FROM ").append(tablesTab);
 
             String wa = " WHERE";
             if (schemaName != null) {
@@ -926,13 +922,13 @@ public class TapSchemaDAO {
     }
 
     private class GetColumnsStatement implements PreparedStatementCreator {
-        private String tap_schema_tab;
+        private String columnsTab;
         private String tableName;
         private String columnName;
         private String orderBy;
 
-        public GetColumnsStatement(String tap_schema_tab) {
-            this.tap_schema_tab = tap_schema_tab;
+        public GetColumnsStatement(String columnsTab) {
+            this.columnsTab = columnsTab;
         }
 
         public void setTableName(String tableName) {
@@ -950,7 +946,7 @@ public class TapSchemaDAO {
         public PreparedStatement createPreparedStatement(Connection conn) throws SQLException {
             StringBuilder sb = new StringBuilder();
             sb.append("SELECT ").append(toCommaList(tsColumnsCols, 0));
-            sb.append(" FROM ").append(tap_schema_tab);
+            sb.append(" FROM ").append(columnsTab);
 
             if (tableName != null) {
                 sb.append(" WHERE table_name = ?");
@@ -979,12 +975,12 @@ public class TapSchemaDAO {
     }
 
     private class GetKeysStatement implements PreparedStatementCreator {
-        private String tap_schema_tab;
+        private String keysTab;
         private String tableName;
         private String orderBy;
 
-        public GetKeysStatement(String tap_schema_tab) {
-            this.tap_schema_tab = tap_schema_tab;
+        public GetKeysStatement(String keysTab) {
+            this.keysTab = keysTab;
         }
 
         public void setTableName(String tableName) {
@@ -998,7 +994,7 @@ public class TapSchemaDAO {
         public PreparedStatement createPreparedStatement(Connection conn) throws SQLException {
             StringBuilder sb = new StringBuilder();
             sb.append("SELECT ").append(toCommaList(tsKeysCols, 0));
-            sb.append(" FROM ").append(tap_schema_tab);
+            sb.append(" FROM ").append(keysTab);
             if (tableName != null) {
                 sb.append(" WHERE from_table = ?");
             } else if (orderBy != null) {
@@ -1017,12 +1013,12 @@ public class TapSchemaDAO {
     }
 
     private class GetKeyColumnsStatement implements PreparedStatementCreator {
-        private String tap_schema_tab;
+        private String keyColumnsTab;
         private List<KeyDesc> keyDescs;
         private String orderBy;
 
-        public GetKeyColumnsStatement(String tap_schema_tab) {
-            this.tap_schema_tab = tap_schema_tab;
+        public GetKeyColumnsStatement(String keyColumnsTab) {
+            this.keyColumnsTab = keyColumnsTab;
         }
 
         public void setKeyDescs(List<KeyDesc> keyDescs) {
@@ -1036,7 +1032,7 @@ public class TapSchemaDAO {
         public PreparedStatement createPreparedStatement(Connection conn) throws SQLException {
             StringBuilder sb = new StringBuilder();
             sb.append("SELECT ").append(toCommaList(tsKeyColumnsCols, 0));
-            sb.append(" FROM ").append(tap_schema_tab);
+            sb.append(" FROM ").append(keyColumnsTab);
 
             if (keyDescs != null && !keyDescs.isEmpty()) {
                 sb.append(" WHERE key_id IN (");
@@ -1676,8 +1672,9 @@ public class TapSchemaDAO {
         }
 
         private boolean intToBoolean(Integer i) {
-            if (i == null)
+            if (i == null) {
                 return false;
+            }
             return (i == 1);
         }
     }
