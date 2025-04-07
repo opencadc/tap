@@ -113,13 +113,11 @@ import org.apache.log4j.Logger;
  * Implementation of the JobRunner interface from the UWS framework. This is the
  * main class that implements TAP semantics; it is usable to execute queries with 
  * both the async and sync configurations.
- * </p>
- * 
+ *
  * <p>This class dynamically loads and uses implementation classes using the 
  * the PluginFactory class configured via the PluginFactory.properties file. This 
  * allows one to control the behavior of several key components.
- * </p>
- * 
+ *
  * <p>This class uses JDNI to find java.sql.DataSource instances for
  * executing database statements. By default, a datasource named <code>jdbc/tapuser</code> is 
  * found via JNDI and used for queries, reading tap_schema tables, and creating
