@@ -293,6 +293,7 @@ public class QueryRunner implements JobRunner {
             log.debug("reading TapSchema...");
             TapSchemaDAO dao = pfac.getTapSchemaDAO();
             dao.setDataSource(tapSchemaDataSource);
+            dao.setOrdered(true); // make AllColumnConverter respect column_index
             TapSchemaLoader loader = new TapSchemaLoader(dao);
             TapSchema tapSchema = loader.load();
 
@@ -565,6 +566,30 @@ public class QueryRunner implements JobRunner {
                     log.debug("failed to update job from executing to error", t3);
                 }
             }
+<<<<<<< Updated upstream
+=======
+        } finally {
+            // temporary visibility into this intermediate state
+            try {
+                log.warn("job " + job.getID() + " DONE");
+                log.warn("internal SQL: " + internalSQL);
+                if (selectList != null) {
+                    log.warn("select list: " + selectList.size() + " columns");
+                    for (TapSelectItem si : selectList) {
+                        log.debug("\t" + si);
+                    }
+                }
+                if (resultTemplate != null) {
+                    log.warn("result template:");
+                    VOTableWriter w = new VOTableWriter();
+                    StringWriter sw = new StringWriter();
+                    w.write(resultTemplate, sw);
+                    log.warn(sw.toString());
+                }
+            } catch (Exception oops) {
+                log.error("BUG: ", oops);
+            }
+>>>>>>> Stashed changes
         }
     }
 
