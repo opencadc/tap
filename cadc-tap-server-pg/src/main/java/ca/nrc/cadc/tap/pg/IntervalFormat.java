@@ -67,8 +67,7 @@
 
 package ca.nrc.cadc.tap.pg;
 
-
-import ca.nrc.cadc.dali.DoubleInterval;
+import ca.nrc.cadc.dali.Interval;
 import ca.nrc.cadc.dali.postgresql.PgInterval;
 import ca.nrc.cadc.dali.util.DoubleIntervalArrayFormat;
 import ca.nrc.cadc.dali.util.DoubleIntervalFormat;
@@ -112,14 +111,16 @@ public class IntervalFormat extends AbstractResultSetFormat {
         if (object == null) {
             return "";
         }
-        if (object instanceof DoubleInterval) {
-            DoubleInterval i = (DoubleInterval) object;
-            return fmt.format(i);
+        
+        if (object instanceof Interval[]) {
+            Interval<Double>[] di = (Interval<Double>[]) object;
+            return afmt.format(di);
         }
-        if (object instanceof DoubleInterval[]) {
-            DoubleInterval[] i = (DoubleInterval[]) object;
-            return afmt.format(i);
+        if (object instanceof Interval) {
+            Interval<Double> di = (Interval<Double>) object;
+            return fmt.format(di);
         }
+        
         // this might help debugging more than a throw
         return object.toString();
     }
