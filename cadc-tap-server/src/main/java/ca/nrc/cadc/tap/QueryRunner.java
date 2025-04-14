@@ -293,6 +293,7 @@ public class QueryRunner implements JobRunner {
             log.debug("reading TapSchema...");
             TapSchemaDAO dao = pfac.getTapSchemaDAO();
             dao.setDataSource(tapSchemaDataSource);
+            dao.setOrdered(true); // make AllColumnConverter respect column_index
             TapSchemaLoader loader = new TapSchemaLoader(dao);
             TapSchema tapSchema = loader.load();
 
