@@ -177,7 +177,7 @@ public class DefaultTableWriter implements TableWriter {
 
     // once the RssTableWriter is converted to use the DALI format
     // of writing, this reference will not be needed
-    List<TapSelectItem> selectList;
+    protected final List<TapSelectItem> selectList = new ArrayList<>();
 
     public DefaultTableWriter() {
         this(false);
@@ -195,7 +195,7 @@ public class DefaultTableWriter implements TableWriter {
 
     @Override
     public void setSelectList(List<TapSelectItem> selectList) {
-        this.selectList = selectList;
+        this.selectList.addAll(selectList);
         if (rssTableWriter != null) {
             rssTableWriter.setSelectList(selectList);
         }
@@ -398,7 +398,10 @@ public class DefaultTableWriter implements TableWriter {
         return votableDocument;
     }
 
-    // HACK: need to allow an ObsCore.access_url formatter to access this info
+    // HACK: to allow an ObsCore.access_url formatter to access this info
+    //       but this is tightly coupled to the tap_schema.columns.column_id
+    //       matching a config file named {column_id}.xml and hopefully containing a
+    //       service descriptor with a DataLink standardID.... TBD.
     public static URL getAccessURL(String columnID, URI reqStandardID) throws IOException {
         VOTableDocument serviceDocument = getDoc(columnID);
         if (serviceDocument == null) {
@@ -450,7 +453,7 @@ public class DefaultTableWriter implements TableWriter {
         return null;
     }
 
-    // read a votable document in the config dir
+    // read a votable document matching a {column_id}: currently in the config dir
     private static VOTableDocument getDoc(String sid) throws IOException {
         File configDir = new File(System.getProperty("user.home") + "/config");
         String filename = sid + ".xml";
