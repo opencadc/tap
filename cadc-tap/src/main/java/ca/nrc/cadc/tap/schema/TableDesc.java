@@ -69,6 +69,7 @@
 
 package ca.nrc.cadc.tap.schema;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -88,6 +89,14 @@ public class TableDesc {
     public TableType tableType = TableType.TABLE;
     public TapPermissions tapPermissions;
     public Boolean apiCreated;
+    
+    /**
+     * Identifier for use when the table data (rows) are temporarily
+     * stored someplace other than in the database. Use case: TAP upload
+     * where the rows are stored temporarily and loaded later by an external
+     * process.
+     */
+    public transient URI dataLocation;
     
     public enum TableType {
         TABLE("table"),
