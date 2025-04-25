@@ -152,7 +152,11 @@ public class JDOMVOTableParser implements VOTableParser {
                 throw new IllegalArgumentException("Column count exceeds maximum of " + uploadLimits.columnLimit);
             }
 
-            // Avoid iterating if no row limit has been set.
+            // Avoid iterating if no row limit has been set
+            // TODO: move this to the code that loads data so we only read once?
+            //       con: will create and partially load a db table then fail
+            //       but: row limits kind of pointless anyway since byteLimit is probably sufficient,
+            //            so maybe deprecate/remove
             if (uploadLimits.rowLimit != null) {
                 int counter = 0;
                 for (final Iterator<List<Object>> iterator = voTableTable.getTableData().iterator();
@@ -189,17 +193,12 @@ public class JDOMVOTableParser implements VOTableParser {
     }
 
     /**
-     * Returns an Iterator to the VOTable data.
+     * Returns the tabular data portion of the VOTable.
      *
-     * @return Iterator to the VOTable data.
+     * @return VOTable with the content or null
      */
     @Override
-    public Iterator<List<Object>> iterator() {
-        if (votable != null && votable.getTableData() != null) {
-            return votable.getTableData().iterator();
-        }
-
-        // return empty iterator
-        return new ArrayList<List<Object>>().iterator();
+    public VOTableTable getVOTable() {
+        return votable;
     }
 }
