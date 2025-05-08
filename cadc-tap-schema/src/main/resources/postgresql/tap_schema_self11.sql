@@ -69,9 +69,9 @@ insert into tap_schema.columns11 (table_name,column_name,description,utype,ucd,u
 ( 'tap_schema.columns', 'xtype', 'a DALI or custom extended type annotation',             NULL, NULL, NULL, 'char', '64*', NULL, 1,0,1,7 ),
 
 ( 'tap_schema.columns', '"size"', 'deprecated: use arraysize', NULL, NULL, NULL, 'int', NULL, NULL, 1,0,1,9 ),
-( 'tap_schema.columns', 'principal', 'a principal column; 1 means 1, 0 means 0',      NULL, NULL, NULL, 'int', NULL, NULL, 1,0,1,10 ),
-( 'tap_schema.columns', 'indexed', 'an indexed column; 1 means 1, 0 means 0',         NULL, NULL, NULL, 'int', NULL, NULL, 1,0,1,11 ),
-( 'tap_schema.columns', 'std', 'a standard column; 1 means 1, 0 means 0',             NULL, NULL, NULL, 'int', NULL, NULL, 1,0,1,12 ),
+( 'tap_schema.columns', 'principal', 'a principal column; 1 means true, 0 means false',      NULL, NULL, NULL, 'int', NULL, NULL, 1,0,1,10 ),
+( 'tap_schema.columns', 'indexed', 'an indexed column; 1 means true, 0 means false',         NULL, NULL, NULL, 'int', NULL, NULL, 1,0,1,11 ),
+( 'tap_schema.columns', 'std', 'a standard column; 1 means true, 0 means false',             NULL, NULL, NULL, 'int', NULL, NULL, 1,0,1,12 ),
 ( 'tap_schema.columns', 'column_index', 'recommended sort order when listing columns of a table',  NULL, NULL, NULL, 'int', NULL, NULL, 1,0,1,13 ),
 
 ( 'tap_schema.keys', 'key_id', 'unique key to join to tap_schema.key_columns',            NULL, NULL, NULL, 'char', '64*', NULL, 1,0,1,1 ),
