@@ -103,6 +103,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NameNotFoundException;
@@ -136,7 +137,8 @@ public class QueryRunner implements JobRunner {
     private SyncOutput syncOutput;
     private WebServiceLogInfo logInfo;
     
-    // intermediate state for the UWS JobExecutor to access when job is HELD 
+    // intermediate state for the UWS JobExecutor to access when job is HELD
+    public final transient Map<String,URI> uploadTableLocations = new TreeMap<>();
     public transient List<TapSelectItem> selectList;
     public transient VOTableDocument resultTemplate;
     public transient String internalSQL;
@@ -298,11 +300,17 @@ public class QueryRunner implements JobRunner {
             uploadManager.setDataSource(uploadDataSource);
             uploadManager.setDatabaseDataType(pfac.getDatabaseDataType());
             Map<String, TableDesc> tableDescs = uploadManager.upload(paramList, job.getID());
-            if (tableDescs != null) {
+            if (tableDescs != null && !tableDescs.isEmpty()) {
                 log.debug("adding TAP_UPLOAD SchemaDesc to TapSchema...");
                 SchemaDesc tapUploadSchema = new SchemaDesc(uploadManager.getUploadSchema());
                 tapUploadSchema.getTableDescs().addAll(tableDescs.values());
                 tapSchema.getSchemaDescs().add(tapUploadSchema);
+
+                for (Map.Entry<String, TableDesc> e : tableDescs.entrySet()) {
+                    if (e.getValue().dataLocation != null) {
+                        uploadTableLocations.put(e.getValue().getTableName(), e.getValue().dataLocation);
+                    }
+                }
             }
 
             log.debug("invoking MaxRecValidator...");
@@ -577,20 +585,23 @@ public class QueryRunner implements JobRunner {
             // temporary visibility into this intermediate state
             try {
                 log.warn("job " + job.getID() + " DONE");
-                log.warn("internal SQL: " + internalSQL);
-                if (selectList != null) {
-                    log.warn("select list: ");
-                    for (TapSelectItem si : selectList) {
-                        log.warn("\t" + si);
+                if (uploadTableLocations != null) {
+                    log.warn("stored upload tables: " + uploadTableLocations.size());
+                    for (Map.Entry<String,URI> e : uploadTableLocations.entrySet()) {
+                        log.warn("  upload: " + e.getKey() + " at " + e.getValue());
                     }
                 }
+                if (selectList != null) {
+                    log.warn("select list: " + selectList.size() + " columns");
+                }
                 if (resultTemplate != null) {
-                    log.warn("result template:");
+                    log.warn("result template:\n");
                     VOTableWriter w = new VOTableWriter();
                     StringWriter sw = new StringWriter();
                     w.write(resultTemplate, sw);
                     log.warn(sw.toString());
                 }
+                log.warn("internal SQL:\n" + internalSQL);
             } catch (Exception oops) {
                 log.error("BUG: ", oops);
             }
