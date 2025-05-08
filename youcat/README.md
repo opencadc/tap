@@ -2,13 +2,33 @@
 
 This service is a complete TAP service implementation that supports the
 IVOA <a href="http://www.ivoa.net/documents/TAP/20190927/">TAP-1.1</a> web 
-service API plus CADC/CANFAR extensions to enable users to create their own 
-tables and load data into them. 
+service API plus prototype WD-TAP-1.2 extensions to enable users to create 
+their own tables and load data into them.
 
 The extended features and current implementation are aimed primarily at 
 creating and bulk-loading of astronomical catalogues, but it can be used 
 as a generic TAP implementation(see configuration limitations, development
 plans, and enahncements needed below).
+
+## backend database support
+The current implementation is hard-coded to work with postgresql and the pgsphere
+extension for spherical geometry support (see development plans below).
+
+The minimum setup is to have two database accounts, logically:
+- `tapadm` to create and manage all the tables
+- `tapuser` for executing queries that are submitted using the TAP API
+
+The following schemas are required:
+- tap_schema (`tapadm` user must have authorization to create objects)
+- uws (`tapadm` user must have authorization to create objects)
+- tap_upload (`tapuser` user must have authorization to create tables)
+
+See _createSchemaInDB_ in the youcat.properties config below for additional optional
+database permission detail.
+
+The REST API supports a mechanism to _ingest_ an existing table into the tap_schema.
+An additional account to manage content (directly connect to the database to create and
+populate tables) could/should be used for this.
 
 ## configuration
 
@@ -78,7 +98,7 @@ directly into the database server.
 
 See <a href="https://github.com/opencadc/tap/tree/master/cadc-tap-tmp">cadc-tap-tmp</a>.
 
-## youcat.properties
+### youcat.properties
 
 The youcat.properties configures some admin and optional functions of the service.
 ```
@@ -109,19 +129,19 @@ Make all aspects of the service configurable at runtime so deployers can use
 the standard image published by CADC:
 
 - document database requirements and configuration
-- document user allocation process (schema creation and addition to *tap_schema*), maybe provide tools
+- document user allocation process (admin API)
 - move some code from youcat into appropriate opencadc library
 - extract PluginFactory.properties from inside war to enable more configuration at runtime (cadc-tap-server)
 - document integration test requirements (currently very CADC-specific and not usable by external developers)
 
 ## enhancements
 
-Add *tap_schema* content management and configuration for non-user tables.
+Add *tap_schema* content management and configuration for non-user tables (partial prototype)
 
-Add support for the *tap_schema* to be in a different database from the content.
+Add support for the *tap_schema* to be in a different database from the content (cadc-tap-server)
 
-Add configuration option to disable user-tables so deployed service is a normal TAP service? This might just be
-a separate build/service/image... TBD.
+Add configuration option to disable user-tables so deployed service is a normal TAP service? depends on 
+WD-TAP-1.2 progress
 
 
 

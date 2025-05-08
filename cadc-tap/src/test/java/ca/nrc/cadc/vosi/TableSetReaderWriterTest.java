@@ -88,26 +88,21 @@ import org.junit.Test;
  *
  * @author pdowler
  */
-public class TableSetReaderWriterTest
-{
+public class TableSetReaderWriterTest {
     private static final Logger log = Logger.getLogger(TableSetReaderWriterTest.class);
-    static
-    {
+    static {
         Log4jInit.setLevel("ca.nrc.cadc.vosi", Level.INFO);
     }
 
     String DEFAULT_SCHEMA = "default";
 
-    public TableSetReaderWriterTest()
-    {
+    public TableSetReaderWriterTest() {
     }
     
     @Test
-    public final void testEmpty()
-    {
+    public final void testEmpty() {
         log.debug("testEmpty");
-        try
-        {
+        try {
             TapSchema expected = new TapSchema();
             
             TableSetWriter w = new TableSetWriter();
@@ -115,23 +110,17 @@ public class TableSetReaderWriterTest
             w.write(expected, out);
             
             Assert.fail("write empty TapSchema, expected IllegalArgumentException");
-        }
-        catch(IllegalArgumentException expected)
-        {
+        } catch(IllegalArgumentException expected) {
             log.info("expected: " + expected);
-        }
-        catch (Exception unexpected)
-        {
+        } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: "  + unexpected);
         }
     }
 
     @Test
-    public final void testSingleTableTAP_10()
-    {
-        try
-        {
+    public final void testSingleTableTAP_10() {
+        try {
             TapSchema expected = TestUtil.createSimpleTapSchema(10, 1, 1, 2, 2);
             
             TableSetWriter w = new TableSetWriter();
@@ -142,23 +131,19 @@ public class TableSetReaderWriterTest
             log.info(" testSingleTable:\n" + xml);
                     
             StringReader in = new StringReader(xml);
-            TableSetReader r = new TableSetReader();
+            TableSetReader r = new TableSetReader(true);
             TapSchema actual = r.read(in);
             
             assertEquiv(10, expected, actual);
-        }
-        catch (Exception unexpected)
-        {
+        } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: "  + unexpected);
         }
     }
     
     @Test
-    public final void testSingleTableTAP_11()
-    {
-        try
-        {
+    public final void testSingleTableTAP_11() {
+        try {
             TapSchema expected = TestUtil.createSimpleTapSchema(11, 1, 1, 3, 3);
             
             TableSetWriter w = new TableSetWriter();
@@ -173,19 +158,15 @@ public class TableSetReaderWriterTest
             TapSchema actual = r.read(in);
             
             assertEquiv(11, expected, actual);
-        }
-        catch (Exception unexpected)
-        {
+        } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: "  + unexpected);
         }
     }
     
     @Test
-    public final void testMultipleTablesTAP_10()
-    {
-        try
-        {
+    public final void testMultipleTablesTAP_10() {
+        try {
             TapSchema expected = TestUtil.createSimpleTapSchema(10, 2, 2, 2, 2);
             
             TableSetWriter w = new TableSetWriter();
@@ -200,19 +181,15 @@ public class TableSetReaderWriterTest
             TapSchema actual = r.read(in);
             
             assertEquiv(10, expected, actual);
-        }
-        catch (Exception unexpected)
-        {
+        } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: "  + unexpected);
         }
     }
     
     @Test
-    public final void testMultipleTablesTAP_11()
-    {
-        try
-        {
+    public final void testMultipleTablesTAP_11() {
+        try {
             TapSchema expected = TestUtil.createSimpleTapSchema(11, 2, 2, 3, 3);
             
             TableSetWriter w = new TableSetWriter();
@@ -227,17 +204,14 @@ public class TableSetReaderWriterTest
             TapSchema actual = r.read(in);
             
             assertEquiv(11, expected, actual);
-        }
-        catch (Exception unexpected)
-        {
+        } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: "  + unexpected);
         }
     }
     
     // TODO: add comparisons of optional elements to tests: description, utypes, units, etc
-    private void assertEquiv(int ver, TapSchema expected, TapSchema actual)
-    {
+    private void assertEquiv(int ver, TapSchema expected, TapSchema actual) {
         Assert.assertEquals("num schema", expected.getSchemaDescs().size(), actual.getSchemaDescs().size());
         Assert.assertEquals("num function", expected.getFunctionDescs().size(), actual.getFunctionDescs().size());
 
@@ -271,13 +245,14 @@ public class TableSetReaderWriterTest
                     Assert.assertEquals(ecd.ucd, acd.ucd);
                     Assert.assertEquals(ecd.unit, acd.unit);
                     Assert.assertEquals(ecd.utype, acd.utype);
+                    Assert.assertEquals(ecd.columnID, acd.columnID);
                     
                     Assert.assertEquals(ecd.getColumnName(), edt.arraysize, adt.arraysize);
                     Assert.assertEquals(ecd.getColumnName(), edt.isVarSize(), adt.isVarSize());
                     Assert.assertEquals(ecd.getColumnName(), edt.xtype, adt.xtype);
                 }
             }
-            
         }
     }
+
 }

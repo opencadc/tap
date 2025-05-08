@@ -1,6 +1,5 @@
 plugins {
-    id 'java'
-    id 'maven'
+    id 'java-library'
     id 'maven-publish'
     id 'checkstyle'
 }
@@ -11,8 +10,11 @@ repositories {
 }
 
 apply from: '../opencadc.gradle'
-sourceCompatibility = 1.8
+
+sourceCompatibility = 11
+
 group = 'org.opencadc'
+
 version = '1.2.11'
 
 description = 'OpenCADC TAP-1.1 tap server plugin (Oracle)'

@@ -69,36 +69,33 @@
 
 package ca.nrc.cadc.tap.schema;
 
-
 /**
  * Descriptor Class to represent a TAP_SCHEMA.columns table.
- * 
+ *
  */
-public class ColumnDesc
-{
+public class ColumnDesc {
     private String tableName;
     private final String columnName;
     private final TapDataType datatype;
-    
+
     public String description;
     public String utype;
     public String ucd;
     public String unit;
-    
+
     public boolean principal;
     public boolean indexed;
     public boolean std;
-    public Integer column_index;
-    
+    public Integer columnIndex;
+
     /**
-     * An id attribute value to tag the column so the VOTableField element gets an XML ID. 
-     * This can normally be left null as it is only needed for including additional resources in the 
+     * An id attribute value to tag the column so the VOTableField element gets an XML ID.
+     * This can normally be left null as it is only needed for including additional resources in the
      * VOTable output.
      */
-    public String id;
+    public String columnID;
 
-    public ColumnDesc(String tableName, String columnName, TapDataType datatype)
-    {
+    public ColumnDesc(String tableName, String columnName, TapDataType datatype) {
         TapSchema.assertNotNull(TableDesc.class, "tableName", tableName);
         TapSchema.assertNotNull(TableDesc.class, "columnName", columnName);
         TapSchema.assertNotNull(TableDesc.class, "datatype", datatype);
@@ -111,23 +108,19 @@ public class ColumnDesc
         this.tableName = tableName;
     }
 
-    public String getTableName()
-    {
+    public String getTableName() {
         return tableName;
     }
 
-    public String getColumnName()
-    {
+    public String getColumnName() {
         return columnName;
     }
 
-    public TapDataType getDatatype()
-    {
+    public TapDataType getDatatype() {
         return datatype;
     }
 
-    public String toString()
-    {
+    public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("Column[");
         sb.append(tableName).append(",");

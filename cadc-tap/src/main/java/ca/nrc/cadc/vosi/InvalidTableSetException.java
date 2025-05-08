@@ -65,23 +65,16 @@
 *  $Revision: 5 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.vosi;
-
-
-import org.apache.log4j.Logger;
 
 /**
  *
  * @author pdowler
  */
-public class InvalidTableSetException extends Exception
-{
-    private static final Logger log = Logger.getLogger(InvalidTableSetException.class);
-
-    public InvalidTableSetException(String msg, Throwable cause) 
-    { 
+public class InvalidTableSetException extends Exception {
+    public InvalidTableSetException(String msg, Throwable cause) {
         super(msg, cause);
     }
 }

@@ -65,10 +65,9 @@
 *  $Revision: 5 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.vosi;
-
 
 import ca.nrc.cadc.reg.XMLConstants;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
@@ -91,44 +90,39 @@ import org.jdom2.Namespace;
  *
  * @author pdowler
  */
-public class TableReader extends TableSetParser
-{
+public class TableReader extends TableSetParser {
+
     private static final Logger log = Logger.getLogger(TableReader.class);
 
     private static final String TAP_TYPE = "TAPType";
     private static final String VOT_TYPE = "VOTableType";
-    
-    public TableReader() { this(true); }
-    
-    public TableReader(boolean enableSchemaValidation)
-    {
+
+    public TableReader() {
+        this(true);
+    }
+
+    public TableReader(boolean enableSchemaValidation) {
         super(enableSchemaValidation);
     }
-    
+
     public TableDesc read(InputStream istream)
-        throws IOException, InvalidTableSetException
-    {
+            throws IOException, InvalidTableSetException {
         return read(new InputStreamReader(istream));
     }
-    
+
     public TableDesc read(Reader reader)
-        throws IOException, InvalidTableSetException
-    {
-        try
-        {
+            throws IOException, InvalidTableSetException {
+        try {
             Document doc = parse(reader);
             Element root = doc.getRootElement();
             Namespace xsi = root.getNamespace("xsi");
             return toTable("default", root, xsi);
-        }
-        catch(JDOMException ex)
-        {
+        } catch (JDOMException ex) {
             throw new InvalidTableSetException("invalid content", ex);
         }
     }
-    
-    static TableDesc toTable(String schemaName, Element te, Namespace xsi)
-    {
+
+    static TableDesc toTable(String schemaName, Element te, Namespace xsi) {
         String tapType = TAP_TYPE;
         String votType = VOT_TYPE;
         for (Namespace ns : te.getNamespacesInScope()) {
@@ -143,8 +137,7 @@ public class TableReader extends TableSetParser
         TableDesc td = new TableDesc(schemaName, tn);
         td.description = te.getChildTextTrim("description");
         List<Element> cols = te.getChildren("column");
-        for (Element ce : cols)
-        {
+        for (Element ce : cols) {
             String cn = ce.getChildTextTrim("name");
             Element dte = ce.getChild("dataType");
             String dtt = dte.getAttributeValue("type", xsi);
@@ -152,27 +145,25 @@ public class TableReader extends TableSetParser
             String xtype = dte.getAttributeValue("extendedType");
             log.debug(cn + ": " + dtt + " " + dtv + " " + xtype);
             String arraysize = null;
-            if (tapType.equals(dtt))
-            {
+            if (tapType.equals(dtt)) {
                 dtv = "adql:" + dtv;
                 String sz = dte.getAttributeValue("size");
-                if (sz != null)
+                if (sz != null) {
                     arraysize = sz;
-                if (dtv.startsWith("adql:VAR"))
-                {
-                    if (arraysize == null)
-                        arraysize = "*";
-                    else
-                        arraysize += "*";
                 }
-                else if (dtv.equalsIgnoreCase("adql:REGION"))
+                if (dtv.startsWith("adql:VAR")) {
+                    if (arraysize == null) {
+                        arraysize = "*";
+                    } else {
+                        arraysize += "*";
+                    }
+                } else if (dtv.equalsIgnoreCase("adql:REGION")) {
                     arraysize = "*";
-            }
-            else if (votType.equals(dtt))
-            {
+                }
+            } else if (votType.equals(dtt)) {
                 arraysize = dte.getAttributeValue("arraysize");
             }
-            
+
             TapDataType tt = new TapDataType(dtv, arraysize, xtype);
             log.debug("created: " + cn + " " + tt);
             ColumnDesc cd = new ColumnDesc(tn, cn, tt);
@@ -181,19 +172,18 @@ public class TableReader extends TableSetParser
             cd.unit = ce.getChildTextTrim("unit");
             cd.utype = ce.getChildTextTrim("utype");
             //cd.indexed = "indexed".equals(ce.getChildTextTrim("flag"));
+            cd.columnID = ce.getAttributeValue("columnID", TableSet.vte);
             td.getColumnDescs().add(cd);
         }
-        
+
         List<Element> keys = te.getChildren("foreignKey");
         int i = 1;
-        for (Element fk : keys)
-        {
-            String keyID = tn+"_key"+i;
+        for (Element fk : keys) {
+            String keyID = tn + "_key" + i;
             String tt = fk.getChildTextTrim("targetTable");
             KeyDesc kd = new KeyDesc(keyID, tn, tt);
             List<Element> fkcols = fk.getChildren("fkColumn");
-            for (Element fkc : fkcols)
-            {
+            for (Element fkc : fkcols) {
                 String fc = fkc.getChildTextTrim("fromColumn");
                 String tc = fkc.getChildTextTrim("targetColumn");
                 KeyColumnDesc kcd = new KeyColumnDesc(keyID, fc, tc);
@@ -201,7 +191,7 @@ public class TableReader extends TableSetParser
             }
             td.getKeyDescs().add(kd);
         }
-        
+
         return td;
     }
 }

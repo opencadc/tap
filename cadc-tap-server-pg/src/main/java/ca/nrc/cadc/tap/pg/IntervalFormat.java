@@ -67,8 +67,7 @@
 
 package ca.nrc.cadc.tap.pg;
 
-
-import ca.nrc.cadc.dali.DoubleInterval;
+import ca.nrc.cadc.dali.Interval;
 import ca.nrc.cadc.dali.postgresql.PgInterval;
 import ca.nrc.cadc.dali.util.DoubleIntervalArrayFormat;
 import ca.nrc.cadc.dali.util.DoubleIntervalFormat;
@@ -95,7 +94,16 @@ public class IntervalFormat extends AbstractResultSetFormat {
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
             throws SQLException {
-        return resultSet.getString(columnIndex);
+        String s = resultSet.getString(columnIndex);
+        if (s == null) {
+            return null;
+        }
+
+        PgInterval pgi = new PgInterval();
+        if (intervalArray) {
+            return pgi.getIntervalArray(s);
+        }
+        return pgi.getInterval(s);
     }
 
     @Override
@@ -103,18 +111,16 @@ public class IntervalFormat extends AbstractResultSetFormat {
         if (object == null) {
             return "";
         }
-        if (object instanceof String) {
-            String s = (String) object;
-            log.debug("in: " + s);
-            PgInterval pgi = new PgInterval();
-            if (intervalArray) {
-                DoubleInterval[] i = pgi.getIntervalArray(s);
-                return afmt.format(i);
-            } else {
-                DoubleInterval i = pgi.getInterval(s);
-                return fmt.format(i);
-            }
+        
+        if (object instanceof Interval[]) {
+            Interval<Double>[] di = (Interval<Double>[]) object;
+            return afmt.format(di);
         }
+        if (object instanceof Interval) {
+            Interval<Double> di = (Interval<Double>) object;
+            return fmt.format(di);
+        }
+        
         // this might help debugging more than a throw
         return object.toString();
     }

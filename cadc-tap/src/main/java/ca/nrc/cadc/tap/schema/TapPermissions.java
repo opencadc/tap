@@ -70,21 +70,19 @@
 package ca.nrc.cadc.tap.schema;
 
 import javax.security.auth.Subject;
-
 import org.opencadc.gms.GroupURI;
 
 
 /**
- * Class to hold access control information for a schema or table.
- * 
- * Used in the retrieval and modification of permissions in TapSchemaDAO.
+ * Class to hold access control information for a schema or table. Used in the 
+ * retrieval and modification of permissions in TapSchemaDAO.
  * 
  * @author majorb
- *
  */
 public class TapPermissions {
     
     public Subject owner;
+    public Object ownerID;
     public Boolean isPublic;
     public GroupURI readGroup;
     public GroupURI readWriteGroup;
@@ -123,6 +121,4 @@ public class TapPermissions {
         }
         return sb.toString();
     }
-    
-
 }

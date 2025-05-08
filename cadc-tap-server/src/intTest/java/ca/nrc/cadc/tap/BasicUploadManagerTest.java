@@ -39,26 +39,20 @@
 
 package ca.nrc.cadc.tap;
 
-import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
 import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.db.ConnectionConfig;
 import ca.nrc.cadc.db.DBConfig;
 import ca.nrc.cadc.db.DBUtil;
+import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
+import ca.nrc.cadc.tap.schema.ADQLIdentifierException;
 import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.upload.ADQLIdentifierException;
 import ca.nrc.cadc.tap.upload.UploadTable;
 import ca.nrc.cadc.tap.upload.VOTableParser;
-import ca.nrc.cadc.tap.upload.datatype.BasicDataTypeMapper;
+import ca.nrc.cadc.tap.upload.VOTableParserException;
 import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.uws.Parameter;
-
-import javax.sql.DataSource;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
 import java.sql.Connection;
@@ -67,12 +61,18 @@ import java.sql.ResultSetMetaData;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.Set;
+import javax.sql.DataSource;
+import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 /**
  *
@@ -137,10 +137,8 @@ public class BasicUploadManagerTest
     }
 
     @Test
-    public void testUploadNoOp()
-    {
-        try
-        {
+    public void testUploadNoOp() {
+        try {
             log.debug("testUploadNoOp");
 
             // New instance of UploadManager.
@@ -157,24 +155,14 @@ public class BasicUploadManagerTest
             String jobID = Long.toString(System.currentTimeMillis());
             log.debug("testUploadNoOp jobID: " + jobID);
 
-            // Upload the VOTable.
-            Map<String, TableDesc> tableDescs = uploadManager.upload(paramList, jobID);
-
-            // Should return a single TableDesc
-            Assert.assertNotNull(tableDescs);
-            Assert.assertEquals(1, tableDescs.size());
-
-            // Get the upload table name and TableDesc
-            Set<String> keySet = tableDescs.keySet();
-            String tableName = keySet.iterator().next();
-            TableDesc tableDesc = tableDescs.get(tableName);
-
-            Assert.assertEquals(0, tableDesc.getColumnDescs().size());
-
-            log.debug("testUploadNoOp passed.");
-        }
-        catch (Exception unexpected)
-        {
+            try {
+                Map<String, TableDesc> tableDescs = uploadManager.upload(paramList, jobID);
+                Assert.fail("expected IllegalArgumentException, got map with size=" + tableDescs.size());
+            } catch (IllegalArgumentException expected) {
+                log.info("caught expected: " + expected);
+                Assert.assertTrue(expected.getMessage().startsWith("invalid input"));
+            }
+        } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
         }
@@ -313,6 +301,7 @@ public class BasicUploadManagerTest
             }
 
             // Check the table data.
+            Calendar utc =  Calendar.getInstance(DateUtil.UTC);
             rs.next();
             Assert.assertEquals(1, rs.getShort("short_datatype"));
             Assert.assertEquals(1, rs.getShort("smallint_xtype"));
@@ -329,8 +318,8 @@ public class BasicUploadManagerTest
             Assert.assertEquals("char(32) of exact--len", rs.getString("char32_datatype").trim());
             Assert.assertEquals("varchar(32) value", rs.getString("varchar32_datatype").trim());
             Assert.assertEquals("varchar_xtype", rs.getString("varchar_xtype").trim());
-            Assert.assertEquals(new Timestamp(date.getTime()), rs.getTimestamp("adql_timestamp_xtype"));
-            Assert.assertEquals(new Timestamp(date.getTime()), rs.getTimestamp("dali_timestamp_xtype"));
+            Assert.assertEquals(new Timestamp(date.getTime()), rs.getTimestamp("adql_timestamp_xtype", utc));
+            Assert.assertEquals(new Timestamp(date.getTime()), rs.getTimestamp("dali_timestamp_xtype", utc));
 
             log.debug("testCreateAndInsert passed.");
         }
@@ -808,7 +797,7 @@ public class BasicUploadManagerTest
 
         @Override
         protected VOTableParser getVOTableParser(UploadTable uploadTable)
-            throws IOException
+            throws VOTableParserException
         {
             File file = FileUtil.getFileFromResource(filename, BasicUploadManagerTest.class);
             uploadTable.uri = URI.create("file://" + file.getAbsolutePath());

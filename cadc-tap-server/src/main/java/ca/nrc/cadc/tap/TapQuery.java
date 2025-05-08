@@ -65,7 +65,7 @@
 *  $Revision: 4 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.tap;
 
@@ -78,29 +78,28 @@ import java.util.Map;
  * Default TAP query processor. This class pulls parameter(s) from the input parameter
  * list and then generates the SQL to execute and the list of items in the select list
  * to assist in writing the results.
- * 
+ *
  * @author pdowler
  */
-public interface TapQuery extends TapPlugin
-{
+public interface TapQuery extends TapPlugin {
     /**
      * Add additional tables to the query context. These tables are normally expected
      * to be temporary tables from use of the UPLOAD feature.
-     * 
+     *
      * @param extraTables map of name : table description
      */
     public void setExtraTables(Map<String, TableDesc> extraTables);
 
     /**
      * Set the permanent TapSchema content to use in validating the query.
-     * 
-     * @param tapSchema 
+     *
+     * @param tapSchema
      */
     public void setTapSchema(TapSchema tapSchema);
 
     /**
      * Convert the input query parameter(s) into SQL for execution.
-     * 
+     *
      * @return the SQL query to execute
      */
     public String getSQL();
@@ -112,18 +111,18 @@ public interface TapQuery extends TapPlugin
 
     /**
      * Check if the query is on the <code>tap_schema</code>.
-     * 
+     *
      * @return true if query uses tap_schema; otherwise false
      */
     public boolean isTapSchemaQuery();
-    
+
     /**
      * Provide a text description of the relevant part of the query. This should
      * be the main parameters that define the query. For example, for an ADQL query
      * this would be just the ADQL text (the value of the QUERY parameters), while
      * for a PQL query this would be all the parameters (param and value) actually used
      * to generate the query.
-     * 
+     *
      * @return
      */
     public String getInfo();

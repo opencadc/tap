@@ -84,7 +84,7 @@ public class DoubleArrayFormat extends AbstractResultSetFormat {
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
             throws SQLException {
-        return resultSet.getObject(columnIndex);
+        return unwrap(resultSet.getObject(columnIndex));
     }
 
     /**
@@ -101,14 +101,14 @@ public class DoubleArrayFormat extends AbstractResultSetFormat {
             return "";
         }
 
-        return fmt.format(unwrap(object));
+        return fmt.format((double[]) object);
     }
 
     /**
      * Convert a variety of ResultSet.getObject(int) return values to double[].
-     * 
+     *
      * @param object
-     * @return 
+     * @return
      */
     public double[] unwrap(Object object) {
         if (object == null) {

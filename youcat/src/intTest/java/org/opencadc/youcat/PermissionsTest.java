@@ -67,6 +67,7 @@
 
 package org.opencadc.youcat;
 
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.RunnableAction;
 import ca.nrc.cadc.dali.tables.TableData;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
@@ -103,6 +104,9 @@ import org.opencadc.gms.GroupURI;
 public class PermissionsTest extends AbstractTablesTest {
     
     private static final Logger log = Logger.getLogger(PermissionsTest.class);
+    
+    // HACK: this username has to match the schema owner certificate identity
+    static final String SCHEMA_OWNER = "cadcauthtest1";
     
     public PermissionsTest() { 
         super();
@@ -389,8 +393,8 @@ public class PermissionsTest extends AbstractTablesTest {
             this.setPerms(schemaOwner, testSchemaName, tp, 200);
             
             TapPermissions actual = this.getPermissions(schemaOwner, testSchemaName, 200);
-            Assert.assertTrue(actual.owner.getPrincipals(X500Principal.class).iterator().next()
-                .getName().equals("CN=cadcauthtest1_24c,OU=cadc,O=hia,C=ca"));
+            Assert.assertTrue(actual.owner.getPrincipals(HttpPrincipal.class).iterator().next()
+                .getName().equals(SCHEMA_OWNER));
             Assert.assertEquals(true, actual.isPublic);
             Assert.assertEquals(group1, actual.readGroup);
             Assert.assertEquals(group2, actual.readWriteGroup);
@@ -399,8 +403,8 @@ public class PermissionsTest extends AbstractTablesTest {
             doCreateTable(schemaOwner, testTable);
             
             actual = this.getPermissions(schemaOwner, testTable, 200);
-            Assert.assertTrue(actual.owner.getPrincipals(X500Principal.class).iterator().next()
-                .getName().equals("CN=cadcauthtest1_24c,OU=cadc,O=hia,C=ca"));
+            Assert.assertTrue(actual.owner.getPrincipals(HttpPrincipal.class).iterator().next()
+                .getName().equals(SCHEMA_OWNER));
             Assert.assertEquals(false, actual.isPublic);
             Assert.assertNull(actual.readGroup);
             Assert.assertNull(actual.readWriteGroup);
@@ -784,7 +788,8 @@ public class PermissionsTest extends AbstractTablesTest {
             
             Subject owner = new Subject();
             if (ownerString != null) {
-                X500Principal p = new X500Principal(ownerString);
+                // username from IdentityManager.toDisplayString(Subject)
+                HttpPrincipal p = new HttpPrincipal(ownerString);
                 owner.getPrincipals().add(p);
             }
             return new TapPermissions(owner, isPublic, readGroup, readWriteGroup);

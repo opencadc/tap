@@ -65,7 +65,7 @@
 *  $Revision: 4 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.tap;
 
@@ -78,55 +78,55 @@ import java.util.List;
  * if the caller specifies VERSION=1.0 then REQUEST must be <code>doQuery</code>.
  *
  */
-public class TapValidator
-{
+public class TapValidator {
+
     public static final String DEFAULT_VERSION = "1.1";
-    
+
     private String version;
 
-    public void validateVersion(List<Parameter> paramList)
-    {
-        if (version != null)
+    public void validateVersion(List<Parameter> paramList) {
+        if (version != null) {
             return;
-        
-        if (paramList == null || paramList.isEmpty())
-        {
+        }
+
+        if (paramList == null || paramList.isEmpty()) {
             version = DEFAULT_VERSION;
             return; // default is TAP-1.1 with no required params
         }
-        
+
         this.version = ParameterUtil.findParameterValue("VERSION", paramList);
-        if (version == null || version.isEmpty())
+        if (version == null || version.isEmpty()) {
             version = DEFAULT_VERSION;
-       
-        if (DEFAULT_VERSION.equals(version) || "1.0".equals(version))
+        }
+
+        if (DEFAULT_VERSION.equals(version) || "1.0".equals(version)) {
             return;
-        
+        }
+
         throw new IllegalArgumentException("Unsupported TAP version: " + version);
     }
-    
-    public void validate(List<Parameter> paramList)
-    {
+
+    public void validate(List<Parameter> paramList) {
         validateVersion(paramList);
-        if (paramList == null || paramList.isEmpty())
+        if (paramList == null || paramList.isEmpty()) {
             return; // default is TAP-1.1 with no required params
-        
+        }
         //    throw new IllegalStateException("Missing required parameter: REQUEST");
         //  VERSION
         this.version = ParameterUtil.findParameterValue("VERSION", paramList);
-        if ("1.0".equals(version))
-        {
+        if ("1.0".equals(version)) {
             //  REQUEST
             String request = ParameterUtil.findParameterValue("REQUEST", paramList);
-            if (request == null || request.trim().length() == 0)
+            if (request == null || request.trim().length() == 0) {
                 throw new IllegalArgumentException("VERSION=1.0: Missing required parameter: REQUEST");
-            if (!"doQuery".equals(request))
+            }
+            if (!"doQuery".equals(request)) {
                 throw new IllegalArgumentException("VERSION=1.0: invalid REQUEST value: " + request);
+            }
         }
     }
 
-    public String getVersion()
-    {
+    public String getVersion() {
         return version;
     }
 

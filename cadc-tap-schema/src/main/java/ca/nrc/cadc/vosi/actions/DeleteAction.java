@@ -67,7 +67,6 @@
 
 package ca.nrc.cadc.vosi.actions;
 
-
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.profiler.Profiler;
