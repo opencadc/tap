@@ -1,5 +1,0 @@
-name: RESPONSEFORMAT
-in: query
-description: select output table format
-schema:
-    type: string

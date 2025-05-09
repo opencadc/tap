@@ -6,52 +6,37 @@ info:
     This is more or less the current TAP-1.1 standard with some TAP-1.2
     extensions from the CADC/CANFAR youcat service
 servers:
-- url: /tap
+- url: /youcat
 
-## note: any of the $ref values below can be URLs to external (standard) OpenAPI
-## components; examples below are commented out but would work if the resources
-## were available at that location
+## note: 
+## any of the $ref values below can be URLs to external (standard) OpenAPI components
 
 paths:
-    /sync:
-        $ref: ./paths/tap-sync.yaml
-
-    /async:
-        $ref: ./paths/tap-async.yaml
-    /async/{jobID}:
-        $ref: ./paths/uws-job.yaml
-        #$ref: https://example.net/std/openapi/uws-job.yaml
-    /async/{jobID}/phase:
-        $ref: ./paths/uws-job-phase.yaml
-        #$ref: https://example.net/std/openapi/uws-job-phase.yaml
-    ## TODO: more resources under /async/{jobID}?
+    /capabilities:
+        $ref: ./openapi/vosi/vosi-capabilities.yaml
 
     /tables:
-        $ref: ./paths/vosi-tableset.yaml
-        #$ref: https://example.net/std/openapi/vosi-tableset.yaml
+        $ref: ./openapi/vosi/vosi-tableset.yaml
     /tables/{name}:
-        $ref: ./paths/vosi-table.yaml
-        #$ref: https://example.net/std/openapi/vosi-table.yaml
+        $ref: ./openapi/vosi/vosi-table.yaml
+
+    /sync:
+        $ref: ./openapi/tap/tap-sync.yaml
+    /async:
+        $ref: ./openapi/tap/tap-async.yaml
+    /async/{jobID}:
+        $ref: ./openapi/uws/uws-job.yaml
+    /async/{jobID}/phase:
+        $ref: ./openapi/uws/uws-job-phase.yaml
 
     /table-update:
-        $ref: ./paths/tap-table-update.yaml
+        $ref: ./openapi/tap/tap-table-update.yaml
     /table-update/{jobID}:
-        $ref: ./paths/uws-job.yaml
-        #$ref: https://example.net/std/openapi/uws-job.yaml
+        $ref: ./openapi/uws/uws-job.yaml
     /table-update/{jobID}/phase:
-        $ref: ./paths/uws-job-phase.yaml
-        #$ref: https://example.net/std/openapi/uws-job-phase.yaml
-    ## TODO: more resources under /async/{jobID}?
+        $ref: ./openapi/uws/uws-job-phase.yaml
 
-    /load/{name}:
-        $ref: ./paths/tap-load.yaml
-        
-    ## TODO: youcat has a mechanism to set permissions on schemas and tables
-    ##       that is embarassingly simple/limited/bad
-
-    /availability:
-        $ref: ./paths/vosi-availability.yaml
-        #$ref: https://example.net/std/openapi//vosi-availability.yaml
-    /capabilities:
-        $ref: ./paths/vosi-capabilities.yaml
-        #$ref: https://example.net/std/openapi/vosi-capabilities.yaml
+## TBD
+#    /load/{name}:
+#        $ref: ./openapi/tap/tap-load.yaml
+#    /permissions/{name}:
