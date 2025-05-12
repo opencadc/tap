@@ -15,22 +15,16 @@ sourceCompatibility = 11
 
 group = 'org.opencadc'
 
-version = '1.2.3'
+version = '1.2.4'
 
 description = 'OpenCADC TAP test library'
 def git_url = 'https://github.com/opencadc/tap'
 
 dependencies {
-    implementation 'org.jdom:jdom2:[2.0.6,3.0)'
-    implementation 'httpunit:httpunit:[1.0,)'
-    implementation 'nekohtml:nekohtml:1.9.6'
-    implementation 'junit:junit:4.13'
-
     implementation 'org.opencadc:cadc-util:[1.6,)'
     implementation 'org.opencadc:cadc-dali:[1.0,)'
     implementation 'org.opencadc:cadc-registry:[1.5.0,)'
-    implementation 'org.opencadc:cadc-uws:[1.0,)'
-    implementation 'org.opencadc:cadc-uws-server:[1.0,)'
-    implementation 'org.opencadc:cadc-test-uws:[1.2.0,)'
+    implementation 'org.opencadc:cadc-test-uws:[1.2.6,)'
+    implementation 'org.opencadc:cadc-uws-server:[1.2.25,)'
 
 }

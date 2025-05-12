@@ -70,6 +70,7 @@
 
 package ca.nrc.cadc.tap;
 
+import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.tap.db.DatabaseDataType;
 import ca.nrc.cadc.tap.db.TableCreator;
@@ -86,6 +87,7 @@ import ca.nrc.cadc.tap.upload.VOTableParserException;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
 import java.io.IOException;
+import java.net.URI;
 import java.text.DateFormat;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -115,11 +117,6 @@ public class BasicUploadManager implements UploadManager {
      * DataSource for the DB.
      */
     protected DataSource dataSource;
-
-    /**
-     * Database Specific data type.
-     */
-    protected DatabaseDataType databaseDataType;
 
     /**
      * IVOA DateFormat
@@ -175,16 +172,6 @@ public class BasicUploadManager implements UploadManager {
         this.dataSource = ds;
     }
 
-    /**
-     * Give database specific data type information.
-     *
-     * @param databaseDataType The DatabaseDataType implementation.
-     */
-    @Override
-    public void setDatabaseDataType(DatabaseDataType databaseDataType) {
-        this.databaseDataType = databaseDataType;
-    }
-
     @Override
     public void setJob(Job job) {
         this.job = job;
@@ -205,14 +192,11 @@ public class BasicUploadManager implements UploadManager {
             throw new IllegalStateException("failed to get DataSource");
         }
 
-        // Map of database table name to table descriptions.
-        Map<String, TableDesc> metadata = new HashMap<String, TableDesc>();
+        // return a map of database table name to table descriptions.
+        final Map<String, TableDesc> metadata = new HashMap<>();
 
         UploadTable cur = null;
 
-        //FormatterFactory factory = DefaultFormatterFactory.getFormatterFactory();
-        //factory.setJobID(jobID);
-        //factory.setParamList(params);
         try {
             // Get upload table names and URI's from the request parameters.
             UploadParameters uploadParameters = new UploadParameters(paramList, jobID);
@@ -237,45 +221,58 @@ public class BasicUploadManager implements UploadManager {
 
                 // Fully qualified name of the table in the database.
                 String databaseTableName = getDatabaseTableName(uploadTable);
-
                 metadata.put(databaseTableName, tableDesc);
                 log.debug("upload table: " + databaseTableName + " aka " + tableDesc);
 
                 final String tableName = tableDesc.getTableName();
-                tableDesc.setTableName(databaseTableName);
-
-                TableCreator tc = new TableCreator(dataSource);
-                tc.createTable(tableDesc);
-
-                TableLoader tld = new TableLoader(dataSource, 1000);
-                tld.load(tableDesc, new TableDataInputStream() {
-                    @Override
-                    public void close() {
-                        //no-op: fully read already
-                    }
-
-                    @Override
-                    public Iterator<List<Object>> iterator() {
-                        return parser.iterator();
-                    }
-
-                    @Override
-                    public TableDesc acceptTargetTableDesc(TableDesc td) {
-                        return td;
-                    }
-                });
-
-                tableDesc.setTableName(tableName);
+                try {
+                    tableDesc.setTableName(databaseTableName);
+                    storeTable(tableDesc, parser.getVOTable());
+                } finally {
+                    tableDesc.setTableName(tableName);
+                }
             }
         } catch (VOTableParserException ex) {
-            throw new RuntimeException("failed to parse table " + cur.tableName + " from " + cur.uri, ex);
+            // user error
+            throw new IllegalArgumentException("failed to parse uploaded table " + cur, ex);
         } catch (IOException ex) {
-            throw new RuntimeException("failed to read table " + cur.tableName + " from " + cur.uri, ex);
+            // unclear if the is user or server error
+            throw new RuntimeException("failed to read uploaded table " + cur, ex);
         }
 
         return metadata;
     }
+    
+    /**
+     * Use TableCreator and TableLoader to create and load the table using the dataSource.
+     * 
+     * @param table the table description
+     * @param vot the table data
+     */
+    protected void storeTable(TableDesc table, VOTableTable vot) {
+        TableCreator tc = new TableCreator(dataSource);
+        tc.createTable(table);
+        
+        // TODO: drop table if load fails? or leave for diagnostics
+        TableLoader tld = new TableLoader(dataSource, 1000);
+        tld.load(table, new TableDataInputStream() {
+            @Override
+            public void close() {
+                //no-op: fully read already
+            }
 
+            @Override
+            public Iterator<List<Object>> iterator() {
+                return vot.getTableData().iterator();
+            }
+
+            @Override
+            public TableDesc acceptTargetTableDesc(TableDesc td) {
+                return td;
+            }
+        });
+    }
+    
     protected VOTableParser getVOTableParser(UploadTable uploadTable)
             throws VOTableParserException {
         VOTableParser ret = new JDOMVOTableParser(uploadLimits);

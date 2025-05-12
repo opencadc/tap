@@ -79,7 +79,6 @@ import ca.nrc.cadc.tap.schema.TapSchemaUtil;
 import ca.nrc.cadc.vosi.TableSetWriter;
 import ca.nrc.cadc.vosi.TableWriter;
 import java.io.OutputStreamWriter;
-import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;
 
 /**
@@ -139,12 +138,12 @@ public class GetAction extends TablesAction {
             if (VOTableWriter.CONTENT_TYPE.equals(accept)) {
                 VOTableDocument vot = TapSchemaUtil.createVOTable(td);
                 VOTableWriter tw = new VOTableWriter();
-                syncOutput.setCode(HttpServletResponse.SC_OK);
+                syncOutput.setCode(200);
                 syncOutput.setHeader("Content-Type", VOTableWriter.CONTENT_TYPE);
                 tw.write(vot, new OutputStreamWriter(syncOutput.getOutputStream()));
             } else {
                 TableWriter tw = new TableWriter();
-                syncOutput.setCode(HttpServletResponse.SC_OK);
+                syncOutput.setCode(200);
                 syncOutput.setHeader("Content-Type", "text/xml");
                 tw.write(td, new OutputStreamWriter(syncOutput.getOutputStream()));
             }
@@ -162,7 +161,7 @@ public class GetAction extends TablesAction {
             tapSchema.getSchemaDescs().add(sd);
             
             TableSetWriter tsw = new TableSetWriter();
-            syncOutput.setCode(HttpServletResponse.SC_OK);
+            syncOutput.setCode(200);
             syncOutput.setHeader("Content-Type", "text/xml");
             tsw.write(tapSchema, new OutputStreamWriter(syncOutput.getOutputStream()));
         } else {
@@ -170,7 +169,7 @@ public class GetAction extends TablesAction {
             TapSchema tapSchema = loader.load(depth);
             
             TableSetWriter tsw = new TableSetWriter();
-            syncOutput.setCode(HttpServletResponse.SC_OK);
+            syncOutput.setCode(200);
             syncOutput.setHeader("Content-Type", "text/xml");
             tsw.write(tapSchema, new OutputStreamWriter(syncOutput.getOutputStream()));
         }
