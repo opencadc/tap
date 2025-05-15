@@ -3,22 +3,16 @@ info:
   title: prototype TAP-1.2 with user managed tables
   #version: "1.2"
   description: |
-    This is more or less the current TAP-1.1 standard with some TAP-1.2
-    extensions from the CADC/CANFAR youcat service
+    This is the WD-TAP-1.2 API specification with components imported from
+    VOSI, UWS, and DALI.
 servers:
 - url: /youcat
 
-## note: 
 ## any of the $ref values below can be URLs to external (standard) OpenAPI components
 
 paths:
     /capabilities:
         $ref: ./openapi/vosi/vosi-capabilities.yaml
-
-    /tables:
-        $ref: ./openapi/vosi/vosi-tableset.yaml
-    /tables/{name}:
-        $ref: ./openapi/vosi/vosi-table.yaml
 
     /sync:
         $ref: ./openapi/tap/tap-sync.yaml
@@ -29,6 +23,12 @@ paths:
     /async/{jobID}/phase:
         $ref: ./openapi/uws/uws-job-phase.yaml
 
+    /tables:
+        $ref: ./openapi/vosi/vosi-tableset.yaml
+    /tables/{name}:
+        $ref: ./openapi/vosi/vosi-table.yaml
+
+# uncertain if table-update is vosi or tap or ???
     /table-update:
         $ref: ./openapi/tap/tap-table-update.yaml
     /table-update/{jobID}:
@@ -36,7 +36,3 @@ paths:
     /table-update/{jobID}/phase:
         $ref: ./openapi/uws/uws-job-phase.yaml
 
-## TBD
-#    /load/{name}:
-#        $ref: ./openapi/tap/tap-load.yaml
-#    /permissions/{name}:
