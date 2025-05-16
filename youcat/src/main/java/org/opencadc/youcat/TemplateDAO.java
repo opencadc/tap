@@ -70,7 +70,9 @@
 package org.opencadc.youcat;
 
 import ca.nrc.cadc.db.version.KeyValueDAO;
+import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import java.util.List;
+import javax.security.auth.Subject;
 import javax.sql.DataSource;
 
 /**
@@ -79,44 +81,41 @@ import javax.sql.DataSource;
 public class TemplateDAO extends KeyValueDAO {
 
     /**
-     * Constructor.
+     * Create a TemplateDAO with a TapSchemaDAO, to use the same DataSource.
      *
-     * @param dataSource the DataSource to use
-     * @param database the database name
-     * @param schema the schema name
+     * @param tapSchemaDAO a TapSchemaDAO
      */
-    public TemplateDAO(DataSource dataSource, String database, String schema) {
-        super(dataSource, database, schema);
-    }
+    public TemplateDAO(TapSchemaDAO tapSchemaDAO) {}
 
     /**
-     * Lock for update the template with the given name.
+     * Create a TemplateDAO using a DataSource. Useful
+     * for integration testing.
      *
-     * @param name  name of the template to lock
-     * @return the locked ServiceDescriptorTemplate or null if there was an error
+     * @param dataSource a datasource
      */
-    public ServiceDescriptorTemplate lock(String name) {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
+    TemplateDAO(DataSource dataSource) {}
 
     /**
      * Get the template with the given name.
      *
      * @param name  the template name
+     * @param owner the subject of the user getting the template
      * @return  a ServiceDescriptorTemplate or null if not found
      * @throws org.springframework.dao.DataAccessException if there is a problem querying the database.
      */
-    public ServiceDescriptorTemplate get(String name) {
+    public ServiceDescriptorTemplate get(String name, Subject owner) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     /**
      * Insert or update a template in the database.
      *
+     * @param name  the template name
+     * @param owner the subject of the user putting the template
      * @param template the template to insert or update
      * @throws org.springframework.dao.DataAccessException if there is a problem inserting into the database.
      */
-    public void put(ServiceDescriptorTemplate template) {
+    public void put(String name, Subject owner, ServiceDescriptorTemplate template) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
@@ -124,14 +123,18 @@ public class TemplateDAO extends KeyValueDAO {
      * Delete the template with the given name.
      *
      * @param name the name of the template to delete
+     * @param owner the subject of the user deleting the template
      * @throws org.springframework.dao.DataAccessException if there is a problem deleting from the database.
      */
-    public void delete(String name) {
+    public void delete(String name, Subject owner) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     /**
-     * Get a List of service descriptors that contain the given identifiers.
+     * Get a List of service descriptors that contain the given identifiers. The identifiers
+     * are column_id's in the tap_schema.columns11 table.
+     *
+     * <p>Use case: injecting templates into TAP query results
      *
      * @param identifiers the list of identifiers
      * @return a list of ServiceDescriptorTemplate's
