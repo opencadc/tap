@@ -28,11 +28,3 @@ paths:
     /tables/{name}:
         $ref: ./openapi/vosi/vosi-table.yaml
 
-# uncertain if table-update is vosi or tap or ???
-    /table-update:
-        $ref: ./openapi/tap/tap-table-update.yaml
-    /table-update/{jobID}:
-        $ref: ./openapi/uws/uws-job.yaml
-    /table-update/{jobID}/phase:
-        $ref: ./openapi/uws/uws-job-phase.yaml
-

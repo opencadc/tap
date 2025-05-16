@@ -1,0 +1,7 @@
+name: UPLOAD
+in: query
+description: |
+  specify comma-separated name,location pair for a temporary table to be 
+  uploaded and used in the request
+schema:
+    type: string
