@@ -138,7 +138,7 @@ public class QueryRunner implements JobRunner {
     private WebServiceLogInfo logInfo;
     
     // intermediate state for the UWS JobExecutor to access when job is HELD
-    public final transient Map<String,URI> uploadTableLocations = new TreeMap<>();
+    public final transient Map<String,TableDesc.TableLocationInfo> uploadTableLocations = new TreeMap<>();
     public transient List<TapSelectItem> selectList;
     public transient VOTableDocument resultTemplate;
     public transient String internalSQL;
@@ -308,7 +308,7 @@ public class QueryRunner implements JobRunner {
 
                 for (Map.Entry<String, TableDesc> e : tableDescs.entrySet()) {
                     if (e.getValue().dataLocation != null) {
-                        uploadTableLocations.put(e.getValue().getTableName(), e.getValue().dataLocation);
+                        uploadTableLocations.put(e.getKey(), e.getValue().dataLocation);
                     }
                 }
             }
@@ -587,8 +587,13 @@ public class QueryRunner implements JobRunner {
                 log.warn("job " + job.getID() + " DONE");
                 if (uploadTableLocations != null) {
                     log.warn("stored upload tables: " + uploadTableLocations.size());
-                    for (Map.Entry<String,URI> e : uploadTableLocations.entrySet()) {
-                        log.warn("  upload: " + e.getKey() + " at " + e.getValue());
+                    for (Map.Entry<String,TableDesc.TableLocationInfo> e : uploadTableLocations.entrySet()) {
+                        StringBuilder sb = new StringBuilder();
+                        sb.append("\ttable: ").append(e.getKey()).append(" -> ");
+                        for (Map.Entry<String,URI> me : e.getValue().map.entrySet()) {
+                            sb.append("\n\t\t").append(me.getKey()).append(": ").append(me.getValue());
+                        }
+                        log.warn(sb.toString());
                     }
                 }
                 if (selectList != null) {
