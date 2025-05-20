@@ -131,7 +131,7 @@ public class TemplateDAO extends KeyValueDAO {
     }
 
     /**
-     * Get a List of service descriptors that contain the given identifiers. The identifiers
+     * Get a List of templates that contain the given identifiers. The identifiers
      * are column_id's in the tap_schema.columns11 table.
      *
      * <p>Use case: injecting templates into TAP query results
@@ -141,6 +141,18 @@ public class TemplateDAO extends KeyValueDAO {
      * @throws org.springframework.dao.DataAccessException if there is a problem querying the database.
      */
     public List<ServiceDescriptorTemplate> list(List<String> identifiers) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    /**
+     * Get the list of templates owned by the given owner.
+     *
+     * <p>User case: a user wanting only their templates</p>
+     *
+     * @param owner the subject of the user
+     * @return a list of ServiceDescriptorTemplate's
+     */
+    public List<ServiceDescriptorTemplate> list(Subject owner) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
