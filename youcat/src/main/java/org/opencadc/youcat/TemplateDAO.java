@@ -98,35 +98,33 @@ public class TemplateDAO extends KeyValueDAO {
     /**
      * Get the template with the given name.
      *
-     * @param name  the template name
      * @param owner the subject of the user getting the template
+     * @param name  the template name
      * @return  a ServiceDescriptorTemplate or null if not found
      * @throws org.springframework.dao.DataAccessException if there is a problem querying the database.
      */
-    public ServiceDescriptorTemplate get(String name, Subject owner) {
+    public ServiceDescriptorTemplate get(Subject owner, String name) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     /**
      * Insert or update a template in the database.
      *
-     * @param name  the template name
-     * @param owner the subject of the user putting the template
      * @param template the template to insert or update
      * @throws org.springframework.dao.DataAccessException if there is a problem inserting into the database.
      */
-    public void put(String name, Subject owner, ServiceDescriptorTemplate template) {
+    public void put(ServiceDescriptorTemplate template) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     /**
      * Delete the template with the given name.
      *
-     * @param name the name of the template to delete
      * @param owner the subject of the user deleting the template
+     * @param name the name of the template to delete
      * @throws org.springframework.dao.DataAccessException if there is a problem deleting from the database.
      */
-    public void delete(String name, Subject owner) {
+    public void delete(Subject owner, String name) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
@@ -134,7 +132,7 @@ public class TemplateDAO extends KeyValueDAO {
      * Get a List of templates that contain the given identifiers. The identifiers
      * are column_id's in the tap_schema.columns11 table.
      *
-     * <p>Use case: injecting templates into TAP query results
+     * <p>Use case: injecting templates into TAP query results</p>
      *
      * @param identifiers the list of identifiers
      * @return a list of ServiceDescriptorTemplate's
@@ -147,7 +145,7 @@ public class TemplateDAO extends KeyValueDAO {
     /**
      * Get the list of templates owned by the given owner.
      *
-     * <p>User case: a user wanting only their templates</p>
+     * <p>User case: listing templates owned by the caller in REST endpoint</p>
      *
      * @param owner the subject of the user
      * @return a list of ServiceDescriptorTemplate's
