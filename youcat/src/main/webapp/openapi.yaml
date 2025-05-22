@@ -28,3 +28,10 @@ paths:
     /tables/{name}:
         $ref: ./openapi/vosi/vosi-table.yaml
 
+# optional endpoint: allowed to return 404 or 405
+    /table-update:
+        $ref: ./openapi/vosi/vosi-table-ops.yaml
+    /table-update/{jobID}:
+        $ref: ./openapi/uws/uws-job.yaml
+    /table-update/{jobID}/phase:
+        $ref: ./openapi/uws/uws-job-phase.yaml
