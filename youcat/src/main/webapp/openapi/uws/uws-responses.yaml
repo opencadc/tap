@@ -26,6 +26,7 @@ job-listing:
 components:
     schemas:
         jobDoc:
+            description: a single UWS Job
             content:
                 text/xml:
                     schema:
@@ -33,5 +34,4 @@ components:
                         xml:
                             name: job
                             prefix: uws
-                            namespace: http://www.ivoa.net/xml/UWS/v1.0
-                
+                            namespace: http://www.ivoa.net/xml/UWS/v1.0 

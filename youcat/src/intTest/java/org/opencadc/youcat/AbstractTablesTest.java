@@ -132,7 +132,8 @@ abstract class AbstractTablesTest {
     Subject schemaOwner;
     Subject subjectWithGroups;
     
-    protected String testSchemaName = "int_test_schema"; 
+    protected String testSchemaName = "int_test_schema";
+    protected final String testCreateSchema = "test_create_schema";
     
     URL anonQueryURL;
     URL certQueryURL;
@@ -180,9 +181,20 @@ abstract class AbstractTablesTest {
         }
     }
     
-    void doDelete(Subject subject, String testTable, boolean fnf) throws Exception {
+    protected void checkTestSchema(String name) {
+        if (name.equals(testCreateSchema) || name.equals(testSchemaName) || name.startsWith(testSchemaName + ".")) {
+            return; // ok
+        }
+        throw new RuntimeException("TEST BUG: attempt to use schema|table name " + name
+                + " not in test schema " + testSchemaName);
+    }
+    
+    void doDelete(Subject subject, String tableName, boolean fnf) throws Exception {
+        checkTestSchema(tableName);
+        
+        URL tableURL = new URL(certTablesURL.toExternalForm() + "/" + tableName);
+        
         // delete
-        URL tableURL = new URL(certTablesURL.toExternalForm() + "/" + testTable);
         HttpDelete del = new HttpDelete(tableURL, false);
         log.info("doDelete: " + tableURL);
         Subject.doAs(subject, new RunnableAction(del));
@@ -196,13 +208,14 @@ abstract class AbstractTablesTest {
             throw (Exception) del.getThrowable();
         }
 
-        URL getTableURL = new URL(certTablesURL.toExternalForm() + "/" + testTable);
-        HttpGet check = new HttpGet(getTableURL, new ByteArrayOutputStream());
+        HttpGet check = new HttpGet(tableURL, new ByteArrayOutputStream());
         Subject.doAs(subject, new RunnableAction(check));
         Assert.assertEquals("table deleted", 404, check.getResponseCode());
     }
     
     TableDesc doCreateTable(Subject subject, String tableName) throws Exception {
+        checkTestSchema(tableName);
+
         // cleanup just in case
         doDelete(subject, tableName, true);
 
@@ -255,6 +268,8 @@ abstract class AbstractTablesTest {
     }
     
     void doCreateIndex(Subject subject, String tableName, String indexCol, boolean unique, ExecutionPhase expected, String emsg) throws Exception {
+        checkTestSchema(tableName);
+
         Assert.assertNotNull("found async table-update URL", certUpdateURL);
         
         // create job
@@ -311,6 +326,7 @@ abstract class AbstractTablesTest {
     }
     
     protected void setPerms(Subject subject, String name, TapPermissions tp, int expectedCode) throws MalformedURLException {
+        checkTestSchema(name);
         
         StringBuilder perms = new StringBuilder();
         if (tp.isPublic != null) {

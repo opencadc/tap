@@ -84,7 +84,7 @@ public class LongArrayFormat extends AbstractResultSetFormat {
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
             throws SQLException {
-        return resultSet.getObject(columnIndex);
+        return unwrap(resultSet.getObject(columnIndex));
     }
 
     /**
@@ -98,6 +98,14 @@ public class LongArrayFormat extends AbstractResultSetFormat {
     public String format(Object object) {
         if (object == null) {
             return "";
+        }
+
+        return fmt.format((long[]) object);
+    }
+
+    public long[] unwrap(Object object) {
+        if (object == null) {
+            return null;
         }
 
         if (object instanceof java.sql.Array) {
@@ -119,7 +127,7 @@ public class LongArrayFormat extends AbstractResultSetFormat {
         }
 
         if (object instanceof long[]) {
-            return fmt.format((long[]) object);
+            return (long[]) object;
         }
 
         throw new IllegalArgumentException(this.getClass().getSimpleName() + ": " + object.getClass().getCanonicalName() + " not supported.");

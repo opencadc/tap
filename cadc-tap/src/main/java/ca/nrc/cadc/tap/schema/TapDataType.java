@@ -63,53 +63,46 @@
 *                                       <http://www.gnu.org/licenses/>.
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.tap.schema;
-
 
 import ca.nrc.cadc.dali.tables.votable.VOTableUtil;
 import org.apache.log4j.Logger;
 
 /**
  * TAP data type descriptor.
- * 
+ *
  * @author pdowler
  */
-public class TapDataType
-{
+public class TapDataType {
     private static final Logger log = Logger.getLogger(TapDataType.class);
 
     private String datatype;
     public String arraysize;
     public String xtype;
-    
-    public TapDataType(String datatype) 
-    {
+
+    public TapDataType(String datatype) {
         TapSchema.assertNotNull(TapDataType.class, "datatype", datatype);
         this.datatype = datatype;
     }
-    
-    public TapDataType(String datatype, String arraysize, String xtype)
-    {
+
+    public TapDataType(String datatype, String arraysize, String xtype) {
         this(datatype);
         this.arraysize = arraysize;
         this.xtype = xtype;
     }
 
-    public String getDatatype()
-    {
+    public String getDatatype() {
         return datatype;
     }
-    
-    public boolean isVarSize()
-    {
+
+    public boolean isVarSize() {
         return (arraysize != null && arraysize.indexOf('*') >= 0);
     }
-    
+
     @Override
-    public String toString()
-    {
+    public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("TapDataType[").append(datatype).append(",");
         sb.append(arraysize).append(",");
@@ -118,40 +111,48 @@ public class TapDataType
     }
 
     @Override
-    public boolean equals(Object obj)
-    {
-        if (obj != null && obj instanceof TapDataType)
-        {
+    public boolean equals(Object obj) {
+        if (obj != null && obj instanceof TapDataType) {
             TapDataType rhs = (TapDataType) obj;
-            if (!datatype.equals(rhs.datatype))
+            if (!datatype.equals(rhs.datatype)) {
                 return false;
-            
-            if (xtype == null && rhs.xtype != null)
+            }
+
+            if (xtype == null && rhs.xtype != null) {
                 return false;
-            if (xtype != null && rhs.xtype == null)
+            }
+            if (xtype != null && rhs.xtype == null) {
                 return false;
-            if (xtype != null && !xtype.equals(rhs.xtype))
+            }
+            if (xtype != null && !xtype.equals(rhs.xtype)) {
                 return false;
+            }
             // both xtypes null
-            
-            if (arraysize == null && rhs.arraysize == null)
+
+            if (arraysize == null && rhs.arraysize == null) {
                 return true; // scalar
-            if (arraysize == null && rhs.arraysize != null)
+            }
+            if (arraysize == null && rhs.arraysize != null) {
                 return false;
-            if (arraysize != null && rhs.arraysize == null)
+            }
+            if (arraysize != null && rhs.arraysize == null) {
                 return false;
+            }
             // both arraysize not null
-            
+
             int[] shape = VOTableUtil.getArrayShape(arraysize);
             int[] rshape = VOTableUtil.getArrayShape(rhs.arraysize);
-            if (shape.length != rshape.length)
+            if (shape.length != rshape.length) {
                 return false;
-            for (int i=0; i<shape.length; i++)
-            {
-                if (shape[i] == -1 || rshape[i] == -1) // variable
+            }
+            for (int i = 0; i < shape.length; i++) {
+                if (shape[i] == -1 || rshape[i] == -1) { 
+                    // variable ~true
                     return true;
-                if (shape[i] != rshape[i])
+                }
+                if (shape[i] != rshape[i]) {
                     return false;
+                }
             }
             return true;
         }
@@ -159,15 +160,12 @@ public class TapDataType
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return toString().hashCode();
     }
-    
-    
-    
+
     public static final TapDataType FUNCTION_ARG = new TapDataType("function-arg", null, null);
-    
+
     // VOTable primitive types
     public static final TapDataType BOOLEAN = new TapDataType("boolean");
     public static final TapDataType SHORT = new TapDataType("short");
@@ -176,21 +174,21 @@ public class TapDataType
     public static final TapDataType FLOAT = new TapDataType("float");
     public static final TapDataType DOUBLE = new TapDataType("double");
     public static final TapDataType CHAR = new TapDataType("char");
-    
+
     public static final TapDataType STRING = new TapDataType("char", "*", null);
-    
+
     // DALI types
     public static final TapDataType TIMESTAMP = new TapDataType("char", "*", "timestamp");
     public static final TapDataType INTERVAL = new TapDataType("double", "2", "interval");
     public static final TapDataType POINT = new TapDataType("double", "2", "point");
     public static final TapDataType CIRCLE = new TapDataType("double", "3", "circle");
     public static final TapDataType POLYGON = new TapDataType("double", "*", "polygon");
-    
+
     // DALI prototypes
     public static final TapDataType MULTIPOLYGON = new TapDataType("char", "*", "multipolygon");
     public static final TapDataType SHAPE = new TapDataType("char", "*", "shape");
     public static final TapDataType URI = new TapDataType("char", "*", "uri");
-    
+
     // ADQL types
     public static final TapDataType BLOB = new TapDataType("byte", "*", "blob");
     public static final TapDataType CLOB = new TapDataType("char", "*", "clob");

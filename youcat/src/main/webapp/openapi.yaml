@@ -1,78 +1,37 @@
 openapi: 3.1.0
 info:
-  title: user-managed TAP service (youcat)
-  version: "1.0"
-  description: "This page contains technical API information.\n\nThis service implements\
-    \ the IVOA <a href=\"http://www.ivoa.net/documents/TAP/20190927/\">TAP-1.1</a>\
-    \ Recommendation plus extensions to support table creation and bulk loading of\
-    \ content.\n\nThe endpoints listed below support both anonymous and authenticated\
-    \ access (using client certificate or cookie).\n\n YouCat supports user management\
-    \ of permissions at both the schema and table level. A schema owner is set when\
-    \ a YouCat allocation is created by the service operator.  Table owners are set\
-    \ to be the user who created the table.  Owners can set a flag for anonymous reading\
-    \ and can set groups for read-only and read-write permissons.\n The following\
-    \ describes how the permissions are enforced on schemas and tables:\
-    \ \n\
-    \ \n \t{schema|table}.public = false|true\
-    \ \n \t\t allows querying via TAP API\
-    \ \n \t{schema|table|.read-only = NULL | {group URI}\
-    \ \n \t\t read-only permission on a schema: allows TAP API to expose table\
-    \ \n \t\t read-only permission on table: allows TAP API  to expose the content of a table\
-    \ \n \t{schema|table}.read-write = NULL | {group URI}\
-    \ \n \t\t read-write permissions on a schema: read-only + create table\
-    \ \n \t\t read-write permission on a table: read-only + create index, append rows, update (tap_schema)\
-    \ metadata\
-    \ \n \t{schema|table}.owner\
-    \ \n \t\t owner of a schema has: read-write + drop (any) table\
-    \ \n \t\t owner of a table has: read-write + drop table\
-    \ \n \t\t owner of a schema: change permissions on schema and all tables\
-    \ \n \t\t owner of a table: change permissions on table\
-    \ \n\
-    \ Group URIs are in the format specified by the IVOA <a href=\"http://www.ivoa.net/documents/GMS/\">GMS</a>\
-    \ Recommendation: {resourceID}?{groupName}:\
-    \ \n\
-    \ \n \t\t{resourceID} is a registered GMS service\
-    \ \n \t\t{groupName} is a group managed by that service\
-    \ \n\
-    \ e.g. ivo://cadc.nrc.ca/gms?CADC"
+  title: prototype TAP-1.2 with user managed tables
+  #version: "1.2"
+  description: |
+    This is the WD-TAP-1.2 API specification with components imported from
+    VOSI, UWS, and DALI.
 servers:
 - url: /youcat
-paths:
-    /sync:
-        $ref: ./paths/tap-sync.yaml
 
+## any of the $ref values below can be URLs to external (standard) OpenAPI components
+
+paths:
+    /capabilities:
+        $ref: ./openapi/vosi/vosi-capabilities.yaml
+
+    /sync:
+        $ref: ./openapi/tap/tap-sync.yaml
     /async:
-        $ref: ./paths/tap-async.yaml
+        $ref: ./openapi/tap/tap-async.yaml
     /async/{jobID}:
-        $ref: ./paths/uws-job.yaml
-        #$ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/uws-job.yaml
+        $ref: ./openapi/uws/uws-job.yaml
     /async/{jobID}/phase:
-        $ref: ./paths/uws-job-phase.yaml
-        #$ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/uws-job-phase.yaml
-    ## TODO: more resources under /async/{jobID}
+        $ref: ./openapi/uws/uws-job-phase.yaml
 
     /tables:
-        $ref: ./paths/vosi-tableset.yaml
-        #$ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/vosi-tableset.yaml
+        $ref: ./openapi/vosi/vosi-tableset.yaml
     /tables/{name}:
-        $ref: ./paths/vosi-table.yaml
-        #$ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/vosi-table.yaml
+        $ref: ./openapi/vosi/vosi-table.yaml
 
-    /load/{name}:
-        $ref: ./paths/tap-load.yaml
-
+# optional endpoint: allowed to return 404 or 405
     /table-update:
-        $ref: ./paths/tap-table-update.yaml
+        $ref: ./openapi/vosi/vosi-table-ops.yaml
     /table-update/{jobID}:
-        $ref: ./paths/uws-job.yaml
-        #$ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/uws-job.yaml
+        $ref: ./openapi/uws/uws-job.yaml
     /table-update/{jobID}/phase:
-        $ref: ./paths/uws-job-phase.yaml
-        #$ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/uws-job-phase.yaml
-
-    /availability:
-        $ref: ./paths/vosi-availability.yaml
-        #$ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/vosi-availability.yaml
-    /capabilities:
-        $ref: ./paths/vosi-capabilities.yaml
-        #$ref: https://haproxy.cadc.dao.nrc.ca/site/vault/files/pdowler/openapi/vosi-capabilities.yaml
+        $ref: ./openapi/uws/uws-job-phase.yaml

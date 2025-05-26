@@ -210,7 +210,7 @@ public class PostPermissionsAction extends TablesAction {
                     } else {
                         params.put(RGROUP_KEY, new GroupURI(URI.create(parts[1])));
                     }
-                } else if (parts[0].equalsIgnoreCase(RWGROUP_KEY) ) {
+                } else if (parts[0].equalsIgnoreCase(RWGROUP_KEY)) {
                     if (emptyValue) {
                         params.put(RWGROUP_KEY, null);
                     } else {

@@ -63,7 +63,7 @@
 *                                       <http://www.gnu.org/licenses/>.
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.tap;
 
@@ -73,11 +73,10 @@ import ca.nrc.cadc.tap.schema.TapSchema;
 
 /**
  * Local replacement for ParamDesc in cadc-tap-schema library.
- * 
+ *
  * @author pdowler
  */
-public class TapSelectItem
-{
+public class TapSelectItem {
     private String name;
     private TapDataType datatype;
 
@@ -91,22 +90,21 @@ public class TapSelectItem
     public boolean principal;
     public boolean indexed;
     public boolean std;
-    public String id;    
-    
+    public String columnID;
+
     /**
-     * A normal column with an alternate name (alias). 
+     * A normal column with an alternate name (alias).
      * All metadata is copied from the specified column descriptor.
-     * 
+     *
      * @param name
-     * @param column 
+     * @param column
      */
-    public TapSelectItem(String name, ColumnDesc column) 
-    { 
+    public TapSelectItem(String name, ColumnDesc column) {
         this(name, column.getDatatype());
         this.columnName = column.getColumnName();
         this.tableName = column.getTableName();
         this.description = column.description;
-        this.id = column.id;
+        this.columnID = column.columnID;
         this.indexed = column.indexed;
         this.principal = column.principal;
         this.std = column.std;
@@ -115,37 +113,32 @@ public class TapSelectItem
         this.utype = column.utype;
     }
 
-    public String getName()
-    {
+    public String getName() {
         return name;
     }
 
-    public TapDataType getDatatype()
-    {
+    public TapDataType getDatatype() {
         return datatype;
     }
 
     /**
      * Original column name if the selected item was a column.
-     * @return 
+     *
+     * @return
      */
-    public String getColumnName()
-    {
+    public String getColumnName() {
         return columnName;
     }
-    
-    
-    
+
     /**
-     * A new column created by some sort of expression. This could be a function call, algebraic 
+     * A new column created by some sort of expression. This could be a function call, algebraic
      * expression, case statement, etc. The calling code must set any additional column
      * metadata.
-     * 
+     *
      * @param name
      * @param datatype
      */
-    public TapSelectItem(String name, TapDataType datatype)
-    {
+    public TapSelectItem(String name, TapDataType datatype) {
         TapSchema.assertNotNull(TapSelectItem.class, "name", name);
         TapSchema.assertNotNull(TapSelectItem.class, "datatype", datatype);
         this.name = name;
@@ -153,10 +146,8 @@ public class TapSelectItem
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return "TapSelectItem[" + name + "," + datatype + "]";
     }
-    
-    
+
 }

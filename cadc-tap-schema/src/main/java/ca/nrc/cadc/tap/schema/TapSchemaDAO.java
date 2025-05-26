@@ -108,7 +108,7 @@ public class TapSchemaDAO {
      * is expected to be appended to the tap_schema table names so that two versions
      * of the tap_schema tables can co-exist.
      */
-    protected final int TAP_VERSION = 11;
+    protected static final int TAP_VERSION = 11;
 
     // standard tap_schema table names
     protected String schemasTableName = "tap_schema.schemas" + TAP_VERSION;
@@ -126,7 +126,7 @@ public class TapSchemaDAO {
     protected String orderTablesClause = " ORDER BY schema_name,table_index,table_name";
 
     private String[] tsColumnsCols = new String[] { "description", "utype", "ucd", "unit", "datatype", "arraysize",
-        "xtype", "principal", "indexed", "std", "id", "column_index", "table_name", "column_name" };
+        "xtype", "principal", "indexed", "std", "column_id", "column_index", "table_name", "column_name" };
     protected String orderColumnsClause = " ORDER BY table_name,column_index,column_name";
 
     private String[] tsKeysCols = new String[] { "key_id", "from_table", "target_table", "description,utype" };
@@ -462,7 +462,7 @@ public class TapSchemaDAO {
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
         try {
             TableDesc cur = getTable(td.getTableName());
-            boolean update = (cur != null);
+            final boolean update = (cur != null);
             
             if (cur != null) {
                 // add/remove/rename columns not supported
@@ -740,16 +740,20 @@ public class TapSchemaDAO {
     }
 
     /**
-     * Set the permissions of the schema identified by schemaName.
-     * 
-     * See the javadoc in TapPermissions for how null values of the permissions
-     * field are handled.
+     * Set the permissions of the schema identified by schemaName. See TapPermissions 
+     * for how null values of the permissions field are handled.
      * 
      * @param schemaName
      * @param tp
      * @throws ResourceNotFoundException
      */
     public void setSchemaPermissions(String schemaName, TapPermissions tp) throws ResourceNotFoundException {
+        IdentityManager im = AuthenticationUtil.getIdentityManager();
+        tp.ownerID = im.toOwner(tp.owner);
+        if (tp.ownerID == null) {
+            throw new UnsupportedOperationException("unable to map schema owner '"
+                    + im.toDisplayString(tp.owner) + "' to a persistent owner object using " + im.getClass().getName());
+        }
         PutPermissionsStatement ssp = new PutPermissionsStatement(schemasTableName, "schema_name", schemaName, tp);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         int rows = jdbc.update(ssp);
@@ -762,17 +766,20 @@ public class TapSchemaDAO {
     }
 
     /**
-     * Set the permissions of the schema identified by tableName.
-     * 
-     * See the javadoc in TapPermissions for how null values of the permissions
-     * field are handled.
+     * Set the permissions of the schema identified by tableName. See TapPermissions 
+     * for how null values of the permissions field are handled.
      * 
      * @param tableName
      * @param tp
      * @throws ResourceNotFoundException
      */
     public void setTablePermissions(String tableName, TapPermissions tp) throws ResourceNotFoundException {
-
+        IdentityManager im = AuthenticationUtil.getIdentityManager();
+        tp.ownerID = im.toOwner(tp.owner);
+        if (tp.ownerID == null) {
+            throw new UnsupportedOperationException("unable to map schema owner '"
+                    + im.toDisplayString(tp.owner) + "' to a persistent owner object using " + im.getClass().getName());
+        }
         // update tables permissions
         PutPermissionsStatement stp = new PutPermissionsStatement(tablesTableName, "table_name", tableName, tp);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
@@ -808,12 +815,12 @@ public class TapSchemaDAO {
     }
 
     private class GetSchemasStatement implements PreparedStatementCreator {
-        private String tap_schema_tab;
+        private String schemasTab;
         private String schemaName;
         private String orderBy;
 
-        public GetSchemasStatement(String tap_schema_tab) {
-            this.tap_schema_tab = tap_schema_tab;
+        public GetSchemasStatement(String schemasTab) {
+            this.schemasTab = schemasTab;
         }
 
         public void setSchemaName(String schemaName) {
@@ -829,7 +836,7 @@ public class TapSchemaDAO {
             StringBuilder sb = new StringBuilder();
             sb.append("SELECT ").append(toCommaList(tsSchemaCols, 0));
             sb.append(",").append(toCommaList(accessControlCols, 0));
-            sb.append(" FROM ").append(tap_schema_tab);
+            sb.append(" FROM ").append(schemasTab);
 
             if (schemaName != null) {
                 sb.append(" WHERE schema_name = ?");
@@ -853,13 +860,13 @@ public class TapSchemaDAO {
     }
 
     private class GetTablesStatement implements PreparedStatementCreator {
-        private String tablesTN;
+        private String tablesTab;
         private String schemaName;
         private String tableName;
         private String orderBy;
 
-        public GetTablesStatement(String tablesTN) {
-            this.tablesTN = tablesTN;
+        public GetTablesStatement(String tablesTab) {
+            this.tablesTab = tablesTab;
         }
 
         public void setSchemaName(String schemaName) {
@@ -878,7 +885,7 @@ public class TapSchemaDAO {
             StringBuilder sb = new StringBuilder();
             sb.append("SELECT ").append(toCommaList(tsTablesCols, 0));
             sb.append(",").append(toCommaList(accessControlCols, 0));
-            sb.append(" FROM ").append(tablesTN);
+            sb.append(" FROM ").append(tablesTab);
 
             String wa = " WHERE";
             if (schemaName != null) {
@@ -915,13 +922,13 @@ public class TapSchemaDAO {
     }
 
     private class GetColumnsStatement implements PreparedStatementCreator {
-        private String tap_schema_tab;
+        private String columnsTab;
         private String tableName;
         private String columnName;
         private String orderBy;
 
-        public GetColumnsStatement(String tap_schema_tab) {
-            this.tap_schema_tab = tap_schema_tab;
+        public GetColumnsStatement(String columnsTab) {
+            this.columnsTab = columnsTab;
         }
 
         public void setTableName(String tableName) {
@@ -939,7 +946,7 @@ public class TapSchemaDAO {
         public PreparedStatement createPreparedStatement(Connection conn) throws SQLException {
             StringBuilder sb = new StringBuilder();
             sb.append("SELECT ").append(toCommaList(tsColumnsCols, 0));
-            sb.append(" FROM ").append(tap_schema_tab);
+            sb.append(" FROM ").append(columnsTab);
 
             if (tableName != null) {
                 sb.append(" WHERE table_name = ?");
@@ -968,12 +975,12 @@ public class TapSchemaDAO {
     }
 
     private class GetKeysStatement implements PreparedStatementCreator {
-        private String tap_schema_tab;
+        private String keysTab;
         private String tableName;
         private String orderBy;
 
-        public GetKeysStatement(String tap_schema_tab) {
-            this.tap_schema_tab = tap_schema_tab;
+        public GetKeysStatement(String keysTab) {
+            this.keysTab = keysTab;
         }
 
         public void setTableName(String tableName) {
@@ -987,7 +994,7 @@ public class TapSchemaDAO {
         public PreparedStatement createPreparedStatement(Connection conn) throws SQLException {
             StringBuilder sb = new StringBuilder();
             sb.append("SELECT ").append(toCommaList(tsKeysCols, 0));
-            sb.append(" FROM ").append(tap_schema_tab);
+            sb.append(" FROM ").append(keysTab);
             if (tableName != null) {
                 sb.append(" WHERE from_table = ?");
             } else if (orderBy != null) {
@@ -1006,12 +1013,12 @@ public class TapSchemaDAO {
     }
 
     private class GetKeyColumnsStatement implements PreparedStatementCreator {
-        private String tap_schema_tab;
+        private String keyColumnsTab;
         private List<KeyDesc> keyDescs;
         private String orderBy;
 
-        public GetKeyColumnsStatement(String tap_schema_tab) {
-            this.tap_schema_tab = tap_schema_tab;
+        public GetKeyColumnsStatement(String keyColumnsTab) {
+            this.keyColumnsTab = keyColumnsTab;
         }
 
         public void setKeyDescs(List<KeyDesc> keyDescs) {
@@ -1025,7 +1032,7 @@ public class TapSchemaDAO {
         public PreparedStatement createPreparedStatement(Connection conn) throws SQLException {
             StringBuilder sb = new StringBuilder();
             sb.append("SELECT ").append(toCommaList(tsKeyColumnsCols, 0));
-            sb.append(" FROM ").append(tap_schema_tab);
+            sb.append(" FROM ").append(keyColumnsTab);
 
             if (keyDescs != null && !keyDescs.isEmpty()) {
                 sb.append(" WHERE key_id IN (");
@@ -1099,6 +1106,7 @@ public class TapSchemaDAO {
             this.tp = tp;
         }
 
+        @Override
         public PreparedStatement createPreparedStatement(Connection conn) throws SQLException {
             StringBuilder sb = new StringBuilder();
             int colIndex = 1;
@@ -1120,17 +1128,8 @@ public class TapSchemaDAO {
             StringBuilder vals = new StringBuilder();
             vals.append("values: ");
 
-            IdentityManager identityManager = AuthenticationUtil.getIdentityManager();
-            if (identityManager == null) {
-                throw new IllegalStateException(
-                        "failed to load IdentityManager implementation - cannot update permissions");
-            }
-            log.debug("IdentityManager: " + identityManager);
-            Subject owner = tp.owner;
-            Object ownerVal = identityManager.toOwner(owner);
-
-            if (ownerVal != null) {
-                safeSetString(vals, prep, colIndex++, ownerVal.toString());
+            if (tp.ownerID != null) {
+                safeSetString(vals, prep, colIndex++, tp.ownerID.toString());
             } else {
                 safeSetString(vals, prep, colIndex++, null);
             }
@@ -1187,7 +1186,7 @@ public class TapSchemaDAO {
             int col = 1;
             safeSetString(sb, ps, col++, schema.description);
             safeSetString(sb, ps, col++, schema.utype);
-            safeSetInteger(sb, ps, col++, schema.schema_index);
+            safeSetInteger(sb, ps, col++, schema.schemaIndex);
             safeSetBoolean(sb, ps, col++, schema.apiCreated);
             safeSetString(sb, ps, col++, schema.getSchemaName());
 
@@ -1281,7 +1280,7 @@ public class TapSchemaDAO {
             PreparedStatement ps = conn.prepareStatement(sql);
 
             // description, utype, ucd, unit, datatype, arraysize, xtype, principal,
-            // indexed, std, id,
+            // indexed, std, column_id,
             // table_name, column_name
             sb = new StringBuilder();
             int col = 1;
@@ -1295,8 +1294,8 @@ public class TapSchemaDAO {
             safeSetBoolean(sb, ps, col++, column.principal);
             safeSetBoolean(sb, ps, col++, column.indexed);
             safeSetBoolean(sb, ps, col++, column.std);
-            safeSetString(sb, ps, col++, column.id);
-            safeSetInteger(sb, ps, col++, column.column_index);
+            safeSetString(sb, ps, col++, column.columnID);
+            safeSetInteger(sb, ps, col++, column.columnIndex);
             safeSetString(sb, ps, col++, column.getTableName());
             safeSetString(sb, ps, col++, column.getColumnName());
             log.debug("values: " + sb.toString());
@@ -1602,7 +1601,7 @@ public class TapSchemaDAO {
 
             schemaDesc.description = rs.getString("description");
             schemaDesc.utype = rs.getString("utype");
-            schemaDesc.schema_index = rs.getInt("schema_index");
+            schemaDesc.schemaIndex = rs.getInt("schema_index");
             schemaDesc.apiCreated = rs.getInt("api_created") == 1;
             
             if (tapPermissionsMapper != null) {
@@ -1666,15 +1665,16 @@ public class TapSchemaDAO {
             col.principal = intToBoolean(rs.getInt("principal"));
             col.indexed = intToBoolean(rs.getInt("indexed"));
             col.std = intToBoolean(rs.getInt("std"));
-            col.id = rs.getString("id");
-            col.column_index = rs.getInt("column_index");
+            col.columnID = rs.getString("column_id");
+            col.columnIndex = rs.getInt("column_index");
             
             return col;
         }
 
         private boolean intToBoolean(Integer i) {
-            if (i == null)
+            if (i == null) {
                 return false;
+            }
             return (i == 1);
         }
     }

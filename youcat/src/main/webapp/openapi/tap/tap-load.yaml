@@ -1,4 +1,5 @@
 post:
+    operationId: tap-bulk-load
     summary: bulk load or row data
     description: TAP synchronous bulk load endpoint
     parameters:
@@ -13,10 +14,14 @@ post:
         $ref: '#/components/schemas/tableRows'
             
     responses:
-        "200":
+        200:
           description: |
             rows loaded; 
             TBD: both partial or complete are possible
+        401:
+            $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
+        403:
+            $ref: ../vosi/vosi-std-responses.yaml#/permission-denied
 
 components:
     schemas:

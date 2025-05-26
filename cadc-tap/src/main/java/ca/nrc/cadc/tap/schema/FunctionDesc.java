@@ -73,45 +73,34 @@ package ca.nrc.cadc.tap.schema;
  * Describes ADQL or SQL function metadata used for VOTable metadata.
  *
  */
-public class FunctionDesc
-{
+public class FunctionDesc {
     private String name;
     private TapDataType datatype;
-    
+
     public String unit;
 
-    //public FunctionDesc(String name, String unit)
-    //{
-    //    this(name, unit, null);
-    //}
-    
-    public FunctionDesc(String name, TapDataType datatype)
-    {
+    public FunctionDesc(String name, TapDataType datatype) {
         TapSchema.assertNotNull(FunctionDesc.class, "name", name);
         TapSchema.assertNotNull(FunctionDesc.class, "datatype", datatype);
         this.name = name;
         this.datatype = datatype;
     }
-    
-    public FunctionDesc(String name, TapDataType datatype, String unit)
-    {
+
+    public FunctionDesc(String name, TapDataType datatype, String unit) {
         this(name, datatype);
         this.unit = unit;
     }
-            
-    public String getName()
-    {
+
+    public String getName() {
         return name;
     }
 
-    public TapDataType getDatatype()
-    {
+    public TapDataType getDatatype() {
         return datatype;
     }
-    
+
     @Override
-    public String toString()
-    {
+    public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("FunctionDesc[");
         sb.append(name).append(",");
@@ -120,5 +109,5 @@ public class FunctionDesc
         sb.append("]");
         return sb.toString();
     }
-    
+
 }

@@ -141,7 +141,7 @@ public class IntArrayFormatTest
     public void testFormatWrappedInteger()
     {
         LOG.debug("testFormatWrappedInteger");
-        Object object = new Integer[] { 1, 2 };
+        Object object = new int[] { 1, 2 };
         IntArrayFormat instance = new IntArrayFormat();
         String expResult = "1 2";
         String result = instance.format(object);

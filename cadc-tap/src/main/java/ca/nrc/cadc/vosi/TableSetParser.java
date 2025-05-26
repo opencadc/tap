@@ -65,7 +65,7 @@
 *  $Revision: 4 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.vosi;
 
@@ -85,51 +85,46 @@ import org.jdom2.input.SAXBuilder;
  * (it is the default), this class finds all the necessary schema files in the
  * classpath (in cadcVOSI) and maps the current namespace URIs to those schema
  * locations as required by the XmlUtil class (cadcUtil).
- * 
+ *
  * @deprecated use TableSetReader instead
  * @author pdowler
  */
-public class TableSetParser 
-{
+public class TableSetParser {
     private static final Logger log = Logger.getLogger(TableSetParser.class);
 
-    private Map<String,String> schemaMap;
+    private Map<String, String> schemaMap;
 
-    public TableSetParser()
-    {
+    public TableSetParser() {
         this(true);
     }
 
-    public TableSetParser(boolean enableSchemaValidation)
-    {
-        if (enableSchemaValidation)
-        {
+    public TableSetParser(boolean enableSchemaValidation) {
+        if (enableSchemaValidation) {
             this.schemaMap = XMLConstants.SCHEMA_MAP;
-            
+
             String url = XmlUtil.getResourceUrlString(VOSI.TABLES_SCHEMA, TableSetParser.class);
-            if (url != null)
-            {
+            if (url != null) {
                 log.debug(VOSI.TABLES_NS_URI + " -> " + url);
                 this.schemaMap.put(VOSI.TABLES_NS_URI, url);
-            }
-            else
-            {
+            } else {
                 log.warn("failed to find resource: " + VOSI.TABLES_SCHEMA);
             }
+
+            String tbdURL = XmlUtil.getResourceUrlString(TableSet.VTE_XSD, TableSetParser.class);
+            log.debug(TableSet.VTE_NS_URI + " -> " + tbdURL);
+            schemaMap.put(TableSet.VTE_NS_URI, tbdURL);
         }
     }
 
     public Document parse(Reader rdr)
-        throws IOException, JDOMException
-    {
+            throws IOException, JDOMException {
         // and again with schema validation
         SAXBuilder sb = XmlUtil.createBuilder(schemaMap);
         return sb.build(rdr);
     }
 
     public Document parse(InputStream istream)
-        throws IOException, JDOMException
-    {
+            throws IOException, JDOMException {
         // and again with schema validation
         SAXBuilder sb = XmlUtil.createBuilder(schemaMap);
         return sb.build(istream);

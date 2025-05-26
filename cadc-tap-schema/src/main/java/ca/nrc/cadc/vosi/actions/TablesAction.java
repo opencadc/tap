@@ -80,7 +80,6 @@ import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import static ca.nrc.cadc.vosi.actions.PutAction.INPUT_TAG;
 import java.io.IOException;
 import java.security.AccessControlException;
 import java.security.Principal;
@@ -198,7 +197,7 @@ public abstract class TablesAction extends RestAction {
             int c = 0;
             for (ColumnDesc cd : input.getColumnDescs()) {
                 cd.setTableName(tableName);
-                cd.column_index = c++;
+                cd.columnIndex = c++;
             }
             return input;
         }

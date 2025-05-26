@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<xs:schema
+        xmlns:xs="http://www.w3.org/2001/XMLSchema"
+        targetNamespace="http://www.opencadc.org/xml/VOSITables-ext/v0.1"
+        attributeFormDefault="qualified">
+
+    <xs:attribute name="columnID">
+        <xs:annotation>
+            <xs:documentation>
+                An attribute intended for use on a column element only,
+                that uniquely identifies a column in a TAP service,
+                allowing reading and writing of an identifier.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleType>
+            <xs:restriction base="xs:string"/>
+        </xs:simpleType>
+    </xs:attribute>
+
+</xs:schema>

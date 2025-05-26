@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2017.                            (c) 2017.
+*  (c) 2024.                            (c) 2024.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,7 +67,9 @@
 
 package ca.nrc.cadc.tap.schema;
 
+import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableField;
+import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import org.apache.log4j.Logger;
 
@@ -101,12 +103,11 @@ public class TapSchemaUtil {
         } catch (ADQLIdentifierException ex) {
             throw new IllegalArgumentException("invalid ADQL identifier (table name): " + tableName, ex);
         }
-        
-        TableDesc ret = new TableDesc(schemaName, tableName);
         if (votable == null) {
             throw new IllegalArgumentException("invalid input: no VOTable with column metadata");
         }
 
+        TableDesc ret = new TableDesc(schemaName, tableName);
         for (VOTableField f : votable.getFields()) {
             try {
                 checkValidIdentifier(f.getName());
@@ -127,10 +128,14 @@ public class TapSchemaUtil {
      * @return The associated VOTableField
      */
     public static VOTableField convert(ColumnDesc column) {
-        VOTableField vtf = new VOTableField(
-            column.getColumnName(), column.getDatatype().getDatatype(),
-            column.getDatatype().arraysize);
+        VOTableField vtf = new VOTableField(column.getColumnName(),
+                column.getDatatype().getDatatype(), column.getDatatype().arraysize);
         vtf.xtype = column.getDatatype().xtype;
+        vtf.description = column.description;
+        vtf.id = column.columnID;
+        vtf.ucd = column.ucd;
+        vtf.unit = column.unit;
+        vtf.utype = column.utype;
         return vtf;
     }
 
@@ -145,7 +150,7 @@ public class TapSchemaUtil {
         TapDataType dt = new TapDataType(field.getDatatype(), field.getArraysize(), field.xtype);
         ColumnDesc ret = new ColumnDesc(tableName, field.getName(), dt);
         ret.description = field.description;
-        ret.id = field.id;
+        ret.columnID = field.id;
         ret.ucd = field.ucd;
         ret.unit = field.unit;
         ret.utype = field.utype;
@@ -231,4 +236,36 @@ public class TapSchemaUtil {
         }
         return false;
     }
+
+    /**
+     * Create VOTable description of a TableDesc.
+     * @param tableDesc
+     * @return
+     */
+    public static VOTableDocument createVOTable(TableDesc tableDesc) {
+        try {
+            checkValidTableName(tableDesc.getTableName());
+        } catch (ADQLIdentifierException ex) {
+            throw new IllegalArgumentException("invalid ADQL identifier (table name): "
+                    + tableDesc.getTableName(), ex);
+        }
+
+        VOTableDocument document = new VOTableDocument();
+        VOTableResource resource = new VOTableResource("results");
+        document.getResources().add(resource);
+        VOTableTable table = new VOTableTable();
+        resource.setTable(table);
+
+        for (ColumnDesc column : tableDesc.getColumnDescs()) {
+            try {
+                checkValidIdentifier(column.getColumnName());
+                table.getFields().add(convert(column));
+            } catch (ADQLIdentifierException ex) {
+                throw new IllegalArgumentException("invalid ADQL identifier (column name): "
+                        + column.getColumnName(), ex);
+            }
+        }
+        return document;
+    }
+
 }

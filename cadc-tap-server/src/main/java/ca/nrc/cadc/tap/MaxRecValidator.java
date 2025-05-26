@@ -65,7 +65,7 @@
 *  $Revision: 4 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.tap;
 
@@ -78,19 +78,19 @@ import org.apache.log4j.Logger;
  * <code>ca.nrc.cadc.tap.impl.MaxRecValidatorImpl</code> to set the default and
  * maximum allowed values for their service. The values set here are null, which
  * means no limit.
- * 
+ *
  * @author jburke
  */
-public class MaxRecValidator extends ca.nrc.cadc.dali.MaxRecValidator implements TapPlugin
-{
-    private static Logger log = Logger.getLogger(MaxRecValidator.class);
-    
-    protected TapSchema tapSchema;
-    
-    public MaxRecValidator() { }
+public class MaxRecValidator extends ca.nrc.cadc.dali.MaxRecValidator implements TapPlugin {
 
-    public void setTapSchema(TapSchema tapSchema)
-    {
+    private static Logger log = Logger.getLogger(MaxRecValidator.class);
+
+    protected TapSchema tapSchema;
+
+    public MaxRecValidator() {
+    }
+
+    public void setTapSchema(TapSchema tapSchema) {
         this.tapSchema = tapSchema;
     }
 }

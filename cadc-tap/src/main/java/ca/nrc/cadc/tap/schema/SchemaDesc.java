@@ -74,15 +74,15 @@ import java.util.List;
 
 /**
  * Descriptor class to represent a TAP_SCHEMA.schemas table.
- * 
+ *
  */
 public class SchemaDesc {
     private String schemaName;
     private final List<TableDesc> tableDescs = new ArrayList<>();
-    
+
     public String description;
     public String utype;
-    public Integer schema_index;
+    public Integer schemaIndex;
     public TapPermissions tapPermissions;
     public Boolean apiCreated;
 
@@ -93,7 +93,7 @@ public class SchemaDesc {
 
     /**
      * Setters and getters.
-     * 
+     *
      */
     public final String getSchemaName() {
         return schemaName;
@@ -106,7 +106,7 @@ public class SchemaDesc {
     public List<TableDesc> getTableDescs() {
         return tableDescs;
     }
-    
+
     public TableDesc getTable(String name) {
         for (TableDesc td : tableDescs) {
             if (td.getTableName().equalsIgnoreCase(name)) {

@@ -1,38 +1,42 @@
 head:
-    tag: VOSI
-    summary: VOSI Capabilities
+    operationId: probe-capabilities
+    tags: 
+      - VOSI Capabilities
+    summary: VOSI Capabilities with SSO-next prototype
     description: |
         Get standard headers for the service. The standard headers should include
         AAI related headers (www-authenticate challenges or x-vo-authenticated
         indicator) if applicable, server name and version info, and other
         applicable header information. SSO-next: clients use this operation to probe
-        for available authentiction methods.
+        for available authentication methods.
     responses:
         200:
-            description: successful probe, service allows request from caller
+            $ref: ./vosi-std-responses.yaml#/authenticated
         401:
-            description: |
-                successful probe, service requires authentication or attempted authentication failed
+            $ref: ./vosi-std-responses.yaml#/not-authenticated
         403:
-            description: authentication succeed, caller is not permitted to make requests
+            $ref: ./vosi-std-responses.yaml#/authenticated
+            $ref: ./vosi-std-responses.yaml#/permission-denied
 get:
-    tag: VOSI
-    summary: VOSI Capabilities
+    operationId: read-capabilities
+    tags: 
+      - VOSI
+    summary: VOSI Capabilities with SSO-next prototype
     description: Get the set of VOResource capability descriptions for this service.
     responses:
         200:
-          description: A VOSI Capabilities document in XML.
-          content:
-            text/xml:
-              schema:
-                $ref: '#/components/schemas/capabilities'
+          $ref: '#/components/schemas/capabilities'
+          $ref: ./vosi-std-responses.yaml#/authenticated
         401:
-            $ref: ../components/std-responses.yaml#/not-authenticated
+            $ref: ./vosi-std-responses.yaml#/not-authenticated
         403:
-            $ref: ../components/std-responses.yaml#/permission-denied
+            $ref: ./vosi-std-responses.yaml#/authenticated
+            $ref: ./vosi-std-responses.yaml#/permission-denied
+
 components:
     schemas:
         capabilities:
+            description: A VOSI Capabilities document
             content:
                 text/xml:
                     schema:

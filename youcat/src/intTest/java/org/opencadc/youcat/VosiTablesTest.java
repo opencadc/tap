@@ -2,8 +2,12 @@
 package org.opencadc.youcat;
 
 import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
+import ca.nrc.cadc.dali.tables.votable.VOTableReader;
+import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
 import ca.nrc.cadc.net.ContentType;
 import ca.nrc.cadc.net.HttpDownload;
+import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
@@ -14,8 +18,8 @@ import ca.nrc.cadc.vosi.TableReader;
 import ca.nrc.cadc.vosi.TableSetReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.net.URI;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -31,7 +35,7 @@ public class VosiTablesTest
 
     static
     {
-        Log4jInit.setLevel("ca.nrc.cadc.cat", Level.INFO);
+        Log4jInit.setLevel("org.opencadc.youcat", Level.INFO);
     }
     
     URL tablesURL;
@@ -137,10 +141,38 @@ public class VosiTablesTest
                 Assert.assertTrue("no columns:" + td.getTableName(), td.getColumnDescs().isEmpty());
             }
         }
-        catch(Exception unexpected)
+        catch (Exception unexpected)
         {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
         }
     }
+
+    @Test
+    public void testValidateVOTableDoc() {
+        try {
+            String s = tablesURL.toExternalForm() + "/tap_schema.tables";
+            log.info("testValidateVOTableDoc: " + s);
+
+            URL url = new URL(s);
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            HttpGet get = new HttpGet(url, bos);
+            get.setRequestProperty("Accept", VOTableWriter.CONTENT_TYPE);
+            get.run();
+            Assert.assertNull(get.getThrowable());
+            Assert.assertEquals(200, get.getResponseCode());
+            Assert.assertEquals(VOTableWriter.CONTENT_TYPE, get.getContentType());
+
+            log.debug("VOTable XML: " + bos.toString(StandardCharsets.UTF_8));
+
+            VOTableReader tr = new VOTableReader(true);
+            VOTableDocument td = tr.read(new ByteArrayInputStream(bos.toByteArray()));
+            Assert.assertNotNull(td);
+            Assert.assertFalse("tap_schema.tables", td.getResources().isEmpty());
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+
 }

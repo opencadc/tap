@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2025.                            (c) 2025.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -65,7 +65,7 @@
 *  $Revision: 4 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.tap;
 
@@ -89,16 +89,13 @@ import ca.nrc.cadc.tap.writer.RssTableWriter;
 import ca.nrc.cadc.tap.writer.format.FormatFactory;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.ParameterUtil;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.Reader;
-import java.io.Writer;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -113,8 +110,7 @@ import java.util.TreeMap;
 import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
 
-public class DefaultTableWriter implements TableWriter
-{
+public class DefaultTableWriter implements TableWriter {
 
     private static final Logger log = Logger.getLogger(DefaultTableWriter.class);
 
@@ -130,21 +126,21 @@ public class DefaultTableWriter implements TableWriter
     public static final String VOTABLE = "votable";
     public static final String RSS = "rss";
 
-    // content-type
-//    private static final String APPLICATION_FITS = "application/fits";
+    // content-types
     private static final String APPLICATION_VOTABLE_XML = "application/x-votable+xml";
     private static final String APPLICATION_RSS = "application/rss+xml";
     private static final String TEXT_XML_VOTABLE = "text/xml;content=x-votable"; // the SIAv1 mimetype
     private static final String TEXT_CSV = "text/csv";
-//    private static final String TEXT_HTML = "text/html";
-//    private static final String TEXT_PLAIN = "text/plain";
     private static final String TEXT_TAB_SEPARATED_VALUES = "text/tab-separated-values";
     private static final String TEXT_XML = "text/xml";
+    private static final String APPLICATION_PARQUET = "application/vnd.apache.parquet";
+    private static final String PARQUET = "parquet";
 
-    private static final Map<String,String> knownFormats = new TreeMap<String,String>();
+    private static final String PARQUET_CLASS_NAME = "ca.nrc.cadc.dali.tables.parquet.ParquetWriter";
 
-    static
-    {
+    private static final Map<String, String> knownFormats = new TreeMap<>();
+
+    static {
         knownFormats.put(APPLICATION_VOTABLE_XML, VOTABLE);
         knownFormats.put(TEXT_XML, VOTABLE);
         knownFormats.put(TEXT_XML_VOTABLE, VOTABLE);
@@ -155,6 +151,14 @@ public class DefaultTableWriter implements TableWriter
         knownFormats.put(TSV, TSV);
         knownFormats.put(RSS, RSS);
         knownFormats.put(APPLICATION_RSS, RSS);
+        try {
+            // optional plugin
+            Class clz = Class.forName(PARQUET_CLASS_NAME);
+            knownFormats.put(APPLICATION_PARQUET, PARQUET);
+            knownFormats.put(PARQUET, PARQUET);
+        } catch (ClassNotFoundException ex) {
+            log.debug("class not found: ca.nrc.cadc.dali.tables.parquet.ParquetWriter - no parquet output");
+        }
     }
 
     private Job job;
@@ -165,81 +169,76 @@ public class DefaultTableWriter implements TableWriter
     // RssTableWriter not yet ported to cadcDALI
     private ca.nrc.cadc.dali.tables.TableWriter<VOTableDocument> tableWriter;
     private RssTableWriter rssTableWriter;
-    
+
     private FormatFactory formatFactory;
     private boolean errorWriter = false;
-    
-    private long rowcount = 0l;
+
+    private long rowcount = 0L;
 
     // once the RssTableWriter is converted to use the DALI format
     // of writing, this reference will not be needed
-    List<TapSelectItem> selectList;
+    protected final List<TapSelectItem> selectList = new ArrayList<>();
 
-    public DefaultTableWriter() { 
-        this(false); 
+    public DefaultTableWriter() {
+        this(false);
     }
 
     public DefaultTableWriter(boolean errorWriter) {
         this.errorWriter = errorWriter;
     }
-    
+
     @Override
-    public void setJob(Job job)
-    {
+    public void setJob(Job job) {
         this.job = job;
         initFormat();
     }
 
     @Override
-    public void setSelectList(List<TapSelectItem> selectList)
-    {
-        this.selectList = selectList;
-        if (rssTableWriter != null)
+    public void setSelectList(List<TapSelectItem> selectList) {
+        this.selectList.addAll(selectList);
+        if (rssTableWriter != null) {
             rssTableWriter.setSelectList(selectList);
+        }
     }
-    
+
     @Override
-    public void setQueryInfo(String queryInfo)
-    {
+    public void setQueryInfo(String queryInfo) {
         this.queryInfo = queryInfo;
     }
 
     @Override
-    public String getContentType()
-    {
+    public String getContentType() {
         return tableWriter.getContentType();
     }
 
     @Override
-    public String getErrorContentType()
-    {
+    public String getErrorContentType() {
         return tableWriter.getErrorContentType();
     }
 
     /**
      * Get the number of rows the output table
+     *
      * @return number of result rows written in output table
      */
     @Override
-    public long getRowCount()
-    {
+    public long getRowCount() {
         return rowcount;
     }
-    
+
     @Override
-    public String getExtension()
-    {
+    public String getExtension() {
         return extension;
     }
-    
-    private void initFormat()
-    {
+
+    private void initFormat() {
         String format = ParameterUtil.findParameterValue(FORMAT, job.getParameterList());
-        if (format == null)
+        if (format == null) {
             format = ParameterUtil.findParameterValue(FORMAT_ALT, job.getParameterList());
-        if (format == null)
+        }
+        if (format == null) {
             format = VOTABLE;
-        
+        }
         String type = knownFormats.get(format.toLowerCase());
         if (type == null && errorWriter) {
             type = VOTABLE;
@@ -247,29 +246,34 @@ public class DefaultTableWriter implements TableWriter
         } else if (type == null) {
             throw new UnsupportedOperationException("unknown format: " + format);
         }
-        
-        if (type.equals(VOTABLE) && format.equals(VOTABLE))
+
+        if (type.equals(VOTABLE) && format.equals(VOTABLE)) {
             format = APPLICATION_VOTABLE_XML;
-        
+        }
         // Create the table writer (handle RSS the old way for now)
         // Note: This needs to be done before the write method is called so the contentType
         // can be determined from the table writer.
 
-        if (type.equals(RSS))
-        {
+        if (type.equals(RSS)) {
             rssTableWriter = new RssTableWriter();
             rssTableWriter.setJob(job);
             // for error handling
             tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
-        }
-        else if (type.equals(VOTABLE)) {
+        } else if (type.equals(VOTABLE)) {
             tableWriter = new VOTableWriter(format);
         } else if (type.equals(CSV)) {
             tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.CSV);
         } else if (type.equals(TSV)) {
             tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
+        } else if (type.equals(PARQUET)) {
+            try {
+                Class clz = Class.forName(PARQUET_CLASS_NAME);
+                tableWriter = (ca.nrc.cadc.dali.tables.TableWriter<VOTableDocument>) clz.getConstructor().newInstance();
+            } catch (Exception ex) {
+                log.warn("caller requested " + PARQUET + " output but failed to load ParquetWriter");
+            }
         }
-    
+
         if (tableWriter == null) {
             throw new UnsupportedOperationException("unsupported format: " + type);
         }
@@ -277,137 +281,133 @@ public class DefaultTableWriter implements TableWriter
         this.extension = tableWriter.getExtension();
     }
 
-    public void setFormatFactory(FormatFactory formatFactory)
-    {
+    @Override
+    public void setFormatFactory(FormatFactory formatFactory) {
         this.formatFactory = formatFactory;
     }
 
     @Override
-    public void setFormatFactory(ca.nrc.cadc.dali.util.FormatFactory formatFactory)
-    {
+    public void setFormatFactory(ca.nrc.cadc.dali.util.FormatFactory formatFactory) {
         throw new UnsupportedOperationException("Use custom tap format factory implementation class");
     }
 
-    public void write(Throwable t, OutputStream out) 
-        throws IOException
-    {
+    public void write(Throwable t, OutputStream out)
+            throws IOException {
         tableWriter.write(t, out);
     }
 
-    
     @Override
-    public void write(ResultSet rs, OutputStream out) throws IOException
-    {
+    public void write(ResultSet rs, OutputStream out) throws IOException {
         this.write(rs, out, null);
     }
 
     @Override
-    public void write(ResultSet rs, OutputStream out, Long maxrec)
-            throws IOException
-    {
-        Writer writer = new BufferedWriter(new OutputStreamWriter(out, "UTF-8"));
-        this.write(rs, writer, maxrec);
-    }
+    public void write(ResultSet rs, OutputStream out, Long maxrec) throws IOException {
+        if (rs != null && log.isDebugEnabled()) {
+            try {
+                log.debug("resultSet column count: " + rs.getMetaData().getColumnCount());
+            } catch (Exception oops) {
+                log.error("failed to check resultset column count", oops);
+            }
+        }
 
-    @Override
-    public void write(ResultSet rs, Writer out) throws IOException
-    {
-        this.write(rs, out, null);
-    }
-
-    @Override
-    public void write(ResultSet rs, Writer out, Long maxrec) throws IOException
-    {
-        if (rs != null && log.isDebugEnabled())
-            try { log.debug("resultSet column count: " + rs.getMetaData().getColumnCount()); }
-            catch(Exception oops) { log.error("failed to check resultset column count", oops); }
-
-        if (rssTableWriter != null)
-        {
+        // HACK: delegate everything to an alternate TAP TableWriter
+        if (rssTableWriter != null) {
             rssTableWriter.setJob(job);
             rssTableWriter.setSelectList(selectList);
             rssTableWriter.setFormatFactory(formatFactory);
             rssTableWriter.setQueryInfo(queryInfo);
-            if (maxrec != null)
+            if (maxrec != null) {
                 rssTableWriter.write(rs, out, maxrec);
-            else
+            } else {
                 rssTableWriter.write(rs, out);
+            }
             return;
         }
-        
+
+        VOTableDocument votableDocument = generateOutputTable();
+        VOTableTable resultsTable = votableDocument.getResourceByType("results").getTable();
+
+        // get the formats based on the selectList; some of these are ResultSetFormat
+        // and used by ResultSetTableData to extract from JDBC
+        List<Format<Object>> formats = formatFactory.getFormats(selectList);
+        for (int i = 0; i < formats.size(); i++) {
+            // attach format object to field so the tableWriter can use 
+            // Format.format(Object) or other future methods
+            resultsTable.getFields().get(i).setFormat(formats.get(i));
+        }
+
+        // attach dynamic table data
+        ResultSetTableData tableData = new ResultSetTableData(rs, formats);
+        resultsTable.setTableData(tableData);
+
+        if (maxrec != null) {
+            tableWriter.write(votableDocument, out, maxrec);
+        } else {
+            tableWriter.write(votableDocument, out);
+        }
+
+        this.rowcount = tableData.getRowCount();
+    }
+    
+    @Override
+    public VOTableDocument generateOutputTable() throws IOException {
+        if (rssTableWriter != null) {
+            return null; // ugh
+        }
+
         VOTableDocument votableDocument = new VOTableDocument();
 
         VOTableResource resultsResource = new VOTableResource("results");
         VOTableTable resultsTable = new VOTableTable();
-
-        // get the formats based on the selectList
-        List<Format<Object>> formats = formatFactory.getFormats(selectList);
-
-        List<String> serviceIDs = new ArrayList<String>();
-        int listIndex = 0;
-
-        // Add the metadata elements.
-        for (TapSelectItem resultCol : selectList)
-        {
-            VOTableField newField = createVOTableField(resultCol);
-
-            Format<Object> format = formats.get(listIndex);
-            log.debug("format: " + listIndex + " " + format.getClass().getName());
-            newField.setFormat(format);
-
-            resultsTable.getFields().add(newField);
-
-            if (newField.id != null)
-            {
-                if ( !serviceIDs.contains(newField.id) )
-                    serviceIDs.add(newField.id);
-                else
-                    newField.id = null; // avoid multiple ID with same value in output
-            }
-
-            listIndex++;
-        }
-
         resultsResource.setTable(resultsTable);
         votableDocument.getResources().add(resultsResource);
 
-        // Add the "meta" resources to describe services for each columnID in
-        // list columnIDs that we recognize
+        // extract select list field ID values
+        List<String> serviceIDs = new ArrayList<>();
+        for (TapSelectItem resultCol : selectList) {
+            VOTableField newField = createVOTableField(resultCol);
+            resultsTable.getFields().add(newField);
+            if (newField.id != null) {
+                if (!serviceIDs.contains(newField.id)) {
+                    serviceIDs.add(newField.id);
+                } else {
+                    // avoid multiple ID with same value in output
+                    // e.g. duplicate columns from a join
+                    newField.id = null;
+                }
+            }
+        }
+        // add meta resources aka service descriptors for selected IDs
         addMetaResources(votableDocument, serviceIDs);
 
         VOTableInfo info = new VOTableInfo("QUERY_STATUS", "OK");
         resultsResource.getInfos().add(info);
-        
+
         DateFormat df = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
         Date now = new Date();
         VOTableInfo info2 = new VOTableInfo("QUERY_TIMESTAMP", df.format(now));
         resultsResource.getInfos().add(info2);
 
         // for documentation, add the query to the table as an info element
-        if (queryInfo != null)
-        {
+        if (queryInfo != null) {
             info = new VOTableInfo("QUERY", queryInfo);
             resultsResource.getInfos().add(info);
         }
-
-        ResultSetTableData tableData = new ResultSetTableData(rs, formats);
-        resultsTable.setTableData(tableData);
         
-        if (maxrec != null)
-            tableWriter.write(votableDocument, out, maxrec);
-        else
-            tableWriter.write(votableDocument, out);
-        
-        this.rowcount = tableData.getRowCount();
+        return votableDocument;
     }
 
-    // HACK: need to allow an ObsCore.access_url formatter to access this info
+    // HACK: to allow an ObsCore.access_url formatter to access this info
+    //       but this is tightly coupled to the tap_schema.columns.column_id
+    //       matching a config file named {column_id}.xml and hopefully containing a
+    //       service descriptor with a DataLink standardID.... TBD.
     public static URL getAccessURL(String columnID, URI reqStandardID) throws IOException {
         VOTableDocument serviceDocument = getDoc(columnID);
         if (serviceDocument == null) {
             return null;
         }
-        
+
         String filename = columnID + ".xml"; // for error reporting
         // find specified endpoint
         for (VOTableResource metaResource : serviceDocument.getResources()) {
@@ -429,7 +429,7 @@ public class DefaultTableWriter implements TableWriter
                     }
                     log.debug("getAccessURL: " + reqStandardID + " vs " + standardID);
                     if (reqStandardID.equals(standardID)) {
-                        if (accessURL == null  && resourceIdentifier != null && standardID != null) {
+                        if (accessURL == null && resourceIdentifier != null && standardID != null) {
                             // try to augment resource with accessURL
                             Subject s = AuthenticationUtil.getCurrentSubject();
                             AuthMethod cur = AuthenticationUtil.getAuthMethod(s);
@@ -449,10 +449,11 @@ public class DefaultTableWriter implements TableWriter
                 }
             }
         }
-        
+
         return null;
     }
-    
+
+    // read a votable document matching a {column_id}: currently in the config dir
     private static VOTableDocument getDoc(String sid) throws IOException {
         File configDir = new File(System.getProperty("user.home") + "/config");
         String filename = sid + ".xml";
@@ -471,22 +472,35 @@ public class DefaultTableWriter implements TableWriter
             log.debug("failed to find config resource " + filename + " to go with XML ID " + sid);
             return null;
         }
-        
+
         VOTableReader reader = new VOTableReader();
         VOTableDocument serviceDocument = reader.read(rdr);
         return serviceDocument;
     }
-    
-    private void addMetaResources(VOTableDocument votableDocument, List<String> serviceIDs)
+
+    /**
+     * Optionally add meta resources to the VOTableDocument. These are expected to be
+     * DataLink service descriptors that go with the columns (fields) in the select list.
+     * Normally, fields get an ID if one is assigned in the tap_schema metadata. The default
+     * implementation uses the <code>fieldIDs</code> valeus to find service descriptor templates,
+     * optionally process them to add the accessURL, and add them to the document. 
+     * Find is currently: look for a file named {fieldID}.xml in the {user.home}/config
+     * directory.
+     * 
+     * @param votableDocument the document to add meta resources to
+     * @param fieldIDs list of FIELD ID attributes for items in the select list
+     * @throws IOException if failing to read files from the config dir
+     */
+    protected void addMetaResources(VOTableDocument votableDocument, List<String> fieldIDs)
             throws IOException {
         RegistryClient regClient = new RegistryClient();
-        for (String serviceID : serviceIDs) {
-            VOTableDocument serviceDocument = getDoc(serviceID);
-            String filename = serviceID + ".xml";
+        for (String fid : fieldIDs) {
+            VOTableDocument serviceDocument = getDoc(fid);
+            String filename = fid + ".xml";
             if (serviceDocument == null) {
                 return;
             }
-            
+
             for (VOTableResource metaResource : serviceDocument.getResources()) {
                 if ("meta".equals(metaResource.getType())) {
                     votableDocument.getResources().add(metaResource);
@@ -505,7 +519,7 @@ public class DefaultTableWriter implements TableWriter
                                 standardID = new URI(vp.getValue());
                             }
                         }
-                        if (accessURL == null  && resourceIdentifier != null && standardID != null) {
+                        if (accessURL == null && resourceIdentifier != null && standardID != null) {
                             // try to augment resource with accessURL
                             Subject s = AuthenticationUtil.getCurrentSubject();
                             AuthMethod cur = AuthenticationUtil.getAuthMethod(s);
@@ -521,8 +535,8 @@ public class DefaultTableWriter implements TableWriter
                                 metaResource.getParams().add(accessParam);
                             } else {
                                 // log the error but continue anyway
-                                log.error("failed to find accessURL: resourceIdentifier=" + resourceIdentifier 
-                                    + ", standardID=" + standardID + ", authMethod=" + cur);
+                                log.error("failed to find accessURL: resourceIdentifier=" + resourceIdentifier
+                                        + ", standardID=" + standardID + ", authMethod=" + cur);
                             }
                         }
                     } catch (URISyntaxException e) {
@@ -533,15 +547,13 @@ public class DefaultTableWriter implements TableWriter
         }
     }
 
-    protected VOTableField createVOTableField(TapSelectItem resultCol)
-    {
-        if (resultCol != null)
-        {
+    protected VOTableField createVOTableField(TapSelectItem resultCol) {
+        if (resultCol != null) {
             TapDataType tt = resultCol.getDatatype();
-            VOTableField newField = new VOTableField(resultCol.getName(),tt.getDatatype(), tt.arraysize);
+            VOTableField newField = new VOTableField(resultCol.getName(), tt.getDatatype(), tt.arraysize);
             newField.xtype = tt.xtype;
             newField.description = resultCol.description;
-            newField.id = resultCol.id;
+            newField.id = resultCol.columnID;
             newField.utype = resultCol.utype;
             newField.ucd = resultCol.ucd;
             newField.unit = resultCol.unit;

@@ -63,10 +63,9 @@
 *                                       <http://www.gnu.org/licenses/>.
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.tap;
-
 
 import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
 import ca.nrc.cadc.tap.db.DatabaseDataType;
@@ -84,10 +83,10 @@ public class PluginFactory {
     private static final Logger log = Logger.getLogger(PluginFactory.class);
 
     private static final String CONFIG = PluginFactory.class.getSimpleName() + ".properties";
-    
+
     protected final Properties config;
-    
-    public PluginFactory() { 
+
+    public PluginFactory() {
         this.config = new Properties();
         URL url = null;
         try {
@@ -100,7 +99,7 @@ public class PluginFactory {
             throw new RuntimeException("failed to read " + CONFIG + " from " + url, ex);
         }
     }
-    
+
     public DatabaseDataType getDatabaseDataType() {
         final DatabaseDataType ret;
         final String name = DatabaseDataType.class.getName();
@@ -125,13 +124,12 @@ public class PluginFactory {
         String name = DataSourceProvider.class.getName();
         String cname = config.getProperty(name);
         if (cname == null) {
-            ret=  new DataSourceProvider();
+            ret = new DataSourceProvider();
         } else {
             try {
                 Class c = Class.forName(cname);
                 ret = (DataSourceProvider) c.newInstance();
-            }
-            catch (Throwable ex) {
+            } catch (Throwable ex) {
                 throw new RuntimeException("config error: failed to create DataSourceProvider " + cname, ex);
             }
         }
