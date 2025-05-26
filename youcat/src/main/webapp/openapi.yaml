@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: prototype TAP-1.2 with user managed tables
-  #version: "1.2"
+  version: '0.7.5' 
   description: |
     This is the WD-TAP-1.2 API specification with components imported from
     VOSI, UWS, and DALI.
