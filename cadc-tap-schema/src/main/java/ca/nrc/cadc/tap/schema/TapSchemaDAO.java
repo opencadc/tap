@@ -99,7 +99,7 @@ import org.springframework.jdbc.core.RowMapper;
  * modified in a subclass as long as the change(s) are made before the get
  * method is called (*TableName variables).
  */
-public class TapSchemaDAO {
+public class TapSchemaDAO extends AbstractDAO {
     
     private static final Logger log = Logger.getLogger(TapSchemaDAO.class);
 
@@ -144,7 +144,6 @@ public class TapSchemaDAO {
     private static String[] accessControlCols = new String[] { ownerCol, readAnonCol, readOnlyCol, readWriteCol };
 
     protected Job job;
-    protected DataSource dataSource;
     private boolean ordered;
     private boolean useIntegerForBoolean = true;
 
@@ -160,11 +159,7 @@ public class TapSchemaDAO {
      */
     public TapSchemaDAO() {
     }
-
-    public void setDataSource(DataSource dataSource) {
-        this.dataSource = dataSource;
-    }
-
+    
     public void setJob(Job job) {
         this.job = job;
     }

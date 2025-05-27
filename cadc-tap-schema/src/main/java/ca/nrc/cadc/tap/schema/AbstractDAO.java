@@ -67,91 +67,51 @@
  ************************************************************************
  */
 
-package org.opencadc.youcat;
+package ca.nrc.cadc.tap.schema;
 
-import ca.nrc.cadc.tap.schema.AbstractDAO;
-import java.util.List;
-import javax.security.auth.Subject;
 import javax.sql.DataSource;
-import org.opencadc.datalink.ServiceDescriptorTemplate;
+import org.apache.log4j.Logger;
 
 /**
- * DAO for the ServiceDescriptor table.
+ * Base class for DAO classes that provides common functionality.
+ *
  */
-public class TemplateDAO extends AbstractDAO {
+public abstract class AbstractDAO {
+    private static final Logger log = Logger.getLogger(AbstractDAO.class);
+
+    protected DataSource dataSource;
 
     /**
-     * Create a TemplateDAO with a TapSchemaDAO, to use the same DataSource.
-     *
-     * @param abstractDAO a TapSchemaDAO
+     * Default no-arg constructor.
      */
-    public TemplateDAO(AbstractDAO abstractDAO) {}
-
-    /**
-     * Create a TemplateDAO using a DataSource. Useful
-     * for integration testing.
-     *
-     * @param dataSource a datasource
-     */
-    TemplateDAO(DataSource dataSource) {}
-
-    /**
-     * Get the template with the given name.
-     *
-     * @param owner the subject of the user getting the template
-     * @param name  the template name
-     * @return  a ServiceDescriptorTemplate or null if not found
-     * @throws org.springframework.dao.DataAccessException if there is a problem querying the database.
-     */
-    public ServiceDescriptorTemplate get(Subject owner, String name) {
-        throw new UnsupportedOperationException("Not supported yet.");
+    protected AbstractDAO() {
     }
 
     /**
-     * Insert or update a template in the database.
+     * Constructor that takes an AbstractDAO as an argument to reuse the DataSource.
      *
-     * @param template the template to insert or update
-     * @throws org.springframework.dao.DataAccessException if there is a problem inserting into the database.
+     * @param abstractDAO the AbstractCAO with a DataSource
      */
-    public void put(ServiceDescriptorTemplate template) {
-        throw new UnsupportedOperationException("Not supported yet.");
+    protected AbstractDAO(AbstractDAO abstractDAO) {
+        this.dataSource = abstractDAO.dataSource;
     }
 
     /**
-     * Delete the template with the given name.
+     * Constructor that take a DataSource as an argument.
      *
-     * @param owner the subject of the user deleting the template
-     * @param name the name of the template to delete
-     * @throws org.springframework.dao.DataAccessException if there is a problem deleting from the database.
+     * @param dataSource the DataSource
      */
-    public void delete(Subject owner, String name) {
-        throw new UnsupportedOperationException("Not supported yet.");
+    protected AbstractDAO(DataSource dataSource) {
+        this.dataSource = dataSource;
     }
 
     /**
-     * Get a List of templates that contain the given identifiers. The identifiers
-     * are column_id's in the tap_schema.columns11 table.
+     * Set the DataSource. Used to set a DataSource when using the no-arg constructor.
      *
-     * <p>Use case: injecting templates into TAP query results</p>
-     *
-     * @param identifiers the list of identifiers
-     * @return a list of ServiceDescriptorTemplate's
-     * @throws org.springframework.dao.DataAccessException if there is a problem querying the database.
+     * @param dataSource the DataSource
      */
-    public List<ServiceDescriptorTemplate> list(List<String> identifiers) {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    /**
-     * Get the list of templates owned by the given owner.
-     *
-     * <p>User case: listing templates owned by the caller in REST endpoint</p>
-     *
-     * @param owner the subject of the user
-     * @return a list of ServiceDescriptorTemplate's
-     */
-    public List<ServiceDescriptorTemplate> list(Subject owner) {
-        throw new UnsupportedOperationException("Not supported yet.");
+    public void setDataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
     }
 
 }
