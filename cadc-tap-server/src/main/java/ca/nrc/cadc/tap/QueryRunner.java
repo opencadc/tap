@@ -319,7 +319,7 @@ public class QueryRunner implements JobRunner {
             maxRecValidator.setTapSchema(tapSchema);
             maxRecValidator.setJob(job);
             maxRecValidator.setSynchronousMode(syncOutput != null);
-            maxRows = maxRecValidator.validate();
+            this.maxRows = maxRecValidator.validate();
 
             log.debug("creating TapQuery implementation...");
             TapQuery query = pfac.getTapQuery();
