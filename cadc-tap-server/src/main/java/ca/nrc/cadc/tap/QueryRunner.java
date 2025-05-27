@@ -142,6 +142,7 @@ public class QueryRunner implements JobRunner {
     public transient List<TapSelectItem> selectList;
     public transient VOTableDocument resultTemplate;
     public transient String internalSQL;
+    public transient Integer maxRows;
     protected final boolean returnHELD;
     
     private final int responseCodeOnUserFail = 400;
@@ -318,7 +319,7 @@ public class QueryRunner implements JobRunner {
             maxRecValidator.setTapSchema(tapSchema);
             maxRecValidator.setJob(job);
             maxRecValidator.setSynchronousMode(syncOutput != null);
-            final Integer maxRows = maxRecValidator.validate();
+            this.maxRows = maxRecValidator.validate();
 
             log.debug("creating TapQuery implementation...");
             TapQuery query = pfac.getTapQuery();
