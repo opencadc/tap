@@ -63,15 +63,12 @@
 *                                       <http://www.gnu.org/licenses/>.
 *
 ************************************************************************
-*/
+ */
 
 package org.opencadc.youcat;
 
-
 import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.tap.QueryRunner;
-import ca.nrc.cadc.uws.Job;
-import javax.naming.NamingException;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
@@ -79,11 +76,12 @@ import org.apache.log4j.Logger;
  *
  * @author pdowler
  */
-public class CatalogQueryRunner extends QueryRunner
-{
+public class CatalogQueryRunner extends QueryRunner {
     private static final Logger log = Logger.getLogger(CatalogQueryRunner.class);
 
-    public CatalogQueryRunner() { }
+    public CatalogQueryRunner() {
+        super(false);
+    }
 
     @Override
     protected DataSource getUploadDataSource() throws Exception {
@@ -101,6 +99,4 @@ public class CatalogQueryRunner extends QueryRunner
         return DBUtil.findJNDIDataSource(dsName);
     }
 
-    
-    
 }

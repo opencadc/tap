@@ -15,7 +15,7 @@ sourceCompatibility = 11
 
 group = 'org.opencadc'
 
-version = '1.1.31'
+version = '1.1.32'
 
 description = 'OpenCADC TAP-1.1 tap server library'
 def git_url = 'https://github.com/opencadc/tap'

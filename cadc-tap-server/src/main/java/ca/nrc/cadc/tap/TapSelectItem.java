@@ -90,7 +90,7 @@ public class TapSelectItem {
     public boolean principal;
     public boolean indexed;
     public boolean std;
-    public String id;
+    public String columnID;
 
     /**
      * A normal column with an alternate name (alias).
@@ -104,7 +104,7 @@ public class TapSelectItem {
         this.columnName = column.getColumnName();
         this.tableName = column.getTableName();
         this.description = column.description;
-        this.id = column.columnID;
+        this.columnID = column.columnID;
         this.indexed = column.indexed;
         this.principal = column.principal;
         this.std = column.std;

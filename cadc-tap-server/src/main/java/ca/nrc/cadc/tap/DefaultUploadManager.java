@@ -99,16 +99,6 @@ public class DefaultUploadManager implements UploadManager {
 
     }
 
-    /**
-     * Give database specific data type information.
-     *
-     * @param databaseDataType The DatabaseDataType implementation.
-     */
-    @Override
-    public void setDatabaseDataType(DatabaseDataType databaseDataType) {
-
-    }
-
     @Override
     public void setJob(Job job) {
 

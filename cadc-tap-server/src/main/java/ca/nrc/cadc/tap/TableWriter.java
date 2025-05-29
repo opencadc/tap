@@ -69,7 +69,9 @@
 
 package ca.nrc.cadc.tap;
 
+import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.tap.writer.format.FormatFactory;
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.util.List;
 
@@ -85,6 +87,14 @@ public interface TableWriter extends ca.nrc.cadc.dali.tables.TableWriter<ResultS
     public void setSelectList(List<TapSelectItem> selectList);
 
     public void setQueryInfo(String queryInfo);
+
+    /**
+     * Generate a data-less VOTable structure for the result.
+     * 
+     * @return a data-less VOTable
+     * @throws IOException if failing read meta resources to the VOTable
+     */
+    public VOTableDocument generateOutputTable() throws IOException;
 
     @Override
     public String getContentType();
