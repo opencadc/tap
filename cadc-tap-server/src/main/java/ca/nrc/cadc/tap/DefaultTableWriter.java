@@ -454,7 +454,7 @@ public class DefaultTableWriter implements TableWriter {
     }
 
     // read a votable document matching a {column_id}: currently in the config dir
-    private static VOTableDocument getDoc(String sid) throws IOException {
+    protected static VOTableDocument getDoc(String sid) throws IOException {
         File configDir = new File(System.getProperty("user.home") + "/config");
         String filename = sid + ".xml";
         File tmpl = new File(configDir, filename);
@@ -498,7 +498,7 @@ public class DefaultTableWriter implements TableWriter {
             VOTableDocument serviceDocument = getDoc(fid);
             String filename = fid + ".xml";
             if (serviceDocument == null) {
-                return;
+                return; // TODO: verify - continue/return?
             }
 
             for (VOTableResource metaResource : serviceDocument.getResources()) {
