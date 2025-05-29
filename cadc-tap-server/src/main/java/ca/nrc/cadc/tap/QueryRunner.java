@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2022.                            (c) 2022.
+*  (c) 2025.                            (c) 2025.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,6 +69,8 @@
 
 package ca.nrc.cadc.tap;
 
+import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
+import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
 import ca.nrc.cadc.log.WebServiceLogInfo;
 import ca.nrc.cadc.rest.SyncOutput;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
@@ -87,8 +89,8 @@ import ca.nrc.cadc.uws.server.JobUpdater;
 import ca.nrc.cadc.uws.util.JobLogInfo;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
+import java.io.StringWriter;
 import java.io.Writer;
-import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -101,6 +103,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NameNotFoundException;
@@ -108,23 +111,18 @@ import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
 /**
- * Implementation of the JobRunner interface from the cadcUWS framework. This is the
- * main class that implements TAP semantics; it is usable with both the async and sync
- * servlet configurations from cadcUWS.
- * This class dynamically loads and uses implementation classes as described in the
- * package documentation. This allows one to control the behavior of several key components:
- * query processing, upload support, and writing the result-set to the output file format.
- * In addition, this class uses JDNI to find java.sql.DataSource instances for
- * executing database statements.
- * A datasource named jdbc/tapuser is required; this datasource
- * is used to query the TAP_SCHEMA and to run user-queries. The connection(s) provided by this
- * datasource must have read permission to the TAP_SCHEMA and all tables described within the
- * TAP_SCHEMA.
- * A datasource named jdbc/tapuploadadm is optional; this datasource is used to create tables
- * in the TAP_UPLOAD schema and to populate these tables with content from uploaded tables. If this
- * datasource is provided, it is passed to the UploadManager implementation. For uploads to actually work,
- * the connection(s) provided by the datasource must have create table permission in the current database and
- * TAP_UPLOAD schema.
+ * Implementation of the JobRunner interface from the UWS framework. This is the
+ * main class that implements TAP semantics; it is usable to execute queries with 
+ * both the async and sync configurations.
+ *
+ * <p>This class dynamically loads and uses implementation classes using the 
+ * the PluginFactory class configured via the PluginFactory.properties file. This 
+ * allows one to control the behavior of several key components.
+ *
+ * <p>This class uses JDNI to find java.sql.DataSource instances for
+ * executing database statements. By default, a datasource named <code>jdbc/tapuser</code> is 
+ * found via JNDI and used for queries, reading tap_schema tables, and creating
+ * temporary tables in the tap_upload schema. 
  *
  * @author pdowler
  */
@@ -132,15 +130,31 @@ public class QueryRunner implements JobRunner {
 
     private static final Logger log = Logger.getLogger(QueryRunner.class);
 
-    private static final String queryDataSourceName = "jdbc/tapuser";
-    private static final String uploadDataSourceName = "jdbc/tapuploadadm";
+    private static final String TAPUSER_DATASOURCE_NAME = "jdbc/tapuser";
 
     protected Job job;
     private JobUpdater jobUpdater;
     private SyncOutput syncOutput;
     private WebServiceLogInfo logInfo;
+    
+    // intermediate state for the UWS JobExecutor to access when job is HELD
+    public final transient Map<String,TableDesc.TableLocationInfo> uploadTableLocations = new TreeMap<>();
+    public transient List<TapSelectItem> selectList;
+    public transient VOTableDocument resultTemplate;
+    public transient String internalSQL;
+    public transient Integer maxRows;
+    protected final boolean returnHELD;
+    
+    private final int responseCodeOnUserFail = 400;
+    private final int responseCodeOnPermissionDenied = 403;
+    private final int responseCodeOnSystemFail = 500;
 
     public QueryRunner() {
+        this.returnHELD = false;
+    }
+    
+    protected QueryRunner(boolean returnHELD) {
+        this.returnHELD = returnHELD;
     }
 
     @Override
@@ -165,9 +179,9 @@ public class QueryRunner implements JobRunner {
         long start = System.currentTimeMillis();
 
         try {
-            doIt();
+            runImpl();
         } catch (Throwable ex) {
-            log.error("unexpected exception", ex);
+            log.error("BUG: unexpected exception", ex);
         }
 
         logInfo.setElapsedTime(System.currentTimeMillis() - start);
@@ -182,7 +196,7 @@ public class QueryRunner implements JobRunner {
      * Get the DataSource to be used to execute the query. By default, this uses JNDI to
      * find an app-server supplied DataSource named <code>jdbc/tapuser</code>.
      *
-     * @return
+     * @return DataSource for executing the user query
      * @throws Exception
      */
     protected DataSource getQueryDataSource()
@@ -190,14 +204,14 @@ public class QueryRunner implements JobRunner {
         log.debug("find DataSource via JNDI lookup...");
         Context initContext = new InitialContext();
         Context envContext = (Context) initContext.lookup("java:comp/env");
-        return (DataSource) envContext.lookup(queryDataSourceName);
+        return (DataSource) envContext.lookup(TAPUSER_DATASOURCE_NAME);
     }
 
     /**
-     * Get the DataSource to be used to query the <code>tap_schema</code>.     *
-     * Backwards compatibility: by default, this calls getQueryDataSource().
+     * Get the DataSource to be used to query the <code>tap_schema</code>.
+     * By default, this calls getQueryDataSource().
      *
-     * @return
+     * @return DataSource for reading the tap_schema content
      * @throws Exception
      */
     protected DataSource getTapSchemaDataSource() throws Exception {
@@ -206,21 +220,16 @@ public class QueryRunner implements JobRunner {
 
     /**
      * Get the DataSource to be used to insert uploaded tables into the database.
-     * By default, this uses JNDI to find an app-server supplied DataSource named
-     * <code>jdbc/tapuploadadm</code>.
+     * By default, this calls getQueryDataSource().
      *
-     * @return
+     * @return DataSource for creating tables in the <code>tap_upload</code> schema
      * @throws Exception
      */
-    protected DataSource getUploadDataSource()
-            throws Exception {
-        log.debug("find DataSource via JNDI lookup...");
-        Context initContext = new InitialContext();
-        Context envContext = (Context) initContext.lookup("java:comp/env");
-        return (DataSource) envContext.lookup(uploadDataSourceName);
+    protected DataSource getUploadDataSource() throws Exception {
+        return getQueryDataSource();
     }
 
-    private void doIt() {
+    private void runImpl() {
         List<Result> diagnostics = new ArrayList<>();
 
         long t1 = System.currentTimeMillis();
@@ -238,9 +247,7 @@ public class QueryRunner implements JobRunner {
             rs = pfac.getResultStore();
             log.debug("loaded: " + rs.getClass().getName());
         }
-        int responseCodeOnUserFail = 400;   // default for TAP-1.1+
-        int responseCodeOnPermissionDenied = 403;
-        int responseCodeOnSystemFail = 500;
+        
         try {
             log.debug("try: QUEUED -> EXECUTING...");
             ExecutionPhase ep = jobUpdater.setPhase(job.getID(), ExecutionPhase.QUEUED, ExecutionPhase.EXECUTING, new Date());
@@ -259,19 +266,8 @@ public class QueryRunner implements JobRunner {
             diagnostics.add(new Result("diag", URI.create("uws:executing:" + dt)));
 
             // start processing the job
-            log.debug("invoking TapValidator for REQUEST and VERSION...");
-            TapValidator tapValidator = new TapValidator();
-            tapValidator.validateVersion(paramList);
-            if ("1.0".equals(tapValidator.getVersion())) {
-                responseCodeOnUserFail = HttpURLConnection.HTTP_OK; // TAP-1.0
-            }
-            tapValidator.validate(paramList);
-
-            DataSource queryDataSource = getQueryDataSource();
-            if (queryDataSource == null) {
-                throw new RuntimeException("failed to find the query DataSource");
-            }
-            DataSource tapSchemaDataSource = getTapSchemaDataSource();
+            
+            final DataSource tapSchemaDataSource = getTapSchemaDataSource();
             if (tapSchemaDataSource == null) {
                 throw new RuntimeException("failed to find the tap_schema DataSource");
             }
@@ -282,8 +278,6 @@ public class QueryRunner implements JobRunner {
             } catch (NameNotFoundException nex) {
                 log.debug(nex.toString());
             }
-
-            
 
             t2 = System.currentTimeMillis();
             dt = t2 - t1;
@@ -307,11 +301,17 @@ public class QueryRunner implements JobRunner {
             uploadManager.setDataSource(uploadDataSource);
             uploadManager.setDatabaseDataType(pfac.getDatabaseDataType());
             Map<String, TableDesc> tableDescs = uploadManager.upload(paramList, job.getID());
-            if (tableDescs != null) {
+            if (tableDescs != null && !tableDescs.isEmpty()) {
                 log.debug("adding TAP_UPLOAD SchemaDesc to TapSchema...");
                 SchemaDesc tapUploadSchema = new SchemaDesc(uploadManager.getUploadSchema());
                 tapUploadSchema.getTableDescs().addAll(tableDescs.values());
                 tapSchema.getSchemaDescs().add(tapUploadSchema);
+
+                for (Map.Entry<String, TableDesc> e : tableDescs.entrySet()) {
+                    if (e.getValue().dataLocation != null) {
+                        uploadTableLocations.put(e.getKey(), e.getValue().dataLocation);
+                    }
+                }
             }
 
             log.debug("invoking MaxRecValidator...");
@@ -319,7 +319,7 @@ public class QueryRunner implements JobRunner {
             maxRecValidator.setTapSchema(tapSchema);
             maxRecValidator.setJob(job);
             maxRecValidator.setSynchronousMode(syncOutput != null);
-            final Integer maxRows = maxRecValidator.validate();
+            this.maxRows = maxRecValidator.validate();
 
             log.debug("creating TapQuery implementation...");
             TapQuery query = pfac.getTapQuery();
@@ -333,26 +333,43 @@ public class QueryRunner implements JobRunner {
             }
 
             log.debug("invoking TapQuery implementation: " + query.getClass().getCanonicalName());
-            String sql = query.getSQL();
-            List<TapSelectItem> selectList = query.getSelectList();
-            String queryInfo = query.getInfo();
+            this.selectList = query.getSelectList();
+            final String queryInfo = query.getInfo();
+            this.internalSQL = query.getSQL();
 
             log.debug("creating TapTableWriter...");
             TableWriter tableWriter = pfac.getTableWriter();
             tableWriter.setSelectList(selectList);
             tableWriter.setQueryInfo(queryInfo);
-
+            this.resultTemplate = tableWriter.generateOutputTable();
             t2 = System.currentTimeMillis();
             dt = t2 - t1;
             t1 = t2;
             diagnostics.add(new Result("diag", URI.create("query:parse:" + dt)));
 
+            // returnHELD only applies to content queries
+            if (!query.isTapSchemaQuery() && returnHELD) {
+                ExecutionPhase held = jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING, ExecutionPhase.HELD, new Date());
+                log.debug(job.getID() + ": EXECUTING -> HELD: " + held);
+                if (!ExecutionPhase.HELD.equals(held)) {
+                    logInfo.setSuccess(false);
+                    logInfo.setMessage("Could not set job phase to HELD.");
+                }
+                return;
+            }
+            
+            // prepare to execute the querry
+            DataSource queryDataSource = getQueryDataSource();
+            if (queryDataSource == null) {
+                throw new RuntimeException("failed to find the query DataSource");
+            }
+            
             Connection connection = null;
             PreparedStatement pstmt = null;
             ResultSet resultSet = null;
             URL url = null;
             try {
-                if (maxRows == null || maxRows.intValue() > 0) {
+                if (maxRows == null || maxRows > 0) {
                     log.debug("getting database connection...");
                     if (query.isTapSchemaQuery()) {
                         log.debug("tap_schema query");
@@ -373,7 +390,8 @@ public class QueryRunner implements JobRunner {
                     log.debug("setAutoCommit: " + pfac.getAutoCommit());
                     connection.setAutoCommit(pfac.getAutoCommit());
 
-                    pstmt = connection.prepareStatement(sql);
+                    log.debug("executing query: " + internalSQL);
+                    pstmt = connection.prepareStatement(internalSQL);
                     pstmt.setFetchDirection(ResultSet.FETCH_FORWARD);
                     if (maxRows == null || maxRows > 1000) {
                         log.debug("maxRows = " + maxRows + ": setting fetchSize = 1000");
@@ -381,8 +399,6 @@ public class QueryRunner implements JobRunner {
                     } else {
                         log.debug("maxRows = " + maxRows + ": not setting fetchSize");
                     }
-
-                    log.debug("executing query: " + sql);
                     resultSet = pstmt.executeQuery();
                     log.debug("result set: " + resultSet.getClass().getName());
                 }
@@ -565,6 +581,36 @@ public class QueryRunner implements JobRunner {
                 } catch (Throwable t3) {
                     log.debug("failed to update job from executing to error", t3);
                 }
+            }
+        } finally {
+            // temporary visibility into this intermediate state
+            try {
+                log.debug("job " + job.getID() + " DONE");
+                if (uploadTableLocations != null) {
+                    log.debug("stored upload tables: " + uploadTableLocations.size());
+                    for (Map.Entry<String,TableDesc.TableLocationInfo> e : uploadTableLocations.entrySet()) {
+                        StringBuilder sb = new StringBuilder();
+                        sb.append("\ttable: ").append(e.getKey()).append(" -> ");
+                        for (Map.Entry<String,URI> me : e.getValue().map.entrySet()) {
+                            sb.append("\n\t\t").append(me.getKey()).append(": ").append(me.getValue());
+                        }
+                        log.debug(sb.toString());
+                    }
+                }
+                if (selectList != null) {
+                    log.debug("select list: " + selectList.size() + " columns");
+                }
+                if (resultTemplate != null) {
+                    log.debug("result template:\n");
+                    VOTableWriter w = new VOTableWriter();
+                    StringWriter sw = new StringWriter();
+                    w.write(resultTemplate, sw);
+                    log.debug(sw.toString());
+                }
+                log.debug("effective maxRows: " + maxRows);
+                log.debug("internal SQL:\n" + internalSQL);
+            } catch (Exception oops) {
+                log.error("BUG: ", oops);
             }
         }
     }

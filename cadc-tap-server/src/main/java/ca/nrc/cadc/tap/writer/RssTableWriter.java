@@ -69,6 +69,7 @@
 
 package ca.nrc.cadc.tap.writer;
 
+import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.util.Format;
 import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.net.NetUtil;
@@ -119,6 +120,11 @@ public class RssTableWriter implements TableWriter {
 
     }
 
+    @Override
+    public VOTableDocument generateOutputTable() throws IOException {
+        return null;
+    }
+    
     @Override
     public void setJob(Job job) {
         this.job = job;

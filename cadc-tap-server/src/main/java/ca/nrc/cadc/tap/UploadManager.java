@@ -108,7 +108,10 @@ public interface UploadManager extends TapPlugin {
      *
      * @param databaseDataType      The DatabaseDataType implementation.
      */
-    void setDatabaseDataType(final DatabaseDataType databaseDataType);
+    @Deprecated
+    default void setDatabaseDataType(final DatabaseDataType databaseDataType) {
+        // no-op
+    }
 
     /**
      * Find and process all UPLOAD requests.

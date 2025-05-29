@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2024.                            (c) 2024.
+ *  (c) 2025.                            (c) 2025.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -743,11 +743,14 @@ public class TapSchemaDAO extends AbstractDAO {
      * @throws ResourceNotFoundException
      */
     public void setSchemaPermissions(String schemaName, TapPermissions tp) throws ResourceNotFoundException {
-        IdentityManager im = AuthenticationUtil.getIdentityManager();
-        tp.ownerID = im.toOwner(tp.owner);
-        if (tp.ownerID == null) {
-            throw new UnsupportedOperationException("unable to map schema owner '"
-                    + im.toDisplayString(tp.owner) + "' to a persistent owner object using " + im.getClass().getName());
+        if (tp.owner != null) {
+            IdentityManager im = AuthenticationUtil.getIdentityManager();
+            tp.ownerID = im.toOwner(tp.owner);
+            // allow clear permissions but detectn failure to extract owner ident
+            if (!tp.owner.getPrincipals().isEmpty() && tp.ownerID == null) {
+                throw new UnsupportedOperationException("unable to map schema owner '"
+                        + im.toDisplayString(tp.owner) + "' to a persistent owner object using " + im.getClass().getName());
+            }
         }
         PutPermissionsStatement ssp = new PutPermissionsStatement(schemasTableName, "schema_name", schemaName, tp);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
@@ -769,11 +772,14 @@ public class TapSchemaDAO extends AbstractDAO {
      * @throws ResourceNotFoundException
      */
     public void setTablePermissions(String tableName, TapPermissions tp) throws ResourceNotFoundException {
-        IdentityManager im = AuthenticationUtil.getIdentityManager();
-        tp.ownerID = im.toOwner(tp.owner);
-        if (tp.ownerID == null) {
-            throw new UnsupportedOperationException("unable to map schema owner '"
-                    + im.toDisplayString(tp.owner) + "' to a persistent owner object using " + im.getClass().getName());
+        if (tp.owner != null) {
+            IdentityManager im = AuthenticationUtil.getIdentityManager();
+            tp.ownerID = im.toOwner(tp.owner);
+            // allow clear permissions but detectn failure to extract owner ident
+            if (!tp.owner.getPrincipals().isEmpty() && tp.ownerID == null) {
+                throw new UnsupportedOperationException("unable to map schema owner '"
+                        + im.toDisplayString(tp.owner) + "' to a persistent owner object using " + im.getClass().getName());
+            }
         }
         // update tables permissions
         PutPermissionsStatement stp = new PutPermissionsStatement(tablesTableName, "table_name", tableName, tp);
