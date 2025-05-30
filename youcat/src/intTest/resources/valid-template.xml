@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VOTABLE xmlns="http://www.ivoa.net/xml/VOTable/v1.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.4">
+    <INFO name="name" value="placeholder: will be removed" ID="caomPublisherID"/>
+    <RESOURCE type="meta" utype="adhoc:service">
+        <PARAM name="standardID" datatype="char" arraysize="*" value="ivo://ivoa.net/std/DataLink#links-1.1" />
+        <PARAM name="accessURL" datatype="char" arraysize="*" value="https://example.net/datalink/links" />
+        <GROUP name="inputParams">
+            <PARAM name="ID" datatype="char" arraysize="*" xtype="uri" ref="caomPublisherID" value="" />
+        </GROUP>
+    </RESOURCE>
+</VOTABLE>
