@@ -69,23 +69,34 @@
 
 package org.opencadc.youcat;
 
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.IdentityManager;
+import ca.nrc.cadc.db.version.KeyValue;
+import ca.nrc.cadc.db.version.KeyValueDAO;
 import ca.nrc.cadc.tap.schema.AbstractDAO;
+import java.util.ArrayList;
 import java.util.List;
 import javax.security.auth.Subject;
 import javax.sql.DataSource;
 import org.opencadc.datalink.ServiceDescriptorTemplate;
+import org.opencadc.youcat.descriptors.ServiceDescriptors;
 
 /**
  * DAO for the ServiceDescriptor table.
  */
 public class TemplateDAO extends AbstractDAO {
 
+    private final KeyValueDAO keyValueDAO;
+
     /**
      * Create a TemplateDAO with a TapSchemaDAO, to use the same DataSource.
      *
      * @param abstractDAO a TapSchemaDAO
      */
-    public TemplateDAO(AbstractDAO abstractDAO) {}
+    public TemplateDAO(AbstractDAO abstractDAO) {
+        super(abstractDAO);
+        this.keyValueDAO = new KeyValueDAO(dataSource, null, "tap_schema", ServiceDescriptors.class);
+    }
 
     /**
      * Create a TemplateDAO using a DataSource. Useful
@@ -93,7 +104,10 @@ public class TemplateDAO extends AbstractDAO {
      *
      * @param dataSource a datasource
      */
-    TemplateDAO(DataSource dataSource) {}
+    TemplateDAO(DataSource dataSource) {
+        super(dataSource);
+        this.keyValueDAO = new KeyValueDAO(dataSource, null, "tap_schema", ServiceDescriptors.class);
+    }
 
     /**
      * Get the template with the given name.
@@ -104,7 +118,16 @@ public class TemplateDAO extends AbstractDAO {
      * @throws org.springframework.dao.DataAccessException if there is a problem querying the database.
      */
     public ServiceDescriptorTemplate get(Subject owner, String name) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        String ownerID = getOwnerID(owner);
+        String key = generateKey(name, ownerID);
+        KeyValue keyValue =  keyValueDAO.get(key);
+        if (keyValue == null) {
+            return null;
+        }
+        ServiceDescriptorTemplate template = new ServiceDescriptorTemplate(name, keyValue.value);
+        template.owner = owner;
+        template.ownerID = ownerID;
+        return template;
     }
 
     /**
@@ -114,7 +137,13 @@ public class TemplateDAO extends AbstractDAO {
      * @throws org.springframework.dao.DataAccessException if there is a problem inserting into the database.
      */
     public void put(ServiceDescriptorTemplate template) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        String key = generateKey(template.getName(), template.ownerID);
+        KeyValue keyValue = keyValueDAO.get(key);
+        if (keyValue == null) {
+            keyValue = new KeyValue(key);
+        }
+        keyValue.value = template.getTemplate();
+        keyValueDAO.put(keyValue);
     }
 
     /**
@@ -125,7 +154,8 @@ public class TemplateDAO extends AbstractDAO {
      * @throws org.springframework.dao.DataAccessException if there is a problem deleting from the database.
      */
     public void delete(Subject owner, String name) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        String key = generateKey(name, getOwnerID(owner));
+        keyValueDAO.delete(key);
     }
 
     /**
@@ -139,7 +169,20 @@ public class TemplateDAO extends AbstractDAO {
      * @throws org.springframework.dao.DataAccessException if there is a problem querying the database.
      */
     public List<ServiceDescriptorTemplate> list(List<String> identifiers) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        List<ServiceDescriptorTemplate> templates = new ArrayList<>();
+        List<KeyValue> keyValues = keyValueDAO.list();
+        for (KeyValue keyValue : keyValues) {
+            ServiceDescriptorTemplate template = new ServiceDescriptorTemplate(keyValue.getName(), keyValue.value);
+            // TODO do we want to expose the owner?
+            // template.ownerID = keyValue.getName().substring(keyValue.getName().indexOf(':') + 1);
+            // IdentityManager identityManager = AuthenticationUtil.getIdentityManager();
+            // template.owner = identityManager.toSubject(template.ownerID);
+            if (template.getIdentifiers().stream().anyMatch(identifiers::contains)
+                    && !templates.contains(template)) {
+                templates.add(template);
+            }
+        }
+        return templates;
     }
 
     /**
@@ -151,7 +194,33 @@ public class TemplateDAO extends AbstractDAO {
      * @return a list of ServiceDescriptorTemplate's
      */
     public List<ServiceDescriptorTemplate> list(Subject owner) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        String ownerID = getOwnerID(owner);
+        List<ServiceDescriptorTemplate> templates = new ArrayList<>();
+        List<KeyValue> keyValues = keyValueDAO.list();
+        for (KeyValue keyValue : keyValues) {
+            String templateOwnerID = keyValue.getName().substring(keyValue.getName().indexOf(':') + 1);
+            if (templateOwnerID.equals(ownerID)) {
+                ServiceDescriptorTemplate template = new ServiceDescriptorTemplate(keyValue.getName(), keyValue.value);
+                templates.add(template);
+            }
+        }
+        return templates;
     }
+
+    private String getOwnerID(Subject owner) {
+        IdentityManager identityManager = AuthenticationUtil.getIdentityManager();
+        return (String) identityManager.toOwner(owner);
+    }
+
+    // generate the key for the KeyValue pair
+    private String generateKey(String name, Object ownerID) {
+        return name + ":" + ownerID;
+    }
+
+//    private String generateKey(String name, Subject owner) {
+//        IdentityManager identityManager = AuthenticationUtil.getIdentityManager();
+//        Object ownerID = identityManager.toOwner(owner);
+//        return generateKey(name, ownerID);
+//    }
 
 }
