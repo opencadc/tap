@@ -142,6 +142,7 @@ public class QueryRunner implements JobRunner {
     public transient List<TapSelectItem> selectList;
     public transient VOTableDocument resultTemplate;
     public transient String internalSQL;
+    public transient Integer maxRows;
     protected final boolean returnHELD;
     
     private final int responseCodeOnUserFail = 400;
@@ -318,7 +319,7 @@ public class QueryRunner implements JobRunner {
             maxRecValidator.setTapSchema(tapSchema);
             maxRecValidator.setJob(job);
             maxRecValidator.setSynchronousMode(syncOutput != null);
-            final Integer maxRows = maxRecValidator.validate();
+            this.maxRows = maxRecValidator.validate();
 
             log.debug("creating TapQuery implementation...");
             TapQuery query = pfac.getTapQuery();
@@ -584,29 +585,30 @@ public class QueryRunner implements JobRunner {
         } finally {
             // temporary visibility into this intermediate state
             try {
-                log.warn("job " + job.getID() + " DONE");
+                log.debug("job " + job.getID() + " DONE");
                 if (uploadTableLocations != null) {
-                    log.warn("stored upload tables: " + uploadTableLocations.size());
+                    log.debug("stored upload tables: " + uploadTableLocations.size());
                     for (Map.Entry<String,TableDesc.TableLocationInfo> e : uploadTableLocations.entrySet()) {
                         StringBuilder sb = new StringBuilder();
                         sb.append("\ttable: ").append(e.getKey()).append(" -> ");
                         for (Map.Entry<String,URI> me : e.getValue().map.entrySet()) {
                             sb.append("\n\t\t").append(me.getKey()).append(": ").append(me.getValue());
                         }
-                        log.warn(sb.toString());
+                        log.debug(sb.toString());
                     }
                 }
                 if (selectList != null) {
-                    log.warn("select list: " + selectList.size() + " columns");
+                    log.debug("select list: " + selectList.size() + " columns");
                 }
                 if (resultTemplate != null) {
-                    log.warn("result template:\n");
+                    log.debug("result template:\n");
                     VOTableWriter w = new VOTableWriter();
                     StringWriter sw = new StringWriter();
                     w.write(resultTemplate, sw);
-                    log.warn(sw.toString());
+                    log.debug(sw.toString());
                 }
-                log.warn("internal SQL:\n" + internalSQL);
+                log.debug("effective maxRows: " + maxRows);
+                log.debug("internal SQL:\n" + internalSQL);
             } catch (Exception oops) {
                 log.error("BUG: ", oops);
             }
