@@ -43,7 +43,11 @@ info:
     
     Note: Previous versions documented a /load endpoint for bulk-loading table content (rows); that
     endpoint is still supported but not documented below because it is not expected to be part of the
-    TAP-1.2 specification.
+    TAP-1.2 specification (TBD).
+    
+    Note: Previous versions documented a /permissions endpoint for viewign and modifying schema and table
+    permissions; that endpoint is still supported but not documented below because it is not expected to
+    be part of the TAP-1.2 specification (TBD).
 servers:
 - url: /youcat
 
