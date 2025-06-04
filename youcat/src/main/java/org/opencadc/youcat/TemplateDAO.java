@@ -173,12 +173,10 @@ public class TemplateDAO extends AbstractDAO {
         List<KeyValue> keyValues = keyValueDAO.list();
         for (KeyValue keyValue : keyValues) {
             ServiceDescriptorTemplate template = new ServiceDescriptorTemplate(keyValue.getName(), keyValue.value);
-            // TODO do we want to expose the owner?
-            // template.ownerID = keyValue.getName().substring(keyValue.getName().indexOf(':') + 1);
-            // IdentityManager identityManager = AuthenticationUtil.getIdentityManager();
-            // template.owner = identityManager.toSubject(template.ownerID);
             if (template.getIdentifiers().stream().anyMatch(identifiers::contains)
                     && !templates.contains(template)) {
+                template.ownerID = keyValue.getName().substring(keyValue.getName().indexOf(':') + 1);
+                template.owner = AuthenticationUtil.getIdentityManager().toSubject(template.ownerID);
                 templates.add(template);
             }
         }
@@ -194,13 +192,17 @@ public class TemplateDAO extends AbstractDAO {
      * @return a list of ServiceDescriptorTemplate's
      */
     public List<ServiceDescriptorTemplate> list(Subject owner) {
-        String ownerID = getOwnerID(owner);
+//        String ownerID = getOwnerID(owner);
         List<ServiceDescriptorTemplate> templates = new ArrayList<>();
         List<KeyValue> keyValues = keyValueDAO.list();
         for (KeyValue keyValue : keyValues) {
             String templateOwnerID = keyValue.getName().substring(keyValue.getName().indexOf(':') + 1);
-            if (templateOwnerID.equals(ownerID)) {
+            Subject templateSubject = AuthenticationUtil.getIdentityManager().toSubject(templateOwnerID);
+            // Compare subject principals
+            if (owner.equals(templateSubject)) {
                 ServiceDescriptorTemplate template = new ServiceDescriptorTemplate(keyValue.getName(), keyValue.value);
+                template.owner = owner;
+                template.ownerID = templateOwnerID;
                 templates.add(template);
             }
         }
@@ -216,11 +218,5 @@ public class TemplateDAO extends AbstractDAO {
     private String generateKey(String name, Object ownerID) {
         return name + ":" + ownerID;
     }
-
-//    private String generateKey(String name, Subject owner) {
-//        IdentityManager identityManager = AuthenticationUtil.getIdentityManager();
-//        Object ownerID = identityManager.toOwner(owner);
-//        return generateKey(name, ownerID);
-//    }
 
 }
