@@ -141,6 +141,8 @@ public class DefaultTableWriter implements TableWriter {
 
     private static final Map<String, String> knownFormats = new TreeMap<>();
 
+    private transient RegistryClient regClient;
+
     static {
         knownFormats.put(APPLICATION_VOTABLE_XML, VOTABLE);
         knownFormats.put(TEXT_XML, VOTABLE);
@@ -497,21 +499,21 @@ public class DefaultTableWriter implements TableWriter {
 
         for (String fid : fieldIDs) {
             VOTableDocument serviceDocument = getDoc(fid);
-            if (serviceDocument == null) {
-                return; // TODO: verify - continue/return?
-            }
-
-            for (VOTableResource metaResource : serviceDocument.getResources()) {
-                if ("meta".equals(metaResource.getType())) {
-                    votableDocument.getResources().add(metaResource);
-                    populateAccessURLParam(metaResource);
+            if (serviceDocument != null) {
+                for (VOTableResource metaResource : serviceDocument.getResources()) {
+                    if ("meta".equals(metaResource.getType())) {
+                        votableDocument.getResources().add(metaResource);
+                        populateAccessURLParam(metaResource);
+                    }
                 }
             }
         }
     }
 
     protected void populateAccessURLParam(VOTableResource metaResource) throws MalformedURLException {
-        RegistryClient regClient = new RegistryClient();
+        if (regClient == null) {
+            regClient = new RegistryClient();
+        }
         URL accessURL = null;
         URI resourceIdentifier = null;
         URI standardID = null;

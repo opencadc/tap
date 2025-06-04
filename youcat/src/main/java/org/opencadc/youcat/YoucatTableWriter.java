@@ -29,8 +29,8 @@ public class YoucatTableWriter extends DefaultTableWriter {
                 if (resource == null) {
                     log.warn("No resource found for template: " + template.getName());
                 }
-                populateAccessURLParam(resource);
                 votableDocument.getResources().add(resource);
+                populateAccessURLParam(resource);
             }
         }
     }
