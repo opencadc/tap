@@ -92,15 +92,12 @@ public class YoucatInitAction extends InitAction {
     private static final String YOUCAT_ADMIN = YOUCAT + ".adminUser";
     private static final String YOUCAT_CREATE = YOUCAT + ".createSchemaInDB";
 
-    private String jndiAdminKey;
-    private String jndiCreateSchemaKey;
-    
-    public YoucatInitAction() { 
+    public YoucatInitAction() {
     }
 
     private void initConfig() {
-        this.jndiAdminKey = appName + TablesAction.ADMIN_KEY;
-        this.jndiCreateSchemaKey = appName + TablesAction.CREATE_SCHEMA_KEY;
+        String jndiAdminKey = appName + TablesAction.ADMIN_KEY;
+        String jndiCreateSchemaKey = appName + TablesAction.CREATE_SCHEMA_KEY;
         
         PropertiesReader r = new PropertiesReader("youcat.properties");
         MultiValuedProperties mvp = r.getAllProperties();
@@ -110,7 +107,7 @@ public class YoucatInitAction extends InitAction {
         boolean ok = true;
 
         String adminUser = mvp.getFirstPropertyValue(YOUCAT_ADMIN);
-        sb.append("\n\t" + YOUCAT_ADMIN + ": ");
+        sb.append("\n\t").append(YOUCAT_ADMIN).append(": ");
         if (adminUser == null) {
             sb.append("MISSING");
         } else {
@@ -118,7 +115,7 @@ public class YoucatInitAction extends InitAction {
         }
         
         String yc = mvp.getFirstPropertyValue(YOUCAT_CREATE);
-        sb.append("\n\t" + YOUCAT_CREATE + ": ");
+        sb.append("\n\t").append(YOUCAT_CREATE).append(": ");
         if (yc == null) {
             sb.append("MISSING");
         } else {
@@ -129,18 +126,13 @@ public class YoucatInitAction extends InitAction {
             throw new InvalidConfigException(sb.toString());
         }
         
-        Boolean createSchemaInDB = false; // default: false for backwards compat
-        if (yc != null && "true".equals(yc)) {
-            createSchemaInDB = true;
-        }
+        boolean createSchemaInDB = "true".equals(yc); // default: false for backwards compat
         try {
             Context ctx = new InitialContext();
             if (adminUser != null) {
                 ctx.bind(jndiAdminKey, new HttpPrincipal(adminUser));
             }
-            if (createSchemaInDB != null) {
-                ctx.bind(jndiCreateSchemaKey, createSchemaInDB);
-            }
+            ctx.bind(jndiCreateSchemaKey, createSchemaInDB);
             log.info("init: admin=" + adminUser + " createSchemaInDB=" + createSchemaInDB);
         } catch (Exception ex) {
             log.error("Failed to create JNDI key(s): " + jndiAdminKey + "|" + jndiCreateSchemaKey, ex);
@@ -165,8 +157,12 @@ public class YoucatInitAction extends InitAction {
             InitDatabaseUWS uwsi = new InitDatabaseUWS(uws, null, "uws");
             uwsi.doInit();
             log.info("InitDatabaseUWS: OK");
-            
-            
+
+            // ServiceDescriptors
+            log.info("InitDatabaseYoucat: START");
+            InitDatabaseSD youcat = new InitDatabaseSD(tapadm, null, "tap_schema");
+            youcat.doInit();
+            log.info("InitDatabaseYoucat: OK");
         } catch (Exception ex) {
             throw new RuntimeException("INIT FAIL: " + ex.getMessage(), ex);
         }
