@@ -74,8 +74,10 @@ import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.db.version.KeyValue;
 import ca.nrc.cadc.db.version.KeyValueDAO;
 import ca.nrc.cadc.tap.schema.AbstractDAO;
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import javax.security.auth.Subject;
 import javax.sql.DataSource;
 import org.opencadc.datalink.ServiceDescriptorTemplate;
@@ -192,14 +194,14 @@ public class TemplateDAO extends AbstractDAO {
      * @return a list of ServiceDescriptorTemplate's
      */
     public List<ServiceDescriptorTemplate> list(Subject owner) {
-//        String ownerID = getOwnerID(owner);
+        IdentityManager identityManager = AuthenticationUtil.getIdentityManager();
         List<ServiceDescriptorTemplate> templates = new ArrayList<>();
         List<KeyValue> keyValues = keyValueDAO.list();
         for (KeyValue keyValue : keyValues) {
             String templateOwnerID = keyValue.getName().substring(keyValue.getName().indexOf(':') + 1);
-            Subject templateSubject = AuthenticationUtil.getIdentityManager().toSubject(templateOwnerID);
+            Subject templateSubject = identityManager.toSubject(templateOwnerID);
             // Compare subject principals
-            if (owner.equals(templateSubject)) {
+            if (isOwner(owner, templateSubject)) {
                 ServiceDescriptorTemplate template = new ServiceDescriptorTemplate(keyValue.getName(), keyValue.value);
                 template.owner = owner;
                 template.ownerID = templateOwnerID;
@@ -217,6 +219,20 @@ public class TemplateDAO extends AbstractDAO {
     // generate the key for the KeyValue pair
     private String generateKey(String name, Object ownerID) {
         return name + ":" + ownerID;
+    }
+
+    // check if a owner principal matches an templateSubject principal
+    private boolean isOwner(Subject owner, Subject templateSubject) {
+        Set<Principal> ownerPrincipals = owner.getPrincipals();
+        Set<Principal> templatePrincipals = templateSubject.getPrincipals();
+        for (Principal ownerPrincipal : ownerPrincipals) {
+            for (Principal templatePrincipal : templatePrincipals) {
+                if (AuthenticationUtil.equals(ownerPrincipal, templatePrincipal)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
 }

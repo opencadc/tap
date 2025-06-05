@@ -89,7 +89,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.opencadc.datalink.ServiceDescriptorTemplate;
-import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 public class TemplateDAOTest {
@@ -141,7 +140,7 @@ public class TemplateDAOTest {
     public void testTemplateDAO() {
         try {
             String testName = "test-template";
-            String testTemplate = getTestTemplate();
+            String testTemplate = getTestTemplate("caomPublisherID");
 
             ServiceDescriptorTemplate expected = new ServiceDescriptorTemplate(testName, testTemplate);
             expected.owner = owner;
@@ -200,9 +199,10 @@ public class TemplateDAOTest {
         Assert.assertEquals(expectedGroup.getParams().get(0).getName(), actualGroup.getParams().get(0).getName());
     }
 
-    private String getTestTemplate() throws IOException {
+    private String getTestTemplate(String identifier) throws IOException {
         File testFile = FileUtil.getFileFromResource("valid-template.xml", TemplateDAOTest.class);
-        return Files.readString(testFile.toPath());
+        String template = Files.readString(testFile.toPath());
+        return template.replace("IDENTIFIER", identifier);
     }
 
 }
