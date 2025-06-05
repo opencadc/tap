@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2024.                            (c) 2024.
+ *  (c) 2025.                            (c) 2025.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,19 +69,32 @@
 
 package org.opencadc.youcat;
 
-import ca.nrc.cadc.tap.schema.InitDatabaseTS;
+import ca.nrc.cadc.db.version.InitDatabase;
+import java.net.URL;
 import java.util.Collections;
 import javax.sql.DataSource;
 
-public class InitYoucatTS extends InitDatabaseTS {
+public class InitDatabaseYoucat extends InitDatabase {
 
-    static String[] YOUCAT_SQL = new String[]{
+    public static final String MODEL_NAME = "DESCRIPTORS"; // must be <= 16 chars
+    public static final String MODEL_VERSION = "1.0.0";
+    public static final String PREV_MODEL_VERSION = "1.0.0";
+
+    static String[] CREATE_SQL = new String[] {
             "tap_schema.ServiceDescriptors.sql"
     };
 
-    public InitYoucatTS(DataSource dataSource, String database, String schema) {
-        super(dataSource, database, schema);
-        Collections.addAll(createSQL, YOUCAT_SQL);
+    static String[] UPGRADE_SQL = new String[]{};
+
+    public InitDatabaseYoucat(DataSource dataSource, String database, String schema) {
+        super(dataSource, database, schema, MODEL_NAME, MODEL_VERSION, PREV_MODEL_VERSION);
+        Collections.addAll(createSQL, CREATE_SQL);
+        Collections.addAll(upgradeSQL, UPGRADE_SQL);
+    }
+
+    @Override
+    protected URL findSQL(String fname) {
+        return InitDatabaseYoucat.class.getClassLoader().getResource("postgresql/" + fname);
     }
 
 }

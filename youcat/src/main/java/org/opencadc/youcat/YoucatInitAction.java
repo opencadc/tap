@@ -147,7 +147,7 @@ public class YoucatInitAction extends InitAction {
             // tap_schema
             log.info("InitDatabaseTS: START");
             DataSource tapadm = DBUtil.findJNDIDataSource("jdbc/tapadm");
-            InitDatabaseTS tsi = new InitYoucatTS(tapadm, null, "tap_schema");
+            InitDatabaseTS tsi = new InitDatabaseTS(tapadm, null, "tap_schema");
             tsi.doInit();
             log.info("InitDatabaseTS: OK");
             
@@ -157,8 +157,12 @@ public class YoucatInitAction extends InitAction {
             InitDatabaseUWS uwsi = new InitDatabaseUWS(uws, null, "uws");
             uwsi.doInit();
             log.info("InitDatabaseUWS: OK");
-            
-            
+
+            // ServiceDescriptors
+            log.info("InitDatabaseYoucat: START");
+            InitDatabaseYoucat youcat = new InitDatabaseYoucat(tapadm, null, "tap_schema");
+            youcat.doInit();
+            log.info("InitDatabaseYoucat: OK");
         } catch (Exception ex) {
             throw new RuntimeException("INIT FAIL: " + ex.getMessage(), ex);
         }
