@@ -80,6 +80,7 @@ import java.util.List;
 import java.util.Set;
 import javax.security.auth.Subject;
 import javax.sql.DataSource;
+import org.apache.log4j.Logger;
 import org.opencadc.datalink.ServiceDescriptorTemplate;
 import org.opencadc.youcat.descriptors.ServiceDescriptors;
 
@@ -87,6 +88,7 @@ import org.opencadc.youcat.descriptors.ServiceDescriptors;
  * DAO for the ServiceDescriptor table.
  */
 public class TemplateDAO extends AbstractDAO {
+    private static final Logger log = Logger.getLogger(TemplateDAO.class);
 
     private final KeyValueDAO keyValueDAO;
 
@@ -120,7 +122,7 @@ public class TemplateDAO extends AbstractDAO {
      * @throws org.springframework.dao.DataAccessException if there is a problem querying the database.
      */
     public ServiceDescriptorTemplate get(Subject owner, String name) {
-        String ownerID = getOwnerID(owner);
+        Object ownerID = getOwnerID(owner);
         String key = generateKey(name, ownerID);
         KeyValue keyValue =  keyValueDAO.get(key);
         if (keyValue == null) {
@@ -211,17 +213,28 @@ public class TemplateDAO extends AbstractDAO {
         return templates;
     }
 
-    private String getOwnerID(Subject owner) {
+    private Object getOwnerID(Subject owner) {
         IdentityManager identityManager = AuthenticationUtil.getIdentityManager();
-        return (String) identityManager.toOwner(owner);
+        return identityManager.toOwner(owner);
     }
 
     // generate the key for the KeyValue pair
     private String generateKey(String name, Object ownerID) {
-        return name + ":" + ownerID;
+        if (name == null || ownerID == null) {
+            throw new IllegalArgumentException("name or ownerID cannot be null");
+        }
+        return name + ":" + ownerID2String(ownerID);
     }
 
-    // check if a owner principal matches an templateSubject principal
+    private String ownerID2String(Object ownerID) {
+        if (ownerID instanceof String) {
+            return (String) ownerID;
+        } else {
+            return ownerID.toString();
+        }
+    }
+
+    // check if an owner principal matches an templateSubject principal
     private boolean isOwner(Subject owner, Subject templateSubject) {
         Set<Principal> ownerPrincipals = owner.getPrincipals();
         Set<Principal> templatePrincipals = templateSubject.getPrincipals();
