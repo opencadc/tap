@@ -160,7 +160,7 @@ public class YoucatInitAction extends InitAction {
 
             // ServiceDescriptors
             log.info("InitDatabaseYoucat: START");
-            InitDatabaseYoucat youcat = new InitDatabaseYoucat(tapadm, null, "tap_schema");
+            InitDatabaseSD youcat = new InitDatabaseSD(tapadm, null, "tap_schema");
             youcat.doInit();
             log.info("InitDatabaseYoucat: OK");
         } catch (Exception ex) {

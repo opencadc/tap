@@ -74,7 +74,7 @@ import java.net.URL;
 import java.util.Collections;
 import javax.sql.DataSource;
 
-public class InitDatabaseYoucat extends InitDatabase {
+public class InitDatabaseSD extends InitDatabase {
 
     public static final String MODEL_NAME = "DESCRIPTORS"; // must be <= 16 chars
     public static final String MODEL_VERSION = "1.0.0";
@@ -86,7 +86,7 @@ public class InitDatabaseYoucat extends InitDatabase {
 
     static String[] UPGRADE_SQL = new String[]{};
 
-    public InitDatabaseYoucat(DataSource dataSource, String database, String schema) {
+    public InitDatabaseSD(DataSource dataSource, String database, String schema) {
         super(dataSource, database, schema, MODEL_NAME, MODEL_VERSION, PREV_MODEL_VERSION);
         Collections.addAll(createSQL, CREATE_SQL);
         Collections.addAll(upgradeSQL, UPGRADE_SQL);
@@ -94,7 +94,7 @@ public class InitDatabaseYoucat extends InitDatabase {
 
     @Override
     protected URL findSQL(String fname) {
-        return InitDatabaseYoucat.class.getClassLoader().getResource("postgresql/" + fname);
+        return InitDatabaseSD.class.getClassLoader().getResource("postgresql/" + fname);
     }
 
 }
