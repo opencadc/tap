@@ -81,7 +81,7 @@ public class InitDatabaseYoucat extends InitDatabase {
     public static final String PREV_MODEL_VERSION = "1.0.0";
 
     static String[] CREATE_SQL = new String[] {
-            "tap_schema.ServiceDescriptors.sql"
+            "tap_schema.ServiceDescriptorTemplate.sql"
     };
 
     static String[] UPGRADE_SQL = new String[]{};

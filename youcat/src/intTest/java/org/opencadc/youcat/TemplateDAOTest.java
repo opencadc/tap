@@ -110,7 +110,7 @@ public class TemplateDAOTest {
     @Before
     public void setUp() throws Exception {
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
-        String sql = "DELETE FROM tap_schema.servicedescriptors";
+        String sql = "DELETE FROM tap_schema.ServiceDescriptorTemplate";
         jdbc.update(sql);
         log.debug(sql);
     }

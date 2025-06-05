@@ -82,7 +82,6 @@ import javax.security.auth.Subject;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 import org.opencadc.datalink.ServiceDescriptorTemplate;
-import org.opencadc.youcat.descriptors.ServiceDescriptors;
 
 /**
  * DAO for the ServiceDescriptor table.
@@ -99,7 +98,7 @@ public class TemplateDAO extends AbstractDAO {
      */
     public TemplateDAO(AbstractDAO abstractDAO) {
         super(abstractDAO);
-        this.keyValueDAO = new KeyValueDAO(dataSource, null, "tap_schema", ServiceDescriptors.class);
+        this.keyValueDAO = new KeyValueDAO(dataSource, null, "tap_schema", ServiceDescriptorTemplate.class);
     }
 
     /**
@@ -110,7 +109,7 @@ public class TemplateDAO extends AbstractDAO {
      */
     TemplateDAO(DataSource dataSource) {
         super(dataSource);
-        this.keyValueDAO = new KeyValueDAO(dataSource, null, "tap_schema", ServiceDescriptors.class);
+        this.keyValueDAO = new KeyValueDAO(dataSource, null, "tap_schema", ServiceDescriptorTemplate.class);
     }
 
     /**
