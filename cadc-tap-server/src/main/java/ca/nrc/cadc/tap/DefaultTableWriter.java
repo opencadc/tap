@@ -96,6 +96,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Reader;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -528,7 +529,9 @@ public class DefaultTableWriter implements TableWriter {
                     standardID = new URI(vp.getValue());
                 }
             } catch (URISyntaxException e) {
-                throw new RuntimeException("resourceIdentifier - " + resourceIdentifier + " is invalid", e);
+                throw new RuntimeException("Something went wrong with the Meta Resource Params", e);
+            } catch (MalformedURLException e) {
+                throw new RuntimeException(e);
             }
         }
         if (accessURL == null && resourceIdentifier != null && standardID != null) {
