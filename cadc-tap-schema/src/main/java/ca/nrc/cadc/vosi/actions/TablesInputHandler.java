@@ -74,6 +74,7 @@ import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.io.ByteCountInputStream;
 import ca.nrc.cadc.rest.InlineContentException;
 import ca.nrc.cadc.rest.InlineContentHandler;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
@@ -157,6 +158,11 @@ public class TablesInputHandler implements InlineContentHandler {
             if (vtab != null) {
                 TableDesc ret = TapSchemaUtil.createTableDesc("default", "default", vtab);
                 log.debug("create from VOtable: " + ret);
+                // strip out some incoming table metadata
+                // - ID attr (should be transient usage only)
+                for (ColumnDesc cd : ret.getColumnDescs()) {
+                    cd.columnID = null;
+                }
                 return ret;
             }
         }
