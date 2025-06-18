@@ -105,6 +105,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.UUID;
 import javax.security.auth.Subject;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -231,6 +232,12 @@ public class CreateTableTest extends AbstractTablesTest {
             // modify table description
             td.description = "updated by IntTest";
             td.utype = "namespace:MyCustomModel";
+            final ColumnDesc col0 = td.getColumnDescs().get(0);
+            col0.description = "primary key";
+            //col0.principal = true;
+            //col0.std = true;
+            col0.columnID = "pk";
+            
             final URL tableURL = new URL(certTablesURL.toExternalForm() + "/" + testTable);
             TableWriter w = new TableWriter();
             StringWriter sw = new StringWriter();
@@ -277,7 +284,7 @@ public class CreateTableTest extends AbstractTablesTest {
             Assert.assertTrue(update.getThrowable().getMessage().contains("cannot add/remove/rename"));
             td.getColumnDescs().remove(ecd);
             
-            log.info("legal update: remove column");
+            log.info("illegal update: remove column");
             td.getColumnDescs().remove(c0);
             sw = new StringWriter();
             w.write(td, sw);
@@ -334,6 +341,8 @@ public class CreateTableTest extends AbstractTablesTest {
             vtab.getFields().add(new VOTableField("c3", TapDataType.LONG.getDatatype()));
             vtab.getFields().add(new VOTableField("c4", TapDataType.FLOAT.getDatatype()));
             vtab.getFields().add(new VOTableField("c5", TapDataType.DOUBLE.getDatatype()));
+            VOTableField f0 = vtab.getFields().get(0);
+            f0.id = "bogus_id";
             
             // extended types
             VOTableField tf;
@@ -387,6 +396,8 @@ public class CreateTableTest extends AbstractTablesTest {
             super.setPerms(schemaOwner, testTable, tp, 200);
             
             VOTableTable vt = doQueryCheck(testTable);
+            VOTableField field0 = vt.getFields().get(0);
+            Assert.assertNull("field ID attr ignored by create", field0.id);
             TableData tdata = vt.getTableData();
             Iterator<List<Object>> iter = tdata.iterator();
             Assert.assertFalse("no result rows", iter.hasNext());
@@ -476,6 +487,9 @@ public class CreateTableTest extends AbstractTablesTest {
             Assert.assertEquals("column name", ecd.getColumnName(), acd.getColumnName());
             Assert.assertEquals("column datatype", ecd.getDatatype(), acd.getDatatype());
             Assert.assertEquals("column description", ecd.description, acd.description);
+            //Assert.assertEquals("column principal", ecd.principal, acd.principal);
+            //Assert.assertEquals("column std", ecd.std, acd.std);
+            Assert.assertEquals("column columnID", ecd.columnID, acd.columnID);
         }
     }
     

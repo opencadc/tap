@@ -225,22 +225,11 @@ public class PutAction extends TablesAction {
             throw new IllegalArgumentException("no input table");
         }
         
-        // check that the table description does not specify any indexed columns since we
-        // have to force separate index creation
-        StringBuilder sb = new StringBuilder();
+        // strip out some incoming table metadata
+        // - indexed flag (separate index creation)
         for (ColumnDesc cd : inputTable.getColumnDescs()) {
-            if (cd.indexed) {
-                if (sb.length() > 0) {
-                    sb.append(", ");
-                }
-                sb.append(cd.getColumnName());
-            }
+            cd.indexed = false;
         }
-        if (sb.length() > 0) {
-            throw new UnsupportedOperationException("cannot create table with indices -- found indexed=true for the following columns: "
-                    + sb.toString());
-        }
-            
         DataSource ds = getDataSource();
         ts.setDataSource(ds);
         TableDesc td = ts.getTable(tableName);
