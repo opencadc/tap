@@ -5,16 +5,14 @@
 package ca.nrc.cadc.tap.parser;
 
 import ca.nrc.cadc.tap.AdqlQuery;
-import ca.nrc.cadc.tap.TapQuery;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.uws.Job;
-import ca.nrc.cadc.uws.Parameter;
-import java.util.ArrayList;
-import java.util.List;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.Join;
+import net.sf.jsqlparser.statement.select.Limit;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -89,32 +87,19 @@ public class QuerySelectDeParserTest
     @Test
     public void testDeparseLimit()
     {
-        String[] queries = new String[] { "select foo from caom.Plane limit 0" };
-        try
-        {
-            for (int t = 0; t < queries.length; t++)
-            {
-                String query = queries[t];
-                job.getParameterList().add(new Parameter("QUERY", query));
-                log.debug("testDeparseLimit, before: " + query);
-                TapQuery tq = new TestQuery();
-                tq.setJob(job);
-                String sql = tq.getSQL();
-                log.debug("testDeparseLimit, after: " + sql);
-
-                sql = sql.toLowerCase();
-                assertTrue("testDeparseLimit: no change", sql.equalsIgnoreCase(query));
-            }
-        }
-        catch (Throwable t)
-        {
-            log.error("testNotFound", t);
-            fail();
-        }
-        finally
-        {
-            job.getParameterList().clear();
-        }
+        Limit lim10 = new Limit();
+        lim10.setRowCount(10);
+        QuerySelectDeParser instance = new QuerySelectDeParser();
+        instance.setBuffer(new StringBuffer());
+        instance.deparseLimit(lim10);
+        Assert.assertEquals("LIMIT 10", instance.getBuffer().toString().trim());
+        
+        Limit lim0 = new Limit();
+        lim0.setRowCount(0);
+        instance = new QuerySelectDeParser();
+        instance.setBuffer(new StringBuffer());
+        instance.deparseLimit(lim0);
+        Assert.assertEquals("LIMIT 0", instance.getBuffer().toString().trim());
     }
     
     Job job = new Job() 

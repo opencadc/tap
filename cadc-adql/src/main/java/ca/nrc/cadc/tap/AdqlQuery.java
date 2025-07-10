@@ -225,19 +225,17 @@ public class AdqlQuery extends AbstractTapQuery
                 PlainSelect plainSelect = (PlainSelect) selectBody;
                 Top top = plainSelect.getTop();
                 Limit lim = plainSelect.getLimit();
-                if (top != null && lim != null) {
-                    throw new IllegalArgumentException("ADQL syntax error: cannot use both TOP and LIMIT");
+                if (lim != null) {
+                    throw new IllegalArgumentException("invalid ADQL keyword: LIMIT");
                 }
+                //if (top != null && lim != null) {
+                //    throw new IllegalArgumentException("ADQL syntax error: cannot use both TOP and LIMIT");
+                //}
                 if (maxRowCount != null) {
                     if (top != null) {
                         if (maxRowCount < top.getRowCount()) {
                             log.debug("updated TOP " + top.getRowCount() + " to TOP " + maxRowCount);
                             top.setRowCount(maxRowCount);
-                        }
-                    } else if (lim != null) {
-                        if (maxRowCount < lim.getRowCount()) {
-                            log.debug("updated LIMIT " + lim.getRowCount() + " to TOP " + maxRowCount);
-                            lim.setRowCount(maxRowCount);
                         }
                     } else {
                         top = new Top();
