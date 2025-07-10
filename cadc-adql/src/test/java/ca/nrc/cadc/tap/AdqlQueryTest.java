@@ -244,8 +244,14 @@ public class AdqlQueryTest
     @Test
     public void testLimit() {
         _query = "select t_integer from tap_schema.alldatatypes limit 25";
-        _expected = "select t_integer from tap_schema.alldatatypes limit 25";
-        doit();
+        //_expected = "select t_integer from tap_schema.alldatatypes limit 25";
+        _expected = null;
+        try {
+            doit();
+            Assert.fail("expected IllegalArgumentException, but successful parse");
+        } catch (IllegalArgumentException expected) {
+            log.info("caught expected: " + expected);
+        }
     }
     
     @Test
@@ -266,7 +272,8 @@ public class AdqlQueryTest
         doit(10);
     }
     
-    @Test
+    // LIMIT currently rejected so do not need these extra tests
+    //@Test
     public void testLimitMax() {
         // reduce LIMIT
         _query = "select t_integer from tap_schema.alldatatypes limit 25";
