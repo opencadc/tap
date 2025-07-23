@@ -92,6 +92,7 @@ import java.util.Map;
 import java.util.Set;
 import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.select.Limit;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectBody;
@@ -216,30 +217,33 @@ public class AdqlQuery extends AbstractTapQuery
             throw new IllegalArgumentException("ADQL syntax error: " + cause.getMessage());
         }
 
-        // if maxRows has been set, update top
-        if (maxRowCount != null && statement instanceof Select)
-        {
+        // maxRowCount vs TOP vs LIMIT
+        if (statement instanceof Select) {
             Select select = (Select) statement;
             SelectBody selectBody = select.getSelectBody();
-            if (selectBody instanceof PlainSelect)
-            {
+            if (selectBody instanceof PlainSelect) {
                 PlainSelect plainSelect = (PlainSelect) selectBody;
                 Top top = plainSelect.getTop();
-                if (top == null)
-                {
-                    top = new Top();
-                    top.setRowCount(new Long(maxRowCount));
-                    log.debug("added TOP " + maxRowCount);
+                Limit lim = plainSelect.getLimit();
+                if (lim != null) {
+                    throw new IllegalArgumentException("invalid ADQL keyword: LIMIT");
                 }
-                else
-                {
-                    if (maxRowCount < top.getRowCount())
-                    {
-                        log.debug("updated TOP " + top.getRowCount() + " to TOP " + maxRowCount);
+                //if (top != null && lim != null) {
+                //    throw new IllegalArgumentException("ADQL syntax error: cannot use both TOP and LIMIT");
+                //}
+                if (maxRowCount != null) {
+                    if (top != null) {
+                        if (maxRowCount < top.getRowCount()) {
+                            log.debug("updated TOP " + top.getRowCount() + " to TOP " + maxRowCount);
+                            top.setRowCount(maxRowCount);
+                        }
+                    } else {
+                        top = new Top();
                         top.setRowCount(maxRowCount);
+                        log.debug("added TOP " + maxRowCount);
+                        plainSelect.setTop(top);
                     }
                 }
-                plainSelect.setTop(top);
             }
         }
 

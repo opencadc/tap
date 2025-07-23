@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2018.                            (c) 2017.
+*  (c) 2025.                            (c) 2025.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,17 +67,7 @@
 ************************************************************************
 */
 
-/**
- * 
- */
 package ca.nrc.cadc.tap;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.util.List;
-
-import org.junit.Test;
 
 import ca.nrc.cadc.tap.parser.TestUtil;
 import ca.nrc.cadc.tap.parser.extractor.SelectListExtractor;
@@ -88,10 +78,11 @@ import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
+import java.util.List;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * A general test of AdqlQuery with no optional stuff enabled.
@@ -115,7 +106,7 @@ public class AdqlQueryTest
 
     static
     {
-        Log4jInit.setLevel("ca.nrc.cadc.tap", org.apache.log4j.Level.INFO);
+        Log4jInit.setLevel("ca.nrc.cadc.tap", Level.INFO);
         TAP_SCHEMA = TestUtil.loadDefaultTapSchema();
     }
 
@@ -125,21 +116,28 @@ public class AdqlQueryTest
         public String getID() { return "abcdefg"; }
     };
     
-    private List<TapSelectItem> doit()
+    private List<TapSelectItem> doit() {
+        return doit(null);
+    }
+
+    private List<TapSelectItem> doit(Integer maxRowCount)
     {
         try
         {
             Parameter para = new Parameter("QUERY", _query);
             job.getParameterList().add(para);
-
+            
             TapQuery tapQuery = new AdqlQuery();
             tapQuery.setTapSchema(TAP_SCHEMA);
             tapQuery.setJob(job);
+            tapQuery.setMaxRowCount(maxRowCount);
             String sql = tapQuery.getSQL();
             List<TapSelectItem> selectList = tapQuery.getSelectList();
             log.debug("QUERY: \r\n" + _query);
             log.debug("SQL: \r\n" + sql);
-            assertEquals(_expected.toLowerCase().trim(), sql.toLowerCase().trim());
+            if (_expected != null) {
+                Assert.assertEquals(_expected.toLowerCase().trim(), sql.toLowerCase().trim());
+            }
             return selectList;
         }
         finally
@@ -178,37 +176,37 @@ public class AdqlQueryTest
         _query = "select schema_name as xx, (select t_integer from tap_schema.alldatatypes) from tap_schema.tables";
         _expected = "select schema_name as xx, (select t_integer from tap_schema.alldatatypes) from tap_schema.tables";
         List<TapSelectItem> selectList = doit();
-        assertTrue(selectList.size() == 2);
+        Assert.assertTrue(selectList.size() == 2);
         TapSelectItem tsi = selectList.get(1);
-        assertEquals("t_integer", tsi.getName());
-        assertEquals("int", tsi.getDatatype().getDatatype());
-        assertEquals("int column", tsi.description);
+        Assert.assertEquals("t_integer", tsi.getName());
+        Assert.assertEquals("int", tsi.getDatatype().getDatatype());
+        Assert.assertEquals("int column", tsi.description);
 
         _query = "select schema_name as xx, (select t_varchar from tap_schema.alldatatypes) from tap_schema.tables";
         _expected = "select schema_name as xx, (select t_varchar from tap_schema.alldatatypes) from tap_schema.tables";
         selectList = doit();
-        assertTrue(selectList.size() == 2);
+        Assert.assertTrue(selectList.size() == 2);
         tsi = selectList.get(1);
-        assertEquals("t_varchar", tsi.getName());
-        assertEquals("char", tsi.getDatatype().getDatatype());
-        assertEquals("8*", tsi.getDatatype().arraysize);
-        assertEquals("varchar column", tsi.description);
+        Assert.assertEquals("t_varchar", tsi.getName());
+        Assert.assertEquals("char", tsi.getDatatype().getDatatype());
+        Assert.assertEquals("8*", tsi.getDatatype().arraysize);
+        Assert.assertEquals("varchar column", tsi.description);
 
         _query = "select schema_name, (select count(distinct t_bytes) from tap_schema.alldatatypes) from tap_schema.tables";
         _expected = "select schema_name, (select count(distinct t_bytes) from tap_schema.alldatatypes) from tap_schema.tables";
         selectList = doit();
-        assertTrue(selectList.size() == 2);
+        Assert.assertTrue(selectList.size() == 2);
         tsi = selectList.get(1);
-        assertEquals("count2", tsi.getName().toLowerCase());
-        assertEquals("long", tsi.getDatatype().getDatatype());
+        Assert.assertEquals("count2", tsi.getName().toLowerCase());
+        Assert.assertEquals("long", tsi.getDatatype().getDatatype());
 
         _query = "select schema_name, (select count(*) from tap_schema.alldatatypes) from tap_schema.tables";
         _expected = "select schema_name, (select count(*) from tap_schema.alldatatypes) from tap_schema.tables";
         selectList = doit();
-        assertTrue(selectList.size() == 2);
+        Assert.assertTrue(selectList.size() == 2);
         tsi = selectList.get(1);
-        assertEquals("count2", tsi.getName().toLowerCase());
-        assertEquals("long", tsi.getDatatype().getDatatype());
+        Assert.assertEquals("count2", tsi.getName().toLowerCase());
+        Assert.assertEquals("long", tsi.getDatatype().getDatatype());
     }
 
     //@Test
@@ -237,11 +235,71 @@ public class AdqlQueryTest
     }
 
     @Test
-    public void testTopSelect()
-    {
+    public void testTopSelect() {
         _query = "select top 25 t_integer from tap_schema.alldatatypes";
         _expected = "select top 25 t_integer from tap_schema.alldatatypes";
         doit();
     }
 
+    @Test
+    public void testLimit() {
+        _query = "select t_integer from tap_schema.alldatatypes limit 25";
+        //_expected = "select t_integer from tap_schema.alldatatypes limit 25";
+        _expected = null;
+        try {
+            doit();
+            Assert.fail("expected IllegalArgumentException, but successful parse");
+        } catch (IllegalArgumentException expected) {
+            log.info("caught expected: " + expected);
+        }
+    }
+    
+    @Test
+    public void testTopMax() {
+        // reduce TOP
+        _query = "select top 25 t_integer from tap_schema.alldatatypes";
+        _expected = "select top 10 t_integer from tap_schema.alldatatypes";
+        doit(10);
+        
+        // retain TOP
+        _query = "select top 25 t_integer from tap_schema.alldatatypes";
+        _expected = "select top 25 t_integer from tap_schema.alldatatypes";
+        doit(30);
+        
+        // inject TOP
+        _query = "select t_integer from tap_schema.alldatatypes";
+        _expected = "select top 10 t_integer from tap_schema.alldatatypes";
+        doit(10);
+    }
+    
+    // LIMIT currently rejected so do not need these extra tests
+    //@Test
+    public void testLimitMax() {
+        // reduce LIMIT
+        _query = "select t_integer from tap_schema.alldatatypes limit 25";
+        _expected = "select t_integer from tap_schema.alldatatypes limit 10";
+        doit(10);
+        
+        // retain LIMIT
+        _query = "select t_integer from tap_schema.alldatatypes limit 25";
+        _expected = "select t_integer from tap_schema.alldatatypes limit 25";
+        doit(30);
+        
+        // inject LIMIT: injects TOP because ADQL-2.0
+        //_query = "select t_integer from tap_schema.alldatatypes";
+        //_expected = "select t_integer from tap_schema.alldatatypes limit 10";
+        //doit(10);
+    }
+    
+    @Test
+    public void testTopAndLimit() {
+        _query = "select top 10 t_integer from tap_schema.alldatatypes limit 20";
+        _expected = null;
+        try {
+            doit();
+            Assert.fail("expected IllegalArgumentException, but successful parse");
+        } catch (IllegalArgumentException expected) {
+            log.info("caught expected: " + expected);
+        }
+    }
 }
