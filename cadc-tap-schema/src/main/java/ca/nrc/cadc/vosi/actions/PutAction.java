@@ -299,6 +299,33 @@ public class PutAction extends TablesAction {
             
             tm.commitTransaction();
             prof.checkpoint("commit-transaction");
+
+            // load the table data if available
+            Object in = syncInput.getContent(INPUT_TAG);
+            if (in instanceof VOTableDocument) {
+                VOTableDocument voTableDocument = (VOTableDocument) in;
+                TableData tableData = voTableDocument.getResourceByType("meta").getTable().getTableData();
+
+                if (tableData != null) {
+                    TableLoader tld = new TableLoader(ds, 1000);
+                    tld.load(inputTable, new TableDataInputStream() {
+                        @Override
+                        public void close() {
+                            //no-op: fully read already
+                        }
+
+                        @Override
+                        public Iterator<List<Object>> iterator() {
+                            return tableData.iterator();
+                        }
+
+                        @Override
+                        public TableDesc acceptTargetTableDesc(TableDesc td) {
+                            return td;
+                        }
+                    });
+                }
+            }
         } catch (Exception ex) {
             try {
                 log.error("PUT failed - rollback", ex);
