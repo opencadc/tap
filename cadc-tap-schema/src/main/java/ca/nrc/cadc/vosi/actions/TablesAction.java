@@ -529,7 +529,7 @@ public abstract class TablesAction extends RestAction {
             final IvoaGroupClient groupClient = new IvoaGroupClient();
             GroupURI permittedGroup = Util.getPermittedGroup(groupClient, permittedGroups);
             if (permittedGroup != null) {
-                logInfo.setMessage("schema read allowed: member of group " + permittedGroup);
+                logInfo.setMessage("table read allowed: member of group " + permittedGroup);
                 return;
             }
         }
