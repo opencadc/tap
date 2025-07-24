@@ -69,6 +69,7 @@ package org.opencadc.youcat;
 
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.RunnableAction;
 import ca.nrc.cadc.auth.SSLUtil;
 import ca.nrc.cadc.net.FileContent;
@@ -158,6 +159,8 @@ abstract class AbstractTablesTest {
             
             cf = FileUtil.getFileFromResource(SCHEMA_GROUP_MEMBER, AbstractTablesTest.class);
             subjectWithGroups = SSLUtil.createSubject(cf);
+            // HACK: need this for an ownership test to work
+            subjectWithGroups.getPrincipals().add(new HttpPrincipal("cadcauthtest2")); 
             log.debug("created subjectWithGroups: " + subjectWithGroups);
 
             try {
