@@ -67,18 +67,13 @@
 
 package ca.nrc.cadc.vosi.actions;
 
-import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
+import ca.nrc.cadc.dali.tables.parquet.ParquetReader;
 import ca.nrc.cadc.dali.tables.votable.VOTableReader;
-import ca.nrc.cadc.dali.tables.votable.VOTableResource;
-import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.io.ByteCountInputStream;
 import ca.nrc.cadc.rest.InlineContentException;
 import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
-import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
-import ca.nrc.cadc.tap.schema.TapSchemaUtil;
 import ca.nrc.cadc.util.StringUtil;
 import ca.nrc.cadc.vosi.InvalidTableSetException;
 import ca.nrc.cadc.vosi.TableReader;
@@ -99,6 +94,7 @@ public class TablesInputHandler implements InlineContentHandler {
     public static final String VOSI_TABLE_TYPE = "text/xml";
     public static final String VOTABLE_TYPE = "application/x-votable+xml";
     public static final String VOSI_SCHEMA_TYPE = "application/x-vosi-schema";
+    public static final String PARQUET_TYPE = "aapplication/vnd.apache.parquet";
     // VOSI tableset schema cannot carry owner information
     //public static final String VOSI_SCHEMA_TYPE = "text/plain"; // key = value
     
@@ -112,9 +108,8 @@ public class TablesInputHandler implements InlineContentHandler {
     public Content accept(String name, String contentType, InputStream in) throws InlineContentException, IOException {
         log.debug("accept: " + name + " " + contentType);
         try {
-            String schemaOwner = null;
             SchemaDesc sch = null;
-            TableDesc tab = null;
+            Object tab = null;
             if (VOSI_SCHEMA_TYPE.equalsIgnoreCase(contentType)) {
                 ByteCountInputStream istream = new ByteCountInputStream(in, BYTE_LIMIT);
                 String str = StringUtil.readFromInputStream(istream, "UTF-8");
@@ -136,8 +131,10 @@ public class TablesInputHandler implements InlineContentHandler {
             } else if (VOTABLE_TYPE.equalsIgnoreCase(contentType)) {
                 VOTableReader tr = new VOTableReader();
                 ByteCountInputStream istream = new ByteCountInputStream(in, BYTE_LIMIT);
-                VOTableDocument doc = tr.read(istream);
-                tab = toTableDesc(doc);
+                tab = tr.read(istream);
+            } else if (PARQUET_TYPE.equalsIgnoreCase(contentType)) {
+                ParquetReader parquetReader = new ParquetReader();
+                tab = parquetReader.read(in);
             }
             InlineContentHandler.Content ret = new InlineContentHandler.Content();
             ret.name = objectTag;
@@ -150,22 +147,5 @@ public class TablesInputHandler implements InlineContentHandler {
             throw new IllegalArgumentException("invalid input document", ex);
         }
     }
-    
-    private TableDesc toTableDesc(VOTableDocument doc) {
-        // TODO: reject if the table has any rows? try to insert them if it is small enough?
-        for (VOTableResource vr : doc.getResources()) {
-            VOTableTable vtab = vr.getTable();
-            if (vtab != null) {
-                TableDesc ret = TapSchemaUtil.createTableDesc("default", "default", vtab);
-                log.debug("create from VOtable: " + ret);
-                // strip out some incoming table metadata
-                // - ID attr (should be transient usage only)
-                for (ColumnDesc cd : ret.getColumnDescs()) {
-                    cd.columnID = null;
-                }
-                return ret;
-            }
-        }
-        throw new IllegalArgumentException("no table description found in VOTable document");
-    }
+
 }
