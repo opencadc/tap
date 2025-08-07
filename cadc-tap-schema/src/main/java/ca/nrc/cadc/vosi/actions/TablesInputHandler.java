@@ -68,18 +68,12 @@
 package ca.nrc.cadc.vosi.actions;
 
 import ca.nrc.cadc.dali.tables.parquet.ParquetReader;
-import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableReader;
-import ca.nrc.cadc.dali.tables.votable.VOTableResource;
-import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.io.ByteCountInputStream;
 import ca.nrc.cadc.rest.InlineContentException;
 import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
-import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchema;
-import ca.nrc.cadc.tap.schema.TapSchemaUtil;
 import ca.nrc.cadc.util.StringUtil;
 import ca.nrc.cadc.vosi.InvalidTableSetException;
 import ca.nrc.cadc.vosi.TableReader;
@@ -114,7 +108,6 @@ public class TablesInputHandler implements InlineContentHandler {
     public Content accept(String name, String contentType, InputStream in) throws InlineContentException, IOException {
         log.debug("accept: " + name + " " + contentType);
         try {
-            String schemaOwner = null;
             SchemaDesc sch = null;
             Object tab = null;
             if (VOSI_SCHEMA_TYPE.equalsIgnoreCase(contentType)) {
