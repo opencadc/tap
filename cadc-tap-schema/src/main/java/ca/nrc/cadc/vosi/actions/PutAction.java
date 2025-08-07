@@ -284,7 +284,7 @@ public class PutAction extends TablesAction {
                     tableData.close();
                 }
             }
-            
+
             // add to tap_schema
             // flag table as created using the API to allow table deletion in the DeleteAction
             inputTable.apiCreated = true;
@@ -304,11 +304,11 @@ public class PutAction extends TablesAction {
             Object in = syncInput.getContent(INPUT_TAG);
             if (in instanceof VOTableDocument) {
                 VOTableDocument voTableDocument = (VOTableDocument) in;
-                TableData tableData = voTableDocument.getResourceByType("meta").getTable().getTableData();
+                TableData tableData = voTableDocument.getResourceByType("results").getTable().getTableData();
 
                 if (tableData != null) {
-                    TableLoader tld = new TableLoader(ds, 1000);
-                    tld.load(inputTable, new TableDataInputStream() {
+                    TableLoader tableLoader = new TableLoader(ds, null);
+                    tableLoader.load(inputTable, new TableDataInputStream() {
                         @Override
                         public void close() {
                             //no-op: fully read already
@@ -326,6 +326,21 @@ public class PutAction extends TablesAction {
                     });
                 }
             }
+
+            // add to tap_schema
+            // flag table as created using the API to allow table deletion in the DeleteAction
+            inputTable.apiCreated = true;
+            ts.put(inputTable);
+            prof.checkpoint("insert-into-tap-schema");
+
+            // set the permissions to be initially private
+            TapPermissions tablePermissions = new TapPermissions(
+                AuthenticationUtil.getCurrentSubject(), false, null, null);
+            ts.setTablePermissions(tableName, tablePermissions);
+            prof.checkpoint("set-permissions");
+
+            tm.commitTransaction();
+            prof.checkpoint("commit-transaction");
         } catch (Exception ex) {
             try {
                 log.error("PUT failed - rollback", ex);

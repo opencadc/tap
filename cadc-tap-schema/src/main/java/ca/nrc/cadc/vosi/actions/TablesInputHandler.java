@@ -68,7 +68,6 @@
 package ca.nrc.cadc.vosi.actions;
 
 import ca.nrc.cadc.dali.tables.parquet.ParquetReader;
-import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableReader;
 import ca.nrc.cadc.io.ByteCountInputStream;
 import ca.nrc.cadc.rest.InlineContentException;
