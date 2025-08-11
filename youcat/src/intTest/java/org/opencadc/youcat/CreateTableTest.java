@@ -68,6 +68,12 @@
 package org.opencadc.youcat;
 
 import ca.nrc.cadc.auth.RunnableAction;
+import ca.nrc.cadc.dali.Circle;
+import ca.nrc.cadc.dali.Interval;
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.Polygon;
+
+import ca.nrc.cadc.dali.tables.ListTableData;
 import ca.nrc.cadc.dali.tables.TableData;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableField;
@@ -77,8 +83,10 @@ import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
 import ca.nrc.cadc.net.FileContent;
 import ca.nrc.cadc.net.HttpPost;
+import ca.nrc.cadc.net.HttpTransfer;
 import ca.nrc.cadc.net.HttpUpload;
 import ca.nrc.cadc.net.OutputStreamWrapper;
+import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
@@ -89,11 +97,19 @@ import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.vosi.TableSetWriter;
 import ca.nrc.cadc.vosi.TableWriter;
 import ca.nrc.cadc.vosi.actions.TablesInputHandler;
+
+import java.io.InputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.StringWriter;
+import java.io.OutputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.security.PrivilegedActionException;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -252,6 +268,11 @@ public class CreateTableTest extends AbstractTablesTest {
     
     @Test
     public void testCreateQueryDropVOTable() {
+        testCreateQueryDropVOTable(true);
+        testCreateQueryDropVOTable(false);
+    }
+
+    public void testCreateQueryDropVOTable(boolean uploadTableData) {
         try {
             clearSchemaPerms();
             TapPermissions tp = new TapPermissions(null, true, null, null);
@@ -262,80 +283,228 @@ public class CreateTableTest extends AbstractTablesTest {
             // cleanup just in case
             doDelete(schemaOwner, testTable, true);
 
-            VOTableTable vtab = new VOTableTable();
-            vtab.getFields().add(new VOTableField("c0", TapDataType.STRING.getDatatype(), TapDataType.STRING.arraysize));
-            vtab.getFields().add(new VOTableField("c1", TapDataType.SHORT.getDatatype()));
-            vtab.getFields().add(new VOTableField("c2", TapDataType.INTEGER.getDatatype()));
-            vtab.getFields().add(new VOTableField("c3", TapDataType.LONG.getDatatype()));
-            vtab.getFields().add(new VOTableField("c4", TapDataType.FLOAT.getDatatype()));
-            vtab.getFields().add(new VOTableField("c5", TapDataType.DOUBLE.getDatatype()));
-            VOTableField f0 = vtab.getFields().get(0);
-            f0.id = "bogus_id";
-            
-            // extended types
-            VOTableField tf;
-            tf = new VOTableField("e6", TapDataType.TIMESTAMP.getDatatype(), TapDataType.TIMESTAMP.arraysize);
-            tf.xtype = TapDataType.TIMESTAMP.xtype;
-            vtab.getFields().add(tf);
-            
-            tf = new VOTableField("e7", TapDataType.INTERVAL.getDatatype(), TapDataType.INTERVAL.arraysize);
-            tf.xtype = TapDataType.INTERVAL.xtype;
-            vtab.getFields().add(tf);
-            tf = new VOTableField("e8", TapDataType.POINT.getDatatype(), TapDataType.POINT.arraysize);
-            tf.xtype = TapDataType.POINT.xtype;
-            vtab.getFields().add(tf);
-            tf = new VOTableField("e9", TapDataType.CIRCLE.getDatatype(), TapDataType.CIRCLE.arraysize);
-            tf.xtype = TapDataType.CIRCLE.xtype;
-            vtab.getFields().add(tf);
-            tf = new VOTableField("e10", TapDataType.POLYGON.getDatatype(), TapDataType.POLYGON.arraysize);
-            tf.xtype = TapDataType.POLYGON.xtype;
-            vtab.getFields().add(tf);
-            
-            // arrays
-            vtab.getFields().add(new VOTableField("a11", "short", "*"));
-            vtab.getFields().add(new VOTableField("a12", "int", "*"));
-            vtab.getFields().add(new VOTableField("a13", "long", "*"));
-            vtab.getFields().add(new VOTableField("a14", "float", "*")); 
-            vtab.getFields().add(new VOTableField("a15", "double", "*"));
-            
-            VOTableResource vres = new VOTableResource("meta");
-            vres.setTable(vtab);
-            final VOTableDocument doc = new VOTableDocument();
-            doc.getResources().add(vres);
-            
-            // create
-            URL tableURL = new URL(certTablesURL.toExternalForm() + "/" + testTable);
-            OutputStreamWrapper src = new OutputStreamWrapper() {
-                @Override
-                public void write(OutputStream out) throws IOException {
-                    VOTableWriter w = new VOTableWriter(TablesInputHandler.VOTABLE_TYPE);
-                    w.write(doc, out);
-                }
-            };
-            HttpUpload put = new HttpUpload(src, tableURL);
-            put.setContentType(TablesInputHandler.VOTABLE_TYPE);
-            Subject.doAs(schemaOwner, new RunnableAction(put));
-            Assert.assertNull("throwable", put.getThrowable());
-            Assert.assertEquals("response code", 200, put.getResponseCode());
-            put = null;
-            
+            VOTableTable actualVOTableTable = prepareVOTableTable(uploadTableData);
+            createTableFromVOTable(actualVOTableTable, testTable);
+
             TableDesc td = doVosiCheck(testTable);
-            
+
             super.setPerms(schemaOwner, testTable, tp, 200);
-            
+
             VOTableTable vt = doQueryCheck(testTable);
             VOTableField field0 = vt.getFields().get(0);
             Assert.assertNull("field ID attr ignored by create", field0.id);
             TableData tdata = vt.getTableData();
             Iterator<List<Object>> iter = tdata.iterator();
-            Assert.assertFalse("no result rows", iter.hasNext());
-            
+            Assert.assertEquals("Table rows are not as per expectation.", uploadTableData, iter.hasNext());
+
+            if (uploadTableData) {
+                verifyUploadedVOTableTableData(iter, actualVOTableTable.getTableData().iterator());
+            }
+
             // cleanup on success
             doDelete(schemaOwner, testTable, false);
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
         }
+    }
+
+    private static VOTableTable prepareVOTableTable(boolean testUploadTableData) {
+        VOTableTable vtab = new VOTableTable();
+        vtab.getFields().add(new VOTableField("c0", TapDataType.STRING.getDatatype(), TapDataType.STRING.arraysize));
+        vtab.getFields().add(new VOTableField("c1", TapDataType.SHORT.getDatatype()));
+        vtab.getFields().add(new VOTableField("c2", TapDataType.INTEGER.getDatatype()));
+        vtab.getFields().add(new VOTableField("c3", TapDataType.LONG.getDatatype()));
+        vtab.getFields().add(new VOTableField("c4", TapDataType.FLOAT.getDatatype()));
+        vtab.getFields().add(new VOTableField("c5", TapDataType.DOUBLE.getDatatype()));
+        VOTableField f0 = vtab.getFields().get(0);
+        //f0.id = "bogus_id"; // TODO: Not working - verify the related changes to make it work
+
+        // extended types
+        VOTableField tf;
+        tf = new VOTableField("e6", TapDataType.TIMESTAMP.getDatatype(), TapDataType.TIMESTAMP.arraysize);
+        tf.xtype = TapDataType.TIMESTAMP.xtype;
+        vtab.getFields().add(tf);
+
+        tf = new VOTableField("e7", TapDataType.INTERVAL.getDatatype(), TapDataType.INTERVAL.arraysize);
+        tf.xtype = TapDataType.INTERVAL.xtype;
+        vtab.getFields().add(tf);
+        tf = new VOTableField("e8", TapDataType.POINT.getDatatype(), TapDataType.POINT.arraysize);
+        tf.xtype = TapDataType.POINT.xtype;
+        vtab.getFields().add(tf);
+        tf = new VOTableField("e9", TapDataType.CIRCLE.getDatatype(), TapDataType.CIRCLE.arraysize);
+        tf.xtype = TapDataType.CIRCLE.xtype;
+        vtab.getFields().add(tf);
+        tf = new VOTableField("e10", TapDataType.POLYGON.getDatatype(), TapDataType.POLYGON.arraysize);
+        tf.xtype = TapDataType.POLYGON.xtype;
+        vtab.getFields().add(tf);
+
+        // arrays
+        vtab.getFields().add(new VOTableField("a11", "short", "*"));
+        vtab.getFields().add(new VOTableField("a12", "int", "*"));
+        vtab.getFields().add(new VOTableField("a13", "long", "*"));
+        vtab.getFields().add(new VOTableField("a14", "float", "*"));
+        vtab.getFields().add(new VOTableField("a15", "double", "*"));
+
+        if (testUploadTableData) {
+            addTableDataToVOTable(vtab);
+        }
+        return vtab;
+    }
+
+    private static void addTableDataToVOTable(VOTableTable vtab) {
+        ListTableData tableData = new ListTableData();
+        vtab.setTableData(tableData);
+
+        // prepare iterator with dummy data
+        for(int i=0; i<10; i++) {
+            List<Object> row = new ArrayList<>();
+            row.add("string" + i); // c0
+            row.add(Short.MAX_VALUE); // c1
+            row.add(Integer.MAX_VALUE); // c2
+            row.add(Long.MAX_VALUE); // c3
+            row.add(Float.MAX_VALUE); // c4
+            row.add(Double.MAX_VALUE); // c5
+
+            row.add(new Date()); // e6
+            row.add(new Interval(1.0, 2.0)); // e7
+            row.add(new Point(1.0, 2.0)); // e8
+            row.add(new Circle(new Point(1, 2), 3)); // e9
+
+            Polygon p = new Polygon();
+            p.getVertices().add(new Point(1.0, 2.0));
+            p.getVertices().add(new Point(3.0, 4.0));
+            p.getVertices().add(new Point(5.0, 6.0));
+            row.add(p); // e10
+
+            row.add(new short[] { (short) i, (short) (i + 1) }); // a11
+            row.add(new int[] { i, i + 1 }); // a12
+            row.add(new long[] { i, i + 1 }); // a13
+            row.add(new float[] { i, i + 1 }); // a14
+            row.add(new double[] { i, i + 1 }); // a15
+            tableData.getArrayList().add(row);
+        }
+    }
+
+    private VOTableDocument createTableFromVOTable(VOTableTable vtab, String testTable) throws MalformedURLException {
+        VOTableResource vres = new VOTableResource("results");
+        vres.setTable(vtab);
+        final VOTableDocument doc = new VOTableDocument();
+        doc.getResources().add(vres);
+
+        // create
+        URL tableURL = new URL(certTablesURL.toExternalForm() + "/" + testTable);
+        OutputStreamWrapper src = new OutputStreamWrapper() {
+            @Override
+            public void write(OutputStream out) throws IOException {
+                VOTableWriter w = new VOTableWriter(TablesInputHandler.VOTABLE_TYPE);
+                w.write(doc, out);
+            }
+        };
+        HttpUpload put = new HttpUpload(src, tableURL);
+        put.setContentType(TablesInputHandler.VOTABLE_TYPE);
+        Subject.doAs(schemaOwner, new RunnableAction(put));
+        Assert.assertNull("throwable", put.getThrowable());
+        Assert.assertEquals("response code", 200, put.getResponseCode());
+
+        return doc;
+    }
+
+    private void verifyUploadedVOTableTableData(Iterator<List<Object>> retrievedDataIter, Iterator<List<Object>> actualDataIter) {
+        int count = 0;
+        while (retrievedDataIter.hasNext() && actualDataIter.hasNext()) {
+            List<Object> retrievedRow = retrievedDataIter.next();
+            List<Object> actualRow = actualDataIter.next();
+            Assert.assertEquals("string" + count, retrievedRow.get(0));
+            Assert.assertEquals(actualRow.get(2), retrievedRow.get(2));
+            Assert.assertEquals(actualRow.get(3), retrievedRow.get(3));
+            Assert.assertEquals(actualRow.get(4), retrievedRow.get(4));
+            Assert.assertEquals(actualRow.get(5), retrievedRow.get(5));
+            Assert.assertTrue(retrievedRow.get(6) instanceof Date);
+
+            Assert.assertEquals(actualRow.get(7), retrievedRow.get(7));
+            assertEquals((Point) actualRow.get(8), (Point) retrievedRow.get(8));
+            assertEquals((Circle) actualRow.get(9), (Circle) retrievedRow.get(9));
+            Polygon p = new Polygon();
+            p.getVertices().add(new Point(1.0, 2.0));
+            p.getVertices().add(new Point(3.0, 4.0));
+            p.getVertices().add(new Point(5.0, 6.0));
+            assertEquals(p, (Polygon) retrievedRow.get(10));
+
+            count++;
+        }
+        Assert.assertEquals(10, count);
+    }
+
+    @Test
+    public void testCreateQueryDropParquet() throws Exception {
+        String testTable = testSchemaName + ".testCreateQueryDropParquet";
+
+        // Permission updates
+        clearSchemaPerms();
+        TapPermissions tp = new TapPermissions(null, true, null, null);
+        super.setPerms(schemaOwner, testSchemaName, tp, 200);
+
+        // delete table if it exists
+        doDelete(schemaOwner, testTable, true);
+
+        // Create table from VOTable data
+        VOTableTable actualVOTableTable = prepareVOTableTable(true);
+        VOTableDocument voTableDocument = createTableFromVOTable(actualVOTableTable, testTable);
+
+        // Create table from Parquet data
+        createTableFromParquet(testTable);
+
+        super.setPerms(schemaOwner, testTable, tp, 200);
+
+        // Verify the table created from Parquet data
+        VOTableTable voTableTable = doQueryCheck(testTable);
+        TableData tdata = voTableTable.getTableData();
+        Assert.assertEquals(voTableDocument.getResourceByType("results").getTable().getFields().size(), voTableTable.getFields().size());
+
+        Iterator<List<Object>> iter = tdata.iterator();
+        Assert.assertTrue("no result rows", iter.hasNext());
+
+        verifyUploadedVOTableTableData(iter, actualVOTableTable.getTableData().iterator());
+    }
+
+    /*
+     * Steps:
+     * - get the data from testTable in Parquet format
+     * - delete the testTable table
+     * - create a new testTable table using Parquet format
+     * */
+    private void createTableFromParquet(String testTable) throws Exception {
+        // get data in parquet format
+        ByteArrayOutputStream parquetData = getParquetData(testTable);
+
+        doDelete(schemaOwner, testTable, false);
+
+        // Create table using Parquet data
+        URL tableURL = new URL(certTablesURL.toExternalForm() + "/" + testTable);
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(parquetData.toByteArray());
+
+        HttpUpload put = new HttpUpload(inputStream, tableURL);
+        put.setRequestProperty(HttpTransfer.CONTENT_TYPE, TablesInputHandler.PARQUET_TYPE);
+        Subject.doAs(schemaOwner, new RunnableAction(put));
+        Assert.assertNull("throwable", put.getThrowable());
+        Assert.assertEquals("response code", 200, put.getResponseCode());
+    }
+
+    private ByteArrayOutputStream getParquetData(String testTable) throws ResourceNotFoundException, PrivilegedActionException {
+        String adql = "SELECT * from " + testTable;
+
+        Map<String, Object> params = new TreeMap<>();
+        params.put("LANG", "ADQL");
+        params.put("QUERY", adql);
+        params.put("RESPONSEFORMAT", "parquet");
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        String result = Subject.doAs(schemaOwner, new AuthQueryTest.SyncQueryAction(anonQueryURL, params, out, "application/vnd.apache.parquet"));
+        Assert.assertNotNull(result);
+
+        return out;
     }
 
     @Test

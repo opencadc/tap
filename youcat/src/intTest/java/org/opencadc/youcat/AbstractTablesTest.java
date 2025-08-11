@@ -72,6 +72,10 @@ import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.RunnableAction;
 import ca.nrc.cadc.auth.SSLUtil;
+import ca.nrc.cadc.dali.Circle;
+import ca.nrc.cadc.dali.DoubleInterval;
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.Polygon;
 import ca.nrc.cadc.dali.tables.votable.VOTableField;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.net.FileContent;
@@ -171,7 +175,7 @@ abstract class AbstractTablesTest {
             cf = FileUtil.getFileFromResource(SCHEMA_GROUP_MEMBER, AbstractTablesTest.class);
             subjectWithGroups = SSLUtil.createSubject(cf);
             // HACK: need this for an ownership test to work
-            subjectWithGroups.getPrincipals().add(new HttpPrincipal("cadcauthtest2")); 
+            subjectWithGroups.getPrincipals().add(new HttpPrincipal("cadcauthtest2"));
             log.debug("created subjectWithGroups: " + subjectWithGroups);
 
             try {
@@ -368,6 +372,31 @@ abstract class AbstractTablesTest {
         Subject.doAs(subject, new RunnableAction(post));
         Assert.assertEquals(expectedCode, post.getResponseCode());
         
+    }
+
+    public void assertEquals(DoubleInterval expected, DoubleInterval actual) {
+        Assert.assertEquals(expected.getLower(), actual.getLower(), 1.0e-9);
+        Assert.assertEquals(expected.getUpper(), actual.getUpper(), 1.0e-9);
+
+    }
+
+    public void assertEquals(Point expected, Point actual) {
+        Assert.assertEquals(expected.getLongitude(), actual.getLongitude(), 1.0e-9);
+        Assert.assertEquals(expected.getLatitude(), actual.getLatitude(), 1.0e-9);
+    }
+
+    public void assertEquals(Circle expected, Circle actual) {
+        assertEquals(expected.getCenter(), actual.getCenter());
+        Assert.assertEquals(expected.getRadius(), actual.getRadius(), 1.0e-9);
+    }
+
+    public void assertEquals(Polygon expected, Polygon actual) {
+        Assert.assertEquals("num vertices", expected.getVertices().size(), actual.getVertices().size());
+        for (int i=0; i < expected.getVertices().size(); i++) {
+            Point ep = expected.getVertices().get(i);
+            Point ap = actual.getVertices().get(i);
+            assertEquals(ep, ap);
+        }
     }
 
     protected void compare(TableDesc expected, TableDesc actual) {
