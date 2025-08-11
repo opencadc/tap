@@ -40,6 +40,7 @@ dependencies {
     implementation 'org.opencadc:cadc-gms:[1.0.4,2.0)'
     implementation 'org.opencadc:cadc-tap-tmp:[1.1.5,)'
     implementation 'org.opencadc:cadc-cdp:[1.4.0,)'
+    implementation 'org.apache.parquet:parquet-common:1.13.0'
 
     runtimeOnly 'org.opencadc:cadc-log:[1.1.1,)'
     runtimeOnly 'org.opencadc:cadc-vos:[1.1,2.0)'
@@ -51,7 +52,6 @@ dependencies {
     intTestImplementation 'org.opencadc:cadc-test-vosi:[1.0.11,)'
     intTestImplementation 'org.opencadc:cadc-test-tap:[1.1,)'
     intTestImplementation 'uk.ac.starlink:stil:[4.0,5.0)'
-    intTestImplementation 'org.apache.parquet:parquet-common:[1.13.0,)'
 
     intTestRuntimeOnly 'org.postgresql:postgresql:[42.2,43.0)'
 }
