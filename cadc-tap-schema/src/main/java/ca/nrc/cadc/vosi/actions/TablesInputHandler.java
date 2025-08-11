@@ -94,7 +94,7 @@ public class TablesInputHandler implements InlineContentHandler {
     public static final String VOSI_TABLE_TYPE = "text/xml";
     public static final String VOTABLE_TYPE = "application/x-votable+xml";
     public static final String VOSI_SCHEMA_TYPE = "application/x-vosi-schema";
-    public static final String PARQUET_TYPE = "aapplication/vnd.apache.parquet";
+    public static final String PARQUET_TYPE = "application/vnd.apache.parquet";
     // VOSI tableset schema cannot carry owner information
     //public static final String VOSI_SCHEMA_TYPE = "text/plain"; // key = value
     
