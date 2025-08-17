@@ -96,6 +96,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Reader;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -139,6 +140,8 @@ public class DefaultTableWriter implements TableWriter {
     private static final String PARQUET_CLASS_NAME = "ca.nrc.cadc.dali.tables.parquet.ParquetWriter";
 
     private static final Map<String, String> knownFormats = new TreeMap<>();
+
+    private transient RegistryClient regClient;
 
     static {
         knownFormats.put(APPLICATION_VOTABLE_XML, VOTABLE);
@@ -454,7 +457,7 @@ public class DefaultTableWriter implements TableWriter {
     }
 
     // read a votable document matching a {column_id}: currently in the config dir
-    private static VOTableDocument getDoc(String sid) throws IOException {
+    protected static VOTableDocument getDoc(String sid) throws IOException {
         File configDir = new File(System.getProperty("user.home") + "/config");
         String filename = sid + ".xml";
         File tmpl = new File(configDir, filename);
@@ -493,56 +496,62 @@ public class DefaultTableWriter implements TableWriter {
      */
     protected void addMetaResources(VOTableDocument votableDocument, List<String> fieldIDs)
             throws IOException {
-        RegistryClient regClient = new RegistryClient();
+
         for (String fid : fieldIDs) {
             VOTableDocument serviceDocument = getDoc(fid);
-            String filename = fid + ".xml";
-            if (serviceDocument == null) {
-                return;
-            }
-
-            for (VOTableResource metaResource : serviceDocument.getResources()) {
-                if ("meta".equals(metaResource.getType())) {
-                    votableDocument.getResources().add(metaResource);
-                    try {
-                        URL accessURL = null;
-                        URI resourceIdentifier = null;
-                        URI standardID = null;
-                        Iterator<VOTableParam> i = metaResource.getParams().iterator();
-                        while (i.hasNext()) {
-                            VOTableParam vp = i.next();
-                            if (vp.getName().equals("accessURL")) {
-                                accessURL = new URL(vp.getValue());
-                            } else if (vp.getName().equals("resourceIdentifier")) {
-                                resourceIdentifier = new URI(vp.getValue());
-                            } else if (vp.getName().equals("standardID")) {
-                                standardID = new URI(vp.getValue());
-                            }
-                        }
-                        if (accessURL == null && resourceIdentifier != null && standardID != null) {
-                            // try to augment resource with accessURL
-                            Subject s = AuthenticationUtil.getCurrentSubject();
-                            AuthMethod cur = AuthenticationUtil.getAuthMethod(s);
-                            if (cur == null) {
-                                cur = AuthMethod.ANON;
-                            }
-                            log.debug("resourceIdentifier=" + resourceIdentifier + ", standardID=" + standardID + ", authMethod=" + cur);
-                            accessURL = regClient.getServiceURL(resourceIdentifier, standardID, cur);
-                            if (accessURL != null) {
-                                String surl = accessURL.toExternalForm();
-                                String arraysize = Integer.toString(surl.length()); // fixed length since we know it
-                                VOTableParam accessParam = new VOTableParam("accessURL", "char", arraysize, surl);
-                                metaResource.getParams().add(accessParam);
-                            } else {
-                                // log the error but continue anyway
-                                log.error("failed to find accessURL: resourceIdentifier=" + resourceIdentifier
-                                        + ", standardID=" + standardID + ", authMethod=" + cur);
-                            }
-                        }
-                    } catch (URISyntaxException e) {
-                        throw new RuntimeException("resourceIdentifier in " + filename + " is invalid", e);
+            if (serviceDocument != null) {
+                for (VOTableResource metaResource : serviceDocument.getResources()) {
+                    if ("meta".equals(metaResource.getType())) {
+                        votableDocument.getResources().add(metaResource);
+                        populateAccessURLParam(metaResource);
                     }
                 }
+            }
+        }
+    }
+
+    protected void populateAccessURLParam(VOTableResource metaResource) {
+        if (regClient == null) {
+            regClient = new RegistryClient();
+        }
+        URL accessURL = null;
+        URI resourceIdentifier = null;
+        URI standardID = null;
+        Iterator<VOTableParam> i = metaResource.getParams().iterator();
+        while (i.hasNext()) {
+            VOTableParam vp = i.next();
+            try {
+                if (vp.getName().equals("accessURL")) {
+                    accessURL = new URL(vp.getValue());
+                } else if (vp.getName().equals("resourceIdentifier")) {
+                    resourceIdentifier = new URI(vp.getValue());
+                } else if (vp.getName().equals("standardID")) {
+                    standardID = new URI(vp.getValue());
+                }
+            } catch (URISyntaxException e) {
+                throw new RuntimeException("Something went wrong with the Meta Resource Params", e);
+            } catch (MalformedURLException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        if (accessURL == null && resourceIdentifier != null && standardID != null) {
+            // try to augment resource with accessURL
+            Subject s = AuthenticationUtil.getCurrentSubject();
+            AuthMethod cur = AuthenticationUtil.getAuthMethod(s);
+            if (cur == null) {
+                cur = AuthMethod.ANON;
+            }
+            log.debug("resourceIdentifier=" + resourceIdentifier + ", standardID=" + standardID + ", authMethod=" + cur);
+            accessURL = regClient.getServiceURL(resourceIdentifier, standardID, cur);
+            if (accessURL != null) {
+                String surl = accessURL.toExternalForm();
+                String arraysize = Integer.toString(surl.length()); // fixed length since we know it
+                VOTableParam accessParam = new VOTableParam("accessURL", "char", arraysize, surl);
+                metaResource.getParams().add(accessParam);
+            } else {
+                // log the error but continue anyway
+                log.error("failed to find accessURL: resourceIdentifier=" + resourceIdentifier
+                        + ", standardID=" + standardID + ", authMethod=" + cur);
             }
         }
     }
