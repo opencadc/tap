@@ -1,0 +1,3 @@
+#!/bin/bash
+
+cd src/main/webapp && docker run --rm -v $PWD:/work:ro dshanley/vacuum lint -d openapi.yaml
