@@ -133,8 +133,9 @@ public class TablesInputHandler implements InlineContentHandler {
                 ByteCountInputStream istream = new ByteCountInputStream(in, BYTE_LIMIT);
                 tab = tr.read(istream);
             } else if (PARQUET_TYPE.equalsIgnoreCase(contentType)) {
+                ByteCountInputStream istream = new ByteCountInputStream(in, BYTE_LIMIT);
                 ParquetReader parquetReader = new ParquetReader();
-                tab = parquetReader.read(in);
+                tab = parquetReader.read(istream);
             }
             InlineContentHandler.Content ret = new InlineContentHandler.Content();
             ret.name = objectTag;
