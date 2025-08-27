@@ -94,7 +94,7 @@ public class ParquetReaderTest extends AbstractTablesTest {
         verifyTableData(voDocFromParquetReader.getResourceByType("results").getTable(), withMetadata);
     }
 
-    private void testHttpRemoteAccessSource(boolean withMetadata) throws IOException, ResourceNotFoundException {
+    private void testHttpRemoteAccessSource(boolean withMetadata) throws IOException {
         ParquetReader reader = new ParquetReader();
         String remoteFileName = withMetadata ? "parquet-with-metadata" : "parquet-without-metadata";
         URL artifactURL = new URL("https://ws-cadc.canfar.net/vault/files/CADC/test-data/tap-upload/" + remoteFileName + ".parquet");
