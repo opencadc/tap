@@ -258,7 +258,10 @@ abstract class AbstractTablesTest {
         orig.getColumnDescs().add(new ColumnDesc(tableName, "a13", new TapDataType("long", "*", null)));
         orig.getColumnDescs().add(new ColumnDesc(tableName, "a14", new TapDataType("float", "*", null)));
         orig.getColumnDescs().add(new ColumnDesc(tableName, "a15", new TapDataType("double", "*", null)));
-        
+
+        orig.getColumnDescs().add(new ColumnDesc(tableName, "e16", TapDataType.URI));
+        orig.getColumnDescs().add(new ColumnDesc(tableName, "e17", new TapDataType("char","36", "uuid")));
+
         // create
         URL tableURL = new URL(certTablesURL.toExternalForm() + "/" + tableName);
         TableWriter w = new TableWriter();
