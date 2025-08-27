@@ -427,7 +427,8 @@
         ],
         "consumes": [
           "text/xml",
-          "application/x-votable+xml"
+          "application/x-votable+xml",
+          "application/vnd.apache.parquet"
         ],
         "responses": {
           "201": {
