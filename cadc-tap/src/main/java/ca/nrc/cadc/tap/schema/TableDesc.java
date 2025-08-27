@@ -92,6 +92,8 @@ public class TableDesc {
     public TapPermissions tapPermissions;
     public Boolean apiCreated;
     
+    public String viewTarget;
+    
     /**
      * Identifier for use when the table data (rows) are temporarily
      * stored someplace other than in the database. Use case: TAP upload
@@ -136,6 +138,14 @@ public class TableDesc {
         TapSchema.assertNotNull(TableDesc.class, "tableName", tableName);
         this.schemaName = schemaName;
         this.tableName = tableName;
+        this.tableType = TableType.TABLE;
+    }
+    
+    public TableDesc(String schemaName, String viewName, String viewTarget) {
+        this.schemaName = schemaName;
+        this.tableName = viewName;
+        this.viewTarget = viewTarget;
+        this.tableType = TableType.VIEW;
     }
 
     public void setSchemaName(String schemaName) {

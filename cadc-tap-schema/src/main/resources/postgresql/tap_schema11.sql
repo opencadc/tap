@@ -33,6 +33,7 @@ create table tap_schema.tables11
 	schema_name   varchar(64)  NOT NULL,
 	table_name    varchar(128) NOT NULL,
         table_type    varchar(8)   NOT NULL,
+        view_target   varchar(128),
 	utype         varchar(512),
 	description   varchar(512),
 	table_index   integer,
