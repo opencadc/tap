@@ -83,6 +83,9 @@ import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
 import ca.nrc.cadc.tap.parser.region.pgsphere.PgsphereRegionConverter;
+import ca.nrc.cadc.tap.schema.SchemaDesc;
+import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TableDesc.TableType;
 import net.sf.jsqlparser.util.deparser.SelectDeParser;
 import org.apache.log4j.Logger;
 
@@ -116,7 +119,7 @@ public class AdqlQueryImpl extends AdqlQuery {
         // inject read access constraints in tap_schema queries
         IdentityManager identityManager = AuthenticationUtil.getIdentityManager();
         super.navigatorList.add(new TapSchemaReadAccessConverter(identityManager));
-        
+
         // TAP-1.1 version of tap_schema
         TableNameConverter tnc = new TableNameConverter(true);
         tnc.put("tap_schema.schemas", "tap_schema.schemas11");
@@ -124,6 +127,13 @@ public class AdqlQueryImpl extends AdqlQuery {
         tnc.put("tap_schema.columns", "tap_schema.columns11");
         tnc.put("tap_schema.keys", "tap_schema.keys11");
         tnc.put("tap_schema.key_columns", "tap_schema.key_columns11");
+        for (SchemaDesc sd : tapSchema.getSchemaDescs()) {
+            for (TableDesc td : sd.getTableDescs()) {
+                if (TableType.VIEW.equals(td.tableType) && td.viewTarget != null) {
+                    tnc.put(td.getTableName(), td.viewTarget);
+                }
+            }
+        }
         TableNameReferenceConverter tnrc = new TableNameReferenceConverter(tnc.map);
         super.navigatorList.add(new SelectNavigator(new ExpressionNavigator(), tnrc, tnc));
 

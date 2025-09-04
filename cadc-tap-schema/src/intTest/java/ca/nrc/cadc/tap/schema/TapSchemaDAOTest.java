@@ -213,7 +213,6 @@ public class TapSchemaDAOTest extends TestUtil {
             Assert.assertNull("initial setup", td);
 
             TableDesc orig = new TableDesc(testSchemaName, testTable);
-            orig.tableType = TableDesc.TableType.TABLE;
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c1", TapDataType.SHORT));
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c2", TapDataType.INTEGER));
@@ -257,7 +256,6 @@ public class TapSchemaDAOTest extends TestUtil {
             Assert.assertNull("initial setup", td);
 
             TableDesc orig = new TableDesc(testSchemaName, testTable);
-            orig.tableType = TableDesc.TableType.TABLE;
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
             
             dao.put(orig);
@@ -304,7 +302,6 @@ public class TapSchemaDAOTest extends TestUtil {
             Assert.assertNull("initial setup", td);
 
             TableDesc orig = new TableDesc(testSchemaName, testTable);
-            orig.tableType = TableDesc.TableType.TABLE;
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
             
             dao.put(orig);
@@ -343,7 +340,6 @@ public class TapSchemaDAOTest extends TestUtil {
             Assert.assertNull("initial setup", td);
 
             TableDesc orig = new TableDesc(testSchemaName, testTable);
-            orig.tableType = TableDesc.TableType.TABLE;
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
             
             dao.put(orig);
@@ -381,7 +377,6 @@ public class TapSchemaDAOTest extends TestUtil {
             Assert.assertNull("initial setup", td);
 
             TableDesc orig = new TableDesc(testSchemaName, testTable);
-            orig.tableType = TableDesc.TableType.TABLE;
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
             
             dao.put(orig);
@@ -494,5 +489,41 @@ public class TapSchemaDAOTest extends TestUtil {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
         }
+    }
+
+    @Test
+    public void testPutGetUpdateDeleteTableAsAView() {
+        try {
+            TapSchemaDAO dao = new TapSchemaDAO();
+            dao.setDataSource(dataSource);
+            String viewName = testSchemaName + ".round_trip_view_name";
+            String viewTarget = testSchemaName + ".round_trip_view_target";
+
+            try {
+                dao.delete(viewName);
+            } catch (ResourceNotFoundException ex) {
+                log.debug("table did not exist at setup: " + ex);
+            }
+
+            TableDesc td = dao.getTable(viewName);
+            Assert.assertNull("initial setup", td);
+
+            TableDesc orig = new TableDesc(testSchemaName, viewName, viewTarget);
+            orig.getColumnDescs().add(new ColumnDesc(viewName, "a", TapDataType.STRING));
+
+            dao.put(orig);
+            td = dao.getTable(viewName);
+            Assert.assertNotNull("created table", td);
+            Assert.assertEquals("table type", TableDesc.TableType.VIEW, td.tableType);
+            Assert.assertEquals("num columns", orig.getColumnDescs().size(), td.getColumnDescs().size());
+
+            dao.delete(td.getTableName());
+            td = dao.getTable(viewName);
+            Assert.assertNull("delete confirmed", td);
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+
     }
 }

@@ -126,6 +126,7 @@ public class TableUpdateRunner implements JobRunner {
         PARAM_NAMES.add("ingest");
         PARAM_NAMES.add("table");
         PARAM_NAMES.add("unique");
+        PARAM_NAMES.add("view");
     }
 
     private JobUpdater jobUpdater;
@@ -205,10 +206,15 @@ public class TableUpdateRunner implements JobRunner {
                 Map<String, List<String>> params = pe.getParameters(job.getParameterList());
                 String index = getSingleValue("index", params);
                 String ingest = getSingleValue("ingest", params);
+                String view = getSingleValue("view", params);
                 if (index == null && ingest == null) {
                     throw new IllegalArgumentException("one of 'index' or 'ingest' parameter must be specified");
                 } else if (index != null && ingest != null) {
                     throw new IllegalArgumentException("'index' and 'ingest' parameters cannot be specified at the same time");
+                } else if (index != null && view != null) {
+                    throw new IllegalArgumentException("'index' parameter can not be specified with the 'view' parameter");
+                } else if (index == null && ingest == null && view != null) {
+                    throw new IllegalArgumentException("'view' parameter must be specified with the 'ingest' parameter");
                 }
                 if (index != null) {
                     indexTable(params);
@@ -364,7 +370,12 @@ public class TableUpdateRunner implements JobRunner {
         if (tableName == null) {
             throw new IllegalArgumentException("missing parameter 'table'");
         }
-        log.debug("ingesting table " + tableName);
+        String viewName = getSingleValue("view", params);
+        if (viewName != null) {
+            log.debug(String.format("ingesting view %s of table %s", viewName, tableName));
+        } else {
+            log.debug("ingesting table " + tableName);
+        }
 
         PluginFactory pf = new PluginFactory();
         TapSchemaDAO tapSchemaDAO = pf.getTapSchemaDAO();
@@ -372,17 +383,21 @@ public class TableUpdateRunner implements JobRunner {
         tapSchemaDAO.setDataSource(ds);
 
         // check write permissions to the tap_schema
-        String schemaName = Util.getSchemaFromTable(tableName);
+        String ingestTable = viewName != null ? viewName : tableName;
+        String schemaName = Util.getSchemaFromTable(ingestTable);
         try {
             TablesAction.checkSchemaWritePermissions(tapSchemaDAO, schemaName, logInfo);
         }  catch (ResourceNotFoundException | IOException ex) {
             throw new IllegalArgumentException("ingest schema not found in tap_schema: " + schemaName);
         }
 
-        log.debug("check if table already exists in tap_schema");
-        TableDesc tableDesc = tapSchemaDAO.getTable(tableName);
+        // if ingesting a table, the table should not exist in the tap_schema
+        // if ingesting a view, the view should not exist in the tap_schema
+        String checkName = viewName != null ? viewName : tableName;
+        log.debug("check if table or view already exists in tap_schema");
+        TableDesc tableDesc = tapSchemaDAO.getTable(checkName);
         if (tableDesc != null) {
-            throw new IllegalArgumentException("ingest table already exists in tap_schema: " + tableName);
+            throw new IllegalArgumentException("ingest table or view already exists in tap_schema: " + checkName);
         }
 
         // note: this is outside the transaction because it uses low-level db to get
@@ -403,7 +418,25 @@ public class TableUpdateRunner implements JobRunner {
         } catch (ADQLIdentifierException ex) {
             throw new IllegalArgumentException(ex.getMessage());
         }
-            
+
+        // if view={table_name} is specified create a TableDesc view,
+        // updating the columnDesc table name with the view name
+        if (viewName != null) {
+            TableDesc viewDesc = new TableDesc(schemaName, viewName, tableName);
+            viewDesc.description = ingestable.description;
+            viewDesc.apiCreated = ingestable.apiCreated;
+            viewDesc.tableIndex = ingestable.tableIndex;
+            viewDesc.utype = ingestable.utype;
+            viewDesc.getKeyDescs().addAll(ingestable.getKeyDescs());
+            viewDesc.tapPermissions = ingestable.tapPermissions;
+            viewDesc.getColumnDescs().addAll(ingestable.getColumnDescs());
+            for (ColumnDesc cd : viewDesc.getColumnDescs()) {
+                cd.setTableName(viewName);
+            }
+            ingestable = viewDesc;
+            log.debug("ingest view " + ingestable);
+        }
+
         DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
         try {
             log.debug("start transaction");
