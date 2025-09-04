@@ -80,7 +80,9 @@ import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import java.security.Principal;
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import javax.security.auth.Subject;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
@@ -132,11 +134,20 @@ public class PutAction extends TablesAction {
         }
 
         SchemaDesc inputSchema = getInputSchema(schema);
-        String owner = syncInput.getHeader("x-schema-owner"); // HACK
-        if (inputSchema == null || owner == null) {
-            throw new IllegalArgumentException("no input schema & owner");
+        if (inputSchema == null) {
+            throw new IllegalArgumentException("no input schema");
         }
-        
+
+        String owner = syncInput.getHeader("x-schema-owner"); // HACK
+        // if the x-schema-owner isn't set, and the caller has admin privileges for the service,
+        // make the caller the schema owner.
+        if (owner == null && checkIsAdmin()) {
+            owner = getAdminName();
+        }
+        if (owner == null) {
+            throw new IllegalArgumentException("schema owner not specified");
+        }
+
         IdentityManager im = AuthenticationUtil.getIdentityManager();
         Subject s;
         if (owner.startsWith("openid ")) {
@@ -305,4 +316,19 @@ public class PutAction extends TablesAction {
         }
         throw new RuntimeException("BUG: no input schema owner");
     }
+
+    private String getAdminName() {
+        String name = null;
+        try {
+            Context ctx = new InitialContext();
+            HttpPrincipal admin = (HttpPrincipal) ctx.lookup(jndiAdminKey);
+            if (admin != null) {
+                name = admin.getName();
+            }
+        } catch (NamingException ex) {
+            log.error("Failed to find JNDI key: " + jndiAdminKey, ex);
+        }
+        return name;
+    }
+
 }

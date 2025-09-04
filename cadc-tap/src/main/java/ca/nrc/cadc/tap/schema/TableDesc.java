@@ -88,7 +88,7 @@ public class TableDesc {
     public String description;
     public String utype;
     public Integer tableIndex;
-    public TableType tableType = TableType.TABLE;
+    public TableType tableType;
     public TapPermissions tapPermissions;
     public Boolean apiCreated;
     
@@ -142,6 +142,9 @@ public class TableDesc {
     }
     
     public TableDesc(String schemaName, String viewName, String viewTarget) {
+        TapSchema.assertNotNull(TableDesc.class, "schemaName", schemaName);
+        TapSchema.assertNotNull(TableDesc.class, "viewName", viewName);
+        TapSchema.assertNotNull(TableDesc.class, "viewTarget", viewTarget);
         this.schemaName = schemaName;
         this.tableName = viewName;
         this.viewTarget = viewTarget;
@@ -186,6 +189,9 @@ public class TableDesc {
         sb.append("Table[");
         sb.append(schemaName == null ? "" : schemaName).append(",");
         sb.append(tableName).append(",");
+        if (viewTarget != null) {
+            sb.append(viewTarget).append(",");
+        }
         sb.append(description == null ? "" : description).append(",");
         sb.append(utype == null ? "" : utype).append(",");
         sb.append("columns[");

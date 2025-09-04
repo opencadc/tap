@@ -208,7 +208,7 @@ public class TableUpdateTest extends AbstractTablesTest {
             }
 
             // run the ingest
-            doIngestTable(schemaOwner, testTable, ExecutionPhase.COMPLETED);
+            doIngestTable(schemaOwner, testTable, null, ExecutionPhase.COMPLETED);
             
             TableDesc td = tapSchemaDAO.getTable(testTable);
             Assert.assertNotNull(td);
@@ -273,7 +273,7 @@ public class TableUpdateTest extends AbstractTablesTest {
             log.debug("created database table: " + testTable);
 
             try {
-                doIngestTable(schemaOwner, testTable, ExecutionPhase.ERROR);
+                doIngestTable(schemaOwner, testTable, null, ExecutionPhase.ERROR);
             } catch (UnsupportedOperationException expected) {
                 log.info("expected exception: " + expected);
             }
@@ -293,11 +293,90 @@ public class TableUpdateTest extends AbstractTablesTest {
         }
     }
 
-    void doIngestTable(Subject subject, String tableName, ExecutionPhase expected) throws Exception {
+    @Test
+    public void testIngestView() {
+        try {
+            clearSchemaPerms();
+            TapPermissions tp = new TapPermissions(null, true, null, null);
+            super.setPerms(schemaOwner, testSchemaName, tp, 200);
+
+            final String testViewName = testSchemaName + ".test_ingest_view_name";
+            final String testViewTarget = testSchemaName + ".test_ingest_view_target";
+
+            // delete the table from the database:
+            // !apiCreated so cleanup in doCreateTable is not complete
+            try {
+                String drop = "DROP TABLE " + testViewTarget;
+                JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+                jdbc.execute(drop);
+                log.info("successfully dropped: " + testViewTarget);
+            } catch (Exception ignore) {
+                log.debug("ingest-view cleanup-before-test failed for " + testViewTarget);
+            }
+
+            // delete the view from tap_schema so we can create it
+            try {
+                tapSchemaDAO.delete(testViewTarget);
+                tapSchemaDAO.delete(testViewName);
+            } catch (Exception ignore) {
+                log.debug("tap_schema cleanup-before-test failed for " + testViewName);
+            }
+
+            // create test table and schema
+            final TableDesc target = doCreateTable(schemaOwner, testViewTarget);
+
+            // delete the table from tap_schema so we can ingest it
+            try {
+                tapSchemaDAO.delete(testViewTarget);
+            } catch (Exception ignore) {
+                log.debug("tap_schema cleanup-before-test failed for " + testViewTarget);
+            }
+
+            // run the ingest
+            doIngestTable(schemaOwner, testViewTarget, testViewName, ExecutionPhase.COMPLETED);
+
+            TableDesc view = tapSchemaDAO.getTable(testViewName);
+            Assert.assertNotNull(view);
+            log.info("found: " + view.getTableName() + " apiCreated=" + view.apiCreated);
+
+            Assert.assertEquals(TableDesc.TableType.VIEW, view.tableType);
+            Assert.assertEquals(target.getTableName(), view.viewTarget);
+            Assert.assertEquals(target.getColumnDescs().size(), view.getColumnDescs().size());
+            for (ColumnDesc ocd : target.getColumnDescs()) {
+                ColumnDesc cd = view.getColumn(ocd.getColumnName());
+                Assert.assertNotNull(ocd.getColumnName(), cd);
+                Assert.assertEquals(ocd.getDatatype(), cd.getDatatype()); // TapDataType.equals() is lax
+                log.info("found: " + cd.getColumnName() + " " + cd.getDatatype());
+            }
+
+            // cleanup on success
+            doDelete(schemaOwner, testViewName, false);
+
+            // delete the table from the database:
+            // !apiCreated so cleanup in doCreateTable is not complete
+            try {
+                String drop = "DROP TABLE " + testViewTarget;
+                JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+                jdbc.execute(drop);
+                log.info("successfully dropped: " + testViewTarget);
+            } catch (Exception ignore) {
+                log.debug("ingest-view cleanup-before-test failed for " + testViewTarget);
+            }
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+
+    }
+
+    void doIngestTable(Subject subject, String tableName, String viewName, ExecutionPhase expected) throws Exception {
         // create job
         Map<String,Object> params = new TreeMap<String,Object>();
         params.put("ingest", "true");
         params.put("table", tableName);
+        if (viewName != null) {
+            params.put("view", viewName);
+        }
         HttpPost post = new HttpPost(certUpdateURL, params, false);
         Subject.doAs(subject, new RunnableAction(post));
         Assert.assertNull("throwable", post.getThrowable());
