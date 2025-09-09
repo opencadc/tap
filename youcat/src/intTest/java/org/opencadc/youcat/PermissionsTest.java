@@ -85,13 +85,14 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.security.AccessControlException;
+import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
@@ -289,7 +290,7 @@ public class PermissionsTest extends AbstractTablesTest {
     
     @Test
     public void testGroupReadWrite() {
-        log.info("testGroupReadWrite()");
+        log.info("testGroupReadWriteTable()");
         try {
             clearSchemaPerms();
             
@@ -300,6 +301,7 @@ public class PermissionsTest extends AbstractTablesTest {
             this.insertData(subjectWithGroups, certLoadURL, testTable, 403);
             this.doCreateIndex(subjectWithGroups, testTable, "c0", false, ExecutionPhase.ERROR, "permission denied");;
             
+            // grant rw on schema
             GroupURI readWriteGroup = new GroupURI(VALID_TEST_GROUP);
             TapPermissions tp = new TapPermissions(null, false, null, readWriteGroup);
             setPerms(schemaOwner, testSchemaName, tp, 200);
@@ -309,10 +311,12 @@ public class PermissionsTest extends AbstractTablesTest {
             Assert.assertNull(tp1.readGroup);
             Assert.assertEquals(readWriteGroup, tp1.readWriteGroup);
             
+            // denied
             this.doQuery(subjectWithGroups, certQueryURL, testTable, 403);
             this.insertData(subjectWithGroups, certLoadURL, testTable, 403);
             this.doCreateIndex(subjectWithGroups, testTable, "c0", false, ExecutionPhase.ERROR, "permission denied");
             
+            // grant rw on table
             setPerms(schemaOwner, testTable, tp, 200);
             tp1 = getPermissions(schemaOwner, testTable, 200);
             Assert.assertNotNull(tp1.isPublic);
@@ -320,17 +324,40 @@ public class PermissionsTest extends AbstractTablesTest {
             Assert.assertNull(tp1.readGroup);
             Assert.assertEquals(readWriteGroup, tp1.readWriteGroup);
             
+            // allowed
             this.doQuery(subjectWithGroups, certQueryURL, testTable, 200);
             this.insertData(subjectWithGroups, certLoadURL, testTable, 200);
             this.doCreateIndex(subjectWithGroups, testTable, "c0", false, ExecutionPhase.COMPLETED, null);
            
+            doDelete(schemaOwner, testTable, false);
+            
+            // create table via read-write group
+            clearSchemaPerms();
+            try {
+                doCreateTable(subjectWithGroups, testTable);
+                Assert.fail("expected AccessControlException, but create succeeded");
+            } catch (AccessControlException expected) {
+                log.info("caught expected: " + expected);
+            }
+            log.info("set permissions on schema " + testSchemaName + " : " + tp);
+            setPerms(schemaOwner, testSchemaName, tp, 200);
+            
+            doCreateTable(subjectWithGroups, testTable);
+            log.info("created " + testTable + " as " + subjectWithGroups);
+            TapPermissions tpa = getPermissions(subjectWithGroups, testTable, 200);
+            Assert.assertNotNull(tpa.owner);
+            Assert.assertFalse(tpa.owner.getPrincipals().isEmpty()); // owned
+            Principal op = tpa.owner.getPrincipals().iterator().next();
+            log.info(testTable + "owner: " + tpa.owner);
+            Assert.assertTrue(subjectWithGroups.getPrincipals().contains(op));
+            
             doDelete(schemaOwner, testTable, false);
         } catch (Exception t) {
             log.error("unexpected", t);
             Assert.fail("unexpected: " + t.getMessage());
         }
     }
-    
+
     @Test
     public void testSchemaOwnerDropTable() {
         log.info("testDropTable()");
