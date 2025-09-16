@@ -80,9 +80,6 @@ import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import javax.naming.Context;
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
 import javax.security.auth.Subject;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
@@ -139,26 +136,21 @@ public class PutAction extends TablesAction {
         }
 
         String owner = syncInput.getHeader("x-schema-owner"); // HACK
-        // if the x-schema-owner isn't set, and the caller has admin privileges for the service,
-        // make the caller the schema owner.
-        if (owner == null && checkIsAdmin()) {
-            owner = getAdminName();
-        }
-        if (owner == null) {
-            throw new IllegalArgumentException("schema owner not specified");
-        }
-
         IdentityManager im = AuthenticationUtil.getIdentityManager();
         Subject s;
-        if (owner.startsWith("openid ")) {
-            String oid = owner.replace("openid ", "");
-            s = im.toSubject(oid);
+        if (owner != null) {
+            if (owner.startsWith("openid ")) {
+                String oid = owner.replace("openid ", "");
+                s = im.toSubject(oid);
+            } else {
+                // this will only work if the IdentityManager.augment call below
+                // can map HttpPrincipal to the desired owner type
+                s = new Subject();
+                HttpPrincipal op = new HttpPrincipal(owner);
+                s.getPrincipals().add(op);
+            }
         } else {
-            // this will only work if the IdentityManager.augment call below
-            // can map HttpPrincipal to the desired owner type
-            s = new Subject();
-            HttpPrincipal op = new HttpPrincipal(owner);
-            s.getPrincipals().add(op);
+            s = AuthenticationUtil.getCurrentSubject();
         }
         
         // flag schema as created using the TAP API
@@ -315,20 +307,6 @@ public class PutAction extends TablesAction {
             return schemaOwner;
         }
         throw new RuntimeException("BUG: no input schema owner");
-    }
-
-    private String getAdminName() {
-        String name = null;
-        try {
-            Context ctx = new InitialContext();
-            HttpPrincipal admin = (HttpPrincipal) ctx.lookup(jndiAdminKey);
-            if (admin != null) {
-                name = admin.getName();
-            }
-        } catch (NamingException ex) {
-            log.error("Failed to find JNDI key: " + jndiAdminKey, ex);
-        }
-        return name;
     }
 
 }

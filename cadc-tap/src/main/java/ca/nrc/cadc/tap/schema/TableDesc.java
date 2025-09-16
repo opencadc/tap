@@ -187,6 +187,7 @@ public class TableDesc {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("Table[");
+        sb.append(tableType.value).append(",");
         sb.append(schemaName == null ? "" : schemaName).append(",");
         sb.append(tableName).append(",");
         if (viewTarget != null) {
@@ -205,6 +206,21 @@ public class TableDesc {
         }
         sb.append("]]");
         return sb.toString();
+    }
+
+    /**
+     * Convert a TableDesc that describes a table to a TableDesc describing a view with the given view name.
+     *
+     * @param tableDesc the TableDesc to convert to a view
+     * @param viewName the name of the view
+     */
+    public static void convertToView(TableDesc tableDesc, String viewName) {
+        tableDesc.viewTarget = tableDesc.tableName;
+        tableDesc.tableName = viewName;
+        tableDesc.tableType = TableType.VIEW;
+        for (ColumnDesc cd : tableDesc.getColumnDescs()) {
+            cd.setTableName(viewName);
+        }
     }
 
 }

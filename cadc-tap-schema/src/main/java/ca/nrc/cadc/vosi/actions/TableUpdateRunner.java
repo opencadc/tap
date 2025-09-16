@@ -422,20 +422,9 @@ public class TableUpdateRunner implements JobRunner {
         // if view={table_name} is specified create a TableDesc view,
         // updating the columnDesc table name with the view name
         if (viewName != null) {
-            TableDesc viewDesc = new TableDesc(schemaName, viewName, tableName);
-            viewDesc.description = ingestable.description;
-            viewDesc.apiCreated = ingestable.apiCreated;
-            viewDesc.tableIndex = ingestable.tableIndex;
-            viewDesc.utype = ingestable.utype;
-            viewDesc.getKeyDescs().addAll(ingestable.getKeyDescs());
-            viewDesc.tapPermissions = ingestable.tapPermissions;
-            viewDesc.getColumnDescs().addAll(ingestable.getColumnDescs());
-            for (ColumnDesc cd : viewDesc.getColumnDescs()) {
-                cd.setTableName(viewName);
-            }
-            ingestable = viewDesc;
-            log.debug("ingest view " + ingestable);
+            TableDesc.convertToView(ingestable, viewName);
         }
+        log.debug("ingest " + ingestable);
 
         DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
         try {

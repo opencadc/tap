@@ -122,7 +122,7 @@ public class TapSchemaDAO extends AbstractDAO {
     protected String orderSchemaClause = " ORDER BY schema_name";
 
     private String[] tsTablesCols = new String[] { 
-        "schema_name", "table_type", "description", "utype", "table_index", "api_created", "table_name", "view_target" };
+        "schema_name", "table_type", "description", "utype", "table_index", "api_created", "view_target", "table_name"};
     protected String orderTablesClause = " ORDER BY schema_name,table_index,table_name";
 
     private String[] tsColumnsCols = new String[] { "description", "utype", "ucd", "unit", "datatype", "arraysize",
@@ -1239,8 +1239,8 @@ public class TapSchemaDAO extends AbstractDAO {
             safeSetString(sb, ps, col++, table.utype);
             safeSetInteger(sb, ps, col++, table.tableIndex);
             safeSetBoolean(sb, ps, col++, table.apiCreated);
-            safeSetString(sb, ps, col++, table.getTableName());
             safeSetString(sb, ps, col++, table.viewTarget);
+            safeSetString(sb, ps, col++, table.getTableName());
 
             return ps;
         }
