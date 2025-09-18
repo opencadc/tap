@@ -76,11 +76,8 @@ import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
 import ca.nrc.cadc.net.FileContent;
-import ca.nrc.cadc.net.HttpDownload;
-import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.net.HttpPost;
 import ca.nrc.cadc.net.HttpUpload;
-import ca.nrc.cadc.net.InputStreamWrapper;
 import ca.nrc.cadc.net.OutputStreamWrapper;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
@@ -89,14 +86,10 @@ import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.vosi.InvalidTableSetException;
-import ca.nrc.cadc.vosi.TableReader;
-import ca.nrc.cadc.vosi.TableSetReader;
 import ca.nrc.cadc.vosi.TableSetWriter;
 import ca.nrc.cadc.vosi.TableWriter;
 import ca.nrc.cadc.vosi.actions.TablesInputHandler;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.StringWriter;
 import java.net.URL;
@@ -105,7 +98,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.UUID;
 import javax.security.auth.Subject;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -127,71 +119,7 @@ public class CreateTableTest extends AbstractTablesTest {
     public CreateTableTest() { 
         super();
     }
-    
-    private static class StreamTableReader implements InputStreamWrapper {
-        TableDesc td;
-        
-        @Override
-        public void read(InputStream in) throws IOException {
-            try {
-                TableReader r = new  TableReader(false); // schema validation causes default arraysize="1" to be injected
-                td = r.read(in);
-            } catch (InvalidTableSetException ex) {
-                throw new RuntimeException("invalid table metadata: ", ex);
-            }
-        }
-    }
-    
-    private static class StreamSchemaReader implements InputStreamWrapper {
-        List<SchemaDesc> schemas;
-        
-        @Override
-        public void read(InputStream in) throws IOException {
-            try {
-                TableSetReader r = new TableSetReader();
-                TapSchema ts = r.read(in);
-                this.schemas = ts.getSchemaDescs();
-            } catch (InvalidTableSetException ex) {
-                throw new RuntimeException("invalid table metadata: ", ex);
-            }
-        }
-    }
 
-    private SchemaDesc doVosiSchemaCheck(Subject caller, String schemaName) throws Exception {
-        // VOSI tables check (metadata)
-        URL getTableURL = new URL(anonTablesURL.toExternalForm() + "/" + schemaName);
-        StreamSchemaReader isw = new StreamSchemaReader();
-        HttpGet get = new HttpGet(getTableURL, isw);
-        log.info("doVosiCheck: " + getTableURL);
-        Subject.doAs(caller, new RunnableAction(get));
-        log.info("doVosiCheck: " + get.getResponseCode());
-        Assert.assertNull("throwable", get.getThrowable());
-        Assert.assertEquals("response code", 200, get.getResponseCode());
-        SchemaDesc sd = null;
-        for (SchemaDesc s : isw.schemas) {
-            if (schemaName.equals(s.getSchemaName())) {
-                sd = s;
-            }
-        }
-        Assert.assertNotNull(sd);
-        return sd;
-    }
-
-    private TableDesc doVosiCheck(String testTable) throws Exception {
-        // VOSI tables check (metadata)
-        URL getTableURL = new URL(anonTablesURL.toExternalForm() + "/" + testTable);
-        StreamTableReader isw = new StreamTableReader();
-        HttpDownload get = new HttpDownload(getTableURL, isw);
-        log.info("doVosiCheck: " + getTableURL);
-        get.run(); // anon
-        log.info("doVosiCheck: " + get.getResponseCode());
-        Assert.assertNull("throwable", get.getThrowable());
-        Assert.assertEquals("response code", 200, get.getResponseCode());
-        TableDesc td = isw.td;
-        Assert.assertNotNull(td);
-        return td;
-    }
-    
     private VOTableTable doQueryCheck(String testTable) throws Exception {
         // TAP query check (metadata and actual table exists)
         String adql = "SELECT * from " + testTable;
@@ -472,37 +400,4 @@ public class CreateTableTest extends AbstractTablesTest {
         }
     }
 
-    private void compare(TableDesc expected, TableDesc actual) {
-        // When you read just a single table document you do not get the schema name and TableReader makes one up
-        //Assert.assertEquals("schema name", "default", actual.getSchemaName());
-        
-        Assert.assertEquals("table name", expected.getTableName(), actual.getTableName());
-        Assert.assertEquals("table description", expected.description, actual.description);
-        
-        Assert.assertEquals("num columns", expected.getColumnDescs().size(), actual.getColumnDescs().size());
-        for (int i = 0; i < expected.getColumnDescs().size(); i++) {
-            ColumnDesc ecd = expected.getColumnDescs().get(i);
-            ColumnDesc acd = actual.getColumnDescs().get(i);
-            Assert.assertEquals("column:table name", ecd.getTableName(), acd.getTableName());
-            Assert.assertEquals("column name", ecd.getColumnName(), acd.getColumnName());
-            Assert.assertEquals("column datatype", ecd.getDatatype(), acd.getDatatype());
-            Assert.assertEquals("column description", ecd.description, acd.description);
-            //Assert.assertEquals("column principal", ecd.principal, acd.principal);
-            //Assert.assertEquals("column std", ecd.std, acd.std);
-            Assert.assertEquals("column columnID", ecd.columnID, acd.columnID);
-        }
-    }
-    
-    private void compare(VOTableTable expected, VOTableTable actual) {
-        // no table name or table description
-        for (int i = 0; i < expected.getFields().size(); i++) {
-            VOTableField ef = expected.getFields().get(i);
-            VOTableField af = actual.getFields().get(i);
-            Assert.assertEquals("column name", ef.getName(), af.getName());
-            Assert.assertEquals("column datatype", ef.getDatatype(), af.getDatatype());
-            Assert.assertEquals("column arraysize", ef.getArraysize(), af.getArraysize());
-            Assert.assertEquals("column xtype", ef.xtype, af.xtype);
-            Assert.assertEquals("column description", ef.description, af.description);
-        }
-    }
 }

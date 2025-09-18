@@ -1633,6 +1633,7 @@ public class TapSchemaDAO extends AbstractDAO {
                 tableDesc = new TableDesc(sn, tn, vt);
             } else {
                 tableDesc = new TableDesc(sn, tn);
+                tableDesc.tableType = TableDesc.TableType.toValue(rs.getString("table_type"));
             }
 
             tableDesc.description = rs.getString("description");
