@@ -75,16 +75,12 @@ public class ParquetReaderTest extends AbstractTablesTest {
 
         verifyTableData(voDocFromParquetReader.getResourceByType("results").getTable(), withMetadata);
 
-        reader.close();
-        reader = new ParquetReader();
         // Test In memory parquet content via InMemoryRandomAccessSource
         RandomAccessSource randomAccessSource = new InMemoryRandomAccessSource(out.toByteArray());
         voDocFromParquetReader = reader.read(randomAccessSource);
         Assert.assertNotNull(voDocFromParquetReader);
         verifyTableData(voDocFromParquetReader.getResourceByType("results").getTable(), withMetadata);
 
-        reader.close();
-        reader = new ParquetReader();
         // Test local parquet file via FileRandomAccessSource
         File tempFile = File.createTempFile("parquetTest", ".parquet");
         tempFile.deleteOnExit();
@@ -96,7 +92,6 @@ public class ParquetReaderTest extends AbstractTablesTest {
         voDocFromParquetReader = reader.read(randomAccessSource);
         Assert.assertNotNull(voDocFromParquetReader);
         verifyTableData(voDocFromParquetReader.getResourceByType("results").getTable(), withMetadata);
-        reader.close();
     }
 
     private void testHttpRemoteAccessSource(boolean withMetadata) throws IOException, ResourceNotFoundException {
@@ -108,7 +103,6 @@ public class ParquetReaderTest extends AbstractTablesTest {
         VOTableDocument voDocFromParquetReader = reader.read(randomAccessSource);
         Assert.assertNotNull(voDocFromParquetReader);
         verifyTableData(voDocFromParquetReader.getResourceByType("results").getTable(), withMetadata);
-        reader.close();
     }
 
     // Write out the table into Parquet format - Use writer directly to test it with and without metadata
