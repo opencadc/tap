@@ -277,6 +277,7 @@ public class PutAction extends TablesAction {
                             return td;
                         }
                     });
+                    tableData.close();
                 }
             }
             
