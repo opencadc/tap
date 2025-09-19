@@ -122,7 +122,7 @@ public class TapSchemaDAO extends AbstractDAO {
     protected String orderSchemaClause = " ORDER BY schema_name";
 
     private String[] tsTablesCols = new String[] { 
-        "schema_name", "table_type", "description", "utype", "table_index", "api_created", "table_name" };
+        "schema_name", "table_type", "description", "utype", "table_index", "api_created", "view_target", "table_name"};
     protected String orderTablesClause = " ORDER BY schema_name,table_index,table_name";
 
     private String[] tsColumnsCols = new String[] { "description", "utype", "ucd", "unit", "datatype", "arraysize",
@@ -1239,6 +1239,7 @@ public class TapSchemaDAO extends AbstractDAO {
             safeSetString(sb, ps, col++, table.utype);
             safeSetInteger(sb, ps, col++, table.tableIndex);
             safeSetBoolean(sb, ps, col++, table.apiCreated);
+            safeSetString(sb, ps, col++, table.viewTarget);
             safeSetString(sb, ps, col++, table.getTableName());
 
             return ps;
@@ -1626,9 +1627,15 @@ public class TapSchemaDAO extends AbstractDAO {
         public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
             String sn = rs.getString("schema_name");
             String tn = rs.getString("table_name");
-            TableDesc tableDesc = new TableDesc(sn, tn);
+            String vt = rs.getString("view_target");
+            TableDesc tableDesc;
+            if (vt != null) {
+                tableDesc = new TableDesc(sn, tn, vt);
+            } else {
+                tableDesc = new TableDesc(sn, tn);
+                tableDesc.tableType = TableDesc.TableType.toValue(rs.getString("table_type"));
+            }
 
-            tableDesc.tableType = TableDesc.TableType.toValue(rs.getString("table_type"));
             tableDesc.description = rs.getString("description");
             tableDesc.utype = rs.getString("utype");
             tableDesc.tableIndex = rs.getInt("table_index");
