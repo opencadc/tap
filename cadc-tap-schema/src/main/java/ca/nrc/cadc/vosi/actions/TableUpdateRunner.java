@@ -82,6 +82,7 @@ import ca.nrc.cadc.tap.db.TableIngester;
 import ca.nrc.cadc.tap.schema.ADQLIdentifierException;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import ca.nrc.cadc.tap.schema.TapSchemaUtil;
 import ca.nrc.cadc.uws.ErrorSummary;
@@ -430,14 +431,18 @@ public class TableUpdateRunner implements JobRunner {
         try {
             log.debug("start transaction");
             tm.startTransaction();
-            
-            // assign owner
-            ingestable.tapPermissions.owner = AuthenticationUtil.getCurrentSubject();
+
             ingestable.apiCreated = false; // pre-existing table
             
             log.debug("put table to tap_schema");
             tapSchemaDAO.put(ingestable);
-            log.debug(String.format("added table '%s' to tap_schema", tableName));
+            log.debug(String.format("added table '%s' to tap_schema", ingestable.getTableName()));
+
+            // set the permissions to be initially private
+            TapPermissions tablePermissions = new TapPermissions(
+                    AuthenticationUtil.getCurrentSubject(), false, null, null);
+            tapSchemaDAO.setTablePermissions(ingestable.getTableName(), tablePermissions);
+            log.debug("set permissions: " + tablePermissions);
 
             log.debug("commit transaction");
             tm.commitTransaction();
