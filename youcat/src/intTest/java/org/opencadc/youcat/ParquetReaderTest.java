@@ -14,6 +14,7 @@ import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableReader;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.net.HttpPost;
+import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.vosi.actions.TableContentHandler;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -74,12 +75,16 @@ public class ParquetReaderTest extends AbstractTablesTest {
 
         verifyTableData(voDocFromParquetReader.getResourceByType("results").getTable(), withMetadata);
 
+        reader.close();
+        reader = new ParquetReader();
         // Test In memory parquet content via InMemoryRandomAccessSource
         RandomAccessSource randomAccessSource = new InMemoryRandomAccessSource(out.toByteArray());
         voDocFromParquetReader = reader.read(randomAccessSource);
         Assert.assertNotNull(voDocFromParquetReader);
         verifyTableData(voDocFromParquetReader.getResourceByType("results").getTable(), withMetadata);
 
+        reader.close();
+        reader = new ParquetReader();
         // Test local parquet file via FileRandomAccessSource
         File tempFile = File.createTempFile("parquetTest", ".parquet");
         tempFile.deleteOnExit();
@@ -91,9 +96,10 @@ public class ParquetReaderTest extends AbstractTablesTest {
         voDocFromParquetReader = reader.read(randomAccessSource);
         Assert.assertNotNull(voDocFromParquetReader);
         verifyTableData(voDocFromParquetReader.getResourceByType("results").getTable(), withMetadata);
+        reader.close();
     }
 
-    private void testHttpRemoteAccessSource(boolean withMetadata) throws IOException {
+    private void testHttpRemoteAccessSource(boolean withMetadata) throws IOException, ResourceNotFoundException {
         ParquetReader reader = new ParquetReader();
         String remoteFileName = withMetadata ? "parquet-with-metadata" : "parquet-without-metadata";
         URL artifactURL = new URL("https://ws-cadc.canfar.net/vault/files/CADC/test-data/tap-upload/" + remoteFileName + ".parquet");
@@ -102,6 +108,7 @@ public class ParquetReaderTest extends AbstractTablesTest {
         VOTableDocument voDocFromParquetReader = reader.read(randomAccessSource);
         Assert.assertNotNull(voDocFromParquetReader);
         verifyTableData(voDocFromParquetReader.getResourceByType("results").getTable(), withMetadata);
+        reader.close();
     }
 
     // Write out the table into Parquet format - Use writer directly to test it with and without metadata
