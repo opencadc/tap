@@ -255,23 +255,24 @@ public abstract class TablesAction extends RestAction {
 
     /**
      * Check if the calling user has view permissions for the specified schema.
-     * A user can view the permissions for a schema if ons the following is true:
+     * A user can view the permissions for a schema if one the following is true:
      * <ul>
      * <li>the schema does not have an owner</li>
      * <li>the schema is public</li>
      * <li>the user is the owner of the schema</li>
      * <li>the user is the configured admin of the TAP service</li>
+     * <li>the user is a member of the schema read-only or read-write group</li>
      * </ul>
      * @param dao DAO for the TAP schema
      * @param schemaName the schema to check for view permission
      * @param logInfo webservice logging
      * @return the TapPermissions for the specified schema.
      * @throws AccessControlException if the user does not have view permissions for the schema.
+     * @throws IOException from GMS client
      * @throws ResourceNotFoundException if the schema is not found in the TAP schema.
      */
     TapPermissions checkViewSchemaPermissions(TapSchemaDAO dao, String schemaName, WebServiceLogInfo logInfo)
-            throws AccessControlException, ResourceNotFoundException {
-        
+            throws AccessControlException, IOException, ResourceNotFoundException {
         TapPermissions schemaPermissions = dao.getSchemaPermissions(schemaName);
         if (schemaPermissions == null) {
             throw new ResourceNotFoundException("schema not found: " + schemaName);
@@ -292,6 +293,23 @@ public abstract class TablesAction extends RestAction {
             logInfo.setMessage("view schema permissions allowed: admin");
             return schemaPermissions;
         }
+        
+        Set<GroupURI> permittedGroups = new TreeSet<>();
+        if (schemaPermissions.readGroup != null) {
+            permittedGroups.add(schemaPermissions.readGroup);
+        }
+        if (schemaPermissions.readWriteGroup != null) {
+            permittedGroups.add(schemaPermissions.readWriteGroup);
+        }
+        if (!permittedGroups.isEmpty()) {
+            final IvoaGroupClient groupClient = new IvoaGroupClient();
+            GroupURI permittedGroup = Util.getPermittedGroup(groupClient, permittedGroups);
+            if (permittedGroup != null) {
+                logInfo.setMessage("schema read allowed: member of group " + permittedGroup);
+                return schemaPermissions;
+            }
+        }
+
         throw new AccessControlException("permission denied");
     }
 
@@ -306,7 +324,7 @@ public abstract class TablesAction extends RestAction {
      *
      * @param dao DAO for the TAP schema
      * @param schemaName the schema to check for modify permissions
-     * @param logInfo webservice logging
+     * @param logInfo web service logging
      * @throws AccessControlException if the user does not have permission to modify the schema's permissions.
      * @throws ResourceNotFoundException if the schema is not found in the TAP schema.
      */
@@ -326,21 +344,23 @@ public abstract class TablesAction extends RestAction {
 
     /**
      * Check if the calling user has permissions to view the permissions for the specified table.
-     * A user has permission to view a table's permissions if ons the following is true:
+     * A user has permission to view a table's permissions if one the following is true:
      * <ul>
      * <li>the user is the owner of table's schema</li>
      * <li>the user is the owner of the table</li>
      * <li>the user is the configured admin of the TAP service</li>
+     * <li>the user is a member of the schema read-only or read-write group</li>
      * </ul>
      * @param dao DAO for the TAP schema
      * @param tableName the table to check for view permission
-     * @param logInfo webservice logging
+     * @param logInfo web service logging
      * @return the TapPermissions for the specified table.
      * @throws AccessControlException if the user does not have permission to view the table's permissions.
+     * @throws IOException from GMS client
      * @throws ResourceNotFoundException if the table is not found in the TAP schema.
      */
     public TapPermissions checkViewTablePermissions(TapSchemaDAO dao, String tableName, WebServiceLogInfo logInfo)
-            throws AccessControlException, ResourceNotFoundException {
+            throws AccessControlException, IOException, ResourceNotFoundException {
         
         String schemaName = Util.getSchemaFromTable(tableName);
         TapPermissions schemaPermissions = dao.getSchemaPermissions(schemaName);
@@ -364,6 +384,23 @@ public abstract class TablesAction extends RestAction {
             logInfo.setMessage("view table permissions allowed: admin");
             return tablePermissions;
         }
+
+        Set<GroupURI> permittedGroups = new TreeSet<>();
+        if (schemaPermissions.readGroup != null) {
+            permittedGroups.add(schemaPermissions.readGroup);
+        }
+        if (schemaPermissions.readWriteGroup != null) {
+            permittedGroups.add(schemaPermissions.readWriteGroup);
+        }
+        if (!permittedGroups.isEmpty()) {
+            final IvoaGroupClient groupClient = new IvoaGroupClient();
+            GroupURI permittedGroup = Util.getPermittedGroup(groupClient, permittedGroups);
+            if (permittedGroup != null) {
+                logInfo.setMessage("table read allowed: member of group schema " + permittedGroup);
+                return schemaPermissions;
+            }
+        }
+
         throw new AccessControlException("permission denied");
     }
 
@@ -430,7 +467,8 @@ public abstract class TablesAction extends RestAction {
      */
     public void checkTableReadPermissions(TapSchemaDAO dao, String tableName, WebServiceLogInfo logInfo)
             throws AccessControlException, IOException, InterruptedException, ResourceNotFoundException {
-        
+        // TODO: this now looks identical to checkViewTablePermissions since we added group checks above
+        // need to verify that this is always correct
         TapPermissions tablePermissions = dao.getTablePermissions(tableName);
         if (tablePermissions == null) {
             throw new ResourceNotFoundException("table not found: " + tableName);
@@ -474,27 +512,26 @@ public abstract class TablesAction extends RestAction {
         }
         
         // check group permissions
-        // The serviceID should come from the read or readWrite group
-        // in the future
-        final IvoaGroupClient groupClient = new IvoaGroupClient();
-        Set<GroupURI> readGroups = new TreeSet<>();
+        Set<GroupURI> permittedGroups = new TreeSet<>();
         if (schemaPermissions.readGroup != null) {
-            readGroups.add(schemaPermissions.readGroup);
+            permittedGroups.add(schemaPermissions.readGroup);
         }
         if (schemaPermissions.readWriteGroup != null) {
-            readGroups.add(schemaPermissions.readWriteGroup);
+            permittedGroups.add(schemaPermissions.readWriteGroup);
         }
         if (tablePermissions.readGroup != null) {
-            readGroups.add(tablePermissions.readGroup);
+            permittedGroups.add(tablePermissions.readGroup);
         }
         if (tablePermissions.readWriteGroup != null) {
-            readGroups.add(tablePermissions.readWriteGroup);
+            permittedGroups.add(tablePermissions.readWriteGroup);
         }
-        
-        GroupURI permittingGroup = Util.getPermittedGroup(groupClient, readGroups);
-        if (permittingGroup != null) {
-            logInfo.setMessage("view table allowed: member of group " + permittingGroup);
-            return;
+        if (!permittedGroups.isEmpty()) {
+            final IvoaGroupClient groupClient = new IvoaGroupClient();
+            GroupURI permittedGroup = Util.getPermittedGroup(groupClient, permittedGroups);
+            if (permittedGroup != null) {
+                logInfo.setMessage("table read allowed: member of group " + permittedGroup);
+                return;
+            }
         }
 
         throw new AccessControlException("permission denied");
@@ -611,7 +648,7 @@ public abstract class TablesAction extends RestAction {
         } catch (NamingException ex) {
             log.error("Failed to find JNDI key: " + jndiAdminKey, ex);
         }
-        throw new AccessControlException("permission denied");
+        return false;
     }
     
     boolean getCreateSchemaEnabled() {

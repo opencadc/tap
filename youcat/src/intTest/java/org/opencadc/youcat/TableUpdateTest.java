@@ -73,6 +73,7 @@ import ca.nrc.cadc.auth.RunnableAction;
 import ca.nrc.cadc.db.ConnectionConfig;
 import ca.nrc.cadc.db.DBConfig;
 import ca.nrc.cadc.db.DBUtil;
+import ca.nrc.cadc.net.FileContent;
 import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.net.HttpPost;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
@@ -83,9 +84,13 @@ import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.uws.ExecutionPhase;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.JobReader;
+import ca.nrc.cadc.vosi.TableWriter;
+import ca.nrc.cadc.vosi.actions.TablesInputHandler;
 import java.io.ByteArrayOutputStream;
 import java.io.StringReader;
+import java.io.StringWriter;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.sql.DatabaseMetaData;
 import java.util.Map;
 import java.util.TreeMap;
@@ -208,7 +213,7 @@ public class TableUpdateTest extends AbstractTablesTest {
             }
 
             // run the ingest
-            doIngestTable(schemaOwner, testTable, ExecutionPhase.COMPLETED);
+            doIngestTable(schemaOwner, testTable, null, ExecutionPhase.COMPLETED);
             
             TableDesc td = tapSchemaDAO.getTable(testTable);
             Assert.assertNotNull(td);
@@ -273,7 +278,7 @@ public class TableUpdateTest extends AbstractTablesTest {
             log.debug("created database table: " + testTable);
 
             try {
-                doIngestTable(schemaOwner, testTable, ExecutionPhase.ERROR);
+                doIngestTable(schemaOwner, testTable, null, ExecutionPhase.ERROR);
             } catch (UnsupportedOperationException expected) {
                 log.info("expected exception: " + expected);
             }
@@ -293,11 +298,75 @@ public class TableUpdateTest extends AbstractTablesTest {
         }
     }
 
-    void doIngestTable(Subject subject, String tableName, ExecutionPhase expected) throws Exception {
+    @Test
+    public void testIngestView () {
+        try {
+            clearSchemaPerms();
+            TapPermissions tp = new TapPermissions(null, true, null, null);
+            super.setPerms(schemaOwner, testSchemaName, tp, 200);
+
+            final String testViewName = testSchemaName + ".test_ingest_view_name";
+            final String testViewTarget = testSchemaName + ".test_ingest_view_target";
+
+            // delete the table and view from the database:
+            doDelete(schemaOwner, testViewName, true);
+            doDelete(schemaOwner, testViewTarget, true);
+
+            // create view target table and add to tap_schema
+            final TableDesc viewTarget = doCreateTable(schemaOwner, testViewTarget);
+
+            // run the ingest
+            doIngestTable(schemaOwner, testViewTarget, testViewName, ExecutionPhase.COMPLETED);
+
+            // update the view and verify
+            TableDesc view = doVosiCheck(testViewName);
+            view.description = "updated view description";
+            view.getColumn("c0").description = "updated column description";
+
+            URL viewURL = new URL(certTablesURL.toExternalForm() + "/" + testViewName);
+            TableWriter tableWriter = new TableWriter();
+            StringWriter stringWriter = new StringWriter();
+            tableWriter.write(view, stringWriter);
+            String xml = stringWriter.toString();
+            log.info("updating view...\n" + xml);
+            FileContent fileContent = new FileContent(xml, TablesInputHandler.VOSI_TABLE_TYPE, StandardCharsets.UTF_8);
+            HttpPost update = new HttpPost(viewURL, fileContent, false);
+            Subject.doAs(schemaOwner, new RunnableAction(update));
+            log.info("update view: " + update.getResponseCode() + " " + update.getThrowable());
+            Assert.assertEquals(204, update.getResponseCode());
+
+            // verify updated view
+            TableDesc updatedView = doVosiCheck(testViewName);
+            Assert.assertEquals(view.description, updatedView.description);
+            Assert.assertEquals(view.getColumn("c0").description, updatedView.getColumn("c0").description);
+
+            // check the view target is unchanged
+            TableDesc target = doVosiCheck(testViewTarget);
+            compare(viewTarget, target);
+
+            // drop the view and verify
+            doDelete(schemaOwner, testViewName, false);
+
+            // check the view target is unchanged
+            target = doVosiCheck(testViewTarget);
+            compare(viewTarget, target);
+
+            // cleanup, drop the view target
+            doDelete(schemaOwner, testViewTarget, false);
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+
+    void doIngestTable(Subject subject, String tableName, String viewName, ExecutionPhase expected) throws Exception {
         // create job
         Map<String,Object> params = new TreeMap<String,Object>();
         params.put("ingest", "true");
         params.put("table", tableName);
+        if (viewName != null) {
+            params.put("view", viewName);
+        }
         HttpPost post = new HttpPost(certUpdateURL, params, false);
         Subject.doAs(subject, new RunnableAction(post));
         Assert.assertNull("throwable", post.getThrowable());

@@ -88,9 +88,11 @@ public class TableDesc {
     public String description;
     public String utype;
     public Integer tableIndex;
-    public TableType tableType = TableType.TABLE;
+    public TableType tableType;
     public TapPermissions tapPermissions;
     public Boolean apiCreated;
+    
+    public String viewTarget;
     
     /**
      * Identifier for use when the table data (rows) are temporarily
@@ -136,6 +138,17 @@ public class TableDesc {
         TapSchema.assertNotNull(TableDesc.class, "tableName", tableName);
         this.schemaName = schemaName;
         this.tableName = tableName;
+        this.tableType = TableType.TABLE;
+    }
+    
+    public TableDesc(String schemaName, String viewName, String viewTarget) {
+        TapSchema.assertNotNull(TableDesc.class, "schemaName", schemaName);
+        TapSchema.assertNotNull(TableDesc.class, "viewName", viewName);
+        TapSchema.assertNotNull(TableDesc.class, "viewTarget", viewTarget);
+        this.schemaName = schemaName;
+        this.tableName = viewName;
+        this.viewTarget = viewTarget;
+        this.tableType = TableType.VIEW;
     }
 
     public void setSchemaName(String schemaName) {
@@ -174,8 +187,12 @@ public class TableDesc {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("Table[");
+        sb.append(tableType.value).append(",");
         sb.append(schemaName == null ? "" : schemaName).append(",");
         sb.append(tableName).append(",");
+        if (viewTarget != null) {
+            sb.append(viewTarget).append(",");
+        }
         sb.append(description == null ? "" : description).append(",");
         sb.append(utype == null ? "" : utype).append(",");
         sb.append("columns[");
@@ -189,6 +206,21 @@ public class TableDesc {
         }
         sb.append("]]");
         return sb.toString();
+    }
+
+    /**
+     * Convert a TableDesc that describes a table to a TableDesc describing a view with the given view name.
+     *
+     * @param tableDesc the TableDesc to convert to a view
+     * @param viewName the name of the view
+     */
+    public static void convertToView(TableDesc tableDesc, String viewName) {
+        tableDesc.viewTarget = tableDesc.tableName;
+        tableDesc.tableName = viewName;
+        tableDesc.tableType = TableType.VIEW;
+        for (ColumnDesc cd : tableDesc.getColumnDescs()) {
+            cd.setTableName(viewName);
+        }
     }
 
 }

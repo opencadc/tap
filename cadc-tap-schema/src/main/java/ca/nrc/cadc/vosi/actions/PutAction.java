@@ -80,7 +80,6 @@ import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import java.security.Principal;
 import javax.security.auth.Subject;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
@@ -132,22 +131,26 @@ public class PutAction extends TablesAction {
         }
 
         SchemaDesc inputSchema = getInputSchema(schema);
-        String owner = syncInput.getHeader("x-schema-owner"); // HACK
-        if (inputSchema == null || owner == null) {
-            throw new IllegalArgumentException("no input schema & owner");
+        if (inputSchema == null) {
+            throw new IllegalArgumentException("no input schema");
         }
-        
+
+        String owner = syncInput.getHeader("x-schema-owner"); // HACK
         IdentityManager im = AuthenticationUtil.getIdentityManager();
         Subject s;
-        if (owner.startsWith("openid ")) {
-            String oid = owner.replace("openid ", "");
-            s = im.toSubject(oid);
+        if (owner != null) {
+            if (owner.startsWith("openid ")) {
+                String oid = owner.replace("openid ", "");
+                s = im.toSubject(oid);
+            } else {
+                // this will only work if the IdentityManager.augment call below
+                // can map HttpPrincipal to the desired owner type
+                s = new Subject();
+                HttpPrincipal op = new HttpPrincipal(owner);
+                s.getPrincipals().add(op);
+            }
         } else {
-            // this will only work if the IdentityManager.augment call below
-            // can map HttpPrincipal to the desired owner type
-            s = new Subject();
-            HttpPrincipal op = new HttpPrincipal(owner);
-            s.getPrincipals().add(op);
+            s = AuthenticationUtil.getCurrentSubject();
         }
         
         // flag schema as created using the TAP API
@@ -225,22 +228,11 @@ public class PutAction extends TablesAction {
             throw new IllegalArgumentException("no input table");
         }
         
-        // check that the table description does not specify any indexed columns since we
-        // have to force separate index creation
-        StringBuilder sb = new StringBuilder();
+        // strip out some incoming table metadata
+        // - indexed flag (separate index creation)
         for (ColumnDesc cd : inputTable.getColumnDescs()) {
-            if (cd.indexed) {
-                if (sb.length() > 0) {
-                    sb.append(", ");
-                }
-                sb.append(cd.getColumnName());
-            }
+            cd.indexed = false;
         }
-        if (sb.length() > 0) {
-            throw new UnsupportedOperationException("cannot create table with indices -- found indexed=true for the following columns: "
-                    + sb.toString());
-        }
-            
         DataSource ds = getDataSource();
         ts.setDataSource(ds);
         TableDesc td = ts.getTable(tableName);
@@ -316,4 +308,5 @@ public class PutAction extends TablesAction {
         }
         throw new RuntimeException("BUG: no input schema owner");
     }
+
 }

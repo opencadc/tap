@@ -154,6 +154,10 @@ public class PostAction extends TablesAction {
             cd.ucd = inputCD.ucd;
             cd.unit = inputCD.unit;
             cd.utype = inputCD.utype;
+            cd.principal = inputCD.principal;
+            cd.std = inputCD.std;
+            cd.columnID = inputCD.columnID;
+            // ignore: indexed (internal)
             numCols++;
         }
         if (numCols != cur.getColumnDescs().size()) {
