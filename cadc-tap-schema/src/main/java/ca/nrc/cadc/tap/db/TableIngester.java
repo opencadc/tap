@@ -122,12 +122,6 @@ public class TableIngester {
             throw new IllegalArgumentException(String.format("error getting database metadata for %s because: %s",
                     tableName, e.getMessage()));
         }
-
-        // make caller the table owner
-        Subject caller = AuthenticationUtil.getCurrentSubject();
-        TapPermissions tapPermissions = new TapPermissions();
-        ingestTable.tapPermissions = tapPermissions;
-        
         return ingestTable;
     }
 
