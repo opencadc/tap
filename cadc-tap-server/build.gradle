@@ -27,7 +27,7 @@ dependencies {
     implementation 'org.opencadc:cadc-registry:[1.4,)'
     implementation 'org.opencadc:cadc-rest:[1.4,)'
     api 'org.opencadc:cadc-dali:[1.2.23,)'
-    api 'org.opencadc:cadc-tap-schema:[1.2.6,)'
+    api 'org.opencadc:cadc-tap-schema:[1.2.11,)'
     api 'org.opencadc:cadc-uws:[1.0,)'
     api 'org.opencadc:cadc-uws-server:[1.2.23,)'
 

@@ -682,29 +682,4 @@ public class LoadTableDataTest extends AbstractTablesTest {
             Assert.fail("unexpected exception: " + unexpected);
         }
     }
-    
-    private void assertEquals(DoubleInterval expected, DoubleInterval actual) {
-        Assert.assertEquals(expected.getLower(), actual.getLower(), 1.0e-9);
-        Assert.assertEquals(expected.getUpper(), actual.getUpper(), 1.0e-9);
-        
-    }
-    
-    private void assertEquals(Point expected, Point actual) {
-        Assert.assertEquals(expected.getLongitude(), actual.getLongitude(), 1.0e-9);
-        Assert.assertEquals(expected.getLatitude(), actual.getLatitude(), 1.0e-9);
-    }
-    
-    private void assertEquals(Circle expected, Circle actual) {
-        assertEquals(expected.getCenter(), actual.getCenter());
-        Assert.assertEquals(expected.getRadius(), actual.getRadius(), 1.0e-9);
-    }
-    
-    private void assertEquals(Polygon expected, Polygon actual) {
-        Assert.assertEquals("num vertices", expected.getVertices().size(), actual.getVertices().size());
-        for (int i=0; i < expected.getVertices().size(); i++) {
-            Point ep = expected.getVertices().get(i);
-            Point ap = actual.getVertices().get(i);
-            assertEquals(ep, ap);
-        }
-    }
 }

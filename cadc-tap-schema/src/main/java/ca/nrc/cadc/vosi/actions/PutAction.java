@@ -70,19 +70,27 @@ package ca.nrc.cadc.vosi.actions;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityManager;
+import ca.nrc.cadc.dali.tables.TableData;
+import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.net.ResourceAlreadyExistsException;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.tap.db.TableCreator;
+import ca.nrc.cadc.tap.db.TableLoader;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+
+import java.util.Iterator;
+import java.util.List;
+
 import javax.security.auth.Subject;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
+import org.opencadc.tap.io.TableDataInputStream;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
@@ -250,7 +258,35 @@ public class PutAction extends TablesAction {
             TableCreator tc = new TableCreator(ds);
             tc.createTable(inputTable);
             prof.checkpoint("create-table");
-            
+
+            // load the table data if available
+            Object in = syncInput.getContent(INPUT_TAG);
+            if (in instanceof VOTableDocument) {
+                VOTableDocument voTableDocument = (VOTableDocument) in;
+                TableData tableData = voTableDocument.getResourceByType("results").getTable().getTableData();
+
+                if (tableData != null) {
+                    TableLoader tableLoader = new TableLoader(ds, null);
+                    tableLoader.load(inputTable, new TableDataInputStream() {
+                        @Override
+                        public void close() {
+                            //no-op: fully read already
+                        }
+
+                        @Override
+                        public Iterator<List<Object>> iterator() {
+                            return tableData.iterator();
+                        }
+
+                        @Override
+                        public TableDesc acceptTargetTableDesc(TableDesc td) {
+                            return td;
+                        }
+                    });
+                    tableData.close();
+                }
+            }
+
             // add to tap_schema
             // flag table as created using the API to allow table deletion in the DeleteAction
             inputTable.apiCreated = true;

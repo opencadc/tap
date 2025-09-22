@@ -1,7 +1,6 @@
 package org.opencadc.youcat;
 
 import ca.nrc.cadc.dali.tables.parquet.ParquetReader;
-import ca.nrc.cadc.dali.tables.parquet.ParquetReader.TableShape;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableField;
 import ca.nrc.cadc.dali.tables.votable.VOTableInfo;
@@ -20,8 +19,12 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import javax.security.auth.Subject;
@@ -30,10 +33,10 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.opencadc.tap.TapClient;
 
-public class ParquetWriterRoundTripTest extends AbstractTablesTest {
-    private static final Logger log = Logger.getLogger(ParquetWriterRoundTripTest.class);
+public class ParquetWriterTest extends AbstractTablesTest {
+    private static final Logger log = Logger.getLogger(ParquetWriterTest.class);
     private static URL url;
-    private static final Charset UTF8 = Charset.forName("utf-8");
+    private static final Charset UTF8 = StandardCharsets.UTF_8;
 
     @Test
     public void testWriteParquetWithExistingTable() throws Exception {
@@ -93,19 +96,13 @@ public class ParquetWriterRoundTripTest extends AbstractTablesTest {
     private static VOTableTable extractVOTableFromOutputStream(ByteArrayOutputStream out, String adql) throws IOException {
         ParquetReader reader = new ParquetReader();
         InputStream inputStream = new ByteArrayInputStream(out.toByteArray());
-        TableShape readerResponse = reader.read(inputStream);
-
-        log.info(readerResponse.getColumnCount() + " columns, " + readerResponse.getRecordCount() + " records");
-
-        Assert.assertTrue(readerResponse.getRecordCount() > 0);
-        Assert.assertTrue(readerResponse.getColumnCount() > 0);
-
-        VOTableDocument voTableDocument = readerResponse.getVoTableDocument();
-
+        VOTableDocument voTableDocument = reader.read(inputStream);
         Assert.assertNotNull(voTableDocument.getResources());
 
         VOTableResource results = voTableDocument.getResourceByType("results");
         Assert.assertNotNull(results);
+        log.info(results.getTable().getFields().size() + " columns found.");
+        Assert.assertFalse(results.getTable().getFields().isEmpty());
 
         boolean queryFound = false;
         boolean queryStatusFound = false;
@@ -124,7 +121,6 @@ public class ParquetWriterRoundTripTest extends AbstractTablesTest {
         Assert.assertTrue(queryStatusFound);
 
         Assert.assertNotNull(results.getTable());
-        Assert.assertEquals(readerResponse.getColumnCount(), results.getTable().getFields().size());
         return results.getTable();
     }
 
@@ -164,18 +160,51 @@ public class ParquetWriterRoundTripTest extends AbstractTablesTest {
 
             Assert.assertEquals(field1.getName(), field2.getName());
 
-            if (field1.xtype != null && field1.xtype.equals("timestamp")) {
-                Assert.assertEquals("long", field2.getDatatype());
-
-                Assert.assertNull(field2.xtype);
-                Assert.assertNull(field2.getArraysize());
-            } else if (field1.getDatatype().equals("short")) {
+            if (field1.getDatatype().equals("short")) {
                 Assert.assertEquals("int", field2.getDatatype());
             } else {
                 Assert.assertEquals(field1.getDatatype(), field2.getDatatype());
                 Assert.assertEquals(field1.getArraysize(), field2.getArraysize());
             }
         }
+
+        compareTableData(voTableFromVOTableWriter, voTableFromParquet);
+    }
+
+    private static void compareTableData(VOTableTable voTableFromVOTableWriter, VOTableTable voTableFromParquet) {
+        Iterator<List<Object>> parquetDataIterator = voTableFromParquet.getTableData().iterator();
+        Iterator<List<Object>> votableDataIterator = voTableFromVOTableWriter.getTableData().iterator();
+        int count = 0;
+        while (parquetDataIterator.hasNext() && votableDataIterator.hasNext()) {
+            List<Object> pqRow = parquetDataIterator.next();
+            List<Object> vtRow = votableDataIterator.next();
+            Assert.assertEquals(vtRow.get(0), pqRow.get(0));
+            Assert.assertEquals((int) Short.MAX_VALUE, pqRow.get(1));
+            Assert.assertEquals(vtRow.get(2), pqRow.get(2));
+            Assert.assertEquals(vtRow.get(3), pqRow.get(3));
+            Assert.assertEquals(vtRow.get(4), pqRow.get(4));
+            Assert.assertEquals(vtRow.get(5), pqRow.get(5));
+            Assert.assertTrue(pqRow.get(6) instanceof Date);
+            Assert.assertEquals(vtRow.get(7), pqRow.get(7));
+            Assert.assertEquals(vtRow.get(8), pqRow.get(8));
+            Assert.assertEquals(vtRow.get(9), pqRow.get(9));
+            Assert.assertEquals(vtRow.get(10), pqRow.get(10));
+
+            short[] shortArray = (short[]) vtRow.get(11);
+            int[] convertedShortArray = new int[shortArray.length];
+            for (int i = 0; i < shortArray.length; i++) {
+                convertedShortArray[i] = shortArray[i];
+            }
+            Assert.assertArrayEquals((int[]) pqRow.get(11), convertedShortArray);
+
+            Assert.assertArrayEquals((int[]) vtRow.get(12), (int[]) pqRow.get(12));
+            Assert.assertArrayEquals((long[]) vtRow.get(13), (long[]) pqRow.get(13));
+            Assert.assertArrayEquals((float[]) vtRow.get(14), (float[]) pqRow.get(14), 0.0001f);
+            Assert.assertArrayEquals((double[]) vtRow.get(15), (double[]) pqRow.get(15), 0.0001);
+
+            count++;
+        }
+        Assert.assertEquals(10, count);
     }
 
     private String queryVOTableWriter(String testTable) throws Exception {
