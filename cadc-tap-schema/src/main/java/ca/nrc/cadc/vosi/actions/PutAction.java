@@ -73,6 +73,7 @@ import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.dali.tables.TableData;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
+import ca.nrc.cadc.io.ResourceIterator;
 import ca.nrc.cadc.net.ResourceAlreadyExistsException;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.rest.InlineContentHandler;
@@ -84,7 +85,7 @@ import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 
-import java.util.Iterator;
+import java.io.IOException;
 import java.util.List;
 
 import javax.security.auth.Subject;
@@ -107,25 +108,30 @@ public class PutAction extends TablesAction {
 
     @Override
     public void doAction() throws Exception {
-        String[] target = getTarget();
-        String schemaName = target[0];
-        String tableName = target[1];
-        
-        log.debug("PUT: schema=" + schemaName + " table=" + tableName);
-        
-        checkWritable();
-        
-        if (schemaName == null && tableName == null) {
-            throw new IllegalArgumentException("missing schema|table name in path");
-        }
-        
-        TapSchemaDAO ts = getTapSchemaDAO();
-        if (tableName != null) {
-            TablesAction.checkSchemaWritePermissions(ts, schemaName, logInfo);
-            createTable(ts, schemaName, tableName);
-        } else if (schemaName != null) {
-            checkIsAdmin();
-            createSchema(ts, schemaName);
+        Object in = syncInput.getContent(INPUT_TAG);
+        try {
+            String[] target = getTarget();
+            String schemaName = target[0];
+            String tableName = target[1];
+
+            log.debug("PUT: schema=" + schemaName + " table=" + tableName);
+
+            checkWritable();
+
+            if (schemaName == null && tableName == null) {
+                throw new IllegalArgumentException("missing schema|table name in path");
+            }
+
+            TapSchemaDAO ts = getTapSchemaDAO();
+            if (tableName != null) {
+                TablesAction.checkSchemaWritePermissions(ts, schemaName, logInfo);
+                createTable(ts, schemaName, tableName);
+            } else {
+                checkIsAdmin();
+                createSchema(ts, schemaName);
+            }
+        } finally {
+            closeResources(in);
         }
         
         syncOutput.setCode(200); // should be 201
@@ -274,7 +280,7 @@ public class PutAction extends TablesAction {
                         }
 
                         @Override
-                        public Iterator<List<Object>> iterator() {
+                        public ResourceIterator<List<Object>> iterator() throws IOException {
                             return tableData.iterator();
                         }
 
@@ -283,7 +289,6 @@ public class PutAction extends TablesAction {
                             return td;
                         }
                     });
-                    tableData.close();
                 }
             }
 
@@ -343,6 +348,16 @@ public class PutAction extends TablesAction {
             return schemaOwner;
         }
         throw new RuntimeException("BUG: no input schema owner");
+    }
+
+    private void closeResources(Object resource) {
+        if (resource instanceof VOTableDocument) {
+            try {
+                ((VOTableDocument) resource).close();
+            } catch (Exception ex) {
+                log.error("Failed to close resource", ex);
+            }
+        }
     }
 
 }

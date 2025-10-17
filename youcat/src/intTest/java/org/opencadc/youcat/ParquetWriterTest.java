@@ -149,7 +149,7 @@ public class ParquetWriterTest extends AbstractTablesTest {
         Assert.assertEquals(200, post.getResponseCode());
     }
 
-    private static void compareVOTables(VOTableTable voTableFromVOTableWriter, VOTableTable voTableFromParquet) {
+    private static void compareVOTables(VOTableTable voTableFromVOTableWriter, VOTableTable voTableFromParquet) throws IOException {
         Assert.assertEquals(voTableFromVOTableWriter.getFields().size(), voTableFromParquet.getFields().size());
         Assert.assertEquals(voTableFromVOTableWriter.getInfos().size(), voTableFromParquet.getInfos().size());
 
@@ -171,7 +171,7 @@ public class ParquetWriterTest extends AbstractTablesTest {
         compareTableData(voTableFromVOTableWriter, voTableFromParquet);
     }
 
-    private static void compareTableData(VOTableTable voTableFromVOTableWriter, VOTableTable voTableFromParquet) {
+    private static void compareTableData(VOTableTable voTableFromVOTableWriter, VOTableTable voTableFromParquet) throws IOException {
         Iterator<List<Object>> parquetDataIterator = voTableFromParquet.getTableData().iterator();
         Iterator<List<Object>> votableDataIterator = voTableFromVOTableWriter.getTableData().iterator();
         int count = 0;

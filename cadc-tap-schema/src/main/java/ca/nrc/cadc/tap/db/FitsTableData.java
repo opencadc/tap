@@ -70,6 +70,7 @@ package ca.nrc.cadc.tap.db;
 import ca.nrc.cadc.dali.tables.votable.VOTableField;
 import ca.nrc.cadc.dali.util.Format;
 import ca.nrc.cadc.dali.util.FormatFactory;
+import ca.nrc.cadc.io.ResourceIterator;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaUtil;
@@ -79,7 +80,6 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -150,7 +150,7 @@ public class FitsTableData implements TableDataInputStream {
     }
 
     @Override
-    public Iterator<List<Object>> iterator() {
+    public ResourceIterator<List<Object>> iterator() {
         return iterator;
     }
 
@@ -200,7 +200,7 @@ public class FitsTableData implements TableDataInputStream {
         return cf;
     }
 
-    class FitsRowIterator implements Iterator<List<Object>> {
+    class FitsRowIterator implements ResourceIterator<List<Object>> {
 
         BlockingQueue<Object[]> queue;
 

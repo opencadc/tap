@@ -67,9 +67,10 @@
 
 package org.opencadc.tap.io;
 
+import ca.nrc.cadc.dali.tables.TableData;
 import ca.nrc.cadc.tap.schema.TableDesc;
 
-public interface TableDataInputStream extends TableDataStream {
+public interface TableDataInputStream extends TableData {
 
     /**
      * Accept the target table description and return the one
