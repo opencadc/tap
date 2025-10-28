@@ -116,6 +116,7 @@ public class DefaultTableWriter implements TableWriter {
 
     private static final String FORMAT = "RESPONSEFORMAT";
     private static final String FORMAT_ALT = "FORMAT";
+    private static final String SERIALIZATION_KEY = "SERIALIZATION";
 
     // shortcuts
     public static final String CSV = "csv";
@@ -164,6 +165,7 @@ public class DefaultTableWriter implements TableWriter {
     private Job job;
     private String queryInfo;
     private String contentType;
+    public static VOTableWriter.SerializationType DEFAULT_VOTABLE_SERIALIZATION;
     private String extension;
 
     // RssTableWriter not yet ported to cadcDALI
@@ -229,6 +231,10 @@ public class DefaultTableWriter implements TableWriter {
     @Override
     public String getExtension() {
         return extension;
+    }
+
+    public static void setDefaultVOTableSerialization(String serialization) {
+        DefaultTableWriter.DEFAULT_VOTABLE_SERIALIZATION = VOTableWriter.SerializationType.toValue(serialization.toUpperCase());
     }
 
     private void initFormat() {
@@ -323,6 +329,15 @@ public class DefaultTableWriter implements TableWriter {
                 rssTableWriter.write(rs, out);
             }
             return;
+        }
+
+        if (tableWriter instanceof VOTableWriter) {
+            String serialization = ParameterUtil.findParameterValue(SERIALIZATION_KEY, job.getParameterList());
+            if (serialization != null) {
+                ((VOTableWriter) tableWriter).setSerialization(VOTableWriter.SerializationType.toValue(serialization.toUpperCase()));
+            } else if (DefaultTableWriter.DEFAULT_VOTABLE_SERIALIZATION != null) {
+                ((VOTableWriter) tableWriter).setSerialization(DefaultTableWriter.DEFAULT_VOTABLE_SERIALIZATION);
+            }
         }
 
         VOTableDocument votableDocument = generateOutputTable();
