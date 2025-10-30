@@ -220,7 +220,7 @@ public class JDOMVOTableParserTest {
         final File file = Files.createTempFile(namePrefix, ".xml").toFile();
         LOGGER.debug("Created " + file.getAbsolutePath());
         try (final Writer uploadWriter = new FileWriter(file)) {
-            final VOTableWriter voTableWriter = new VOTableWriter("text/xml");
+            final VOTableWriter voTableWriter = new VOTableWriter(VOTableWriter.SerializationType.TABLEDATA);
             final VOTableDocument voTableDocument = VOTableDocumentGenerator.generateSingleResourceTable(resourceType,
                                                                                                          columnCount,
                                                                                                          rowCount);

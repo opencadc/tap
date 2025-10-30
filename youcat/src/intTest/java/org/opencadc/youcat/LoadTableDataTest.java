@@ -390,6 +390,86 @@ public class LoadTableDataTest extends AbstractTablesTest {
             Assert.fail("unexpected exception: " + unexpected);
         }
     }
+
+    @Test
+    public void testAllDataTypesBinary2() {
+        try {
+            log.info("start");
+            // Step - 1 : Create test table with all data types
+            TapPermissions tp = new TapPermissions(null, true, null, null);
+            setPerms(schemaOwner, testSchemaName, tp, 200);
+
+            String testTable = testSchemaName + ".testAllDataTypesBinary2";
+            doCreateTable(schemaOwner, testTable);
+            setPerms(schemaOwner, testTable, tp, 200);
+
+            // Step - 2 : Load data into test table
+            String data = doPrepareDataAllDataTypes();
+            doUploadTSVData(testTable, data);
+
+            // Step - 3 : Query the test table with SERIALIZATION = BINARY2
+            String adql = "SELECT * from " + testTable;
+            Map<String, Object> params = new TreeMap<>();
+            params.put("LANG", "ADQL");
+            params.put("QUERY", adql);
+            params.put("FORMAT", "votable");
+            params.put("SERIALIZATION", "BINARY2");
+            String result = Subject.doAs(anon, new AuthQueryTest.SyncQueryAction(anonQueryURL, params, null, "application/x-votable+xml ;serialization=binary2"));
+            Assert.assertNotNull(result);
+
+            // Step - 4 : Read the output VOTable with serialized Binary2 data.
+            VOTableReader r = new VOTableReader();
+            VOTableDocument doc = r.read(result);
+            VOTableResource vr = doc.getResourceByType("results");
+            VOTableTable vt = vr.getTable();
+            Assert.assertNotNull(vt);
+            Assert.assertNotNull(vt.getTableData());
+
+            // Step - 5 : Validate the read data.
+            Iterator<List<Object>> it = vt.getTableData().iterator();
+            int count = 0;
+            while (it.hasNext()) {
+                List<Object> next = it.next();
+                Assert.assertEquals("string" + count, (String) next.get(0));
+                Assert.assertEquals(new Short(Short.MAX_VALUE), (Short) next.get(1));
+                Assert.assertEquals(new Integer(Integer.MAX_VALUE), (Integer) next.get(2));
+                Assert.assertEquals(new Long(Long.MAX_VALUE), (Long) next.get(3));
+                Assert.assertEquals(new Float(Float.MAX_VALUE), (Float) next.get(4));
+                Assert.assertEquals(new Double(Double.MAX_VALUE), (Double) next.get(5));
+                Assert.assertTrue(next.get(6) instanceof Date);
+                assertEquals(new DoubleInterval(1.0, 2.0), (DoubleInterval) next.get(7));
+                assertEquals(new Point(1.0, 2.0), (Point) next.get(8));
+                assertEquals(new Circle(new Point(1.0, 2.0), 3.0), (Circle) next.get(9));
+                Polygon p = new Polygon();
+                p.getVertices().add(new Point(1.0, 2.0));
+                p.getVertices().add(new Point(3.0, 4.0));
+                p.getVertices().add(new Point(5.0, 6.0));
+                assertEquals(p, (Polygon) next.get(10));
+
+                short[] shortArray = (short[]) next.get(11);
+                int[] convertedShortArray = new int[shortArray.length];
+                for (int i = 0; i < shortArray.length; i++) {
+                    convertedShortArray[i] = shortArray[i];
+                }
+                Assert.assertArrayEquals(new int[]{Short.MIN_VALUE,Short.MAX_VALUE}, convertedShortArray);
+
+                Assert.assertArrayEquals(new int[]{Integer.MIN_VALUE, Integer.MAX_VALUE}, (int[]) next.get(12));
+                Assert.assertArrayEquals(new long[]{Long.MIN_VALUE,Long.MAX_VALUE} , (long[]) next.get(13));
+                Assert.assertArrayEquals(new float[]{Float.MIN_VALUE, Float.MAX_VALUE}, (float[]) next.get(14), 0.0001f);
+                Assert.assertArrayEquals(new double[]{Double.MIN_VALUE, Double.MAX_VALUE}, (double[]) next.get(15), 0.0001);
+
+                count++;
+            }
+            Assert.assertEquals(10, count);
+
+            // Step - 6 : Delete the test table
+            doDelete(schemaOwner, testTable, false);
+
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
     
     @Test
     public void testAllDataTypesFITS() {

@@ -103,6 +103,7 @@ import ca.nrc.cadc.vosi.InvalidTableSetException;
 import ca.nrc.cadc.vosi.TableReader;
 import ca.nrc.cadc.vosi.TableSetReader;
 import ca.nrc.cadc.vosi.TableWriter;
+import ca.nrc.cadc.vosi.actions.TableContentHandler;
 import ca.nrc.cadc.vosi.actions.TablesInputHandler;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -115,6 +116,9 @@ import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -500,4 +504,42 @@ abstract class AbstractTablesTest {
             assertEquals(ep, ap);
         }
     }
+
+    static String doPrepareDataAllDataTypes() {
+        StringBuilder data = new StringBuilder();
+        data.append("c0\tc1\tc2\tc3\tc4\tc5\tc6\te7\te8\te9\te10\ta11\ta12\ta13\ta14\ta15\n");
+        for (int i = 0; i < 10; i++) {
+            data.append("string" + i).append("\t");
+            data.append(Short.MAX_VALUE).append("\t");
+            data.append(Integer.MAX_VALUE).append("\t");
+            data.append(Long.MAX_VALUE).append("\t");
+            data.append(Float.MAX_VALUE).append("\t");
+            data.append(Double.MAX_VALUE).append("\t");
+            data.append("2018-11-05T22:12:33.111").append("\t");
+            data.append("1.0 2.0").append("\t");  // interval
+            data.append("1.0 2.0").append("\t");  // point
+            data.append("1.0 2.0 3.0").append("\t");  // circle
+            data.append("1.0 2.0 3.0 4.0 5.0 6.0").append("\t");  // polygon
+            data.append(Short.MIN_VALUE + " " + Short.MAX_VALUE).append("\t");
+            data.append(Integer.MIN_VALUE + " " + Integer.MAX_VALUE).append("\t");
+            data.append(Long.MIN_VALUE + " " + Long.MAX_VALUE).append("\t");
+            data.append(Float.MIN_VALUE + " " + Float.MAX_VALUE).append("\t");
+            data.append(Double.MIN_VALUE + " " + Double.MAX_VALUE).append("\n");
+        }
+        return data.toString();
+    }
+
+    public void doUploadTSVData(String testTable, String data) throws MalformedURLException, PrivilegedActionException {
+        URL postURL = new URL(certLoadURL.toString() + "/" + testTable);
+        final HttpPost post = new HttpPost(postURL, new FileContent(data, TableContentHandler.CONTENT_TYPE_TSV, StandardCharsets.UTF_8), false);
+        Subject.doAs(schemaOwner, new PrivilegedExceptionAction<Object>() {
+            public Object run() throws Exception {
+                post.run();
+                return null;
+            }
+        });
+        Assert.assertNull(post.getThrowable());
+        Assert.assertEquals(200, post.getResponseCode());
+    }
+
 }

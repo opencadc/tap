@@ -266,7 +266,10 @@ public class DefaultTableWriter implements TableWriter {
             // for error handling
             tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
         } else if (type.equals(VOTABLE)) {
-            tableWriter = new VOTableWriter(format);
+            String serialization = ParameterUtil.findParameterValue(SERIALIZATION_KEY, job.getParameterList());
+            VOTableWriter.SerializationType serializationType = serialization == null
+                    ? DEFAULT_VOTABLE_SERIALIZATION : VOTableWriter.SerializationType.toValue(serialization.toUpperCase());
+            tableWriter = serializationType == null ? new VOTableWriter() : new VOTableWriter(serializationType);
         } else if (type.equals(CSV)) {
             tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.CSV);
         } else if (type.equals(TSV)) {
@@ -329,15 +332,6 @@ public class DefaultTableWriter implements TableWriter {
                 rssTableWriter.write(rs, out);
             }
             return;
-        }
-
-        if (tableWriter instanceof VOTableWriter) {
-            String serialization = ParameterUtil.findParameterValue(SERIALIZATION_KEY, job.getParameterList());
-            if (serialization != null) {
-                ((VOTableWriter) tableWriter).setSerialization(VOTableWriter.SerializationType.toValue(serialization.toUpperCase()));
-            } else if (DefaultTableWriter.DEFAULT_VOTABLE_SERIALIZATION != null) {
-                ((VOTableWriter) tableWriter).setSerialization(DefaultTableWriter.DEFAULT_VOTABLE_SERIALIZATION);
-            }
         }
 
         VOTableDocument votableDocument = generateOutputTable();

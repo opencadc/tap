@@ -282,7 +282,7 @@ public class CreateTableTest extends AbstractTablesTest {
             Assert.assertEquals("Table rows are not as per expectation.", uploadTableData, iter.hasNext());
 
             if (uploadTableData) {
-                verifyUploadedVOTableTableData(iter, actualVOTableTable.getTableData().iterator());
+                verifyUploadedVOTableTableData(iter, actualVOTableTable.getTableData().iterator(), "votable");
             }
 
             // cleanup on success
@@ -322,7 +322,7 @@ public class CreateTableTest extends AbstractTablesTest {
         Iterator<List<Object>> iter = tdata.iterator();
         Assert.assertTrue("no result rows", iter.hasNext());
 
-        verifyUploadedVOTableTableData(iter, actualVOTableTable.getTableData().iterator());
+        verifyUploadedVOTableTableData(iter, actualVOTableTable.getTableData().iterator(), "parquet");
     }
 
     /*
@@ -453,7 +453,7 @@ public class CreateTableTest extends AbstractTablesTest {
         OutputStreamWrapper src = new OutputStreamWrapper() {
             @Override
             public void write(OutputStream out) throws IOException {
-                VOTableWriter w = new VOTableWriter(TablesInputHandler.VOTABLE_TYPE);
+                VOTableWriter w = new VOTableWriter(VOTableWriter.SerializationType.TABLEDATA);
                 w.write(doc, out);
             }
         };
@@ -466,12 +466,17 @@ public class CreateTableTest extends AbstractTablesTest {
         return doc;
     }
 
-    private void verifyUploadedVOTableTableData(Iterator<List<Object>> retrievedDataIter, Iterator<List<Object>> actualDataIter) {
+    private void verifyUploadedVOTableTableData(Iterator<List<Object>> retrievedDataIter, Iterator<List<Object>> actualDataIter, String format) {
         int count = 0;
         while (retrievedDataIter.hasNext() && actualDataIter.hasNext()) {
             List<Object> retrievedRow = retrievedDataIter.next();
             List<Object> actualRow = actualDataIter.next();
             Assert.assertEquals("string" + count, retrievedRow.get(0));
+            if (format.equals("parquet")) {
+                Assert.assertEquals((int) Short.MAX_VALUE, retrievedRow.get(1));
+            } else {
+                Assert.assertEquals(Short.MAX_VALUE, retrievedRow.get(1));
+            }
             Assert.assertEquals(actualRow.get(2), retrievedRow.get(2));
             Assert.assertEquals(actualRow.get(3), retrievedRow.get(3));
             Assert.assertEquals(actualRow.get(4), retrievedRow.get(4));

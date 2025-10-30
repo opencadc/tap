@@ -267,7 +267,7 @@ public class DefaultFormatFactory implements FormatFactory {
      * @return a DefaultFormat
      */
     protected Format<Object> getShortFormat(TapSelectItem columnDesc) {
-        return getDefaultFormat();
+        return new ShortFormat();
     }
 
     /**

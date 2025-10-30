@@ -7,11 +7,9 @@ import ca.nrc.cadc.dali.tables.votable.VOTableInfo;
 import ca.nrc.cadc.dali.tables.votable.VOTableReader;
 import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
-import ca.nrc.cadc.net.FileContent;
 import ca.nrc.cadc.net.HttpPost;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.tap.schema.TapPermissions;
-import ca.nrc.cadc.vosi.actions.TableContentHandler;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -21,7 +19,6 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -136,17 +133,7 @@ public class ParquetWriterTest extends AbstractTablesTest {
     private void addDataToCustomTable(String testTable) throws MalformedURLException, PrivilegedActionException {
         StringBuilder data = prepareData();
 
-        URL postURL = new URL(certLoadURL.toString() + "/" + testTable);
-        final HttpPost post = new HttpPost(postURL, new FileContent(data.toString(), TableContentHandler.CONTENT_TYPE_TSV, UTF8), false);
-        Subject.doAs(schemaOwner, new PrivilegedExceptionAction<Object>() {
-            public Object run() throws Exception {
-                post.run();
-                return null;
-            }
-        });
-
-        Assert.assertNull(post.getThrowable());
-        Assert.assertEquals(200, post.getResponseCode());
+        doUploadTSVData(testTable, data.toString());
     }
 
     private static void compareVOTables(VOTableTable voTableFromVOTableWriter, VOTableTable voTableFromParquet) throws IOException {
