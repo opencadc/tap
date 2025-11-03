@@ -168,7 +168,7 @@ public class DefaultFormatFactory implements FormatFactory {
             }
 
             if ("uri".equals(tt.xtype)) {
-                return getStringFormat(item);// proposed DALI-1.2
+                return getURIFormat(item);// proposed DALI-1.2
             }
 
             if ("clob".equals(tt.xtype)) {
@@ -453,11 +453,18 @@ public class DefaultFormatFactory implements FormatFactory {
     }
 
     /**
-     * @param columnDesc
+     * @param columnDesc columnDesc
      * @return a DefaultFormat
-     * @throws UnsupportedOperationException
      */
     protected Format<Object> getUUIDFormat(TapSelectItem columnDesc) {
         return getDefaultFormat();
+    }
+
+    /**
+     * @param columnDesc columnDesc
+     * @return a URIFormat
+     */
+    protected Format<Object> getURIFormat(TapSelectItem columnDesc) {
+        return new URIFormat();
     }
 }

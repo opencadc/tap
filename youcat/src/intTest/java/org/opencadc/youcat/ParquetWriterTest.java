@@ -4,7 +4,6 @@ import ca.nrc.cadc.dali.tables.parquet.ParquetReader;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableField;
 import ca.nrc.cadc.dali.tables.votable.VOTableInfo;
-import ca.nrc.cadc.dali.tables.votable.VOTableReader;
 import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.net.HttpPost;
@@ -15,13 +14,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.security.PrivilegedActionException;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import javax.security.auth.Subject;
@@ -33,7 +28,6 @@ import org.opencadc.tap.TapClient;
 public class ParquetWriterTest extends AbstractTablesTest {
     private static final Logger log = Logger.getLogger(ParquetWriterTest.class);
     private static URL url;
-    private static final Charset UTF8 = StandardCharsets.UTF_8;
 
     @Test
     public void testWriteParquetWithExistingTable() throws Exception {
@@ -80,7 +74,7 @@ public class ParquetWriterTest extends AbstractTablesTest {
         addDataToCustomTable(testTable);
 
         // get votable from votable query
-        VOTableTable voTableTable = getVOTableFromVOTableWriter(testTable);
+        VOTableTable voTableTable = doQueryForVOT(testTable);
 
         // get votable from parquet file
         VOTableTable voTableFromParquet = getVOTableFromParquet(testTable);
@@ -128,15 +122,16 @@ public class ParquetWriterTest extends AbstractTablesTest {
         super.setPerms(schemaOwner, testSchemaName, tapPermissions, 200);
 
         doCreateTable(schemaOwner, testTable);
+        setPerms(schemaOwner, testTable, tapPermissions, 200);
     }
 
-    private void addDataToCustomTable(String testTable) throws MalformedURLException, PrivilegedActionException {
-        StringBuilder data = prepareData();
+    private void addDataToCustomTable(String testTable) throws MalformedURLException, PrivilegedActionException, URISyntaxException {
+        String data = doPrepareDataAllDataTypesTSV();
 
-        doUploadTSVData(testTable, data.toString());
+        doUploadTSVData(testTable, data);
     }
 
-    private static void compareVOTables(VOTableTable voTableFromVOTableWriter, VOTableTable voTableFromParquet) throws IOException {
+    private void compareVOTables(VOTableTable voTableFromVOTableWriter, VOTableTable voTableFromParquet) throws IOException, URISyntaxException {
         Assert.assertEquals(voTableFromVOTableWriter.getFields().size(), voTableFromParquet.getFields().size());
         Assert.assertEquals(voTableFromVOTableWriter.getInfos().size(), voTableFromParquet.getInfos().size());
 
@@ -155,71 +150,7 @@ public class ParquetWriterTest extends AbstractTablesTest {
             }
         }
 
-        compareTableData(voTableFromVOTableWriter, voTableFromParquet);
-    }
-
-    private static void compareTableData(VOTableTable voTableFromVOTableWriter, VOTableTable voTableFromParquet) throws IOException {
-        Iterator<List<Object>> parquetDataIterator = voTableFromParquet.getTableData().iterator();
-        Iterator<List<Object>> votableDataIterator = voTableFromVOTableWriter.getTableData().iterator();
-        int count = 0;
-        while (parquetDataIterator.hasNext() && votableDataIterator.hasNext()) {
-            List<Object> pqRow = parquetDataIterator.next();
-            List<Object> vtRow = votableDataIterator.next();
-            Assert.assertEquals(vtRow.get(0), pqRow.get(0));
-            Assert.assertEquals((int) Short.MAX_VALUE, pqRow.get(1));
-            Assert.assertEquals(vtRow.get(2), pqRow.get(2));
-            Assert.assertEquals(vtRow.get(3), pqRow.get(3));
-            Assert.assertEquals(vtRow.get(4), pqRow.get(4));
-            Assert.assertEquals(vtRow.get(5), pqRow.get(5));
-            Assert.assertTrue(pqRow.get(6) instanceof Date);
-            Assert.assertEquals(vtRow.get(7), pqRow.get(7));
-            Assert.assertEquals(vtRow.get(8), pqRow.get(8));
-            Assert.assertEquals(vtRow.get(9), pqRow.get(9));
-            Assert.assertEquals(vtRow.get(10), pqRow.get(10));
-
-            short[] shortArray = (short[]) vtRow.get(11);
-            int[] convertedShortArray = new int[shortArray.length];
-            for (int i = 0; i < shortArray.length; i++) {
-                convertedShortArray[i] = shortArray[i];
-            }
-            Assert.assertArrayEquals((int[]) pqRow.get(11), convertedShortArray);
-
-            Assert.assertArrayEquals((int[]) vtRow.get(12), (int[]) pqRow.get(12));
-            Assert.assertArrayEquals((long[]) vtRow.get(13), (long[]) pqRow.get(13));
-            Assert.assertArrayEquals((float[]) vtRow.get(14), (float[]) pqRow.get(14), 0.0001f);
-            Assert.assertArrayEquals((double[]) vtRow.get(15), (double[]) pqRow.get(15), 0.0001);
-
-            count++;
-        }
-        Assert.assertEquals(10, count);
-    }
-
-    private String queryVOTableWriter(String testTable) throws Exception {
-        String adql = "SELECT * from " + testTable;
-
-        Map<String, Object> params = new TreeMap<String, Object>();
-        params.put("LANG", "ADQL");
-        params.put("QUERY", adql);
-        params.put("RESPONSEFORMAT", "votable");
-
-        String result = Subject.doAs(schemaOwner, new AuthQueryTest.SyncQueryAction(anonQueryURL, params));
-        Assert.assertNotNull(result);
-
-        return result;
-    }
-
-    private VOTableTable getVOTableFromVOTableWriter(String testTable) throws Exception {
-        String result = queryVOTableWriter(testTable);
-
-        VOTableReader voTableReader = new VOTableReader();
-        VOTableDocument voTableDocument = voTableReader.read(result);
-        VOTableResource voTableResource = voTableDocument.getResourceByType("results");
-        VOTableTable voTable = voTableResource.getTable();
-
-        Assert.assertNotNull(voTable);
-        Assert.assertNotNull(voTable.getTableData());
-
-        return voTable;
+        verifyAllDataTypes(voTableFromParquet,true, false);
     }
 
     private VOTableTable getVOTableFromParquet(String testTable) throws Exception {
@@ -240,30 +171,4 @@ public class ParquetWriterTest extends AbstractTablesTest {
         return extractVOTableFromOutputStream(out, adql);
     }
 
-    private static StringBuilder prepareData() {
-        StringBuilder data = new StringBuilder();
-        data.append("c0\tc1\tc2\tc3\tc4\tc5\tc6\te7\te8\te9\te10\ta11\ta12\ta13\ta14\ta15\n");
-        for (int i = 0; i < 10; i++) {
-            data.append("string" + i).append("\t");
-            data.append(Short.MAX_VALUE).append("\t");
-            data.append(Integer.MAX_VALUE).append("\t");
-            data.append(Long.MAX_VALUE).append("\t");
-            data.append(Float.MAX_VALUE).append("\t");
-            data.append(Double.MAX_VALUE).append("\t");
-
-            data.append("2018-11-05T22:12:33.111").append("\t");
-
-            data.append("1.0 2.0").append("\t");  // interval
-            data.append("1.0 2.0").append("\t");  // point
-            data.append("1.0 2.0 3.0").append("\t");  // circle
-            data.append("1.0 2.0 3.0 4.0 5.0 6.0").append("\t");  // polygon
-
-            data.append(Short.MIN_VALUE + " " + Short.MAX_VALUE).append("\t");
-            data.append(Integer.MIN_VALUE + " " + Integer.MAX_VALUE).append("\t");
-            data.append(Long.MIN_VALUE + " " + Long.MAX_VALUE).append("\t");
-            data.append(Float.MIN_VALUE + " " + Float.MAX_VALUE).append("\t");
-            data.append(Double.MIN_VALUE + " " + Double.MAX_VALUE).append("\n");
-        }
-        return data;
-    }
 }

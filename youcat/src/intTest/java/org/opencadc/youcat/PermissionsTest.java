@@ -921,22 +921,8 @@ public class PermissionsTest extends AbstractTablesTest {
         }
     }    
     private void insertData(Subject subject, URL url, String testTable, int expectedCode) throws Exception {
-        StringBuilder data = new StringBuilder();
-        data.append("c0\tc1\tc2\tc3\tc4\tc5\tc6\te7\te8\te9\te10\n");
-        for (int i = 0; i < 10; i++) {
-            data.append("string" + i).append("\t");
-            data.append(Short.MAX_VALUE).append("\t");
-            data.append(Integer.MAX_VALUE).append("\t");
-            data.append(Long.MAX_VALUE).append("\t");
-            data.append(Float.MAX_VALUE).append("\t");
-            data.append(Double.MAX_VALUE).append("\t");
-            data.append("2018-11-05T22:12:33.111").append("\t");
-            data.append("1.0 2.0").append("\t");  // interval
-            data.append("1.0 2.0").append("\t");  // point
-            data.append("1.0 2.0 3.0").append("\t");  // circle
-            data.append("1.0 2.0 3.0 4.0 5.0 6.0").append("\n");  // polygon
-        }
-        insertData(subject, url, data.toString(), testTable, expectedCode);
+        String data = doPrepareDataAllDataTypesTSV();
+        insertData(subject, url, data, testTable, expectedCode);
     }
     
     private void insertData(Subject subject, URL url, String data, String testTable, int expectedCode) throws Exception {

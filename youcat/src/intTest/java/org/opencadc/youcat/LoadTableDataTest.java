@@ -67,10 +67,6 @@
 
 package org.opencadc.youcat;
 
-import ca.nrc.cadc.dali.Circle;
-import ca.nrc.cadc.dali.DoubleInterval;
-import ca.nrc.cadc.dali.Point;
-import ca.nrc.cadc.dali.Polygon;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableReader;
 import ca.nrc.cadc.dali.tables.votable.VOTableResource;
@@ -119,28 +115,6 @@ public class LoadTableDataTest extends AbstractTablesTest {
         super();
     }
     
-    private String doQuery(String testTable) throws Exception {
-        // TAP query check (metadata and actual table exists)
-        String adql = "SELECT * from " + testTable;
-        Map<String, Object> params = new TreeMap<String, Object>();
-        params.put("LANG", "ADQL");
-        params.put("QUERY", adql);
-        String result = Subject.doAs(anon, new AuthQueryTest.SyncQueryAction(anonQueryURL, params));
-        Assert.assertNotNull(result);
-        return result;
-    }
-    
-    private VOTableTable doQueryForVOT(String testTable) throws Exception {
-        String result = doQuery(testTable);
-        VOTableReader r = new VOTableReader();
-        VOTableDocument doc = r.read(result);
-        VOTableResource vr = doc.getResourceByType("results");
-        VOTableTable vt = vr.getTable();
-        Assert.assertNotNull(vt);
-        Assert.assertNotNull(vt.getTableData());
-        return vt;
-    }
-    
     @Test
     public void testPostNoTableName() {
         try {
@@ -152,17 +126,8 @@ public class LoadTableDataTest extends AbstractTablesTest {
             StringBuilder data = new StringBuilder();
             data.append("c0\n");
             data.append("string\n");
-            
-            URL postURL = new URL(certLoadURL.toString());
-            final HttpPost post = new HttpPost(postURL, new FileContent(data.toString(), TableContentHandler.CONTENT_TYPE_TSV, UTF8), false);
-            Subject.doAs(schemaOwner, new PrivilegedExceptionAction<Object>() {
-                public Object run() throws Exception {
-                    post.run();
-                    return null;
-                }
-            });
-            Assert.assertEquals(400, post.getResponseCode());
-            Assert.assertNotNull(post.getThrowable());
+
+            doUploadTSVDataFailure(null, data, 400, schemaOwner);
             
             doDelete(schemaOwner, testTable, false);
             
@@ -184,16 +149,7 @@ public class LoadTableDataTest extends AbstractTablesTest {
             data.append("string\n");
             data.append("string\n");
             
-            URL postURL = new URL(certLoadURL.toString() + "/" + testTable);
-            final HttpPost post = new HttpPost(postURL, new FileContent(data.toString(), TableContentHandler.CONTENT_TYPE_TSV, UTF8), false);
-            Subject.doAs(schemaOwner, new PrivilegedExceptionAction<Object>() {
-                public Object run() throws Exception {
-                    post.run();
-                    return null;
-                }
-            });
-            Assert.assertEquals(400, post.getResponseCode());
-            Assert.assertNotNull(post.getThrowable());
+            doUploadTSVDataFailure(testTable,data,400, schemaOwner);
             
             doDelete(schemaOwner, testTable, false);
             
@@ -215,16 +171,7 @@ public class LoadTableDataTest extends AbstractTablesTest {
             data.append("c0\tc1\n");
             data.append("string");
             
-            URL postURL = new URL(certLoadURL.toString() + "/" + testTable);
-            final HttpPost post = new HttpPost(postURL, new FileContent(data.toString(), TableContentHandler.CONTENT_TYPE_TSV, UTF8), false);
-            Subject.doAs(schemaOwner, new PrivilegedExceptionAction<Object>() {
-                public Object run() throws Exception {
-                    post.run();
-                    return null;
-                }
-            });
-            Assert.assertEquals(400, post.getResponseCode());
-            Assert.assertNotNull(post.getThrowable());
+            doUploadTSVDataFailure(testTable,data,400, schemaOwner);
             
             doDelete(schemaOwner, testTable, false);
             
@@ -242,18 +189,8 @@ public class LoadTableDataTest extends AbstractTablesTest {
             StringBuilder data = new StringBuilder();
             data.append("c0\tc1\n");
             data.append("string");
-            
-            URL postURL = new URL(certLoadURL.toString() + "/" + testSchemaName + ".noSuchTable");
-            final HttpPost post = new HttpPost(postURL, new FileContent(data.toString(), TableContentHandler.CONTENT_TYPE_TSV, UTF8), false);
-            Subject.doAs(schemaOwner, new PrivilegedExceptionAction<Object>() {
-                public Object run() throws Exception {
-                    post.run();
-                    return null;
-                }
-            });
-            log.info(post.getThrowable());
-            Assert.assertEquals(404, post.getResponseCode());
-            Assert.assertNotNull(post.getThrowable());
+
+            doUploadTSVDataFailure(testSchemaName + ".noSuchTable", data, 404, schemaOwner);
             
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
@@ -270,16 +207,7 @@ public class LoadTableDataTest extends AbstractTablesTest {
             data.append("c0\tc1\n");
             data.append("string");
             
-            URL postURL = new URL(certLoadURL.toString() + "/" + testSchemaName + ".invalid.table.name");
-            final HttpPost post = new HttpPost(postURL, new FileContent(data.toString(), TableContentHandler.CONTENT_TYPE_TSV, UTF8), false);
-            Subject.doAs(schemaOwner, new PrivilegedExceptionAction<Object>() {
-                public Object run() throws Exception {
-                    post.run();
-                    return null;
-                }
-            });
-            Assert.assertEquals(404, post.getResponseCode());
-            Assert.assertNotNull(post.getThrowable());
+            doUploadTSVDataFailure(testSchemaName + ".invalid.table.name", data, 404, schemaOwner);
             
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
@@ -300,18 +228,9 @@ public class LoadTableDataTest extends AbstractTablesTest {
             StringBuilder data = new StringBuilder();
             data.append("c0\tc1\n");
             data.append("string");
-            
-            URL postURL = new URL(certLoadURL.toString() + "/" + testTable);
-            final HttpPost post = new HttpPost(postURL, new FileContent(data.toString(), TableContentHandler.CONTENT_TYPE_TSV, UTF8), false);
-            Subject.doAs(subjectWithGroups, new PrivilegedExceptionAction<Object>() {
-                public Object run() throws Exception {
-                    post.run();
-                    return null;
-                }
-            });
-            Assert.assertEquals(403, post.getResponseCode());
-            Assert.assertNotNull(post.getThrowable());
-            
+
+            doUploadTSVDataFailure(testTable, data, 403, subjectWithGroups);
+
             doDelete(schemaOwner, testTable, false);
             
         } catch (Exception unexpected) {
@@ -319,7 +238,7 @@ public class LoadTableDataTest extends AbstractTablesTest {
             Assert.fail("unexpected exception: " + unexpected);
         }
     }
-    
+
     @Test
     public void testAllDataTypesTSV() {
         try {
@@ -331,58 +250,13 @@ public class LoadTableDataTest extends AbstractTablesTest {
             String testTable = testSchemaName + ".testAllDataTypesTSV";
             doCreateTable(schemaOwner, testTable);
             setPerms(schemaOwner, testTable, tp, 200);
-            
-            StringBuilder data = new StringBuilder();
-            data.append("c0\tc1\tc2\tc3\tc4\tc5\tc6\te7\te8\te9\te10\n");
-            for (int i = 0; i < 10; i++) {
-                data.append("string" + i).append("\t");
-                data.append(Short.MAX_VALUE).append("\t");
-                data.append(Integer.MAX_VALUE).append("\t");
-                data.append(Long.MAX_VALUE).append("\t");
-                data.append(Float.MAX_VALUE).append("\t");
-                data.append(Double.MAX_VALUE).append("\t");
-                data.append("2018-11-05T22:12:33.111").append("\t");
-                data.append("1.0 2.0").append("\t");  // interval
-                data.append("1.0 2.0").append("\t");  // point
-                data.append("1.0 2.0 3.0").append("\t");  // circle
-                data.append("1.0 2.0 3.0 4.0 5.0 6.0").append("\n");  // polygon
-            }
-            
-            URL postURL = new URL(certLoadURL.toString() + "/" + testTable);
-            final HttpPost post = new HttpPost(postURL, new FileContent(data.toString(), TableContentHandler.CONTENT_TYPE_TSV, UTF8), false);
-            Subject.doAs(schemaOwner, new PrivilegedExceptionAction<Object>() {
-                public Object run() throws Exception {
-                    post.run();
-                    return null;
-                }
-            });
-            Assert.assertNull(post.getThrowable());
-            Assert.assertEquals(200, post.getResponseCode());
-            
+
+            String data = AbstractTablesTest.doPrepareDataAllDataTypesTSV();
+            doUploadTSVData(testTable, data);
+
             VOTableTable vt = doQueryForVOT(testTable);
-            Iterator<List<Object>> it = vt.getTableData().iterator();
-            int count = 0;
-            while (it.hasNext()) {
-                List<Object> next = it.next();
-                Assert.assertEquals("string" + count, (String) next.get(0));
-                Assert.assertEquals(new Short(Short.MAX_VALUE), (Short) next.get(1));
-                Assert.assertEquals(new Integer(Integer.MAX_VALUE), (Integer) next.get(2));
-                Assert.assertEquals(new Long(Long.MAX_VALUE), (Long) next.get(3));
-                Assert.assertEquals(new Float(Float.MAX_VALUE), (Float) next.get(4));
-                Assert.assertEquals(new Double(Double.MAX_VALUE), (Double) next.get(5));
-                Assert.assertTrue(next.get(6) instanceof Date);
-                assertEquals(new DoubleInterval(1.0, 2.0), (DoubleInterval) next.get(7)); 
-                assertEquals(new Point(1.0, 2.0), (Point) next.get(8));
-                assertEquals(new Circle(new Point(1, 2), 3), (Circle) next.get(9));
-                Polygon p = new Polygon();
-                p.getVertices().add(new Point(1.0, 2.0));
-                p.getVertices().add(new Point(3.0, 4.0));
-                p.getVertices().add(new Point(5.0, 6.0));
-                assertEquals(p, (Polygon) next.get(10));
-                count++;
-            }
-            Assert.assertEquals(10, count);
-            
+            verifyAllDataTypes(vt, false, false);
+
             doDelete(schemaOwner, testTable, false);
             
         } catch (Exception unexpected) {
@@ -404,7 +278,7 @@ public class LoadTableDataTest extends AbstractTablesTest {
             setPerms(schemaOwner, testTable, tp, 200);
 
             // Step - 2 : Load data into test table
-            String data = doPrepareDataAllDataTypes();
+            String data = doPrepareDataAllDataTypesTSV();
             doUploadTSVData(testTable, data);
 
             // Step - 3 : Query the test table with SERIALIZATION = BINARY2
@@ -426,41 +300,7 @@ public class LoadTableDataTest extends AbstractTablesTest {
             Assert.assertNotNull(vt.getTableData());
 
             // Step - 5 : Validate the read data.
-            Iterator<List<Object>> it = vt.getTableData().iterator();
-            int count = 0;
-            while (it.hasNext()) {
-                List<Object> next = it.next();
-                Assert.assertEquals("string" + count, (String) next.get(0));
-                Assert.assertEquals(new Short(Short.MAX_VALUE), (Short) next.get(1));
-                Assert.assertEquals(new Integer(Integer.MAX_VALUE), (Integer) next.get(2));
-                Assert.assertEquals(new Long(Long.MAX_VALUE), (Long) next.get(3));
-                Assert.assertEquals(new Float(Float.MAX_VALUE), (Float) next.get(4));
-                Assert.assertEquals(new Double(Double.MAX_VALUE), (Double) next.get(5));
-                Assert.assertTrue(next.get(6) instanceof Date);
-                assertEquals(new DoubleInterval(1.0, 2.0), (DoubleInterval) next.get(7));
-                assertEquals(new Point(1.0, 2.0), (Point) next.get(8));
-                assertEquals(new Circle(new Point(1.0, 2.0), 3.0), (Circle) next.get(9));
-                Polygon p = new Polygon();
-                p.getVertices().add(new Point(1.0, 2.0));
-                p.getVertices().add(new Point(3.0, 4.0));
-                p.getVertices().add(new Point(5.0, 6.0));
-                assertEquals(p, (Polygon) next.get(10));
-
-                short[] shortArray = (short[]) next.get(11);
-                int[] convertedShortArray = new int[shortArray.length];
-                for (int i = 0; i < shortArray.length; i++) {
-                    convertedShortArray[i] = shortArray[i];
-                }
-                Assert.assertArrayEquals(new int[]{Short.MIN_VALUE,Short.MAX_VALUE}, convertedShortArray);
-
-                Assert.assertArrayEquals(new int[]{Integer.MIN_VALUE, Integer.MAX_VALUE}, (int[]) next.get(12));
-                Assert.assertArrayEquals(new long[]{Long.MIN_VALUE,Long.MAX_VALUE} , (long[]) next.get(13));
-                Assert.assertArrayEquals(new float[]{Float.MIN_VALUE, Float.MAX_VALUE}, (float[]) next.get(14), 0.0001f);
-                Assert.assertArrayEquals(new double[]{Double.MIN_VALUE, Double.MAX_VALUE}, (double[]) next.get(15), 0.0001);
-
-                count++;
-            }
-            Assert.assertEquals(10, count);
+            verifyAllDataTypes(vt, false, false);
 
             // Step - 6 : Delete the test table
             doDelete(schemaOwner, testTable, false);
@@ -483,33 +323,8 @@ public class LoadTableDataTest extends AbstractTablesTest {
             doCreateTable(schemaOwner, testTable);
             setPerms(schemaOwner, testTable, tp, 200);
             
-            StringBuilder data = new StringBuilder();
-            data.append("c0\tc1\tc2\tc3\tc4\tc5\tc6\te7\te8\te9\te10\n");
-            //data.append("c0\tc1\tc2\tc3\tc4\tc5\n");
-            for (int i = 0; i < 10; i++) {
-                data.append("string" + i).append("\t");
-                data.append(Short.MAX_VALUE).append("\t");
-                data.append(Integer.MAX_VALUE).append("\t");
-                data.append(Long.MAX_VALUE).append("\t");
-                data.append(Float.MAX_VALUE).append("\t");
-                data.append(Double.MAX_VALUE).append("\t");
-                data.append("2018-11-05T22:12:33.111").append("\t");
-                data.append("1.0 2.0").append("\t");  // interval
-                data.append("1.0 2.0").append("\t");  // point    
-                data.append("1.0 2.0 3.0").append("\t");  // circle
-                data.append("1.0 2.0 3.0 4.0 5.0 6.0").append("\n");  // polygon
-            }
-            
-            URL postURL = new URL(certLoadURL.toString() + "/" + testTable);
-            final HttpPost post = new HttpPost(postURL, data.toString(), TableContentHandler.CONTENT_TYPE_TSV, false);
-            Subject.doAs(schemaOwner, new PrivilegedExceptionAction<Object>() {
-                public Object run() throws Exception {
-                    post.run();
-                    return null;
-                }
-            });
-            Assert.assertNull(post.getThrowable());
-            Assert.assertEquals(200, post.getResponseCode());
+            String data = doPrepareDataAllDataTypesTSV();
+            doUploadTSVData(testTable, data);
             
             final String voTableString = doQuery(testTable);
             
@@ -537,6 +352,7 @@ public class LoadTableDataTest extends AbstractTablesTest {
             // Post the FITS table
             byte[] bytes = Files.readAllBytes(Paths.get(fitsFilename));
             FileContent fileContent = new FileContent(bytes, "application/fits");
+            URL postURL = new URL(certLoadURL.toString() + "/" + testTable);
             final HttpPost post2 = new HttpPost(postURL, fileContent, false);
             Subject.doAs(schemaOwner, new PrivilegedExceptionAction<Object>() {
                 public Object run() throws Exception {
@@ -549,29 +365,8 @@ public class LoadTableDataTest extends AbstractTablesTest {
             
             // next: query the table and assert results are correct
             VOTableTable vt = doQueryForVOT(testTable);
-            Iterator<List<Object>> it = vt.getTableData().iterator();
-            int count = 0;
-            while (it.hasNext()) {
-                List<Object> next = it.next();
-                Assert.assertEquals("string" + count, (String) next.get(0));
-                Assert.assertEquals(new Short(Short.MAX_VALUE), (Short) next.get(1));
-                Assert.assertEquals(new Integer(Integer.MAX_VALUE), (Integer) next.get(2));
-                Assert.assertEquals(new Long(Long.MAX_VALUE), (Long) next.get(3));
-                Assert.assertEquals(new Float(Float.MAX_VALUE), (Float) next.get(4));
-                Assert.assertEquals(new Double(Double.MAX_VALUE), (Double) next.get(5));
-                Assert.assertTrue(next.get(6) instanceof Date);
-                assertEquals(new DoubleInterval(1.0, 2.0), (DoubleInterval) next.get(7)); 
-                assertEquals(new Point(1.0, 2.0), (Point) next.get(8));
-                assertEquals(new Circle(new Point(1, 2), 3), (Circle) next.get(9));
-                Polygon p = new Polygon();
-                p.getVertices().add(new Point(1.0, 2.0));
-                p.getVertices().add(new Point(3.0, 4.0));
-                p.getVertices().add(new Point(5.0, 6.0));
-                assertEquals(p, (Polygon) next.get(10));
-                count++;
-            }
-            Assert.assertEquals(10, count);
-            
+            verifyAllDataTypes(vt, false, false);
+
             doDelete(schemaOwner, testTable, false);
             
         } catch (Exception unexpected) {
@@ -674,17 +469,8 @@ public class LoadTableDataTest extends AbstractTablesTest {
             for (int i=0; i<3500; i++) {
                 data.append("string" + i + "\t2018-11-05T22:12:33.111\t" + i + "\n");
             }
-            
-            URL postURL = new URL(certLoadURL.toString() + "/" + testTable);
-            final HttpPost post = new HttpPost(postURL, new FileContent(data.toString(), TableContentHandler.CONTENT_TYPE_TSV, UTF8), false);
-            Subject.doAs(schemaOwner, new PrivilegedExceptionAction<Object>() {
-                public Object run() throws Exception {
-                    post.run();
-                    return null;
-                }
-            });
-            Assert.assertNull(post.getThrowable());
-            Assert.assertEquals(200, post.getResponseCode());
+
+            doUploadTSVData(testTable, data.toString());
             
             VOTableTable vt = doQueryForVOT(testTable);
             Iterator<List<Object>> it = vt.getTableData().iterator();
@@ -728,19 +514,9 @@ public class LoadTableDataTest extends AbstractTablesTest {
             for (int i=1101; i<1200; i++) {
                 data.append("string" + i + "\t2018-11-05T22:12:33.111\t" + i + "\n");
             }
-            
-            URL postURL = new URL(certLoadURL.toString() + "/" + testTable);
-            final HttpPost post = new HttpPost(postURL, new FileContent(data.toString(), TableContentHandler.CONTENT_TYPE_TSV, UTF8), false);
-            Subject.doAs(schemaOwner, new PrivilegedExceptionAction<Object>() {
-                public Object run() throws Exception {
-                    post.run();
-                    return null;
-                }
-            });
-            Assert.assertNotNull(post.getThrowable());
-            Assert.assertEquals(400, post.getResponseCode());
-            log.info("response message: " + post.getResponseBody());
-            
+
+            doUploadTSVDataFailure(testTable, data, 400, schemaOwner);
+
             // make sure the first 1000 (batch size) got in
             VOTableTable vt = doQueryForVOT(testTable);
             Iterator<List<Object>> it = vt.getTableData().iterator();
