@@ -126,6 +126,15 @@ public class TableContentHandler implements InlineContentHandler {
             throw new ResourceNotFoundException("Table not found: " + tableName);
         }
 
+        if (targetTableDesc.apiCreated == null || !targetTableDesc.apiCreated) {
+            throw new IllegalArgumentException("cannot update content table: " 
+                    + targetTableDesc.getTableName() + ", reason: table not created via API");
+        }
+        if (TableDesc.TableType.VIEW.equals(targetTableDesc.tableType)) {
+            throw new IllegalArgumentException("cannot update content in view: " 
+                    + targetTableDesc.getTableName());
+        }
+
         log.debug("Content-Type: " + contentType);
         TableDataInputStream tableData = null;
         if (contentType.equals(CONTENT_TYPE_CSV) || contentType.equals(CONTENT_TYPE_TSV)) {
