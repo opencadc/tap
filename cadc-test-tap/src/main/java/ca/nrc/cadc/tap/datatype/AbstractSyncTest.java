@@ -158,6 +158,6 @@ public abstract class AbstractSyncTest extends AbstractUWSTest
         }
     }
 
-    protected abstract void validateQueryStatus(String filename, VOTableDocument document, String status);
+    protected abstract void validateQueryStatus(String filename, VOTableDocument document, String status) throws IOException;
 
 }
