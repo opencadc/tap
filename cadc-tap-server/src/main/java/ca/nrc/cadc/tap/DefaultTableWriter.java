@@ -271,7 +271,7 @@ public class DefaultTableWriter implements TableWriter {
             // for error handling
             tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
         } else if (type.equals(VOTABLE)) {
-            VOTableWriter.SerializationType serialization = getVOTableSerialization(ctype.getValue());
+            VOTableWriter.SerializationType serialization = getVOTableSerialization(ctype);
             tableWriter = serialization == null ? new VOTableWriter() : new VOTableWriter(serialization);
         } else if (type.equals(CSV)) {
             tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.CSV);
@@ -576,21 +576,18 @@ public class DefaultTableWriter implements TableWriter {
         return null;
     }
 
-    private static VOTableWriter.SerializationType getVOTableSerialization(String format) {
-        VOTableWriter.SerializationType type = DEFAULT_VOTABLE_SERIALIZATION;
+    private static VOTableWriter.SerializationType getVOTableSerialization(ContentType ctype) {
+        String serialization = null;
 
-        // Handle MIME-style (e.g., application/x-votable+xml;serialization=BINARY2)
-        int semi = format.indexOf(';');
-        if (semi > 0) {
-            String[] parts = format.substring(semi + 1).split(";");
-            for (String part : parts) {
-                String[] kv = part.split("=");
-                if (kv.length == 2 && kv[0].trim().equalsIgnoreCase("serialization")) {
-                    type = VOTableWriter.SerializationType.toValue(kv[1]);
-                }
+        for (Map.Entry<String, String> entry : ctype.getParameters().entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            if (key.equalsIgnoreCase("serialization") && value != null && !value.isEmpty()) {
+                serialization = value;
+                break;
             }
         }
 
-        return type;
+        return serialization == null ? DEFAULT_VOTABLE_SERIALIZATION : VOTableWriter.SerializationType.toValue(serialization);
     }
 }
