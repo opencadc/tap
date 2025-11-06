@@ -179,7 +179,7 @@ public class AuthQueryTest {
             log.debug("contentType: " + contentType);
             log.debug("respnse:\n" + result);
 
-            Assert.assertEquals(this.contentType, contentType);
+            Assert.assertEquals(this.contentType.replaceAll(" ", ""), contentType.replaceAll(" ", ""));
 
             return result;
         }
