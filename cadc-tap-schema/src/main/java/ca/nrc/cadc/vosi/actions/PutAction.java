@@ -108,7 +108,6 @@ public class PutAction extends TablesAction {
 
     @Override
     public void doAction() throws Exception {
-        Object in = syncInput.getContent(INPUT_TAG);
         try {
             String[] target = getTarget();
             String schemaName = target[0];
@@ -131,7 +130,7 @@ public class PutAction extends TablesAction {
                 createSchema(ts, schemaName);
             }
         } finally {
-            closeResources(in);
+            closeResources();
         }
         
         syncOutput.setCode(200); // should be 201
@@ -350,7 +349,8 @@ public class PutAction extends TablesAction {
         throw new RuntimeException("BUG: no input schema owner");
     }
 
-    private void closeResources(Object resource) {
+    private void closeResources() {
+        Object resource = syncInput.getContent(INPUT_TAG);
         if (resource instanceof VOTableDocument) {
             try {
                 ((VOTableDocument) resource).close();

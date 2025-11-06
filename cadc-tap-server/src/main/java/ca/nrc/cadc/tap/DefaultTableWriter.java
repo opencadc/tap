@@ -82,6 +82,7 @@ import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
 import ca.nrc.cadc.dali.util.Format;
 import ca.nrc.cadc.date.DateUtil;
+import ca.nrc.cadc.net.ContentType;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.tap.writer.ResultSetTableData;
@@ -234,7 +235,9 @@ public class DefaultTableWriter implements TableWriter {
     }
 
     public static void setDefaultVOTableSerialization(String serialization) {
-        DefaultTableWriter.DEFAULT_VOTABLE_SERIALIZATION = VOTableWriter.SerializationType.toValue(serialization.toUpperCase());
+        if (serialization != null && !serialization.isEmpty()) {
+            DefaultTableWriter.DEFAULT_VOTABLE_SERIALIZATION = VOTableWriter.SerializationType.toValue(serialization);
+        }
     }
 
     private void initFormat() {
@@ -245,7 +248,9 @@ public class DefaultTableWriter implements TableWriter {
         if (format == null) {
             format = VOTABLE;
         }
-        String type = knownFormats.get(format.toLowerCase());
+
+        ContentType cType = new ContentType(format);
+        String type = knownFormats.get(cType.getBaseType());
         if (type == null && errorWriter) {
             type = VOTABLE;
             format = VOTABLE;
@@ -266,10 +271,8 @@ public class DefaultTableWriter implements TableWriter {
             // for error handling
             tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
         } else if (type.equals(VOTABLE)) {
-            String serialization = ParameterUtil.findParameterValue(SERIALIZATION_KEY, job.getParameterList());
-            VOTableWriter.SerializationType serializationType = serialization == null
-                    ? DEFAULT_VOTABLE_SERIALIZATION : VOTableWriter.SerializationType.toValue(serialization.toUpperCase());
-            tableWriter = serializationType == null ? new VOTableWriter() : new VOTableWriter(serializationType);
+            VOTableWriter.SerializationType serialization = getVOTableSerialization(cType.getValue());
+            tableWriter = serialization == null ? new VOTableWriter() : new VOTableWriter(serialization);
         } else if (type.equals(CSV)) {
             tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.CSV);
         } else if (type.equals(TSV)) {
@@ -571,5 +574,23 @@ public class DefaultTableWriter implements TableWriter {
         }
 
         return null;
+    }
+
+    private static VOTableWriter.SerializationType getVOTableSerialization(String format) {
+        VOTableWriter.SerializationType type = DEFAULT_VOTABLE_SERIALIZATION;
+
+        // Handle MIME-style (e.g., application/x-votable+xml;serialization=BINARY2)
+        int semi = format.indexOf(';');
+        if (semi > 0) {
+            String[] parts = format.substring(semi + 1).split(";");
+            for (String part : parts) {
+                String[] kv = part.split("=");
+                if (kv.length == 2 && kv[0].trim().equalsIgnoreCase("serialization")) {
+                    type = VOTableWriter.SerializationType.toValue(kv[1]);
+                }
+            }
+        }
+
+        return type;
     }
 }

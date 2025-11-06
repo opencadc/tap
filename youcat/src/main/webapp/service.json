@@ -142,13 +142,6 @@
             "type": "string"
           },
           {
-            "name": "SERIALIZATION",
-            "in": "query",
-            "description": "select output table serialization (e.g. for VOTable: TABLEDATA, BINARY2)",
-            "required": false,
-            "type": "string"
-          },
-          {
             "name": "MAXREC",
             "in": "query",
             "description": "request a specific limit on number of rows to return",

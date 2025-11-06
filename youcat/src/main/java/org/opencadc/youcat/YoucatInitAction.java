@@ -128,14 +128,14 @@ public class YoucatInitAction extends InitAction {
             sb.append("OK");
         }
 
-        String votDataDefaultSerialization = mvp.getFirstPropertyValue(DEFAULT_VOTABLE_SERIALIZATION_KEY);
+        String defaultVOTableSerializationValue = mvp.getFirstPropertyValue(DEFAULT_VOTABLE_SERIALIZATION_KEY);
         sb.append("\n\t" + DEFAULT_VOTABLE_SERIALIZATION_KEY + ": ");
-        if (votDataDefaultSerialization == null) {
+        if (defaultVOTableSerializationValue == null) {
             sb.append("MISSING");
-            ok = false;
+            defaultVOTableSerialization = "TABLEDATA";
         } else {
             sb.append("OK");
-            defaultVOTableSerialization = votDataDefaultSerialization;
+            defaultVOTableSerialization = defaultVOTableSerializationValue;
         }
         
         if (!ok) {

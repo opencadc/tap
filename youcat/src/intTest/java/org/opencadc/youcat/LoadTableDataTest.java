@@ -286,9 +286,8 @@ public class LoadTableDataTest extends AbstractTablesTest {
             Map<String, Object> params = new TreeMap<>();
             params.put("LANG", "ADQL");
             params.put("QUERY", adql);
-            params.put("FORMAT", "votable");
-            params.put("SERIALIZATION", "BINARY2");
-            String result = Subject.doAs(anon, new AuthQueryTest.SyncQueryAction(anonQueryURL, params, null, "application/x-votable+xml ;serialization=binary2"));
+            params.put("FORMAT", "votable; serialization=binary2");
+            String result = Subject.doAs(anon, new AuthQueryTest.SyncQueryAction(anonQueryURL, params, null, "application/x-votable+xml; serialization=binary2"));
             Assert.assertNotNull(result);
 
             // Step - 4 : Read the output VOTable with serialized Binary2 data.

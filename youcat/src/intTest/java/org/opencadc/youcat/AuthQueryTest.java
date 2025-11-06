@@ -150,7 +150,7 @@ public class AuthQueryTest {
             this.url = url;
             this.params = params;
             this.out = new ByteArrayOutputStream();
-            this.contentType = "application/x-votable+xml ;serialization=tabledata";
+            this.contentType = "application/x-votable+xml; serialization=tabledata";
         }
         public SyncQueryAction(URL url, Map<String, Object> params, ByteArrayOutputStream out, String contentType) {
             this.url = url;

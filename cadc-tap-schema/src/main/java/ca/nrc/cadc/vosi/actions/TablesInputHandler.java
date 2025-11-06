@@ -91,7 +91,7 @@ import org.apache.log4j.Logger;
 public class TablesInputHandler implements InlineContentHandler {
     private static final Logger log = Logger.getLogger(TablesInputHandler.class);
 
-    private static final long BYTE_LIMIT = 1024 * 1024L; // 1 MiB
+    private static final long BYTE_LIMIT = 32 * 1024 * 1024L; // 32 MiB
     public static final String VOSI_TABLE_TYPE = "text/xml";
     public static final String VOTABLE_TYPE = "application/x-votable+xml";
     public static final String VOSI_SCHEMA_TYPE = "application/x-vosi-schema";

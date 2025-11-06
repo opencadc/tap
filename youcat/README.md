@@ -108,7 +108,7 @@ org.opencadc.youcat.adminUser = {identity}
 # (optional) schema creation in the database (default: false)
 org.opencadc.youcat.createSchemaInDB = true|false
 
-# (optional) default serialization format for VOTable results
+# (optional) default serialization format for VOTable results (default: TABLEDATA)
 org.opencadc.youcat.defaultVOTableSerialization = {TABLEDATA|BINARY2}
 ```
 The optional _adminUser_ (configured using the network username) can use the youcat API to create a 
@@ -122,7 +122,7 @@ the schema in the database and just assume it exists and that the `tapadm` pool 
 to create objects (tables and indices) in it.
 
 The optional _defaultVOTableSerialization_ configures the default serialization format for
-VOTable results. The default setting in the DAL library will be picked if not configured.
+VOTable results.
 
 As hard-coded behaviours of `youcat` are extracted from the build and made configurable,
 the configuration options will usually be in this file (see **development plans** below).
