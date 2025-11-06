@@ -249,8 +249,8 @@ public class DefaultTableWriter implements TableWriter {
             format = VOTABLE;
         }
 
-        ContentType cType = new ContentType(format);
-        String type = knownFormats.get(cType.getBaseType());
+        ContentType ctype = new ContentType(format);
+        String type = knownFormats.get(ctype.getBaseType());
         if (type == null && errorWriter) {
             type = VOTABLE;
             format = VOTABLE;
@@ -271,7 +271,7 @@ public class DefaultTableWriter implements TableWriter {
             // for error handling
             tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
         } else if (type.equals(VOTABLE)) {
-            VOTableWriter.SerializationType serialization = getVOTableSerialization(cType.getValue());
+            VOTableWriter.SerializationType serialization = getVOTableSerialization(ctype.getValue());
             tableWriter = serialization == null ? new VOTableWriter() : new VOTableWriter(serialization);
         } else if (type.equals(CSV)) {
             tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.CSV);
