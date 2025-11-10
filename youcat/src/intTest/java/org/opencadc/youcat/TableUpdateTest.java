@@ -222,7 +222,10 @@ public class TableUpdateTest extends AbstractTablesTest {
             for (ColumnDesc ocd : orig.getColumnDescs()) {
                 ColumnDesc cd = td.getColumn(ocd.getColumnName());
                 Assert.assertNotNull(ocd.getColumnName(), cd);
-                Assert.assertEquals(ocd.getDatatype(), cd.getDatatype()); // TapDataType.equals() is lax
+                Assert.assertEquals(ocd.getDatatype().getDatatype(), cd.getDatatype().getDatatype());
+                // compare arraysize is hard: create table imposes a limit on arraysize="*"
+                Assert.assertEquals(ocd.getDatatype().xtype, cd.getDatatype().xtype);
+
                 log.info("found: " + cd.getColumnName() + " " + cd.getDatatype());
             }
             

@@ -90,6 +90,8 @@ import org.postgresql.util.PGobject;
 public class PostgresDataTypeMapper extends BasicDataTypeMapper {
     private static final Logger log = Logger.getLogger(PostgresDataTypeMapper.class);
 
+    public static TapDataType TT_UIID = new TapDataType("char", "36", "uuid");
+    
     public PostgresDataTypeMapper() {
         // DALI
         dataTypes.put(TapDataType.POINT, new TypePair("spoint", null));
@@ -97,8 +99,8 @@ public class PostgresDataTypeMapper extends BasicDataTypeMapper {
         dataTypes.put(TapDataType.POLYGON, new TypePair("spoly", null));
         dataTypes.put(TapDataType.INTERVAL, new TypePair("polygon", null));
         
-        dataTypes.put(new TapDataType("char", "*", "uri"), new TypePair("CHAR", Types.CHAR));
-        dataTypes.put(new TapDataType("char", "36", "uuid"), new TypePair("uuid", null));
+        dataTypes.put(TapDataType.URI, new TypePair("CHAR", Types.CHAR));
+        dataTypes.put(TT_UIID, new TypePair("uuid", null));
         
         // TAP-1.0 compat
         dataTypes.put(new TapDataType("char", "*", "adql:POINT"), new TypePair("spoint", null));
@@ -114,6 +116,8 @@ public class PostgresDataTypeMapper extends BasicDataTypeMapper {
         // pg-specific type label for char(n) columns
         dbDataTypes.put("bpchar", TapDataType.CHAR);                    // code to assign optional length
         
+        //dbDataTypes.put("uri", TapDataType.URI);
+        dbDataTypes.put("uuid", TT_UIID);
         dbDataTypes.put("polygon", TapDataType.INTERVAL);
         dbDataTypes.put("spoint", TapDataType.POINT);
         dbDataTypes.put("scircle", TapDataType.CIRCLE);
