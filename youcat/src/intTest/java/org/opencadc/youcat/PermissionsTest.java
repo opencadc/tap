@@ -833,7 +833,7 @@ public class PermissionsTest extends AbstractTablesTest {
         Map<String, Object> params = new TreeMap<String, Object>();
         params.put("LANG", "ADQL");
         params.put("QUERY", adql);
-        params.put("RESPONSEFORMAT", "CSV");
+        params.put("RESPONSEFORMAT", "tsv");
         Integer respCode = null;
         log.info("Performing query on URL: " + url);
         SyncQueryAction query = new SyncQueryAction(url, params);
