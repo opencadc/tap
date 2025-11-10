@@ -82,6 +82,7 @@ import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
 import ca.nrc.cadc.dali.util.Format;
 import ca.nrc.cadc.date.DateUtil;
+import ca.nrc.cadc.net.ContentType;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.tap.writer.ResultSetTableData;
@@ -116,6 +117,7 @@ public class DefaultTableWriter implements TableWriter {
 
     private static final String FORMAT = "RESPONSEFORMAT";
     private static final String FORMAT_ALT = "FORMAT";
+    private static final String SERIALIZATION_KEY = "SERIALIZATION";
 
     // shortcuts
     public static final String CSV = "csv";
@@ -164,6 +166,7 @@ public class DefaultTableWriter implements TableWriter {
     private Job job;
     private String queryInfo;
     private String contentType;
+    public static VOTableWriter.SerializationType DEFAULT_VOTABLE_SERIALIZATION;
     private String extension;
 
     // RssTableWriter not yet ported to cadcDALI
@@ -231,6 +234,12 @@ public class DefaultTableWriter implements TableWriter {
         return extension;
     }
 
+    public static void setDefaultVOTableSerialization(String serialization) {
+        if (serialization != null && !serialization.isEmpty()) {
+            DefaultTableWriter.DEFAULT_VOTABLE_SERIALIZATION = VOTableWriter.SerializationType.toValue(serialization);
+        }
+    }
+
     private void initFormat() {
         String format = ParameterUtil.findParameterValue(FORMAT, job.getParameterList());
         if (format == null) {
@@ -239,7 +248,9 @@ public class DefaultTableWriter implements TableWriter {
         if (format == null) {
             format = VOTABLE;
         }
-        String type = knownFormats.get(format.toLowerCase());
+
+        ContentType ctype = new ContentType(format);
+        String type = knownFormats.get(ctype.getBaseType());
         if (type == null && errorWriter) {
             type = VOTABLE;
             format = VOTABLE;
@@ -260,7 +271,8 @@ public class DefaultTableWriter implements TableWriter {
             // for error handling
             tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
         } else if (type.equals(VOTABLE)) {
-            tableWriter = new VOTableWriter(format);
+            VOTableWriter.SerializationType serialization = getVOTableSerialization(ctype);
+            tableWriter = serialization == null ? new VOTableWriter() : new VOTableWriter(serialization);
         } else if (type.equals(CSV)) {
             tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.CSV);
         } else if (type.equals(TSV)) {
@@ -562,5 +574,20 @@ public class DefaultTableWriter implements TableWriter {
         }
 
         return null;
+    }
+
+    private static VOTableWriter.SerializationType getVOTableSerialization(ContentType ctype) {
+        String serialization = null;
+
+        for (Map.Entry<String, String> entry : ctype.getParameters().entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            if (key.equalsIgnoreCase("serialization") && value != null && !value.isEmpty()) {
+                serialization = value;
+                break;
+            }
+        }
+
+        return serialization == null ? DEFAULT_VOTABLE_SERIALIZATION : VOTableWriter.SerializationType.toValue(serialization);
     }
 }

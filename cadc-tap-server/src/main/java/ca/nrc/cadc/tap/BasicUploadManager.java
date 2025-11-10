@@ -72,7 +72,7 @@ package ca.nrc.cadc.tap;
 
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.date.DateUtil;
-import ca.nrc.cadc.tap.db.DatabaseDataType;
+import ca.nrc.cadc.io.ResourceIterator;
 import ca.nrc.cadc.tap.db.TableCreator;
 import ca.nrc.cadc.tap.db.TableLoader;
 import ca.nrc.cadc.tap.db.TapConstants;
@@ -87,14 +87,11 @@ import ca.nrc.cadc.tap.upload.VOTableParserException;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
 import java.io.IOException;
-import java.net.URI;
 import java.text.DateFormat;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 import org.opencadc.tap.io.TableDataInputStream;
@@ -250,7 +247,7 @@ public class BasicUploadManager implements UploadManager {
      * @param table the table description
      * @param vot the table data
      */
-    protected void storeTable(TableDesc table, VOTableTable vot) {
+    protected void storeTable(TableDesc table, VOTableTable vot) throws IOException {
         TableCreator tc = new TableCreator(dataSource);
         tc.createTable(table);
         
@@ -263,7 +260,7 @@ public class BasicUploadManager implements UploadManager {
             }
 
             @Override
-            public Iterator<List<Object>> iterator() {
+            public ResourceIterator<List<Object>> iterator() throws IOException {
                 return vot.getTableData().iterator();
             }
 

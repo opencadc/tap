@@ -134,8 +134,6 @@ public class CatalogTapService implements AvailabilityPlugin {
             }
 
             // ReadWrite: proceed with live checks
-            CheckResource cr;
-
             String dsName = DataSourceProviderImpl.getDataSourceName(null, "tapadm");
             DataSource tapadm = DBUtil.findJNDIDataSource(dsName);
             InitDatabaseTS tsi = new InitDatabaseTS(tapadm, null, "tap_schema");
@@ -146,7 +144,7 @@ public class CatalogTapService implements AvailabilityPlugin {
             InitDatabaseUWS uwsi = new InitDatabaseUWS(uws, null, "uws");
             uwsi.doInit();
 
-            cr = new CheckDataSource(uws, UWS_TEST);
+            CheckResource cr = new CheckDataSource(uws, UWS_TEST);
             cr.check();
 
             dsName = DataSourceProviderImpl.getDataSourceName(null, "tapuser");

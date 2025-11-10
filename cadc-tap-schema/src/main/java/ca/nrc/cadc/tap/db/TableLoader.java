@@ -75,11 +75,14 @@ import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.dali.Polygon;
 import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
+import ca.nrc.cadc.io.ResourceIterator;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.tap.PluginFactory;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
+
+import java.io.IOException;
 import java.net.URI;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -87,7 +90,6 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
@@ -106,7 +108,7 @@ public class TableLoader {
 
     private final DatabaseDataType ddType;
     private final DataSource dataSource;
-    private final int batchSize;
+    public Integer batchSize;
     private long totalInserts = 0;
     
     /**
@@ -115,7 +117,7 @@ public class TableLoader {
      * @param dataSource destination database connection pool
      * @param batchSize number of rows per commit transaction
      */
-    public TableLoader(DataSource dataSource, int batchSize) { 
+    public TableLoader(DataSource dataSource, Integer batchSize) {
         this.dataSource = dataSource;
         this.batchSize = batchSize;
         PluginFactory pf = new PluginFactory();
@@ -129,26 +131,34 @@ public class TableLoader {
      * @param destTable The table description
      * @param data The table data.
      */
-    public void load(TableDesc destTable, TableDataInputStream data) { 
+    public void load(TableDesc destTable, TableDataInputStream data) throws IOException {
         TableDesc reorgTable = data.acceptTargetTableDesc(destTable);
-        
+
+        boolean manageTxn = true;
+        if (batchSize == null || batchSize <= 0) {
+            manageTxn = false;
+            batchSize = Integer.MAX_VALUE; // no batching, just one transaction
+        }
+
         Profiler prof = new Profiler(TableLoader.class);
-        DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
+        DatabaseTransactionManager tm = manageTxn ? new DatabaseTransactionManager(dataSource) : null;
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         
         // Loop over rows, start/commit txn every batchSize rows
         String sql = generateInsertSQL(reorgTable); 
         boolean done = false;
-        Iterator<List<Object>> dataIterator = data.iterator();
+        ResourceIterator<List<Object>> dataIterator = data.iterator();
         List<Object> nextRow = null;
 
-        List<List<Object>> batch = new ArrayList<>(batchSize);
+        List<List<Object>> batch = manageTxn ? new ArrayList<>(batchSize) : new ArrayList<>();
         int count = 0;
         try {
             while (!done) {
                 count = 0;
-                tm.startTransaction();
-                prof.checkpoint("start-transaction");
+                if (manageTxn) {
+                    tm.startTransaction();
+                    prof.checkpoint("start-transaction");
+                }
                 BulkInsertStatement bulkInsertStatement = new BulkInsertStatement(reorgTable);
                 
                 while (batch.size() < batchSize && dataIterator.hasNext()) {
@@ -160,9 +170,11 @@ public class TableLoader {
                 log.debug("Inserting " + batch.size() + " rows in this batch.");
                 jdbc.batchUpdate(sql, batch, batchSize, bulkInsertStatement);
                 prof.checkpoint("batch-of-inserts");
-                
-                tm.commitTransaction();
-                prof.checkpoint("commit-transaction");
+
+                if (manageTxn) {
+                    tm.commitTransaction();
+                    prof.checkpoint("commit-transaction");
+                }
                 totalInserts += batch.size();
                 batch.clear();
                 done = !dataIterator.hasNext();
@@ -175,7 +187,7 @@ public class TableLoader {
                 log.error("unexpected exception trying to close input stream", oops);
             }
             try {
-                if (tm.isOpen()) {
+                if (manageTxn && tm.isOpen()) {
                     tm.rollbackTransaction();
                     prof.checkpoint("rollback-transaction");
                 }
@@ -192,7 +204,7 @@ public class TableLoader {
                 log.error("unexpected exception trying to close input stream", oops);
             }
             try {
-                if (tm.isOpen()) {
+                if (manageTxn && tm.isOpen()) {
                     tm.rollbackTransaction();
                     prof.checkpoint("rollback-transaction");
                 }
@@ -205,7 +217,7 @@ public class TableLoader {
                 + " Current batch of " + batchSize + " failed with: " + t.getMessage(), t);
             
         } finally {
-            if (tm.isOpen()) {
+            if (manageTxn && tm.isOpen()) {
                 log.error("BUG: Transaction manager unexpectedly open, rolling back.");
                 try {
                     tm.rollbackTransaction();

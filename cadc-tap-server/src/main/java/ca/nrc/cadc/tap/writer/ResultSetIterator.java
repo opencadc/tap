@@ -70,17 +70,19 @@
 package ca.nrc.cadc.tap.writer;
 
 import ca.nrc.cadc.dali.util.Format;
+import ca.nrc.cadc.io.ResourceIterator;
 import ca.nrc.cadc.tap.writer.format.ResultSetFormat;
+
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import org.apache.log4j.Logger;
 
-public class ResultSetIterator implements Iterator<List<Object>> {
+public class ResultSetIterator implements ResourceIterator<List<Object>> {
 
     private static final Logger log = Logger.getLogger(ResultSetIterator.class);
 
@@ -207,5 +209,10 @@ public class ResultSetIterator implements Iterator<List<Object>> {
     @Override
     public void remove() {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void close() throws IOException {
+        // Nothing to close
     }
 }

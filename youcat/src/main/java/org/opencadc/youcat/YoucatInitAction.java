@@ -70,6 +70,7 @@ package org.opencadc.youcat;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.rest.InitAction;
+import ca.nrc.cadc.tap.DefaultTableWriter;
 import ca.nrc.cadc.tap.schema.InitDatabaseTS;
 import ca.nrc.cadc.util.InvalidConfigException;
 import ca.nrc.cadc.util.MultiValuedProperties;
@@ -91,9 +92,11 @@ public class YoucatInitAction extends InitAction {
     private static final String YOUCAT = YoucatInitAction.class.getPackageName();
     private static final String YOUCAT_ADMIN = YOUCAT + ".adminUser";
     private static final String YOUCAT_CREATE = YOUCAT + ".createSchemaInDB";
+    private static final String DEFAULT_VOTABLE_SERIALIZATION_KEY = YOUCAT + ".defaultVOTableSerialization";
 
     private String jndiAdminKey;
     private String jndiCreateSchemaKey;
+    private String defaultVOTableSerialization = null;
     
     public YoucatInitAction() { 
     }
@@ -123,6 +126,16 @@ public class YoucatInitAction extends InitAction {
             sb.append("MISSING");
         } else {
             sb.append("OK");
+        }
+
+        String defaultVOTableSerializationValue = mvp.getFirstPropertyValue(DEFAULT_VOTABLE_SERIALIZATION_KEY);
+        sb.append("\n\t" + DEFAULT_VOTABLE_SERIALIZATION_KEY + ": ");
+        if (defaultVOTableSerializationValue == null) {
+            sb.append("MISSING");
+            defaultVOTableSerialization = "TABLEDATA";
+        } else {
+            sb.append("OK");
+            defaultVOTableSerialization = defaultVOTableSerializationValue;
         }
         
         if (!ok) {
@@ -165,8 +178,9 @@ public class YoucatInitAction extends InitAction {
             InitDatabaseUWS uwsi = new InitDatabaseUWS(uws, null, "uws");
             uwsi.doInit();
             log.info("InitDatabaseUWS: OK");
-            
-            
+
+            DefaultTableWriter.setDefaultVOTableSerialization(defaultVOTableSerialization);
+
         } catch (Exception ex) {
             throw new RuntimeException("INIT FAIL: " + ex.getMessage(), ex);
         }

@@ -107,6 +107,9 @@ org.opencadc.youcat.adminUser = {identity}
 
 # (optional) schema creation in the database (default: false)
 org.opencadc.youcat.createSchemaInDB = true|false
+
+# (optional) default serialization format for VOTable results (default: TABLEDATA)
+org.opencadc.youcat.defaultVOTableSerialization = {TABLEDATA|BINARY2}
 ```
 The optional _adminUser_ (configured using the network username) can use the youcat API to create a 
 new schema for a user. This will add the schema to the `tap_schema.schemas` table with the 
@@ -117,6 +120,9 @@ The optional _createSchemaInDB_ flag is set to true, a schema created by admin w
 the database in addition to being added to the `tap_schema`. If false, `youcat` will not create 
 the schema in the database and just assume it exists and that the `tapadm` pool has permission 
 to create objects (tables and indices) in it.
+
+The optional _defaultVOTableSerialization_ configures the default serialization format for
+VOTable results.
 
 As hard-coded behaviours of `youcat` are extracted from the build and made configurable,
 the configuration options will usually be in this file (see **development plans** below).
