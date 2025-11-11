@@ -116,7 +116,6 @@ public class PostgresDataTypeMapper extends BasicDataTypeMapper {
         // pg-specific type label for char(n) columns
         dbDataTypes.put("bpchar", TapDataType.CHAR);                    // code to assign optional length
         
-        //dbDataTypes.put("uri", TapDataType.URI);
         dbDataTypes.put("uuid", TT_UIID);
         dbDataTypes.put("polygon", TapDataType.INTERVAL);
         dbDataTypes.put("spoint", TapDataType.POINT);
