@@ -92,6 +92,8 @@ import java.io.StringWriter;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.sql.DatabaseMetaData;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import javax.security.auth.Subject;
@@ -142,6 +144,7 @@ public class TableUpdateTest extends AbstractTablesTest {
                 log.info("testCreateIndex: " + cd.getColumnName());
                 ExecutionPhase expected = ExecutionPhase.COMPLETED;
                 if (cd.getColumnName().startsWith("a")) {
+                    // array column
                     expected = ExecutionPhase.ERROR;
                 }
                 doCreateIndex(schemaOwner, tableName, cd.getColumnName(), false,expected, null);
@@ -157,6 +160,9 @@ public class TableUpdateTest extends AbstractTablesTest {
 
     @Test
     public void testCreateUniqueIndex() {
+        List<String> uniqUnsupported = Arrays.asList(new String[] {
+            "interval", "point", "circle", "polygon"
+        });
         try {
             clearSchemaPerms();
             TapPermissions tp = new TapPermissions(null, true, null, null);
@@ -167,7 +173,9 @@ public class TableUpdateTest extends AbstractTablesTest {
             for (ColumnDesc cd : td.getColumnDescs()) {
 
                 ExecutionPhase expected = ExecutionPhase.COMPLETED;
-                if (cd.getColumnName().startsWith("e") || cd.getColumnName().startsWith("a")) {
+                String x = cd.getDatatype().xtype;
+                if (cd.getColumnName().startsWith("a") // array column
+                        || x != null && uniqUnsupported.contains(x)) {
                     expected = ExecutionPhase.ERROR; // unique index not allowed
                 }
                 log.info("testCreateUniqueIndex: " + cd.getColumnName() + " expect: " + expected.getValue());
@@ -224,8 +232,12 @@ public class TableUpdateTest extends AbstractTablesTest {
                 Assert.assertNotNull(ocd.getColumnName(), cd);
                 Assert.assertEquals(ocd.getDatatype().getDatatype(), cd.getDatatype().getDatatype());
                 // compare arraysize is hard: create table imposes a limit on arraysize="*"
-                Assert.assertEquals(ocd.getDatatype().xtype, cd.getDatatype().xtype);
-
+                if ("uri".equals(ocd.getDatatype().xtype)) {
+                    // xtype=uri is purely a tap_schema decoration
+                    Assert.assertNull(cd.getDatatype().xtype);
+                } else {
+                    Assert.assertEquals(ocd.getDatatype().xtype, cd.getDatatype().xtype);
+                }
                 log.info("found: " + cd.getColumnName() + " " + cd.getDatatype());
             }
             
