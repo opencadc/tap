@@ -22,18 +22,18 @@ war {
 }
 
 dependencies {
-    implementation 'org.opencadc:cadc-util:[1.12.0,2.0)'
+    implementation 'org.opencadc:cadc-util:[1.12.13,2.0)'
     implementation 'org.opencadc:cadc-rest:[1.4.5,)'
-    implementation 'org.opencadc:cadc-dali:[1.2.26,)'
+    implementation 'org.opencadc:cadc-dali:[1.2.27,)'
     implementation 'org.opencadc:cadc-dali-parquet:[0.5.2,)'
     implementation 'org.opencadc:cadc-datalink:[1.1.5,)'
     implementation 'org.opencadc:cadc-adql:[1.1.14,)'
     implementation 'org.opencadc:cadc-uws:[1.0.2,)'
     implementation 'org.opencadc:cadc-uws-server:[1.2.22,)'
-    implementation 'org.opencadc:cadc-tap:[1.1.21,)'
+    implementation 'org.opencadc:cadc-tap:[1.1.22,)'
     implementation 'org.opencadc:cadc-tap-schema:[1.2.11,)'
     implementation 'org.opencadc:cadc-tap-server:[1.1.33,)'
-    implementation 'org.opencadc:cadc-tap-server-pg:[1.1.1,)'
+    implementation 'org.opencadc:cadc-tap-server-pg:[1.1.4,)'
     implementation 'org.opencadc:cadc-adql:[1.1.4,)'
     implementation 'org.opencadc:cadc-vosi:[1.4.3,2.0)'
     implementation 'org.opencadc:cadc-registry:[1.8.0,)'
@@ -49,7 +49,7 @@ dependencies {
 
     intTestImplementation 'org.opencadc:cadc-test-uws:[1.1.1,)'
     intTestImplementation 'org.opencadc:cadc-test-vosi:[1.0.11,)'
-    intTestImplementation 'org.opencadc:cadc-test-tap:[1.1,)'
+    intTestImplementation 'org.opencadc:cadc-test-tap:[1.2.4,)'
     intTestImplementation 'uk.ac.starlink:stil:[4.0,5.0)'
     intTestImplementation 'org.apache.parquet:parquet-common:[1.13.0,)'
 
