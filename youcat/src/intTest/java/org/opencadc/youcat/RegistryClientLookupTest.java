@@ -74,6 +74,7 @@ import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.RunnableAction;
 import ca.nrc.cadc.auth.SSLUtil;
 import ca.nrc.cadc.net.HttpDownload;
+import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.net.HttpPost;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.reg.Standards;
@@ -83,15 +84,11 @@ import ca.nrc.cadc.util.Log4jInit;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 import java.util.TreeMap;
 import javax.security.auth.Subject;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.xerces.impl.dv.util.Base64;
 import org.junit.Assert;
 import org.junit.Test;
 import org.opencadc.tap.TapClient;
@@ -106,23 +103,13 @@ public class RegistryClientLookupTest {
     private static final Logger log = Logger.getLogger(RegistryClientLookupTest.class);
 
     static final Subject subject;
-    static final String basicAuth;
-    static final String userid = "cadcregtest1";
+    static final String userid = "cadcauthtest2";
 
     static {
         Log4jInit.setLevel("ca.nrc.cadc.cat", Level.INFO);
 
-        File cf = FileUtil.getFileFromResource("x509_CADCRegtest1.pem", RegistryClientLookupTest.class);
+        File cf = FileUtil.getFileFromResource("youcat-member.pem", RegistryClientLookupTest.class);
         subject = SSLUtil.createSubject(cf);
-        try {
-            Path passPath = Paths.get(System.getenv("A") + "/etc/" + userid + ".pass");
-            byte[] password = Files.readAllBytes(passPath);
-            String useridPassword = new String(userid + ":" + new String(password));
-            basicAuth = "Basic " + Base64.encode(useridPassword.getBytes());
-        } catch (Throwable e) {
-            log.error("Failed to read password file", e);
-            throw new ExceptionInInitializerError("Failed to read password file");
-        }
     }
 
     RegistryClient regClient;
@@ -281,7 +268,7 @@ public class RegistryClientLookupTest {
             URL url = regClient.getServiceURL(Constants.RESOURCE_ID, Standards.LOGGING_CONTROL_10, AuthMethod.CERT);
             Assert.assertNotNull(url);
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            HttpDownload get = new HttpDownload(url, bos);
+            HttpGet get = new HttpGet(url, bos);
             Subject.doAs(subject, new RunnableAction(get));
 
             Assert.assertNotNull(get.getThrowable());
