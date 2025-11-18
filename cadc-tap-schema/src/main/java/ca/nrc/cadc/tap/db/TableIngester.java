@@ -112,12 +112,12 @@ public class TableIngester {
      * @return the TableDesc with default permissions
      * @throws ResourceNotFoundException if the table does not exist
      */
-    public TableDesc getTableDesc(String schemaName, String tableName) 
+    public TableDesc getTableDesc(String tableName) 
             throws ResourceNotFoundException {
         // create the table description
         TableDesc ingestTable;
         try {
-            ingestTable = createTableDesc(schemaName, tableName);
+            ingestTable = createTableDesc(tableName);
         } catch (SQLException e) {
             throw new IllegalArgumentException(String.format("error getting database metadata for %s because: %s",
                     tableName, e.getMessage()));
@@ -125,12 +125,19 @@ public class TableIngester {
         return ingestTable;
     }
 
-    private TableDesc createTableDesc(String schemaName, String tableName)
+    private TableDesc createTableDesc(String tableName)
             throws SQLException, ResourceNotFoundException {
+
+        // separate the schema and table in the fully qualified tablename
+        String[] schemaTable = tableName.split("[.]");
+        if (schemaTable.length != 2) {
+            throw new IllegalArgumentException("invalid table name: " + tableName + " (expected: <schema>.<table>)");
+        }
+
         // get the table metadata
-        String s = getUnqualifiedTableNameFromTable(tableName);
-        final String internalTableName = databaseDataType.toInternalDatabaseObjectName(s);
-        final String internalSchemaName = databaseDataType.toInternalDatabaseObjectName(schemaName);
+    
+        final String internalSchemaName = databaseDataType.toInternalDatabaseObjectName(schemaTable[0]);
+        final String internalTableName = databaseDataType.toInternalDatabaseObjectName(schemaTable[1]);
         log.debug(String.format("creating TableDesc for %s %s aka %s", internalSchemaName, internalTableName, tableName));
         Connection conn = dataSource.getConnection();
         try {
@@ -156,7 +163,7 @@ public class TableIngester {
             }
 
             // build TableDesc
-            TableDesc tableDesc = new TableDesc(schemaName, tableName); // as specified by caller
+            TableDesc tableDesc = new TableDesc(schemaTable[0], tableName); // as specified by caller
             tableDesc.tableType = TableDesc.TableType.TABLE;
             log.debug(String.format("creating TableDesc %s %s aka %s", internalSchemaName, internalTableName, tableName));
             //TODO too pg specific? table names are stored lower case in the system tables queried for the metadata
@@ -185,14 +192,6 @@ public class TableIngester {
         } finally {
             conn.close();
         }
-    }
-
-    String getUnqualifiedTableNameFromTable(String tableName) {
-        String[] st = tableName.split("[.]");
-        if (st.length == 2) {
-            return st[1];
-        }
-        throw new IllegalArgumentException("invalid table name: " + tableName + " (expected: <schema>.<table>)");
     }
 
 }

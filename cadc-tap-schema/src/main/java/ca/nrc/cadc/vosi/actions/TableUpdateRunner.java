@@ -405,7 +405,7 @@ public class TableUpdateRunner implements JobRunner {
         // database metadata
         TableIngester tableIngester = new TableIngester(ds);
         log.debug("read table from database");
-        TableDesc ingestable = tableIngester.getTableDesc(schemaName, tableName);
+        TableDesc ingestable = tableIngester.getTableDesc(tableName);
         // check the table is valid ADQL name
         try {
             TapSchemaUtil.checkValidTableName(ingestable.getTableName());
