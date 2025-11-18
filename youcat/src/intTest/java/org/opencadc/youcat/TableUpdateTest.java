@@ -76,6 +76,7 @@ import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.net.FileContent;
 import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.net.HttpPost;
+import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapPermissions;
@@ -368,6 +369,66 @@ public class TableUpdateTest extends AbstractTablesTest {
 
             // cleanup, drop the view target
             doDelete(schemaOwner, testViewTarget, false);
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+
+    @Test
+    public void testIngestViewWithOtherSchema () {
+        try {
+            clearSchemaPerms();
+            TapPermissions tp = new TapPermissions(null, true, null, null);
+            super.setPerms(schemaOwner, testSchemaName, tp, 200);
+
+            final String testViewName = testSchemaName + ".test_ingest_view_with_other_schema";
+            final String testViewTarget = "tap_schema.schemas11";
+            final String queryTestViewTarget = "tap_schema.schemas";
+
+            // try to delete the view from the tap_schema
+            try {
+                tapSchemaDAO.delete(testViewName);
+            }  catch (ResourceNotFoundException ignore) {}
+
+            // get the view target table
+            final TableDesc viewTarget = doVosiCheck(queryTestViewTarget);
+
+            // run the ingest
+            doIngestTable(schemaOwner, testViewTarget, testViewName, ExecutionPhase.COMPLETED);
+
+            // update the view and verify
+            TableDesc view = doVosiCheck(testViewName);
+            view.description = "updated view description";
+            view.getColumn("description").description = "updated column description";
+
+            URL viewURL = new URL(certTablesURL.toExternalForm() + "/" + testViewName);
+            TableWriter tableWriter = new TableWriter();
+            StringWriter stringWriter = new StringWriter();
+            tableWriter.write(view, stringWriter);
+            String xml = stringWriter.toString();
+            log.info("updating view...\n" + xml);
+            FileContent fileContent = new FileContent(xml, TablesInputHandler.VOSI_TABLE_TYPE, StandardCharsets.UTF_8);
+            HttpPost update = new HttpPost(viewURL, fileContent, false);
+            Subject.doAs(schemaOwner, new RunnableAction(update));
+            log.info("update view: " + update.getResponseCode() + " " + update.getThrowable());
+            Assert.assertEquals(204, update.getResponseCode());
+
+            // verify updated view
+            TableDesc updatedView = doVosiCheck(testViewName);
+            Assert.assertEquals(view.description, updatedView.description);
+            Assert.assertEquals(view.getColumn("description").description, updatedView.getColumn("description").description);
+
+            // check the view target is unchanged
+            TableDesc target = doVosiCheck(queryTestViewTarget);
+            compare(viewTarget, target);
+
+            // drop the view and verify
+            // doDelete(schemaOwner, testViewName, false);
+
+            // check the view target is unchanged
+            target = doVosiCheck(queryTestViewTarget);
+            compare(viewTarget, target);
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
