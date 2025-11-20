@@ -148,31 +148,31 @@ public class DefaultFormatFactory implements FormatFactory {
             }
 
             if (tt.xtype.endsWith("multiinterval")) {
-                return getMultiIntervalFormat(item); // proposed DALI-1.2, ignore prefix
+                return getMultiIntervalFormat(item); // DALI-1.2, ignore prefix
             }
 
             if (tt.xtype.endsWith("multipolygon")) {
-                return getMultiPolygonFormat(item);// proposed DALI-1.2, ignore prefix
+                return getMultiPolygonFormat(item);// was proposed DALI-1.2, ignore prefix, to be removed
             }
 
             if (tt.xtype.endsWith("shape")) {
-                return getShapeFormat(item); // proposed DALI-1.2, ignore prefix
+                return getShapeFormat(item); // DALI-1.2, ignore prefix
+            }
+            
+            if (tt.xtype.equals("multishape")) {
+                return getMultiShapeFormat(item); // DALI-1.2
             }
 
-            //if (tt.xtype.endsWith("region"))
-            //{
-            //    return getRegionFormat(item); // proposed DALI-1.2, ignore prefix??
-            //}
             if ("uuid".equals(tt.xtype)) {
-                return getUUIDFormat(item);// proposed DALI-1.2
+                return getUUIDFormat(item);// DALI-1.2
             }
 
             if ("uri".equals(tt.xtype)) {
-                return getURIFormat(item);// proposed DALI-1.2
+                return getURIFormat(item);// DALI-1.2
             }
 
             if ("clob".equals(tt.xtype)) {
-                return getClobFormat(item); // custom or ADQL-2.1?
+                return getClobFormat(item); // legacy
             }
 
             // unsupported: boolean, bit, floatComplex, doubleComplex
@@ -399,6 +399,10 @@ public class DefaultFormatFactory implements FormatFactory {
     }
 
     protected Format<Object> getShapeFormat(TapSelectItem columnDesc) {
+        throw new UnsupportedOperationException("no formatter for column " + columnDesc.getName());
+    }
+
+    protected Format<Object> getMultiShapeFormat(TapSelectItem columnDesc) {
         throw new UnsupportedOperationException("no formatter for column " + columnDesc.getName());
     }
 
