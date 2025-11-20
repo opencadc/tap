@@ -382,7 +382,8 @@ public class TableUpdateTest extends AbstractTablesTest {
             TapPermissions tp = new TapPermissions(null, true, null, null);
             super.setPerms(schemaOwner, testSchemaName, tp, 200);
 
-            final String testViewName = testSchemaName + ".test_ingest_view_with_other_schema";
+            final String testViewTableName = "test_ingest_view_with_other_schema";
+            final String testViewName = testSchemaName + "." + testViewTableName;
             final String testViewTarget = "tap_schema.schemas11";
             final String queryTestViewTarget = "tap_schema.schemas";
 
@@ -396,6 +397,13 @@ public class TableUpdateTest extends AbstractTablesTest {
 
             // run the ingest
             doIngestTable(schemaOwner, testViewTarget, testViewName, ExecutionPhase.COMPLETED);
+
+            // verify the tap_schema.tables view
+            TableDesc dbView = tapSchemaDAO.getTable(testViewName);
+            Assert.assertEquals(testSchemaName, dbView.getSchemaName());
+            Assert.assertEquals(testViewName, dbView.getTableName());
+            Assert.assertEquals(testViewTarget, dbView.viewTarget);
+            Assert.assertEquals(TableDesc.TableType.VIEW, dbView.tableType);
 
             // update the view and verify
             TableDesc view = doVosiCheck(testViewName);

@@ -32,7 +32,7 @@ dependencies {
     implementation 'org.apache.parquet:parquet-common:[1.13.0,)'
     api 'org.opencadc:cadc-dali:[1.1,2.0)'
     api 'org.opencadc:cadc-dali-parquet:[0.5.2,)'
-    api 'org.opencadc:cadc-tap:[1.1.21,2.0)'
+    api 'org.opencadc:cadc-tap:[1.1.23,2.0)'
     
     implementation 'uk.ac.starlink:jcdf:[1.2.3,2.0)'
     implementation 'uk.ac.starlink:stil:[4.0,5.0)'

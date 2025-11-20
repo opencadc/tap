@@ -107,8 +107,7 @@ public class TableIngester {
 
     /**
      * Read the table description of a table in the database.
-     * @param schemaName
-     * @param tableName
+     * @param tableName the fully qualified table name
      * @return the TableDesc with default permissions
      * @throws ResourceNotFoundException if the table does not exist
      */
