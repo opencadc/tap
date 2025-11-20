@@ -147,16 +147,16 @@ public class DefaultFormatFactory implements FormatFactory {
                 return getIntervalFormat(item); // DALI-1.1
             }
 
-            if (tt.xtype.endsWith("multiinterval")) {
-                return getMultiIntervalFormat(item); // DALI-1.2, ignore prefix
+            if (tt.xtype.equals("multiinterval")) {
+                return getMultiIntervalFormat(item); // DALI-1.2
             }
 
             if (tt.xtype.endsWith("multipolygon")) {
                 return getMultiPolygonFormat(item);// was proposed DALI-1.2, ignore prefix, to be removed
             }
 
-            if (tt.xtype.endsWith("shape")) {
-                return getShapeFormat(item); // DALI-1.2, ignore prefix
+            if (tt.xtype.equals("shape")) {
+                return getShapeFormat(item); // DALI-1.2
             }
             
             if (tt.xtype.equals("multishape")) {
@@ -176,7 +176,7 @@ public class DefaultFormatFactory implements FormatFactory {
             }
 
             // unsupported: boolean, bit, floatComplex, doubleComplex
-            // TAP-1.0 ADQL types for backwards compatibility
+            // TAP-1.0 ADQL types for backwards compatibility (used on ObsCore)
             if ("adql:POINT".equalsIgnoreCase(tt.xtype)) {
                 return getPositionFormat(item);
             }
@@ -394,6 +394,7 @@ public class DefaultFormatFactory implements FormatFactory {
      * @param columnDesc
      * @throws UnsupportedOperationException
      */
+    @Deprecated
     protected Format<Object> getMultiPolygonFormat(TapSelectItem columnDesc) {
         throw new UnsupportedOperationException("no formatter for column " + columnDesc.getName());
     }
@@ -410,6 +411,7 @@ public class DefaultFormatFactory implements FormatFactory {
      * @param columnDesc
      * @throws UnsupportedOperationException
      */
+    @Deprecated
     protected Format<Object> getPositionFormat(TapSelectItem columnDesc) {
         throw new UnsupportedOperationException("no formatter for column " + columnDesc.getName());
     }
@@ -418,6 +420,7 @@ public class DefaultFormatFactory implements FormatFactory {
      * @param columnDesc
      * @throws UnsupportedOperationException
      */
+    @Deprecated
     protected Format<Object> getRegionFormat(TapSelectItem columnDesc) {
         throw new UnsupportedOperationException("no formatter for column " + columnDesc.getName());
     }
@@ -443,6 +446,7 @@ public class DefaultFormatFactory implements FormatFactory {
      * @return a DefaultFormat
      * @throws UnsupportedOperationException
      */
+    @Deprecated
     protected Format<Object> getBlobFormat(TapSelectItem columnDesc) {
         return new ByteArrayFormat();
     }
@@ -452,6 +456,7 @@ public class DefaultFormatFactory implements FormatFactory {
      * @return a DefaultFormat
      * @throws UnsupportedOperationException
      */
+    @Deprecated
     protected Format<Object> getClobFormat(TapSelectItem columnDesc) {
         return getDefaultFormat();
     }
