@@ -5,7 +5,7 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
-  build compileIntTest:
+  build:
 
     runs-on: ubuntu-latest
 
@@ -41,6 +41,6 @@ jobs:
     - name: build and test cadc-test-tap
       run: cd cadc-test-tap && ../gradlew --info clean build compileIntTest javadoc install
 
-    - name: build compileIntTest youcat
+    - name: build and test youcat
       run: cd youcat && ../gradlew --info clean build compileIntTest
     
