@@ -102,7 +102,7 @@ public class TableIngesterTest extends TestUtil {
         try {
             // ingest table into the tap_schema
             TableIngester tableIngester = new TableIngester(dataSource);
-            TableDesc actual = tableIngester.getTableDesc(testSchemaName, testTable);
+            TableDesc actual = tableIngester.getTableDesc(testTable);
             Assert.fail("expected Exception, got: " + actual);
         } catch (ResourceNotFoundException expected) {
             log.info("caught expected: " + expected);
@@ -131,7 +131,7 @@ public class TableIngesterTest extends TestUtil {
 
             // ingest table into the tap_schema
             TableIngester tableIngester = new TableIngester(dataSource);
-            TableDesc actual = tableIngester.getTableDesc(testSchemaName, testTable);
+            TableDesc actual = tableIngester.getTableDesc(testTable);
             log.info("ingested table");
 
             // check
@@ -281,7 +281,7 @@ public class TableIngesterTest extends TestUtil {
             boolean success = false;
             try {
                 TableIngester tableIngester = new TableIngester(dataSource);
-                TableDesc actual = tableIngester.getTableDesc(testSchemaName, testTable);
+                TableDesc actual = tableIngester.getTableDesc(testTable);
                 Assert.fail("expected UnsupportedOperationException, got: " + actual);
             } catch (UnsupportedOperationException expected) {
                 log.info("caught expected exception: " + expected);
