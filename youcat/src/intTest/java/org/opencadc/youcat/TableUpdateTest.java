@@ -432,7 +432,7 @@ public class TableUpdateTest extends AbstractTablesTest {
             compare(viewTarget, target);
 
             // drop the view and verify
-            // doDelete(schemaOwner, testViewName, false);
+             doDelete(schemaOwner, testViewName, false);
 
             // check the view target is unchanged
             target = doVosiCheck(queryTestViewTarget);
