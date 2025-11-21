@@ -5,7 +5,7 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
-  build:
+  build compileIntTest:
 
     runs-on: ubuntu-latest
 
@@ -18,29 +18,29 @@ jobs:
         java-version: 11
 
     - name: build and test cadc-jsqlparser-compat
-      run: cd cadc-jsqlparser-compat && ../gradlew --info clean build javadoc install
+      run: cd cadc-jsqlparser-compat && ../gradlew --info clean build compileIntTest javadoc install
 
     - name: build and test cadc-tap
-      run: cd cadc-tap && ../gradlew --info clean build javadoc checkstyleMain install
+      run: cd cadc-tap && ../gradlew --info clean build compileIntTest javadoc checkstyleMain install
 
     - name: build and test cadc-tap-schema
-      run: cd cadc-tap-schema && ../gradlew --info clean build javadoc checkstyleMain install
+      run: cd cadc-tap-schema && ../gradlew --info clean build compileIntTest javadoc checkstyleMain install
       
     - name: build and test cadc-tap-server
-      run: cd cadc-tap-server && ../gradlew --info clean build javadoc checkstyleMain install
+      run: cd cadc-tap-server && ../gradlew --info clean build compileIntTest javadoc checkstyleMain install
       
     - name: build and test cadc-adql
-      run: cd cadc-adql && ../gradlew --info clean build javadoc install
+      run: cd cadc-adql && ../gradlew --info clean build compileIntTest javadoc install
       
     - name: build and test cadc-tap-server-pg
-      run: cd cadc-tap-server-pg && ../gradlew --info clean build javadoc install
+      run: cd cadc-tap-server-pg && ../gradlew --info clean build compileIntTest javadoc install
 
     - name: build and test cadc-tap-server-oracle
-      run: cd cadc-tap-server-oracle && ../gradlew --info clean build javadoc install
+      run: cd cadc-tap-server-oracle && ../gradlew --info clean build compileIntTest javadoc install
 
     - name: build and test cadc-test-tap
-      run: cd cadc-test-tap && ../gradlew --info clean build javadoc install
+      run: cd cadc-test-tap && ../gradlew --info clean build compileIntTest javadoc install
 
-    - name: build youcat
-      run: cd youcat && ../gradlew --info clean build
+    - name: build compileIntTest youcat
+      run: cd youcat && ../gradlew --info clean build compileIntTest
     
