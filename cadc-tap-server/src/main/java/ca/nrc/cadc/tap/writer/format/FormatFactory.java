@@ -82,7 +82,7 @@ import java.util.List;
  * TODO: possiblty rename this interface in future so it doesn't get confused with
  * the cadc-dali FormatFactory class and concept.
  * 
- * @see ResultSetFormat.extract for more details
+ * @see ResultSetFormat for more details
  */
 public interface FormatFactory extends TapPlugin {
 
