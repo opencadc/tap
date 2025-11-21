@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2018.                            (c) 2018.
+*  (c) 2025.                            (c) 2025.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -65,73 +65,33 @@
 ************************************************************************
 */
 
-package org.opencadc.youcat.tap;
+package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.dali.util.Format;
-import ca.nrc.cadc.tap.TapSelectItem;
-import ca.nrc.cadc.tap.pg.IntervalFormat;
-import ca.nrc.cadc.tap.writer.format.DefaultFormatFactory;
-import ca.nrc.cadc.tap.writer.format.SCircleFormat;
-import ca.nrc.cadc.tap.writer.format.SPointFormat;
-import ca.nrc.cadc.tap.writer.format.SPointFormat10;
-import ca.nrc.cadc.tap.writer.format.SPolyFormat;
-import ca.nrc.cadc.tap.writer.format.SPolyFormat10;
+import ca.nrc.cadc.db.mappers.JdbcMapUtil;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.UUID;
 import org.apache.log4j.Logger;
 
 /**
  *
- *
+ * @author pdowler
  */
-public class FormatFactoryImpl extends DefaultFormatFactory {
+public class UUIDFormat extends AbstractResultSetFormat {
+    private static final Logger log = Logger.getLogger(UUIDFormat.class);
 
-    private static Logger log = Logger.getLogger(FormatFactoryImpl.class);
+    private final ca.nrc.cadc.dali.util.UUIDFormat fmt = new ca.nrc.cadc.dali.util.UUIDFormat();
 
-    public FormatFactoryImpl() {
-        super();
+    public UUIDFormat() { 
     }
 
     @Override
-    public Format<Object> getFormat(TapSelectItem d) {
-        Format<Object> ret = super.getFormat(d);
-        log.debug("fomatter: " + d + " " + ret.getClass().getName());
-        return ret;
+    public Object extract(ResultSet resultSet, int columnIndex) throws SQLException {
+        return JdbcMapUtil.getUUID(resultSet, columnIndex);
     }
 
     @Override
-    public Format<Object> getIntervalFormat(TapSelectItem columnDesc) {
-        return new IntervalFormat(columnDesc.getDatatype().isVarSize());
+    public String format(Object o) {
+        return fmt.format((UUID) o);
     }
-    
-    @Override
-    public Format<Object> getPointFormat(TapSelectItem columnDesc) {
-        log.debug("getPointFormat: " + columnDesc);
-        return new SPointFormat();
-    }
-
-    @Override
-    public Format<Object> getCircleFormat(TapSelectItem columnDesc) {
-        log.debug("getCircleFormat: " + columnDesc);
-        return new SCircleFormat();
-    }
-
-    @Override
-    protected Format<Object> getPolygonFormat(TapSelectItem columnDesc) {
-        log.debug("getPolygonFormat: " + columnDesc);
-        //if (columnDesc.utype != null && columnDesc.utype.equals("caom2:Plane.position.bounds"))
-        //    return new DoubleArrayFormat(); // see CaomSelectListConverter
-        return new SPolyFormat();
-    }
-
-    @Override
-    protected Format<Object> getPositionFormat(TapSelectItem columnDesc) {
-        log.debug("getPositionFormat: " + columnDesc);
-        return new SPointFormat10();
-    }
-
-    @Override
-    public Format<Object> getRegionFormat(TapSelectItem columnDesc) {
-        log.debug("getRegionFormat: " + columnDesc);
-        return new SPolyFormat10();
-    }
-
 }

@@ -116,6 +116,7 @@ public class PluginFactoryImpl extends PluginFactory {
                 String cname = config.getProperty(lang);
                 if (cname != null) {
                     try {
+                        cname = cname.trim();
                         c = Class.forName(cname);
                         langBindings.put(lang, c);
                     } catch (Throwable ex) {
@@ -176,6 +177,7 @@ public class PluginFactoryImpl extends PluginFactory {
             ret = new MaxRecValidator();
         } else {
             try {
+                cname = cname.trim();
                 Class c = Class.forName(cname);
                 ret = (MaxRecValidator) c.newInstance();
             } catch (Throwable ex) {
@@ -194,6 +196,7 @@ public class PluginFactoryImpl extends PluginFactory {
             ret = new DefaultUploadManager();
         } else {
             try {
+                cname = cname.trim();
                 Class c = Class.forName(cname);
                 ret = (UploadManager) c.newInstance();
             } catch (Throwable ex) {
@@ -212,6 +215,7 @@ public class PluginFactoryImpl extends PluginFactory {
             ret = new DefaultTableWriter();
         } else {
             try {
+                cname = cname.trim();
                 Class c = Class.forName(cname);
                 ret = (TableWriter) c.newInstance();
             } catch (Throwable ex) {
@@ -234,6 +238,7 @@ public class PluginFactoryImpl extends PluginFactory {
             ret = dtw;
         } else {
             try {
+                cname = cname.trim();
                 Class c = Class.forName(cname);
                 ret = (TableWriter) c.newInstance();
             } catch (Throwable ex) {
@@ -253,6 +258,7 @@ public class PluginFactoryImpl extends PluginFactory {
             ret = new DefaultFormatFactory();
         } else {
             try {
+                cname = cname.trim();
                 Class c = Class.forName(cname);
                 ret = (FormatFactory) c.newInstance();
             } catch (Throwable ex) {
@@ -269,7 +275,11 @@ public class PluginFactoryImpl extends PluginFactory {
     public ResultStore getResultStore() {
         String name = ResultStore.class.getName();
         String cname = config.getProperty(name);
+        if (cname == null) {
+            throw new RuntimeException("CONFIG: missing required plugin config: " + name);
+        }
         try {
+            cname = cname.trim();
             Class c = Class.forName(cname);
             ResultStore ret = (ResultStore) c.newInstance();
             ret.setJob(job);

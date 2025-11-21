@@ -119,7 +119,7 @@ public class TableIngesterTest extends TestUtil {
 
             // create description from db table
             TableIngester tableIngester = new TableIngester(dataSource);
-            TableDesc actual = tableIngester.getTableDesc(testSchemaName, testTable);
+            TableDesc actual = tableIngester.getTableDesc(testTable);
             log.info("read table: " + actual);
 
             List<ColumnDesc> expectedColumns = ingestTable.getColumnDescs();

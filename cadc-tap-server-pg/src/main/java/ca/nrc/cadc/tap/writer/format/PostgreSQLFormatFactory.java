@@ -71,13 +71,23 @@ package ca.nrc.cadc.tap.writer.format;
 
 import ca.nrc.cadc.dali.util.Format;
 import ca.nrc.cadc.tap.TapSelectItem;
-
+import ca.nrc.cadc.tap.pg.IntervalFormat;
 
 /**
- * PostgreSQL format factory implementation.  This is loaded by adding this library to the client application's
- * classpath.
+ * PostgreSQL format factory implementation.
  */
-public class PostgreSQLFormatFactory extends DefaultFormatFactory {
+public class PostgreSQLFormatFactory extends ca.nrc.cadc.tap.writer.format.DefaultFormatFactory {
+
+    @Override
+    protected Format<Object> getUUIDFormat(TapSelectItem columnDesc) {
+        return new UUIDFormat();
+    }
+
+    
+    @Override
+    protected Format<Object> getIntervalFormat(TapSelectItem columnDesc) {
+        return new IntervalFormat(columnDesc.getDatatype().isVarSize()); 
+    }
 
     /**
      * @param columnDesc    The Column description.

@@ -343,11 +343,6 @@ public class DefaultTableWriter implements TableWriter {
         // get the formats based on the selectList; some of these are ResultSetFormat
         // and used by ResultSetTableData to extract from JDBC
         List<Format<Object>> formats = formatFactory.getFormats(selectList);
-        for (int i = 0; i < formats.size(); i++) {
-            // attach format object to field so the tableWriter can use 
-            // Format.format(Object) or other future methods
-            resultsTable.getFields().get(i).setFormat(formats.get(i));
-        }
 
         // attach dynamic table data
         ResultSetTableData tableData = new ResultSetTableData(rs, formats);

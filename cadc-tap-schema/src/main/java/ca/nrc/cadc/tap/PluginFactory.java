@@ -90,7 +90,6 @@ public class PluginFactory {
         this.config = new Properties();
         URL url = null;
         try {
-
             url = PluginFactory.class.getClassLoader().getResource(CONFIG);
             if (url != null) {
                 config.load(url.openStream());
@@ -102,14 +101,15 @@ public class PluginFactory {
 
     public DatabaseDataType getDatabaseDataType() {
         final DatabaseDataType ret;
-        final String name = DatabaseDataType.class.getName();
-        final String cname = config.getProperty(name);
+        String name = DatabaseDataType.class.getName();
+        String cname = config.getProperty(name);
         if (cname == null) {
             ret = new BasicDataTypeMapper();
         } else {
             try {
+                cname = cname.trim();
                 Class c = Class.forName(cname);
-                ret = (DatabaseDataType) c.newInstance();
+                ret = (DatabaseDataType) c.getConstructor().newInstance();
             } catch (Throwable ex) {
                 throw new RuntimeException("config error: failed to create DatabaseDataType " + cname, ex);
 
@@ -127,8 +127,9 @@ public class PluginFactory {
             ret = new DataSourceProvider();
         } else {
             try {
+                cname = cname.trim();
                 Class c = Class.forName(cname);
-                ret = (DataSourceProvider) c.newInstance();
+                ret = (DataSourceProvider) c.getConstructor().newInstance();
             } catch (Throwable ex) {
                 throw new RuntimeException("config error: failed to create DataSourceProvider " + cname, ex);
             }
@@ -144,8 +145,9 @@ public class PluginFactory {
             ret = new TapSchemaDAO();
         } else {
             try {
+                cname = cname.trim();
                 Class c = Class.forName(cname);
-                ret = (TapSchemaDAO) c.newInstance();
+                ret = (TapSchemaDAO) c.getConstructor().newInstance();
             } catch (Throwable ex) {
                 throw new RuntimeException("config error: failed to create TapSchemaDAO " + cname, ex);
             }

@@ -78,7 +78,14 @@ import java.sql.SQLException;
  */
 public interface ResultSetFormat {
     /**
-     * Extract a value object from the specified column of the result set.
+     * Extract a value object from the specified column of the result set. This method
+     * must return the value using the appropriate type for the column: a base java type
+     * (e.g. String, Double, etc), an array of primitives, or a custom type provided by the 
+     * cadc-dali library. Application specific custom types are possible to support, but
+     * doing so also requires a custom dali FormatFactory to create a Format class for 
+     * output: it is probably better/easier to add support for such types to cadc-dali
+     * but should be possible to pass a custom FormatFactory to cadc-dali TableWriter
+     * implementations.
      * 
      * @param resultSet
      * @param columnIndex
@@ -87,13 +94,16 @@ public interface ResultSetFormat {
      */
     Object extract(ResultSet resultSet, int columnIndex)
         throws SQLException;
-    
+
     /**
-     * Format a value. Implementations should delegate to an appropriate DALI
-     * formatter.
+     * Format a value. Obsolete and not used.
      * 
      * @param o
      * @return String representation or zero-length string for null
+     * @deprecated no longer necessary as the output table writing uses cadc-dali Format objects directly
      */
-    String format(Object o);
+    @Deprecated
+    default String format(Object o) {
+        throw new UnsupportedOperationException("obsolete method");
+    }
 }
