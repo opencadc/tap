@@ -295,7 +295,7 @@ public class DefaultFormatFactory implements FormatFactory {
      * @return a DefaultFormat
      */
     protected Format<Object> getDoubleFormat(TapSelectItem columnDesc) {
-        return getDefaultFormat();
+        return new DoubleFormat();
     }
 
     /**
@@ -303,7 +303,7 @@ public class DefaultFormatFactory implements FormatFactory {
      * @return a DefaultFormat
      */
     protected Format<Object> getLongFormat(TapSelectItem columnDesc) {
-        return getDefaultFormat();
+        return new LongFormat();
     }
 
     /**

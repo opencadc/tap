@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2017.                            (c) 2017.
+*  (c) 2025.                            (c) 2025.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,31 +67,23 @@
 
 package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.dali.util.Format;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import org.apache.log4j.Logger;
 
 /**
- * Base implementation that ties together the ResultSetFormat and the DALI Format.
+ *
  * @author pdowler
  */
-public abstract class AbstractResultSetFormat implements ResultSetFormat, Format<Object> {
-    private static final Logger log = Logger.getLogger(AbstractResultSetFormat.class);
+public class DoubleFormat extends AbstractResultSetFormat {
+    private static final Logger log = Logger.getLogger(DoubleFormat.class);
 
-    public AbstractResultSetFormat() { }
-
-    @Override
-    public Object parse(String s) {
-        throw new UnsupportedOperationException("parse not supported in TAP formatters");
+    public DoubleFormat() { 
     }
 
     @Override
-    public abstract Object extract(ResultSet resultSet, int columnIndex) throws SQLException;
-
-    @Override
-    @Deprecated
-    public String format(Object o) {
-        throw new UnsupportedOperationException("BUG: format() should no longer be called");
+    public Object extract(ResultSet resultSet, int columnIndex) throws SQLException {
+        Double val = resultSet.getDouble(columnIndex);
+        return val;
     }
 }
