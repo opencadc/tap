@@ -85,7 +85,7 @@ public class LongFormat extends AbstractResultSetFormat {
 
     @Override
     public Object extract(ResultSet resultSet, int columnIndex) throws SQLException {
-        Long val = resultSet.getLong(columnIndex);
+        Long val = JdbcMapUtil.getLong(resultSet, columnIndex);
         return val;
     }
 }

@@ -67,6 +67,7 @@
 
 package ca.nrc.cadc.tap.writer.format;
 
+import ca.nrc.cadc.db.mappers.JdbcMapUtil;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import org.apache.log4j.Logger;
@@ -83,7 +84,8 @@ public class DoubleFormat extends AbstractResultSetFormat {
 
     @Override
     public Object extract(ResultSet resultSet, int columnIndex) throws SQLException {
-        Double val = resultSet.getDouble(columnIndex);
+        Double val = JdbcMapUtil.getDouble(resultSet, columnIndex);
+        log.warn("extract: " + val);
         return val;
     }
 }
