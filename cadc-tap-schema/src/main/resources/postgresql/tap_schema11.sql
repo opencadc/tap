@@ -9,10 +9,10 @@
 
 create table tap_schema.schemas11
 (
-	schema_name   varchar(64)  NOT NULL,
-	utype         varchar(512),
-	description   varchar(512),
-        schema_index  integer,
+    schema_name   varchar(64)  NOT NULL,
+    utype         varchar(512),
+    description   varchar(512),
+    schema_index  integer,
 	
 -- extension: permissions for user-created content
     owner_id        varchar(256),
@@ -23,20 +23,19 @@ create table tap_schema.schemas11
 -- extension: flag to indicate if a schema was created using a Tap service API
     api_created     integer,
 
-	primary key (schema_name)
+    primary key (schema_name)
 )
 ;
 
-
 create table tap_schema.tables11
 (
-	schema_name   varchar(64)  NOT NULL,
-	table_name    varchar(128) NOT NULL,
-        table_type    varchar(8)   NOT NULL,
-        view_target   varchar(128),
-	utype         varchar(512),
-	description   varchar(512),
-	table_index   integer,
+    schema_name   varchar(64)  NOT NULL,
+    table_name    varchar(128) NOT NULL,
+    table_type    varchar(8)   NOT NULL,
+    view_target   varchar(128),
+    utype         varchar(512),
+    description   varchar(512),
+    table_index   integer,
 
 -- extension: permissions for user-created content
     owner_id        varchar(256),
@@ -47,31 +46,32 @@ create table tap_schema.tables11
 -- extension: flag to indicate if a table was created using a Tap service API
     api_created     integer,
 
-	primary key (table_name),
-	foreign key (schema_name) references tap_schema.schemas11 (schema_name)
+-- primary key assumes fully qualified table_name
+    primary key (table_name),
+    foreign key (schema_name) references tap_schema.schemas11 (schema_name)
 )
 ;
 
 create table tap_schema.columns11
 (
-	table_name    varchar(128) NOT NULL,
-	column_name   varchar(64)  NOT NULL,
-	utype         varchar(512),
-	ucd           varchar(64),
-	unit          varchar(64),
-	description   varchar(512),
-	datatype      varchar(64)  NOT NULL,
+    table_name    varchar(128) NOT NULL,
+    column_name   varchar(64)  NOT NULL,
+    utype         varchar(512),
+    ucd           varchar(64),
+    unit          varchar(64),
+    description   varchar(512),
+    datatype      varchar(64)  NOT NULL,
 -- TAP-1.1 arraysize
-	arraysize     varchar(16),
+    arraysize     varchar(16),
 -- TAP-1.1 xtype
-        xtype         varchar(64),
+    xtype         varchar(64),
 -- TAP-1.1 size is deprecated
-	"size"          integer,
-	principal     integer      NOT NULL,
-	indexed       integer      NOT NULL,
-	std           integer      NOT NULL,
+    "size"          integer,
+    principal     integer      NOT NULL,
+    indexed       integer      NOT NULL,
+    std           integer      NOT NULL,
 -- TAP-1.1 column_index
-	column_index   integer,
+    column_index   integer,
 -- extension: globally unique columnID for use as an XML ID attribute on the FIELD in VOTable output
     column_id     varchar(32),
 	
@@ -81,8 +81,8 @@ create table tap_schema.columns11
     read_only_group  varchar(128),
     read_write_group varchar(128),
 
-	primary key (table_name,column_name),
-	foreign key (table_name) references tap_schema.tables11 (table_name)
+    primary key (table_name,column_name),
+    foreign key (table_name) references tap_schema.tables11 (table_name)
 )
 ;
 
