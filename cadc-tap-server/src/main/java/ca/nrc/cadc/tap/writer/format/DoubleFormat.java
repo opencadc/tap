@@ -85,7 +85,6 @@ public class DoubleFormat extends AbstractResultSetFormat {
     @Override
     public Object extract(ResultSet resultSet, int columnIndex) throws SQLException {
         Double val = JdbcMapUtil.getDouble(resultSet, columnIndex);
-        log.warn("extract: " + val);
         return val;
     }
 }
