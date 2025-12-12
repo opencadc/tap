@@ -67,6 +67,7 @@
 
 package ca.nrc.cadc.vosi.actions;
 
+import ca.nrc.cadc.tap.schema.Util;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.dali.ParamExtractor;
 import ca.nrc.cadc.db.DBUtil;

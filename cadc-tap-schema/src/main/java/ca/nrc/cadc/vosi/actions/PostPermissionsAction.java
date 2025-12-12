@@ -67,6 +67,7 @@
 
 package ca.nrc.cadc.vosi.actions;
 
+import ca.nrc.cadc.tap.schema.Util;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.InlineContentException;
 import ca.nrc.cadc.rest.InlineContentHandler;

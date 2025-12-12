@@ -75,6 +75,7 @@ import ca.nrc.cadc.tap.schema.ADQLIdentifierException;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaUtil;
+import ca.nrc.cadc.tap.schema.Util;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -158,64 +159,58 @@ public class TableCreator {
     }
     
     /**
-     * Drop a table. This is implemented as a TRUNCATE followed by a DROP so that
-     * space is immediately reclaimed and usable for other content.
+     * Change a table name. This can also optionally change the schema name.
      * 
-     * @param tableName
-     * @throws ResourceNotFoundException if the table does not exist
+     * @param tableName fully qualified table name
+     * @param newSchema change to a new schema, null for no schema change
+     * @param newTable unqualified table name
+     * @throws RuntimeException for any other failure
      */
-    public void dropTable(String tableName) throws ResourceNotFoundException {
+    public void renameTable(String tableName, String newSchema, String newTable) {
         try {
             TapSchemaUtil.checkValidTableName(tableName);
         } catch (ADQLIdentifierException ex) {
             throw new IllegalArgumentException("invalid table name: " + tableName, ex);
         }
-        
+        final String origTableName = tableName;
+        String ntn = newTable;
+        if (newSchema != null) {
+            ntn = newSchema + "." + newTable;
+        }
         Profiler prof = new Profiler(TableCreator.class);
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         try {
             tm.startTransaction();
             prof.checkpoint("start-transaction");
-            
-            // truncate before drop so space can be reclaimed immediately
-            String truncate = "TRUNCATE TABLE " + tableName;
-            log.debug("sql:\n" + truncate);
-            jdbc.execute(truncate);
-            prof.checkpoint("truncate-table");
-            
-            String drop = "DROP TABLE " + tableName;
-            log.debug("sql:\n" + drop);
-            jdbc.execute(drop);
-            prof.checkpoint("drop-table");
 
+            if (newSchema != null) {
+                String ss = "ALTER TABLE " + tableName + " SET SCHEMA " + newSchema;
+                log.debug("sql:\n" + ss);
+                jdbc.execute(ss);
+                prof.checkpoint("set-schema");
+                tableName = newSchema + "." + Util.getUnqualifiedTableName(tableName);
+            }            
+            String rt = "ALTER TABLE " + tableName + " RENAME TO " + newTable;
+            log.debug("sql:\n" + rt);
+            jdbc.execute(rt);
+            prof.checkpoint("rename-table");
+            
             tm.commitTransaction();
             prof.checkpoint("commit-transaction");
         } catch (Exception ex) {
-            // TODO: categorise failures better
-            if (ex.getMessage().contains("does not exist")) {
-                // handled: log at debug level
-                try {
-                    log.debug("drop table failed - rollback", ex);
-                    tm.rollbackTransaction();
-                    prof.checkpoint("rollback-transaction");
-                    log.debug("drop table failed - rollback: OK");
-                } catch (Exception oops) {
-                    log.error("drop table failed - rollback : FAIL", oops);
-                }
-                throw new ResourceNotFoundException("not found: " + tableName);
-            } else {
-                // unexpected: log at error level
-                try {
-                    log.error("drop table failed - rollback", ex);
-                    tm.rollbackTransaction();
-                    prof.checkpoint("rollback-transaction");
-                    log.error("drop table failed - rollback: OK");
-                } catch (Exception oops) {
-                    log.error("drop table failed - rollback : FAIL", oops);
-                }
+            try {
+                log.error("rename table failed - rollback", ex);
+                tm.rollbackTransaction();
+                prof.checkpoint("rollback-transaction");
+                log.error("rename table failed - rollback: OK");
+            } catch (Exception oops) {
+                log.error("rename table failed - rollback : FAIL", oops);
             }
-            throw new RuntimeException("failed to drop table " + tableName, ex);
+            if (ex instanceof IllegalArgumentException) {
+                throw ex;
+            }
+            throw new RuntimeException("failed to rename table: " + origTableName + " -> " + ntn, ex);
         } finally { 
             if (tm.isOpen()) {
                 log.error("BUG: open transaction in finally - trying to rollback");
@@ -228,6 +223,66 @@ public class TableCreator {
                 }
                 throw new RuntimeException("BUG: open transaction in finally");
             }
+        }
+    }
+
+    /**
+     * Truncate (remove all rows) from a table.
+     * 
+     * @param tableName fully qualified table name
+     * @throws ResourceNotFoundException if table does not exist
+     * @throws RuntimeException for any other failure
+     */
+    public void truncateTable(String tableName) throws ResourceNotFoundException {
+        try {
+            TapSchemaUtil.checkValidTableName(tableName);
+        } catch (ADQLIdentifierException ex) {
+            throw new IllegalArgumentException("invalid table name: " + tableName, ex);
+        }
+     
+        Profiler prof = new Profiler(TableCreator.class);
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        try {
+            String truncate = "TRUNCATE TABLE " + tableName;
+            log.debug("sql:\n" + truncate);
+            jdbc.execute(truncate);
+            prof.checkpoint("truncate-table");
+        } catch (Exception ex) {
+            // TODO: categorise failures better
+            if (ex.getMessage().contains("does not exist")) {
+                throw new ResourceNotFoundException("not found: " + tableName);
+            }
+            throw new RuntimeException("failed to truncate table " + tableName, ex);
+        }
+    }
+
+    /**
+     * Drop a table.
+     * 
+     * @param tableName fully qualified table name
+     * @throws ResourceNotFoundException if the table does not exist
+     * @throws RuntimeException for any other failure
+     */
+    public void dropTable(String tableName) throws ResourceNotFoundException {
+        try {
+            TapSchemaUtil.checkValidTableName(tableName);
+        } catch (ADQLIdentifierException ex) {
+            throw new IllegalArgumentException("invalid table name: " + tableName, ex);
+        }
+        
+        Profiler prof = new Profiler(TableCreator.class);
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        try {
+            String drop = "DROP TABLE " + tableName;
+            log.debug("sql:\n" + drop);
+            jdbc.execute(drop);
+            prof.checkpoint("drop-table");
+        } catch (Exception ex) {
+            // TODO: categorise failures better
+            if (ex.getMessage().contains("does not exist")) {
+                throw new ResourceNotFoundException("not found: " + tableName);
+            }
+            throw new RuntimeException("failed to drop table " + tableName, ex);
         }
     }
     

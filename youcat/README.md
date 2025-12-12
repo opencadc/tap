@@ -110,6 +110,9 @@ org.opencadc.youcat.createSchemaInDB = true|false
 
 # (optional) default serialization format for VOTable results (default: TABLEDATA)
 org.opencadc.youcat.defaultVOTableSerialization = {TABLEDATA|BINARY2}
+
+# (optional) move deleted table to alternate schema before cleanup
+org.opencadc.youcat.deletedSchemaName = {schema}
 ```
 The optional _adminUser_ (configured using the network username) can use the youcat API to create a 
 new schema for a user. This will add the schema to the `tap_schema.schemas` table with the 
@@ -122,7 +125,15 @@ the schema in the database and just assume it exists and that the `tapadm` pool 
 to create objects (tables and indices) in it.
 
 The optional _defaultVOTableSerialization_ configures the default serialization format for
-VOTable results.
+VOTable results **[new in version 0.8.0]**
+
+The optional _deletedSchemaName_ configures a (pre-existing) schema to use when users delete
+tables via the API. When a user deletes a table, it is renamed and removed from `tap_schema`
+in an atomic transaction and then truncated and dropped outide the transaction. If the latter
+steps fail, the refuse will be invisible via the API but will remain in the user's schema by 
+default. Configuring a _deletedSchemaName_ will cause the rename to also change the schema name
+so that it is easier for the operator to detect and cleanup when the automatic cleanup fails
+**[new in version 0.8.1]**
 
 As hard-coded behaviours of `youcat` are extracted from the build and made configurable,
 the configuration options will usually be in this file (see **development plans** below).

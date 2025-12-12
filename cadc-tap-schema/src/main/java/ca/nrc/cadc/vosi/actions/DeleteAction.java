@@ -67,6 +67,8 @@
 
 package ca.nrc.cadc.vosi.actions;
 
+import ca.nrc.cadc.tap.schema.Util;
+import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.profiler.Profiler;
@@ -74,6 +76,8 @@ import ca.nrc.cadc.tap.db.TableCreator;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import java.text.DateFormat;
+import java.util.Date;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -87,7 +91,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
 public class DeleteAction extends TablesAction {
     private static final Logger log = Logger.getLogger(DeleteAction.class);
 
+    private static String DELETED_SCHEMA_NAME = null;
+    
     public DeleteAction() { 
+    }
+
+    public static void setDeletedSchemaName(String delSchemaName) {
+        DELETED_SCHEMA_NAME = delSchemaName;
     }
 
     @Override
@@ -181,6 +191,16 @@ public class DeleteAction extends TablesAction {
         DataSource ds = getDataSource();
         ts.setDataSource(ds);
         DatabaseTransactionManager tm = new DatabaseTransactionManager(ds);
+        
+        Date now = new Date();
+        DateFormat df = DateUtil.getDateFormat("yyyyMMdd_HHmmssSSS", DateUtil.UTC);
+        String tag = df.format(now);
+        String delTableRename = "deleted_" + tag + "_" + Util.getUnqualifiedTableName(tableName);
+        String dropTableName = Util.getSchemaFromTable(tableName) + "." + delTableRename;
+        if (DELETED_SCHEMA_NAME != null) {
+            dropTableName = DELETED_SCHEMA_NAME + "." + delTableRename;
+        }
+        
         try {
             tm.startTransaction();
             prof.checkpoint("start-transaction");
@@ -191,8 +211,8 @@ public class DeleteAction extends TablesAction {
             // otherwise only delete the table from the tap_schema
             TableDesc tableDesc = ts.getTable(tableName);
             if (tableDesc.apiCreated) {
-                tc.dropTable(tableName);
-                prof.checkpoint("delete-table");
+                tc.renameTable(tableName, DELETED_SCHEMA_NAME, delTableRename);
+                prof.checkpoint("rename-table");
             }
             
             // remove from tap_schema last to minimise locking
@@ -201,6 +221,19 @@ public class DeleteAction extends TablesAction {
             
             tm.commitTransaction();
             prof.checkpoint("commit-transaction");
+            
+            // outside transaction for scalability
+            if (tableDesc.apiCreated) {
+                try {
+                    tc.truncateTable(dropTableName);
+                    prof.checkpoint("truncate-table");
+                    tc.dropTable(dropTableName);
+                    prof.checkpoint("drop-table");
+                } catch (Exception ex) {
+                    log.error("FAILED to cleanup deleted table content: " + dropTableName, ex);
+                    // yes: just log and proceed
+                }
+            }
         } catch (ResourceNotFoundException rethrow) { 
             if (tm != null && tm.isOpen()) {
                 tm.rollbackTransaction();
