@@ -67,7 +67,6 @@
 
 package ca.nrc.cadc.vosi.actions;
 
-import ca.nrc.cadc.tap.schema.Util;
 import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.net.ResourceNotFoundException;
@@ -76,6 +75,7 @@ import ca.nrc.cadc.tap.db.TableCreator;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import ca.nrc.cadc.tap.schema.Util;
 import java.text.DateFormat;
 import java.util.Date;
 import javax.sql.DataSource;

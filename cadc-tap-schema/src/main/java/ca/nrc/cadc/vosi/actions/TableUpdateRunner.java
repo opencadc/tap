@@ -67,7 +67,6 @@
 
 package ca.nrc.cadc.vosi.actions;
 
-import ca.nrc.cadc.tap.schema.Util;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.dali.ParamExtractor;
 import ca.nrc.cadc.db.DBUtil;
@@ -86,6 +85,7 @@ import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import ca.nrc.cadc.tap.schema.TapSchemaUtil;
+import ca.nrc.cadc.tap.schema.Util;
 import ca.nrc.cadc.uws.ErrorSummary;
 import ca.nrc.cadc.uws.ErrorType;
 import ca.nrc.cadc.uws.ExecutionPhase;

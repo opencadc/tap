@@ -67,12 +67,12 @@
 
 package ca.nrc.cadc.vosi.actions;
 
-import ca.nrc.cadc.tap.schema.Util;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.InlineContentException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import ca.nrc.cadc.tap.schema.Util;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;

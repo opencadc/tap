@@ -67,15 +67,14 @@
 
 package ca.nrc.cadc.vosi.actions;
 
-import ca.nrc.cadc.tap.schema.Util;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import ca.nrc.cadc.tap.schema.Util;
 import java.io.OutputStream;
 import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Logger;
 import org.opencadc.gms.GroupURI;
 

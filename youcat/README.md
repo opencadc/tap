@@ -19,12 +19,18 @@ The minimum setup is to have two database accounts, logically:
 - `tapuser` for executing queries that are submitted using the TAP API
 
 The following schemas are required:
-- tap_schema (`tapadm` user must have authorization to create objects)
-- uws (`tapadm` user must have authorization to create objects)
+- tap_schema (`tapadm` user must have authorization to create and drop objects)
+- uws (`tapadm` user must have authorization to create and drop objects)
 - tap_upload (`tapuser` user must have authorization to create tables)
+
+The following schema is optional:
+- _deletedSchemaName_ (`tapadm` user must have authorization to create and drop objects)
 
 See _createSchemaInDB_ in the youcat.properties config below for additional optional
 database permission detail.
+
+If _deletedSchemaName_ is configured in the youcat.properties, then this schema must
+be created by the database admin.
 
 The REST API supports a mechanism to _ingest_ an existing table into the tap_schema.
 An additional account to manage content (directly connect to the database to create and
