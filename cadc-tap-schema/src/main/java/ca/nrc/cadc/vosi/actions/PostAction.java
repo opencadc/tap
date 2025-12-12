@@ -73,9 +73,6 @@ import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import java.util.Set;
-import java.util.TreeSet;
-import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
 /**
