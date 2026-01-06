@@ -108,22 +108,25 @@ See <a href="https://github.com/opencadc/tap/tree/master/cadc-tap-tmp">cadc-tap-
 
 The youcat.properties configures some admin and optional functions of the service.
 ```
-# (optional) configure the admin user
-org.opencadc.youcat.adminUser = {identity}
+# (optional) configure the admin user (default: no admin)
+#org.opencadc.youcat.adminUser = {identity}
 
 # (optional) schema creation in the database (default: false)
-org.opencadc.youcat.createSchemaInDB = true|false
+#org.opencadc.youcat.createSchemaInDB = true|false
 
 # (optional) default serialization format for VOTable results (default: TABLEDATA)
-org.opencadc.youcat.defaultVOTableSerialization = {TABLEDATA|BINARY2}
+#org.opencadc.youcat.defaultVOTableSerialization = TABLEDATA|BINARY2
 
 # (optional) move deleted table to alternate schema before cleanup
-org.opencadc.youcat.deletedSchemaName = {schema}
+#org.opencadc.youcat.deletedSchemaName = {schema}
 ```
-The optional _adminUser_ (configured using the network username) can use the youcat API to create a 
+The optional _adminUser_ (configured using the network identity) can use the youcat API to create a 
 new schema for a user. This will add the schema to the `tap_schema.schemas` table with the 
 specified owner and enable the owner to further manage that schema. If not configured, creating a
-schema through the REST API is not permitted.
+schema through the REST API is not permitted. The form of the identity depends on the IdentityManager
+that is configured:
+- for the StandardIdentityManager (OpenID identity): `{issuer} {sub}`
+- for the ACIdentityManager (CADC access control system): `{X509 DN}` or `{CADC numeric ID}`
 
 The optional _createSchemaInDB_ flag is set to true, a schema created by admin will be created in 
 the database in addition to being added to the `tap_schema`. If false, `youcat` will not create 

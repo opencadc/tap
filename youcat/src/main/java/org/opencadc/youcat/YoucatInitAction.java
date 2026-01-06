@@ -67,7 +67,9 @@
 
 package org.opencadc.youcat;
 
-import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.IdentityManager;
+import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
 import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.rest.InitAction;
 import ca.nrc.cadc.tap.DefaultTableWriter;
@@ -80,9 +82,9 @@ import ca.nrc.cadc.vosi.actions.DeleteAction;
 import ca.nrc.cadc.vosi.actions.TablesAction;
 import javax.naming.Context;
 import javax.naming.InitialContext;
+import javax.security.auth.Subject;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  *
@@ -117,12 +119,22 @@ public class YoucatInitAction extends InitAction {
         StringBuilder sb = new StringBuilder();
         boolean ok = true;
 
-        String adminUser = mvp.getFirstPropertyValue(YOUCAT_ADMIN);
+        Subject admin = null;
+        String adminUserStr = mvp.getFirstPropertyValue(YOUCAT_ADMIN);
         sb.append("\n\t").append(YOUCAT_ADMIN).append(": ");
-        if (adminUser == null) {
+        if (adminUserStr == null) {
             sb.append("MISSING");
         } else {
-            sb.append(adminUser).append(" OK");
+            try {
+                IdentityManager im = AuthenticationUtil.getIdentityManager();
+                admin = im.toSubject(adminUserStr);
+                String str = admin.toString().replaceAll("\n", " ");
+                sb.append(str).append(" OK");
+            } catch (Exception ex) {
+                ok = false;
+                sb.append(ex.toString());
+                sb.append(" ERROR");
+            }
         }
         
         String yc = mvp.getFirstPropertyValue(YOUCAT_CREATE);
@@ -133,6 +145,12 @@ public class YoucatInitAction extends InitAction {
             if ("true".equals(yc)) {
                 createSchemaInDB = true;
                 sb.append(createSchemaInDB).append(" OK");
+            } else if ("false".equals(yc)) {
+                createSchemaInDB = false;
+                sb.append(createSchemaInDB).append(" OK");
+            } else {
+                sb.append(yc).append(" INVALID boolean");
+                ok = false;
             }
         }
 
@@ -142,8 +160,16 @@ public class YoucatInitAction extends InitAction {
             sb.append("TABLEDATA (default)");
             defaultVOTableSerialization = "TABLEDATA";
         } else {
-            sb.append(defaultVOTableSerializationValue + " OK");
-            defaultVOTableSerialization = defaultVOTableSerializationValue;
+            if (VOTableWriter.SerializationType.TABLEDATA.toString().equals(defaultVOTableSerializationValue)) {
+                defaultVOTableSerialization = defaultVOTableSerializationValue;
+                sb.append(defaultVOTableSerializationValue).append(" OK");
+            } else if (VOTableWriter.SerializationType.BINARY2.toString().equals(defaultVOTableSerializationValue)) {
+                defaultVOTableSerialization = defaultVOTableSerializationValue;
+                sb.append(defaultVOTableSerializationValue).append(" OK");
+            } else {
+                sb.append(defaultVOTableSerializationValue).append(" INVALID VOTable serialization");
+                ok = false;
+            }
         }
         
         String deletedSchemaValue = mvp.getFirstPropertyValue(DELETED_SCHEMA_KEY);
@@ -151,19 +177,21 @@ public class YoucatInitAction extends InitAction {
         if (deletedSchemaValue == null) {
             sb.append("null (default)");
         } else {
+            // TODO: validate schema name here
             sb.append(deletedSchemaValue).append(" OK");
             deletedSchemaName = deletedSchemaValue;
         }
+        
+        log.info("init:" + sb.toString());
         
         if (!ok) {
             throw new InvalidConfigException(sb.toString());
         }
         
-        log.info("init:" + sb.toString());
         try {
             Context ctx = new InitialContext();
-            if (adminUser != null) {
-                ctx.bind(jndiAdminKey, new HttpPrincipal(adminUser));
+            if (adminUserStr != null) {
+                ctx.bind(jndiAdminKey, admin);
             }
             if (createSchemaInDB != null) {
                 ctx.bind(jndiCreateSchemaKey, createSchemaInDB);
@@ -172,7 +200,7 @@ public class YoucatInitAction extends InitAction {
             log.error("Failed to create JNDI key(s): " + jndiAdminKey + "|" + jndiCreateSchemaKey, ex);
         }
     }
-
+    
     @Override
     public void doInit() {
         try {
