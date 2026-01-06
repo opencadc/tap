@@ -84,6 +84,7 @@ import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import ca.nrc.cadc.tap.schema.TapSchemaUtil;
+import ca.nrc.cadc.tap.schema.Util;
 import java.io.IOException;
 import java.security.AccessControlException;
 import java.security.Principal;
@@ -664,12 +665,14 @@ public abstract class TablesAction extends RestAction {
     boolean checkIsAdmin() {
         try {
             Context ctx = new InitialContext();
-            HttpPrincipal admin = (HttpPrincipal) ctx.lookup(jndiAdminKey);
+            Subject admin = (Subject) ctx.lookup(jndiAdminKey);
             if (admin != null) {
                 Subject caller = AuthenticationUtil.getCurrentSubject();
-                for (Principal p : caller.getPrincipals()) {
-                    if (AuthenticationUtil.equals(admin, p)) {
-                        return true;
+                for (Principal ap : admin.getPrincipals()) {
+                    for (Principal cp : caller.getPrincipals()) {
+                        if (AuthenticationUtil.equals(ap, cp)) {
+                            return true;
+                        }
                     }
                 }
             }

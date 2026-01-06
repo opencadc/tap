@@ -30,6 +30,7 @@
         ca.nrc.cadc.net
         ca.nrc.cadc.auth
         ca.nrc.cadc.vosi
+        ca.nrc.cadc.reg
       </param-value>
     </init-param>
     <load-on-startup>1</load-on-startup>

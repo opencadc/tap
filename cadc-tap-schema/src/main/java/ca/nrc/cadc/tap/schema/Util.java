@@ -65,7 +65,7 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.vosi.actions;
+package ca.nrc.cadc.tap.schema;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.cred.client.CredUtil;
@@ -86,23 +86,20 @@ import org.opencadc.gms.IvoaGroupClient;
  * 
  * @author pdowler
  */
-class Util {
+public abstract class Util {
     private static final Logger log = Logger.getLogger(Util.class);
 
-    private Util() { 
-    }
-    
-    static boolean isSchemaName(String name) {
+    public static boolean isSchemaName(String name) {
         String[] st = name.split("[.]");
         return (st.length == 1);
     }
     
-    static boolean isTableName(String name) {
+    public static boolean isTableName(String name) {
         String[] st = name.split("[.]");
         return (st.length == 2);
     }
     
-    static String getSchemaFromTable(String tableName) {
+    public static String getSchemaFromTable(String tableName) {
         String[] st = tableName.split("[.]");
         if (st.length == 2) {
             return st[0];
@@ -110,7 +107,15 @@ class Util {
         throw new IllegalArgumentException("invalid table name: " + tableName + " (expected: <schema>.<table>)");
     }
     
-    static boolean isOwner(TapPermissions permissions) {
+    public static String getUnqualifiedTableName(String tableName) {
+        String[] st = tableName.split("[.]");
+        if (st.length == 2) {
+            return st[1];
+        }
+        throw new IllegalArgumentException("invalid table name: " + tableName + " (expected: <schema>.<table>)");
+    }
+    
+    public static boolean isOwner(TapPermissions permissions) {
         Subject s = AuthenticationUtil.getCurrentSubject();
         if (s == null || s.getPrincipals() == null || s.getPrincipals().isEmpty()) {
             return false;
@@ -121,7 +126,7 @@ class Util {
         return false;
     }
     
-    private static boolean isOwner(TapPermissions tp, Subject subject) {
+    public static boolean isOwner(TapPermissions tp, Subject subject) {
         if (tp.owner == null) {
             return false;
         }
@@ -165,7 +170,7 @@ class Util {
         }
     }
     
-    private static boolean ensureCredentials() {
+    public static boolean ensureCredentials() {
         try {
             return CredUtil.checkCredentials();
         } catch (CertificateException ex) {

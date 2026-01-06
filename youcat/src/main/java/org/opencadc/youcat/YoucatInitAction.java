@@ -67,7 +67,9 @@
 
 package org.opencadc.youcat;
 
-import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.IdentityManager;
+import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
 import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.rest.InitAction;
 import ca.nrc.cadc.tap.DefaultTableWriter;
@@ -76,9 +78,11 @@ import ca.nrc.cadc.util.InvalidConfigException;
 import ca.nrc.cadc.util.MultiValuedProperties;
 import ca.nrc.cadc.util.PropertiesReader;
 import ca.nrc.cadc.uws.server.impl.InitDatabaseUWS;
+import ca.nrc.cadc.vosi.actions.DeleteAction;
 import ca.nrc.cadc.vosi.actions.TablesAction;
 import javax.naming.Context;
 import javax.naming.InitialContext;
+import javax.security.auth.Subject;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
@@ -93,10 +97,14 @@ public class YoucatInitAction extends InitAction {
     private static final String YOUCAT_ADMIN = YOUCAT + ".adminUser";
     private static final String YOUCAT_CREATE = YOUCAT + ".createSchemaInDB";
     private static final String DEFAULT_VOTABLE_SERIALIZATION_KEY = YOUCAT + ".defaultVOTableSerialization";
+    private static final String DELETED_SCHEMA_KEY = YOUCAT + ".deletedSchemaName";
 
     private String jndiAdminKey;
     private String jndiCreateSchemaKey;
+    
+    private Boolean createSchemaInDB = false;
     private String defaultVOTableSerialization = null;
+    private String deletedSchemaName = null;
     
     public YoucatInitAction() { 
     }
@@ -109,57 +117,90 @@ public class YoucatInitAction extends InitAction {
         MultiValuedProperties mvp = r.getAllProperties();
 
         StringBuilder sb = new StringBuilder();
-        sb.append("incomplete config: ");
         boolean ok = true;
 
-        String adminUser = mvp.getFirstPropertyValue(YOUCAT_ADMIN);
-        sb.append("\n\t" + YOUCAT_ADMIN + ": ");
-        if (adminUser == null) {
+        Subject admin = null;
+        String adminUserStr = mvp.getFirstPropertyValue(YOUCAT_ADMIN);
+        sb.append("\n\t").append(YOUCAT_ADMIN).append(": ");
+        if (adminUserStr == null) {
             sb.append("MISSING");
         } else {
-            sb.append("OK");
+            try {
+                IdentityManager im = AuthenticationUtil.getIdentityManager();
+                admin = im.toSubject(adminUserStr);
+                String str = admin.toString().replaceAll("\n", " ");
+                sb.append(str).append(" OK");
+            } catch (Exception ex) {
+                ok = false;
+                sb.append(ex.toString());
+                sb.append(" ERROR");
+            }
         }
         
         String yc = mvp.getFirstPropertyValue(YOUCAT_CREATE);
-        sb.append("\n\t" + YOUCAT_CREATE + ": ");
+        sb.append("\n\t").append(YOUCAT_CREATE).append(": ");
         if (yc == null) {
-            sb.append("MISSING");
+            sb.append("false (default)");
         } else {
-            sb.append("OK");
+            if ("true".equals(yc)) {
+                createSchemaInDB = true;
+                sb.append(createSchemaInDB).append(" OK");
+            } else if ("false".equals(yc)) {
+                createSchemaInDB = false;
+                sb.append(createSchemaInDB).append(" OK");
+            } else {
+                sb.append(yc).append(" INVALID boolean");
+                ok = false;
+            }
         }
 
         String defaultVOTableSerializationValue = mvp.getFirstPropertyValue(DEFAULT_VOTABLE_SERIALIZATION_KEY);
-        sb.append("\n\t" + DEFAULT_VOTABLE_SERIALIZATION_KEY + ": ");
+        sb.append("\n\t").append(DEFAULT_VOTABLE_SERIALIZATION_KEY).append(": ");
         if (defaultVOTableSerializationValue == null) {
-            sb.append("MISSING");
+            sb.append("TABLEDATA (default)");
             defaultVOTableSerialization = "TABLEDATA";
         } else {
-            sb.append("OK");
-            defaultVOTableSerialization = defaultVOTableSerializationValue;
+            if (VOTableWriter.SerializationType.TABLEDATA.toString().equals(defaultVOTableSerializationValue)) {
+                defaultVOTableSerialization = defaultVOTableSerializationValue;
+                sb.append(defaultVOTableSerializationValue).append(" OK");
+            } else if (VOTableWriter.SerializationType.BINARY2.toString().equals(defaultVOTableSerializationValue)) {
+                defaultVOTableSerialization = defaultVOTableSerializationValue;
+                sb.append(defaultVOTableSerializationValue).append(" OK");
+            } else {
+                sb.append(defaultVOTableSerializationValue).append(" INVALID VOTable serialization");
+                ok = false;
+            }
         }
+        
+        String deletedSchemaValue = mvp.getFirstPropertyValue(DELETED_SCHEMA_KEY);
+        sb.append("\n\t").append(DELETED_SCHEMA_KEY).append(": ");
+        if (deletedSchemaValue == null) {
+            sb.append("null (default)");
+        } else {
+            // TODO: validate schema name here
+            sb.append(deletedSchemaValue).append(" OK");
+            deletedSchemaName = deletedSchemaValue;
+        }
+        
+        log.info("init:" + sb.toString());
         
         if (!ok) {
             throw new InvalidConfigException(sb.toString());
         }
         
-        Boolean createSchemaInDB = false; // default: false for backwards compat
-        if (yc != null && "true".equals(yc)) {
-            createSchemaInDB = true;
-        }
         try {
             Context ctx = new InitialContext();
-            if (adminUser != null) {
-                ctx.bind(jndiAdminKey, new HttpPrincipal(adminUser));
+            if (adminUserStr != null) {
+                ctx.bind(jndiAdminKey, admin);
             }
             if (createSchemaInDB != null) {
                 ctx.bind(jndiCreateSchemaKey, createSchemaInDB);
             }
-            log.info("init: admin=" + adminUser + " createSchemaInDB=" + createSchemaInDB);
         } catch (Exception ex) {
             log.error("Failed to create JNDI key(s): " + jndiAdminKey + "|" + jndiCreateSchemaKey, ex);
         }
     }
-
+    
     @Override
     public void doInit() {
         try {
@@ -178,8 +219,9 @@ public class YoucatInitAction extends InitAction {
             InitDatabaseUWS uwsi = new InitDatabaseUWS(uws, null, "uws");
             uwsi.doInit();
             log.info("InitDatabaseUWS: OK");
-
+            
             DefaultTableWriter.setDefaultVOTableSerialization(defaultVOTableSerialization);
+            DeleteAction.setDeletedSchemaName(deletedSchemaName);
 
         } catch (Exception ex) {
             throw new RuntimeException("INIT FAIL: " + ex.getMessage(), ex);
