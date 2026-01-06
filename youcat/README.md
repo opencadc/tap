@@ -127,6 +127,7 @@ schema through the REST API is not permitted. The form of the identity depends o
 that is configured:
 - for the StandardIdentityManager (OpenID identity): `{issuer} {sub}`
 - for the ACIdentityManager (CADC access control system): `{X509 DN}` or `{CADC numeric ID}`
+**[changed in version 0.9.0]**
 
 The optional _createSchemaInDB_ flag is set to true, a schema created by admin will be created in 
 the database in addition to being added to the `tap_schema`. If false, `youcat` will not create 
@@ -142,7 +143,7 @@ in an atomic transaction and then truncated and dropped outide the transaction. 
 steps fail, the refuse will be invisible via the API but will remain in the user's schema by 
 default. Configuring a _deletedSchemaName_ will cause the rename to also change the schema name
 so that it is easier for the operator to detect and cleanup when the automatic cleanup fails
-**[new in version 0.8.1]**
+**[new in version 0.9.0]**
 
 As hard-coded behaviours of `youcat` are extracted from the build and made configurable,
 the configuration options will usually be in this file (see **development plans** below).
