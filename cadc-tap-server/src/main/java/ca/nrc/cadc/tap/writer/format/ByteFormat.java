@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2016.                            (c) 2016.
+*  (c) 2025.                            (c) 2025.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -63,7 +63,7 @@
 *                                       <http://www.gnu.org/licenses/>.
 *
 ************************************************************************
- */
+*/
 
 package ca.nrc.cadc.tap.writer.format;
 
@@ -76,19 +76,15 @@ import org.apache.log4j.Logger;
  *
  * @author pdowler
  */
-public class ShortArrayFormat extends AbstractResultSetFormat {
+public class ByteFormat extends AbstractResultSetFormat {
+    private static final Logger log = Logger.getLogger(ByteFormat.class);
 
-    private static final Logger log = Logger.getLogger(ShortArrayFormat.class);
-
-    private static final ca.nrc.cadc.dali.util.ShortArrayFormat fmt
-            = new ca.nrc.cadc.dali.util.ShortArrayFormat();
-
-    public ShortArrayFormat() {
+    public ByteFormat() { 
     }
 
     @Override
-    public Object extract(ResultSet resultSet, int columnIndex)
-            throws SQLException {
-        return JdbcMapUtil.getShortArray(resultSet, columnIndex);
+    public Object extract(ResultSet resultSet, int columnIndex) throws SQLException {
+        Byte val = JdbcMapUtil.getByte(resultSet, columnIndex);
+        return val;
     }
 }

@@ -69,6 +69,7 @@
 
 package ca.nrc.cadc.tap.writer.format;
 
+import ca.nrc.cadc.db.mappers.JdbcMapUtil;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -84,52 +85,6 @@ public class IntArrayFormat extends AbstractResultSetFormat {
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
             throws SQLException {
-        return unwrap(resultSet.getObject(columnIndex));
-    }
-
-    /**
-     * Format int[], unwrapping from java.sql.Array and java.lang.Number[] if necessary.
-     *
-     * @param object to format
-     * @return String representation of the int[]
-     * @throws IllegalArgumentException if the object is not convertible to int[]
-     */
-    @Override
-    public String format(Object object) {
-        if (object == null) {
-            return "";
-        }
-
-        return fmt.format((int[]) object);
-    }
-
-    public int[] unwrap(Object object) {
-        if (object == null) {
-            return null;
-        }
-
-        if (object instanceof java.sql.Array) {
-            try {
-                java.sql.Array array = (java.sql.Array) object;
-                object = array.getArray();
-            } catch (SQLException e) {
-                throw new IllegalArgumentException("Error accessing array data for " + object.getClass().getCanonicalName(), e);
-            }
-        }
-
-        if (object instanceof Number[]) {
-            Number[] arr = (Number[]) object;
-            int[] tmp = new int[arr.length];
-            for (int i = 0; i < arr.length; i++) {
-                tmp[i] = arr[i].intValue();
-            }
-            object = tmp;
-        }
-
-        if (object instanceof int[]) {
-            return (int[]) object;
-        }
-
-        throw new IllegalArgumentException(this.getClass().getSimpleName() + ": " + object.getClass().getCanonicalName() + " not supported.");
+        return JdbcMapUtil.getIntArray(resultSet, columnIndex);
     }
 }

@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2016.                            (c) 2016.
+*  (c) 2025.                            (c) 2025.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -63,7 +63,7 @@
 *                                       <http://www.gnu.org/licenses/>.
 *
 ************************************************************************
- */
+*/
 
 package ca.nrc.cadc.tap.writer.format;
 
@@ -73,22 +73,17 @@ import java.sql.SQLException;
 import org.apache.log4j.Logger;
 
 /**
- *
+ * Extract column value and coerce it to UUID. This class can handle
+ * value objects of null, UUID, Long, Integer, and byte[16]. For Long and Integer,
+ * the numeric value makes up the least significant bytes of the uuid and the leading
+ * 8 bytes are all 0. A byte[] short than 16 will have trailing 0 bytes added (was
+ * needed when using binary(16) in some databases at one point...).
+ * 
  * @author pdowler
  */
-public class ShortArrayFormat extends AbstractResultSetFormat {
-
-    private static final Logger log = Logger.getLogger(ShortArrayFormat.class);
-
-    private static final ca.nrc.cadc.dali.util.ShortArrayFormat fmt
-            = new ca.nrc.cadc.dali.util.ShortArrayFormat();
-
-    public ShortArrayFormat() {
-    }
-
+public class UUIDFormat extends AbstractResultSetFormat {
     @Override
-    public Object extract(ResultSet resultSet, int columnIndex)
-            throws SQLException {
-        return JdbcMapUtil.getShortArray(resultSet, columnIndex);
+    public Object extract(ResultSet resultSet, int columnIndex) throws SQLException {
+        return JdbcMapUtil.getUUID(resultSet, columnIndex);
     }
 }
