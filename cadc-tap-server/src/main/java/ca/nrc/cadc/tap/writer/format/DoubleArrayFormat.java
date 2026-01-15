@@ -69,6 +69,7 @@
 
 package ca.nrc.cadc.tap.writer.format;
 
+import ca.nrc.cadc.db.mappers.JdbcMapUtil;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -84,58 +85,6 @@ public class DoubleArrayFormat extends AbstractResultSetFormat {
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
             throws SQLException {
-        return unwrap(resultSet.getObject(columnIndex));
-    }
-
-    /**
-     * Takes an double[] contained in a java.sql.Array and returns
-     * the default String representation.
-     *
-     * @param object to format.
-     * @return String representation of the double[].
-     * @throws IllegalArgumentException if the object cannot be converted to a double[]
-     */
-    @Override
-    public String format(Object object) {
-        if (object == null) {
-            return "";
-        }
-
-        return fmt.format((double[]) object);
-    }
-
-    /**
-     * Convert a variety of ResultSet.getObject(int) return values to double[].
-     *
-     * @param object
-     * @return
-     */
-    public double[] unwrap(Object object) {
-        if (object == null) {
-            return null;
-        }
-        if (object instanceof java.sql.Array) {
-            try {
-                java.sql.Array array = (java.sql.Array) object;
-                object = array.getArray();
-            } catch (SQLException e) {
-                throw new IllegalArgumentException("Error accessing array data for " + object.getClass().getCanonicalName(), e);
-            }
-        }
-
-        if (object instanceof Double[]) {
-            Double[] arr = (Double[]) object;
-            double[] tmp = new double[arr.length];
-            for (int i = 0; i < arr.length; i++) {
-                tmp[i] = arr[i]; // unbox
-            }
-            object = tmp;
-        }
-
-        if (object instanceof double[]) {
-            return (double[]) object;
-        }
-
-        throw new IllegalArgumentException(this.getClass().getSimpleName() + ": " + object.getClass().getCanonicalName() + " not supported.");
+        return JdbcMapUtil.getDoubleArray(resultSet, columnIndex);
     }
 }

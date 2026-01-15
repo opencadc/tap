@@ -263,7 +263,7 @@ public class DefaultFormatFactory implements FormatFactory {
      * @return a DefaultFormat
      */
     protected Format<Object> getByteFormat(TapSelectItem columnDesc) {
-        return getDefaultFormat();
+        return new ByteFormat();
     }
 
     /**
@@ -279,15 +279,21 @@ public class DefaultFormatFactory implements FormatFactory {
      * @return a DefaultFormat
      */
     protected Format<Object> getIntegerFormat(TapSelectItem columnDesc) {
-        return getDefaultFormat();
+        return new IntegerFormat();
     }
 
     /**
      * @param columnDesc
      * @return a DefaultFormat
+     * @deprecated use getFloatFormat
      */
+    @Deprecated
     protected Format<Object> getRealFormat(TapSelectItem columnDesc) {
-        return getDefaultFormat();
+        return getFloatFormat(columnDesc);
+    }
+    
+    protected Format<Object> getFloatFormat(TapSelectItem columnDesc) {
+        return new FloatFormat();
     }
 
     /**
@@ -372,6 +378,7 @@ public class DefaultFormatFactory implements FormatFactory {
 
     /**
      * @param columnDesc
+     * @return throws
      * @throws UnsupportedOperationException
      */
     protected Format<Object> getPointFormat(TapSelectItem columnDesc) {
@@ -380,6 +387,7 @@ public class DefaultFormatFactory implements FormatFactory {
 
     /**
      * @param columnDesc
+     * @return throws
      * @throws UnsupportedOperationException
      */
     protected Format<Object> getCircleFormat(TapSelectItem columnDesc) {
@@ -388,6 +396,7 @@ public class DefaultFormatFactory implements FormatFactory {
 
     /**
      * @param columnDesc
+     * @return throws
      * @throws UnsupportedOperationException
      */
     protected Format<Object> getPolygonFormat(TapSelectItem columnDesc) {
@@ -396,6 +405,7 @@ public class DefaultFormatFactory implements FormatFactory {
 
     /**
      * @param columnDesc
+     * @return throws
      * @throws UnsupportedOperationException
      */
     @Deprecated
@@ -403,16 +413,27 @@ public class DefaultFormatFactory implements FormatFactory {
         throw new UnsupportedOperationException("no formatter for column " + columnDesc.getName());
     }
 
+    /**
+     * @param columnDesc
+     * @return throws
+     * @throws UnsupportedOperationException
+     */
     protected Format<Object> getShapeFormat(TapSelectItem columnDesc) {
         throw new UnsupportedOperationException("no formatter for column " + columnDesc.getName());
     }
 
+    /**
+     * @param columnDesc
+     * @return throws
+     * @throws UnsupportedOperationException
+     */
     protected Format<Object> getMultiShapeFormat(TapSelectItem columnDesc) {
         throw new UnsupportedOperationException("no formatter for column " + columnDesc.getName());
     }
 
     /**
      * @param columnDesc
+     * @return throws
      * @throws UnsupportedOperationException
      */
     @Deprecated
@@ -422,6 +443,7 @@ public class DefaultFormatFactory implements FormatFactory {
 
     /**
      * @param columnDesc
+     * @return throws
      * @throws UnsupportedOperationException
      */
     @Deprecated
@@ -431,6 +453,7 @@ public class DefaultFormatFactory implements FormatFactory {
 
     /**
      * @param columnDesc
+     * @return throws
      * @throws UnsupportedOperationException
      */
     protected Format<Object> getIntervalFormat(TapSelectItem columnDesc) {
@@ -439,6 +462,7 @@ public class DefaultFormatFactory implements FormatFactory {
 
     /**
      * @param columnDesc
+     * @return throws
      * @throws UnsupportedOperationException
      */
     protected Format<Object> getMultiIntervalFormat(TapSelectItem columnDesc) {
@@ -447,7 +471,7 @@ public class DefaultFormatFactory implements FormatFactory {
 
     /**
      * @param columnDesc
-     * @return a DefaultFormat
+     * @return a ByteArrayFormat
      * @throws UnsupportedOperationException
      */
     @Deprecated
@@ -467,10 +491,10 @@ public class DefaultFormatFactory implements FormatFactory {
 
     /**
      * @param columnDesc columnDesc
-     * @return a DefaultFormat
+     * @return a UUIDFormat
      */
     protected Format<Object> getUUIDFormat(TapSelectItem columnDesc) {
-        return getDefaultFormat();
+        return new UUIDFormat();
     }
 
     /**

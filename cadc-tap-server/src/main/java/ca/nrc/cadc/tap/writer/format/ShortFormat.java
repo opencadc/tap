@@ -1,5 +1,6 @@
 package ca.nrc.cadc.tap.writer.format;
 
+import ca.nrc.cadc.db.mappers.JdbcMapUtil;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -9,21 +10,8 @@ public class ShortFormat extends AbstractResultSetFormat {
 
     @Override
     public Object extract(ResultSet resultSet, int columnIndex) throws SQLException {
-        Object object = resultSet.getObject(columnIndex);
-        if (object == null) {
-            return null;
-        }
-        if (object instanceof Integer) {
-            int intValue = (int) object;
-            if (intValue < Short.MIN_VALUE || intValue > Short.MAX_VALUE) {
-                throw new IllegalArgumentException("Value out of range for Short: " + intValue);
-            }
-            object = (short) intValue;
-        }
-        if (object instanceof Short) {
-            return object;
-        }
-        throw new IllegalArgumentException("Short Type expected. Found : " + object.getClass().getName());
+        Short val = JdbcMapUtil.getShort(resultSet, columnIndex);
+        return val;
     }
 
     @Override

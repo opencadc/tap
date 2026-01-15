@@ -22,7 +22,7 @@ war {
 }
 
 dependencies {
-    implementation 'org.opencadc:cadc-util:[1.12.13,2.0)'
+    implementation 'org.opencadc:cadc-util:[1.12.14,2.0)'
     implementation 'org.opencadc:cadc-rest:[1.4.5,)'
     implementation 'org.opencadc:cadc-dali:[1.2.28,)'
     implementation 'org.opencadc:cadc-dali-parquet:[0.5.3,)'
@@ -32,7 +32,7 @@ dependencies {
     implementation 'org.opencadc:cadc-uws-server:[1.2.22,)'
     implementation 'org.opencadc:cadc-tap:[1.1.23,)'
     implementation 'org.opencadc:cadc-tap-schema:[1.2.14,)'
-    implementation 'org.opencadc:cadc-tap-server:[1.1.37,)'
+    implementation 'org.opencadc:cadc-tap-server:[1.1.38,)'
     implementation 'org.opencadc:cadc-tap-server-pg:[1.1.5,)'
     implementation 'org.opencadc:cadc-adql:[1.1.4,)'
     implementation 'org.opencadc:cadc-vosi:[1.4.11,2.0)'

@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2026.                            (c) 2026.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,99 +62,29 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
-*
 ************************************************************************
 */
 
 package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.date.DateUtil;
-import ca.nrc.cadc.tap.writer.format.UTCTimestampFormat;
-import ca.nrc.cadc.util.Log4jInit;
-import java.text.DateFormat;
-import java.util.Date;
-import org.apache.log4j.Level;
+import ca.nrc.cadc.db.mappers.JdbcMapUtil;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import org.apache.log4j.Logger;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import static org.junit.Assert.*;
 
 /**
  *
- * @author jburke
+ * @author pdowler
  */
-public class UTCTimestampFormatTest
-{
-    private static final Logger LOG = Logger.getLogger(UTCTimestampFormatTest.class);
-    static
-    {
-        Log4jInit.setLevel("ca", Level.INFO);
-    }
-    private static final String DATE_TIME = "2009-01-02T11:04:05.678";
-    private static DateFormat formatter;
+public class FloatFormat extends AbstractResultSetFormat {
+    private static final Logger log = Logger.getLogger(DoubleFormat.class);
 
-    public UTCTimestampFormatTest() { }
-
-    @BeforeClass
-    public static void setUpClass() throws Exception
-    {
-        formatter = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
+    public FloatFormat() { 
     }
 
-    @AfterClass
-    public static void tearDownClass() throws Exception
-    {
-    }
-
-    @Before
-    public void setUp() { }
-
-    @After
-    public void tearDown() { }
-
-    
-    @Test
-    public void testFormatValue() throws Exception
-    {
-        LOG.debug("testFormat");
-
-        UTCTimestampFormat instance = new UTCTimestampFormat();
-
-        Date date = formatter.parse(DATE_TIME);
-        Object object;
-        String result;
-        
-        object = date;
-        result = instance.format(object);
-        assertEquals(DATE_TIME, result);
-
-        object = new java.sql.Date(date.getTime());
-        result = instance.format(object);
-        assertEquals(DATE_TIME, result);
-
-        object = new java.sql.Timestamp(date.getTime());
-        result = instance.format(object);
-        assertEquals(DATE_TIME, result);
-
-        LOG.info("testFormat passed");
-    }
-
-    @Test
-    public void testFormatNull() throws Exception
-    {
-        LOG.debug("testFormat");
-
-        UTCTimestampFormat instance = new UTCTimestampFormat();
-        
-        Object object = null;
-        String expResult = "";
-        String result = instance.format(object);
-        assertEquals(expResult, result);
-
-        LOG.info("testFormat passed");
+    @Override
+    public Object extract(ResultSet resultSet, int columnIndex) throws SQLException {
+        Float val = JdbcMapUtil.getFloat(resultSet, columnIndex);
+        return val;
     }
 }
