@@ -178,8 +178,9 @@ public class TapSchemaDAO extends AbstractDAO {
      * @return complete TapSchema
      */
     public TapSchema get() {
-        // depth MIN = schemas and tables
-        // depth MAX = columns + keys + functions
+        // depth MIN = schemas
+        // depth TAB = + tables
+        // depth MAX = + columns + keys + functions
         return get(MAX_DEPTH);
     }
 
@@ -204,16 +205,56 @@ public class TapSchemaDAO extends AbstractDAO {
             gss.setOrderBy(orderSchemaClause);
         }
         List<SchemaDesc> schemaDescs = jdbc.query(gss, new SchemaMapper(tapPermissionsMapper));
+        depthQuery(schemaDescs,tapPermissionsMapper, null, depth, jdbc);
 
+        TapSchema ret = new TapSchema();
+        ret.getSchemaDescs().addAll(schemaDescs);
+        ret.getFunctionDescs().addAll(getFunctionDescs());
+        return ret;
+    }
+    
+    /**
+     * Get schema description (shallow).
+     * 
+     * @param schemaName
+     * @param depth 0 for schema, 1 for schema+tables, 2 for everything
+     * @return specified SchemaDesc or null
+     */
+    public SchemaDesc getSchema(String schemaName, int depth) {
+        GetSchemasStatement gss = new GetSchemasStatement(schemasTableName);
+        gss.setSchemaName(schemaName);
+        IdentityManager identityManager = AuthenticationUtil.getIdentityManager();
+        log.debug("IdentityManager: " + identityManager);
+        TapPermissionsMapper tapPermissionsMapper = new TapPermissionsMapper(identityManager);
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        List<SchemaDesc> schemaDescs = jdbc.query(gss, new SchemaMapper(tapPermissionsMapper));
+        if (schemaDescs.isEmpty()) {
+            return null;
+        }
+        SchemaDesc ret = null;
+        if (schemaDescs.size() == 1) {
+            ret = schemaDescs.get(0);
+        } else {
+            throw new RuntimeException("BUG: found " + schemaDescs.size() + " schema matching " + schemaName);
+        }
+        depthQuery(schemaDescs, tapPermissionsMapper, schemaName, depth, jdbc);
+        
+        return ret;
+    }
+    
+    // reusable code for get(depth) and getSchema(depth)
+    private void depthQuery(List<SchemaDesc> schemaDescs, TapPermissionsMapper tapPermissionsMapper, 
+            String schemaName, int depth, JdbcTemplate jdbc) {
         if (depth > MIN_DEPTH) {
             // TAP_SCHEMA.tables
             GetTablesStatement gts = new GetTablesStatement(tablesTableName);
+            gts.setSchemaName(schemaName);
             if (ordered) {
                 gts.setOrderBy(orderTablesClause);
             }
             List<TableDesc> tableDescs = jdbc.query(gts, new TableMapper(tapPermissionsMapper));
-            addTablesToSchemas(schemaDescs, tableDescs);
-
+            addTablesToSchemas(schemaDescs,  tableDescs);
+            
             if (depth > TAB_DEPTH) {
                 // TAP_SCHEMA.columns
                 GetColumnsStatement gcs = new GetColumnsStatement(columnsTableName);
@@ -244,49 +285,6 @@ public class TapSchemaDAO extends AbstractDAO {
                 addForeignKeys(schemaDescs, keyDescs);
             }
         }
-
-        TapSchema ret = new TapSchema();
-        ret.getSchemaDescs().addAll(schemaDescs);
-        ret.getFunctionDescs().addAll(getFunctionDescs());
-        return ret;
-    }
-
-    /**
-     * Get schema description (shallow).
-     * 
-     * @param schemaName
-     * @param depth 0 for schema, 1 for schema+tables, 2 for everything
-     * @return specified SchemaDesc or null
-     */
-    public SchemaDesc getSchema(String schemaName, int depth) {
-        GetSchemasStatement gss = new GetSchemasStatement(schemasTableName);
-        gss.setSchemaName(schemaName);
-        IdentityManager identityManager = AuthenticationUtil.getIdentityManager();
-        log.debug("IdentityManager: " + identityManager);
-        TapPermissionsMapper tapPermissionsMapper = new TapPermissionsMapper(identityManager);
-        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
-        List<SchemaDesc> schemaDescs = jdbc.query(gss, new SchemaMapper(tapPermissionsMapper));
-        if (schemaDescs.isEmpty()) {
-            return null;
-        }
-        SchemaDesc ret = null;
-        if (schemaDescs.size() == 1) {
-            ret = schemaDescs.get(0);
-        } else {
-            throw new RuntimeException("BUG: found " + schemaDescs.size() + " schema matching " + schemaName);
-        }
-        if (depth > MIN_DEPTH) {
-            // TAP_SCHEMA.tables
-            GetTablesStatement gts = new GetTablesStatement(tablesTableName);
-            gts.setSchemaName(schemaName);
-            if (ordered) {
-                gts.setOrderBy(orderTablesClause);
-            }
-            List<TableDesc> tableDescs = jdbc.query(gts, new TableMapper(tapPermissionsMapper));
-            addTablesToSchemas(schemaDescs, tableDescs);
-        }
-        
-        return ret;
     }
 
     /**
