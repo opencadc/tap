@@ -132,7 +132,7 @@ public class GetAction extends TablesAction {
                 throw new IllegalArgumentException("invalid parameter value detail=" + detail);
             }
         }
-        log.warn("query depth: " + depth);
+        log.debug("query depth: " + depth);
 
         TapSchemaDAO dao = getTapSchemaDAO();
         if (tableName != null) {
