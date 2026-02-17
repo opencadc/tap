@@ -14,7 +14,7 @@ apply from: '../opencadc.gradle'
 sourceCompatibility = 11
 
 group = 'org.opencadc'
-version = '1.1.23'
+version = '1.1.24'
 
 description = 'OpenCADC TAP-1.1 tap client library'
 def git_url = 'https://github.com/opencadc/tap'
