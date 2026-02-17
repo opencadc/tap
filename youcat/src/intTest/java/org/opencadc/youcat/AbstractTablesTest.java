@@ -72,7 +72,14 @@ import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.RunnableAction;
 import ca.nrc.cadc.auth.SSLUtil;
+import ca.nrc.cadc.dali.Circle;
+import ca.nrc.cadc.dali.DoubleInterval;
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.Polygon;
+import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableField;
+import ca.nrc.cadc.dali.tables.votable.VOTableReader;
+import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.net.FileContent;
 import ca.nrc.cadc.net.HttpDelete;
@@ -99,6 +106,7 @@ import ca.nrc.cadc.vosi.InvalidTableSetException;
 import ca.nrc.cadc.vosi.TableReader;
 import ca.nrc.cadc.vosi.TableSetReader;
 import ca.nrc.cadc.vosi.TableWriter;
+import ca.nrc.cadc.vosi.actions.TableContentHandler;
 import ca.nrc.cadc.vosi.actions.TablesInputHandler;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -109,16 +117,25 @@ import java.io.OutputStreamWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
+import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.UUID;
 import javax.security.auth.Subject;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.opencadc.tap.TapClient;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * base class with common setup and methods.
@@ -154,7 +171,9 @@ abstract class AbstractTablesTest {
     URL certUpdateURL;
     URL certLoadURL;
     URL permsURL;
-    
+
+    public static final UUID STATIC_UUID = UUID.fromString("cd10277a-3246-4bd0-aa8f-d6aa718b250f");
+
     AbstractTablesTest() { 
         try {
             anon = AuthenticationUtil.getAnonSubject();
@@ -254,7 +273,10 @@ abstract class AbstractTablesTest {
         orig.getColumnDescs().add(new ColumnDesc(tableName, "a13", new TapDataType("long", "*", null)));
         orig.getColumnDescs().add(new ColumnDesc(tableName, "a14", new TapDataType("float", "*", null)));
         orig.getColumnDescs().add(new ColumnDesc(tableName, "a15", new TapDataType("double", "*", null)));
-        
+
+        orig.getColumnDescs().add(new ColumnDesc(tableName, "e16", TapDataType.URI));
+        orig.getColumnDescs().add(new ColumnDesc(tableName, "e17", new TapDataType("char","36", "uuid")));
+
         // create
         URL tableURL = new URL(certTablesURL.toExternalForm() + "/" + tableName);
         TableWriter w = new TableWriter();
@@ -467,6 +489,154 @@ abstract class AbstractTablesTest {
         TableDesc td = isw.td;
         Assert.assertNotNull(td);
         return td;
+    }
+
+    public void assertEquals(DoubleInterval expected, DoubleInterval actual) {
+        Assert.assertEquals(expected.getLower(), actual.getLower(), 1.0e-9);
+        Assert.assertEquals(expected.getUpper(), actual.getUpper(), 1.0e-9);
+
+    }
+
+    public void assertEquals(Point expected, Point actual) {
+        Assert.assertEquals(expected.getLongitude(), actual.getLongitude(), 1.0e-9);
+        Assert.assertEquals(expected.getLatitude(), actual.getLatitude(), 1.0e-9);
+    }
+
+    public void assertEquals(Circle expected, Circle actual) {
+        assertEquals(expected.getCenter(), actual.getCenter());
+        Assert.assertEquals(expected.getRadius(), actual.getRadius(), 1.0e-9);
+    }
+
+    public void assertEquals(Polygon expected, Polygon actual) {
+        Assert.assertEquals("num vertices", expected.getVertices().size(), actual.getVertices().size());
+        for (int i=0; i < expected.getVertices().size(); i++) {
+            Point ep = expected.getVertices().get(i);
+            Point ap = actual.getVertices().get(i);
+            assertEquals(ep, ap);
+        }
+    }
+
+    public static String doPrepareDataAllDataTypesTSV() throws URISyntaxException {
+        StringBuilder data = new StringBuilder();
+        data.append("c0\tc1\tc2\tc3\tc4\tc5\tc6\te7\te8\te9\te10\ta11\ta12\ta13\ta14\ta15\te16\te17\n");
+        for (int i = 0; i < 10; i++) {
+            data.append("string").append(i).append("\t");
+            data.append(Short.MAX_VALUE).append("\t");
+            data.append(Integer.MAX_VALUE).append("\t");
+            data.append(Long.MAX_VALUE).append("\t");
+            data.append(Float.MAX_VALUE).append("\t");
+            data.append(Double.MAX_VALUE).append("\t");
+            data.append("2018-11-05T22:12:33.111").append("\t");
+            data.append("1.0 2.0").append("\t");  // interval
+            data.append("1.0 2.0").append("\t");  // point
+            data.append("1.0 2.0 3.0").append("\t");  // circle
+            data.append("1.0 2.0 3.0 4.0 5.0 6.0").append("\t");  // polygon
+            data.append(Short.MIN_VALUE + " " + Short.MAX_VALUE).append("\t");
+            data.append(Integer.MIN_VALUE + " " + Integer.MAX_VALUE).append("\t");
+            data.append(Long.MIN_VALUE + " " + Long.MAX_VALUE).append("\t");
+            data.append(Float.MIN_VALUE + " " + Float.MAX_VALUE).append("\t");
+            data.append(Double.MIN_VALUE + " " + Double.MAX_VALUE).append("\t");
+            data.append(new URI("ivo://opencadc.org/youcat")).append("\t");
+            data.append(STATIC_UUID).append("\n");
+        }
+        return data.toString();
+    }
+
+    public void doUploadTSVData(String testTable, String data) throws MalformedURLException, PrivilegedActionException {
+        URL postURL = new URL(certLoadURL.toString() + "/" + testTable);
+        final HttpPost post = new HttpPost(postURL, new FileContent(data, TableContentHandler.CONTENT_TYPE_TSV, UTF_8), false);
+        Subject.doAs(schemaOwner, new PrivilegedExceptionAction<Object>() {
+            public Object run() throws Exception {
+                post.run();
+                return null;
+            }
+        });
+        Assert.assertNull(post.getThrowable());
+        Assert.assertEquals(200, post.getResponseCode());
+    }
+
+    public void doUploadTSVDataFailure(String testTable, StringBuilder data, int responseCode, Subject subject) throws IOException, PrivilegedActionException {
+        URL postURL = new URL(certLoadURL.toString() + "/" + testTable);
+        final HttpPost post = new HttpPost(postURL, new FileContent(data.toString(), TableContentHandler.CONTENT_TYPE_TSV, UTF_8), false);
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
+            public Object run() throws Exception {
+                post.run();
+                return null;
+            }
+        });
+        Assert.assertEquals(responseCode, post.getResponseCode());
+        Assert.assertNotNull(post.getThrowable());
+        log.info("response message: " + post.getResponseBody());
+    }
+
+    public void verifyAllDataTypes(VOTableTable vt, boolean isParquet, boolean parquetWithoutMetadata) throws IOException, URISyntaxException {
+        Iterator<List<Object>> it = vt.getTableData().iterator();
+        int count = 0;
+        while (it.hasNext()) {
+            List<Object> next = it.next();
+            Assert.assertEquals("string" + count, next.get(0));
+            if (isParquet) {
+                Assert.assertEquals((int) Short.MAX_VALUE, next.get(1));
+                Assert.assertArrayEquals(new int[]{Short.MIN_VALUE, Short.MAX_VALUE}, (int[]) next.get(11));
+            } else {
+                Assert.assertEquals(Short.MAX_VALUE, next.get(1));
+                Assert.assertArrayEquals(new short[]{Short.MIN_VALUE, Short.MAX_VALUE}, (short[]) next.get(11));
+            }
+            Assert.assertEquals(Integer.MAX_VALUE, next.get(2));
+            Assert.assertEquals(Long.MAX_VALUE, next.get(3));
+            Assert.assertEquals(Float.MAX_VALUE, next.get(4));
+            Assert.assertEquals(Double.MAX_VALUE, next.get(5));
+            Assert.assertTrue(next.get(6) instanceof Date);
+
+            if (parquetWithoutMetadata) {
+                Assert.assertArrayEquals(new double[]{1.0, 2.0}, (double[]) next.get(7), 0.0001);
+                Assert.assertArrayEquals(new double[]{1.0, 2.0}, (double[]) next.get(8), 0.0001);
+                Assert.assertArrayEquals(new double[]{1.0, 2.0, 3.0}, (double[]) next.get(9), 0.0001);
+                Assert.assertArrayEquals(new double[]{1.0, 2.0, 3.0, 4.0, 5.0, 6.0}, (double[]) next.get(10), 0.0001);
+                Assert.assertEquals("ivo://opencadc.org/youcat", next.get(16));
+            } else {
+                assertEquals(new DoubleInterval(1.0, 2.0), (DoubleInterval) next.get(7));
+                assertEquals(new Point(1.0, 2.0), (Point) next.get(8));
+                assertEquals(new Circle(new Point(1, 2), 3), (Circle) next.get(9));
+                Polygon p = new Polygon();
+                p.getVertices().add(new Point(1.0, 2.0));
+                p.getVertices().add(new Point(3.0, 4.0));
+                p.getVertices().add(new Point(5.0, 6.0));
+                assertEquals(p, (Polygon) next.get(10));
+                Assert.assertEquals(new URI("ivo://opencadc.org/youcat"), next.get(16));
+            }
+
+            Assert.assertArrayEquals(new int[]{Integer.MIN_VALUE, Integer.MAX_VALUE}, (int[]) next.get(12));
+            Assert.assertArrayEquals(new long[]{Long.MIN_VALUE, Long.MAX_VALUE}, (long[]) next.get(13));
+            Assert.assertArrayEquals(new float[]{Float.MIN_VALUE, Float.MAX_VALUE}, (float[]) next.get(14), 0.0001f);
+            Assert.assertArrayEquals(new double[]{Double.MIN_VALUE, Double.MAX_VALUE}, (double[]) next.get(15), 0.0001);
+            Assert.assertTrue(next.get(17) instanceof UUID);
+            Assert.assertEquals(STATIC_UUID, next.get(17));
+            count++;
+        }
+        Assert.assertEquals(10, count);
+    }
+
+    public String doQuery(String testTable) throws Exception {
+        // TAP query check (metadata and actual table exists)
+        String adql = "SELECT * from " + testTable;
+        Map<String, Object> params = new TreeMap<>();
+        params.put("LANG", "ADQL");
+        params.put("QUERY", adql);
+        String result = Subject.doAs(anon, new AuthQueryTest.SyncQueryAction(anonQueryURL, params));
+        Assert.assertNotNull(result);
+        return result;
+    }
+
+    public VOTableTable doQueryForVOT(String testTable) throws Exception {
+        String result = doQuery(testTable);
+        VOTableReader r = new VOTableReader();
+        VOTableDocument doc = r.read(result);
+        VOTableResource vr = doc.getResourceByType("results");
+        VOTableTable vt = vr.getTable();
+        Assert.assertNotNull(vt);
+        Assert.assertNotNull(vt.getTableData());
+        return vt;
     }
 
 }

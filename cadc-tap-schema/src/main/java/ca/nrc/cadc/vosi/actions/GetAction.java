@@ -102,26 +102,37 @@ public class GetAction extends TablesAction {
             tableName = target[1];
         }
         log.debug("GET: " + schemaName + " " + tableName);
-        
+
         checkReadable();
 
         final String detail = syncInput.getParameter("detail");
         int depth = TapSchemaDAO.MIN_DEPTH;
-        // TODO: default depth used to be configurable... worth it?
-        if (tableName == null && schemaName == null) {
-            depth = TapSchemaDAO.TAB_DEPTH; // VOSI-tables-1.1 tableset
+        if (schemaName != null && tableName != null) {
+            // single table
+            depth = TapSchemaDAO.MAX_DEPTH;
+        } else if (schemaName != null && tableName == null) {
+            // custom extension: single-schema
+            depth = TapSchemaDAO.TAB_DEPTH; // min < default < max
             if ("min".equalsIgnoreCase(detail)) {
-                depth = TapSchemaDAO.TAB_DEPTH;
+                depth = TapSchemaDAO.MIN_DEPTH; // schema only
             } else if ("max".equalsIgnoreCase(detail)) {
-                depth = TapSchemaDAO.MAX_DEPTH;
+                depth = TapSchemaDAO.MAX_DEPTH; // schema, tables, columns
             } else if (detail != null) {
                 throw new IllegalArgumentException("invalid parameter value detail=" + detail);
             }
-        } else if (schemaName != null) {
-            if ("tab".equalsIgnoreCase(detail)) {
-                depth = TapSchemaDAO.TAB_DEPTH; // list tables
+        } else {
+            // base VOSI-1.1 behaviour
+            depth = TapSchemaDAO.TAB_DEPTH; // default
+            if ("min".equalsIgnoreCase(detail)) {
+                depth = TapSchemaDAO.TAB_DEPTH; // VOSI-1.1: schemas, tables
+                //depth = TapSchemaDAO.MIN_DEPTH; // WD-VOSI-1.2 schemas only??
+            } else if ("max".equalsIgnoreCase(detail)) {
+                depth = TapSchemaDAO.MAX_DEPTH; // schemas, tables, columns
+            } else if (detail != null) {
+                throw new IllegalArgumentException("invalid parameter value detail=" + detail);
             }
         }
+        log.debug("query depth: " + depth);
 
         TapSchemaDAO dao = getTapSchemaDAO();
         if (tableName != null) {
@@ -149,9 +160,6 @@ public class GetAction extends TablesAction {
             }
         } else if (schemaName != null) {
             checkViewSchemaPermissions(dao, schemaName, logInfo);
-            // TODO: TapSchemaDAO only supports schema only, ok for detail=min
-            // should at least list tables for default detail
-            // should provide columns at detail=max
             SchemaDesc sd = dao.getSchema(schemaName, depth);
             if (sd == null) {
                 // currently, permission check already threw this
@@ -159,7 +167,7 @@ public class GetAction extends TablesAction {
             }
             TapSchema tapSchema = new TapSchema();
             tapSchema.getSchemaDescs().add(sd);
-            
+
             TableSetWriter tsw = new TableSetWriter();
             syncOutput.setCode(200);
             syncOutput.setHeader("Content-Type", "text/xml");
@@ -167,7 +175,7 @@ public class GetAction extends TablesAction {
         } else {
             TapSchemaLoader loader = new TapSchemaLoader(dao);
             TapSchema tapSchema = loader.load(depth);
-            
+
             TableSetWriter tsw = new TableSetWriter();
             syncOutput.setCode(200);
             syncOutput.setHeader("Content-Type", "text/xml");

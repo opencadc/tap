@@ -69,6 +69,9 @@ package ca.nrc.cadc.vosi.actions;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
+import ca.nrc.cadc.dali.tables.votable.VOTableResource;
+import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.log.WebServiceLogInfo;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.net.TransientException;
@@ -80,6 +83,8 @@ import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import ca.nrc.cadc.tap.schema.TapSchemaUtil;
+import ca.nrc.cadc.tap.schema.Util;
 import java.io.IOException;
 import java.security.AccessControlException;
 import java.security.Principal;
@@ -183,25 +188,49 @@ public abstract class TablesAction extends RestAction {
         dao.setOrdered(true);
         return dao;
     }
-    
+
+    private TableDesc toTableDesc(VOTableDocument doc) {
+        for (VOTableResource vr : doc.getResources()) {
+            VOTableTable vtab = vr.getTable();
+            if (vtab != null) {
+                TableDesc ret = TapSchemaUtil.createTableDesc("default", "default", vtab);
+                log.debug("create from VOtable: " + ret);
+                // strip out some incoming table metadata
+                // - ID attr (should be transient usage only)
+                for (ColumnDesc cd : ret.getColumnDescs()) {
+                    cd.columnID = null;
+                }
+                return ret;
+            }
+        }
+        throw new IllegalArgumentException("no table description found in VOTable document");
+    }
+
     protected TableDesc getInputTable(String schemaName, String tableName) {
         Object in = syncInput.getContent(INPUT_TAG);
         if (in == null) {
             throw new IllegalArgumentException("no input: expected a document describing the table to create/update");
         }
+
+        TableDesc input;
+
         if (in instanceof TableDesc) {
-            TableDesc input = (TableDesc) in;
-            input.setSchemaName(schemaName);
-            input.setTableName(tableName);
-            // TODO: move this to PutAction (create only)
-            int c = 0;
-            for (ColumnDesc cd : input.getColumnDescs()) {
-                cd.setTableName(tableName);
-                cd.columnIndex = c++;
-            }
-            return input;
+            input = (TableDesc) in;
+        } else if (in instanceof VOTableDocument) {
+            input = toTableDesc((VOTableDocument) in);
+        } else {
+            throw new RuntimeException("BUG: no input table");
         }
-        throw new RuntimeException("BUG: no input table");
+
+        input.setSchemaName(schemaName);
+        input.setTableName(tableName);
+        // TODO: move this to PutAction (create only)
+        int c = 0;
+        for (ColumnDesc cd : input.getColumnDescs()) {
+            cd.setTableName(tableName);
+            cd.columnIndex = c++;
+        }
+        return input;
     }
     
     protected SchemaDesc getInputSchema(String schemaName) {
@@ -636,12 +665,14 @@ public abstract class TablesAction extends RestAction {
     boolean checkIsAdmin() {
         try {
             Context ctx = new InitialContext();
-            HttpPrincipal admin = (HttpPrincipal) ctx.lookup(jndiAdminKey);
+            Subject admin = (Subject) ctx.lookup(jndiAdminKey);
             if (admin != null) {
                 Subject caller = AuthenticationUtil.getCurrentSubject();
-                for (Principal p : caller.getPrincipals()) {
-                    if (AuthenticationUtil.equals(admin, p)) {
-                        return true;
+                for (Principal ap : admin.getPrincipals()) {
+                    for (Principal cp : caller.getPrincipals()) {
+                        if (AuthenticationUtil.equals(ap, cp)) {
+                            return true;
+                        }
                     }
                 }
             }

@@ -147,8 +147,7 @@ public class MaxRecValidatorImpl extends MaxRecValidator {
         @Override
         protected void init() {
             super.init();
-            if (tapSchema == null) // unit test mode
-            {
+            if (tapSchema == null) { // unit test mode
                 SelectNavigator keep = null;
                 for (SelectNavigator sn : super.navigatorList) {
                     if (sn instanceof SelectListExtractor) {

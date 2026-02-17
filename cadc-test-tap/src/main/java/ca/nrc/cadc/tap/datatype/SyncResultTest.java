@@ -4,6 +4,8 @@ import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableInfo;
 import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.util.Log4jInit;
+
+import java.io.IOException;
 import java.util.List;
 import org.apache.log4j.Level;
 import org.jdom2.Attribute;
@@ -34,8 +36,7 @@ public class SyncResultTest extends AbstractSyncTest
     }
 
     @Override
-    protected void validateQueryStatus(String filename, VOTableDocument document, String status)
-    {
+    protected void validateQueryStatus(String filename, VOTableDocument document, String status) throws IOException {
         VOTableResource resource = document.getResourceByType("results");
         Assert.assertNotNull(filename, resource);
         

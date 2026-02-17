@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2026.                            (c) 2026.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,91 +62,29 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
-*
 ************************************************************************
 */
 
 package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.tap.writer.format.DoubleArrayFormat;
-import ca.nrc.cadc.util.Log4jInit;
-import org.apache.log4j.Level;
+import ca.nrc.cadc.db.mappers.JdbcMapUtil;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import org.apache.log4j.Logger;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import static org.junit.Assert.*;
 
 /**
  *
- * @author jburke
+ * @author pdowler
  */
-public class DoubleArrayFormatTest
-{
-    private static final Logger LOG = Logger.getLogger(DoubleArrayFormatTest.class);
-    static
-    {
-        Log4jInit.setLevel("ca", Level.INFO);
+public class FloatFormat extends AbstractResultSetFormat {
+    private static final Logger log = Logger.getLogger(DoubleFormat.class);
+
+    public FloatFormat() { 
     }
 
-    public DoubleArrayFormatTest() { }
-
-    @BeforeClass
-    public static void setUpClass() throws Exception
-    {
+    @Override
+    public Object extract(ResultSet resultSet, int columnIndex) throws SQLException {
+        Float val = JdbcMapUtil.getFloat(resultSet, columnIndex);
+        return val;
     }
-
-    @AfterClass
-    public static void tearDownClass() throws Exception
-    {
-    }
-
-    @Before
-    public void setUp() { }
-
-    @After
-    public void tearDown() { }
-
-    /**
-     * Test of format method, of class DoubleArrayFormatter.
-     */
-    @Test
-    public void testFormatNull()
-    {
-        LOG.debug("testFormat");
-        Object object = null;
-        DoubleArrayFormat instance = new DoubleArrayFormat();
-        String expResult = "";
-        String result = instance.format(object);
-        assertEquals(expResult, result);
-        LOG.info("testFormat passed");
-    }
-    
-    @Test
-    public void testFormatPrimitiveDouble()
-    {
-        LOG.debug("testFormatPrimitiveDouble");
-        Object object = new double[] { 1.0, 2.0 };
-        DoubleArrayFormat instance = new DoubleArrayFormat();
-        String expResult = "1.0 2.0";
-        String result = instance.format(object);
-        assertEquals(expResult, result);
-        LOG.info("testFormatPrimitiveDouble passed");
-    }
-    
-    @Test
-    public void testFormatWrappedDouble()
-    {
-        LOG.debug("testFormatPrimitiveDouble");
-        Object object = new double[] { 1.0, 2.0 };
-        DoubleArrayFormat instance = new DoubleArrayFormat();
-        String expResult = "1.0 2.0";
-        String result = instance.format(object);
-        assertEquals(expResult, result);
-        LOG.info("testFormatPrimitiveDouble passed");
-    }
-
 }

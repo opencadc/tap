@@ -90,5 +90,8 @@ public abstract class AbstractResultSetFormat implements ResultSetFormat, Format
     public abstract Object extract(ResultSet resultSet, int columnIndex) throws SQLException;
 
     @Override
-    public abstract String format(Object o);
+    @Deprecated
+    public String format(Object o) {
+        throw new UnsupportedOperationException("BUG: format() should no longer be called");
+    }
 }

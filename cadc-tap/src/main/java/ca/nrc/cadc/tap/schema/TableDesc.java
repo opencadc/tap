@@ -215,7 +215,8 @@ public class TableDesc {
      * @param viewName the name of the view
      */
     public static void convertToView(TableDesc tableDesc, String viewName) {
-        tableDesc.viewTarget = tableDesc.tableName;
+        tableDesc.viewTarget = tableDesc.getTableName();
+        tableDesc.schemaName = viewName.substring(0, viewName.indexOf("."));
         tableDesc.tableName = viewName;
         tableDesc.tableType = TableType.VIEW;
         for (ColumnDesc cd : tableDesc.getColumnDescs()) {

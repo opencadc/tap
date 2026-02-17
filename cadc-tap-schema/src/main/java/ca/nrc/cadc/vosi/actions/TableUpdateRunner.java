@@ -85,6 +85,7 @@ import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import ca.nrc.cadc.tap.schema.TapSchemaUtil;
+import ca.nrc.cadc.tap.schema.Util;
 import ca.nrc.cadc.uws.ErrorSummary;
 import ca.nrc.cadc.uws.ErrorType;
 import ca.nrc.cadc.uws.ExecutionPhase;
@@ -405,7 +406,7 @@ public class TableUpdateRunner implements JobRunner {
         // database metadata
         TableIngester tableIngester = new TableIngester(ds);
         log.debug("read table from database");
-        TableDesc ingestable = tableIngester.getTableDesc(schemaName, tableName);
+        TableDesc ingestable = tableIngester.getTableDesc(tableName);
         // check the table is valid ADQL name
         try {
             TapSchemaUtil.checkValidTableName(ingestable.getTableName());

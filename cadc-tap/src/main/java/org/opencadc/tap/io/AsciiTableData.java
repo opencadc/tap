@@ -71,6 +71,7 @@ import ca.nrc.cadc.dali.tables.ascii.AsciiTableWriter;
 import ca.nrc.cadc.dali.tables.votable.VOTableField;
 import ca.nrc.cadc.dali.util.Format;
 import ca.nrc.cadc.dali.util.FormatFactory;
+import ca.nrc.cadc.io.ResourceIterator;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
@@ -95,7 +96,7 @@ import org.apache.log4j.Logger;
  * @author majorb
  *
  */
-public class AsciiTableData implements TableDataInputStream, Iterator<List<Object>> {
+public class AsciiTableData implements TableDataInputStream, ResourceIterator<List<Object>> {
     
     private static final Logger log = Logger.getLogger(AsciiTableData.class);
     
@@ -150,7 +151,7 @@ public class AsciiTableData implements TableDataInputStream, Iterator<List<Objec
      * @return 
      */
     @Override
-    public Iterator<List<Object>> iterator() {
+    public ResourceIterator<List<Object>> iterator() {
         return this;
     }
 

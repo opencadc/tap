@@ -71,8 +71,10 @@ package ca.nrc.cadc.tap.writer;
 
 import ca.nrc.cadc.dali.tables.TableData;
 import ca.nrc.cadc.dali.util.Format;
+import ca.nrc.cadc.io.ResourceIterator;
+
+import java.io.IOException;
 import java.sql.ResultSet;
-import java.util.Iterator;
 import java.util.List;
 
 public class ResultSetTableData implements TableData {
@@ -84,7 +86,7 @@ public class ResultSetTableData implements TableData {
     }
 
     @Override
-    public Iterator<List<Object>> iterator() {
+    public ResourceIterator<List<Object>> iterator() {
         return iterator;
     }
 
@@ -93,5 +95,10 @@ public class ResultSetTableData implements TableData {
      */
     public long getRowCount() {
         return iterator.getRowCount();
+    }
+
+    @Override
+    public void close() throws IOException {
+        // Nothing to close
     }
 }

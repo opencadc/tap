@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2024.                            (c) 2024.
+*  (c) 2025.                            (c) 2025.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -65,111 +65,27 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.vosi.actions;
+package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.cred.client.CredUtil;
-import ca.nrc.cadc.net.ResourceNotFoundException;
-import ca.nrc.cadc.tap.schema.TapPermissions;
-import java.io.IOException;
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.security.cert.CertificateException;
-import java.util.Set;
-import javax.security.auth.Subject;
+import ca.nrc.cadc.db.mappers.JdbcMapUtil;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import org.apache.log4j.Logger;
-import org.opencadc.gms.GroupURI;
-import org.opencadc.gms.IvoaGroupClient;
 
 /**
- * Utility class with static methods for checking permissions.
+ * Convert integer values to Long.
  * 
  * @author pdowler
  */
-class Util {
-    private static final Logger log = Logger.getLogger(Util.class);
+public class LongFormat extends AbstractResultSetFormat {
+    private static final Logger log = Logger.getLogger(LongFormat.class);
 
-    private Util() { 
+    public LongFormat() { 
     }
-    
-    static boolean isSchemaName(String name) {
-        String[] st = name.split("[.]");
-        return (st.length == 1);
-    }
-    
-    static boolean isTableName(String name) {
-        String[] st = name.split("[.]");
-        return (st.length == 2);
-    }
-    
-    static String getSchemaFromTable(String tableName) {
-        String[] st = tableName.split("[.]");
-        if (st.length == 2) {
-            return st[0];
-        }
-        throw new IllegalArgumentException("invalid table name: " + tableName + " (expected: <schema>.<table>)");
-    }
-    
-    static boolean isOwner(TapPermissions permissions) {
-        Subject s = AuthenticationUtil.getCurrentSubject();
-        if (s == null || s.getPrincipals() == null || s.getPrincipals().isEmpty()) {
-            return false;
-        }
-        if (isOwner(permissions, s)) {
-            return true;
-        }
-        return false;
-    }
-    
-    private static boolean isOwner(TapPermissions tp, Subject subject) {
-        if (tp.owner == null) {
-            return false;
-        }
-        for (Principal op : tp.owner.getPrincipals()) {
-            for (Principal cp : subject.getPrincipals()) {
-                if (AuthenticationUtil.equals(op, cp)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-    
-    public static GroupURI getPermittedGroup(IvoaGroupClient groupClient, Set<GroupURI> permittedGroups) 
-        throws IOException, ResourceNotFoundException {
-        
-        // no read groups assigned
-        if (permittedGroups == null || permittedGroups.isEmpty()) {
-            return null;
-        }
-        
-        // anonymous caller
-        Subject s = AuthenticationUtil.getCurrentSubject();
-        if (s == null || s.getPrincipals() == null || s.getPrincipals().isEmpty()) {
-            return null;
-        }
-        
-        if (!ensureCredentials()) {
-            throw new AccessControlException("No delegated credentials");
-        }
 
-        try {
-            // membership in at least one of the groups
-            Set<GroupURI> memberships = groupClient.getMemberships(permittedGroups);
-            if (memberships == null || memberships.isEmpty()) {
-                return null;
-            }
-            return memberships.iterator().next();
-        } catch (InterruptedException ex) {
-            throw new RuntimeException("UNEXPECTED: " + ex, ex);
-        }
-    }
-    
-    private static boolean ensureCredentials() {
-        try {
-            return CredUtil.checkCredentials();
-        } catch (CertificateException ex) {
-            throw new RuntimeException("failed to find group memberships (invalid proxy certficate)", ex);
-        }
+    @Override
+    public Object extract(ResultSet resultSet, int columnIndex) throws SQLException {
+        Long val = JdbcMapUtil.getLong(resultSet, columnIndex);
+        return val;
     }
 }

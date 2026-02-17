@@ -70,19 +70,26 @@ package ca.nrc.cadc.vosi.actions;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityManager;
+import ca.nrc.cadc.dali.tables.TableData;
+import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
+import ca.nrc.cadc.io.ResourceIterator;
 import ca.nrc.cadc.net.ResourceAlreadyExistsException;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.tap.db.TableCreator;
+import ca.nrc.cadc.tap.db.TableLoader;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import java.io.IOException;
+import java.util.List;
 import javax.security.auth.Subject;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
+import org.opencadc.tap.io.TableDataInputStream;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
@@ -99,25 +106,29 @@ public class PutAction extends TablesAction {
 
     @Override
     public void doAction() throws Exception {
-        String[] target = getTarget();
-        String schemaName = target[0];
-        String tableName = target[1];
-        
-        log.debug("PUT: schema=" + schemaName + " table=" + tableName);
-        
-        checkWritable();
-        
-        if (schemaName == null && tableName == null) {
-            throw new IllegalArgumentException("missing schema|table name in path");
-        }
-        
-        TapSchemaDAO ts = getTapSchemaDAO();
-        if (tableName != null) {
-            TablesAction.checkSchemaWritePermissions(ts, schemaName, logInfo);
-            createTable(ts, schemaName, tableName);
-        } else if (schemaName != null) {
-            checkIsAdmin();
-            createSchema(ts, schemaName);
+        try {
+            String[] target = getTarget();
+            String schemaName = target[0];
+            String tableName = target[1];
+
+            log.debug("PUT: schema=" + schemaName + " table=" + tableName);
+
+            checkWritable();
+
+            if (schemaName == null && tableName == null) {
+                throw new IllegalArgumentException("missing schema|table name in path");
+            }
+
+            TapSchemaDAO ts = getTapSchemaDAO();
+            if (tableName != null) {
+                TablesAction.checkSchemaWritePermissions(ts, schemaName, logInfo);
+                createTable(ts, schemaName, tableName);
+            } else {
+                checkIsAdmin();
+                createSchema(ts, schemaName);
+            }
+        } finally {
+            closeResources();
         }
         
         syncOutput.setCode(200); // should be 201
@@ -250,7 +261,34 @@ public class PutAction extends TablesAction {
             TableCreator tc = new TableCreator(ds);
             tc.createTable(inputTable);
             prof.checkpoint("create-table");
-            
+
+            // load the table data if available
+            Object in = syncInput.getContent(INPUT_TAG);
+            if (in instanceof VOTableDocument) {
+                VOTableDocument voTableDocument = (VOTableDocument) in;
+                TableData tableData = voTableDocument.getResourceByType("results").getTable().getTableData();
+
+                if (tableData != null) {
+                    TableLoader tableLoader = new TableLoader(ds, null);
+                    tableLoader.load(inputTable, new TableDataInputStream() {
+                        @Override
+                        public void close() {
+                            //no-op: fully read already
+                        }
+
+                        @Override
+                        public ResourceIterator<List<Object>> iterator() throws IOException {
+                            return tableData.iterator();
+                        }
+
+                        @Override
+                        public TableDesc acceptTargetTableDesc(TableDesc td) {
+                            return td;
+                        }
+                    });
+                }
+            }
+
             // add to tap_schema
             // flag table as created using the API to allow table deletion in the DeleteAction
             inputTable.apiCreated = true;
@@ -307,6 +345,17 @@ public class PutAction extends TablesAction {
             return schemaOwner;
         }
         throw new RuntimeException("BUG: no input schema owner");
+    }
+
+    private void closeResources() {
+        Object resource = syncInput.getContent(INPUT_TAG);
+        if (resource instanceof VOTableDocument) {
+            try {
+                ((VOTableDocument) resource).close();
+            } catch (Exception ex) {
+                log.error("Failed to close resource", ex);
+            }
+        }
     }
 
 }

@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2025.                            (c) 2025.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,91 +62,29 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
-*
 ************************************************************************
 */
 
 package ca.nrc.cadc.tap.writer.format;
 
-import ca.nrc.cadc.tap.writer.format.IntArrayFormat;
-import ca.nrc.cadc.util.Log4jInit;
-import org.apache.log4j.Level;
+import ca.nrc.cadc.db.mappers.JdbcMapUtil;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import org.apache.log4j.Logger;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import static org.junit.Assert.*;
 
 /**
  *
- * @author jburke
+ * @author pdowler
  */
-public class IntArrayFormatTest
-{
-    private static final Logger LOG = Logger.getLogger(IntArrayFormatTest.class);
-    static
-    {
-        Log4jInit.setLevel("ca", Level.INFO);
+public class ByteFormat extends AbstractResultSetFormat {
+    private static final Logger log = Logger.getLogger(ByteFormat.class);
+
+    public ByteFormat() { 
     }
 
-    public IntArrayFormatTest() { }
-
-    @BeforeClass
-    public static void setUpClass() throws Exception
-    {
+    @Override
+    public Object extract(ResultSet resultSet, int columnIndex) throws SQLException {
+        Byte val = JdbcMapUtil.getByte(resultSet, columnIndex);
+        return val;
     }
-
-    @AfterClass
-    public static void tearDownClass() throws Exception
-    {
-    }
-
-    @Before
-    public void setUp() { }
-
-    @After
-    public void tearDown() { }
-
-    /**
-     * Test of format method, of class IntArrayFormatter.
-     */
-    @Test
-    public void testFormat()
-    {
-        LOG.debug("testFormat");
-        Object object = null;
-        IntArrayFormat instance = new IntArrayFormat();
-        String expResult = "";
-        String result = instance.format(object);
-        assertEquals(expResult, result);
-        LOG.info("testFormat passed");
-    }
-    
-    @Test
-    public void testFormatPrimitiveInt()
-    {
-        LOG.debug("testFormatPrimitiveInt");
-        Object object = new int[] { 1, 2 };
-        IntArrayFormat instance = new IntArrayFormat();
-        String expResult = "1 2";
-        String result = instance.format(object);
-        assertEquals(expResult, result);
-        LOG.info("testFormatPrimitiveInt passed");
-    }
-    
-    @Test
-    public void testFormatWrappedInteger()
-    {
-        LOG.debug("testFormatWrappedInteger");
-        Object object = new int[] { 1, 2 };
-        IntArrayFormat instance = new IntArrayFormat();
-        String expResult = "1 2";
-        String result = instance.format(object);
-        assertEquals(expResult, result);
-        LOG.info("testFormatWrappedInteger passed");
-    }
-
 }

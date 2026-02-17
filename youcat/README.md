@@ -19,12 +19,18 @@ The minimum setup is to have two database accounts, logically:
 - `tapuser` for executing queries that are submitted using the TAP API
 
 The following schemas are required:
-- tap_schema (`tapadm` user must have authorization to create objects)
-- uws (`tapadm` user must have authorization to create objects)
+- tap_schema (`tapadm` user must have authorization to create and drop objects)
+- uws (`tapadm` user must have authorization to create and drop objects)
 - tap_upload (`tapuser` user must have authorization to create tables)
+
+The following schema is optional:
+- _deletedSchemaName_ (`tapadm` user must have authorization to create and drop objects)
 
 See _createSchemaInDB_ in the youcat.properties config below for additional optional
 database permission detail.
+
+If _deletedSchemaName_ is configured in the youcat.properties, then this schema must
+be created by the database admin.
 
 The REST API supports a mechanism to _ingest_ an existing table into the tap_schema.
 An additional account to manage content (directly connect to the database to create and
@@ -102,21 +108,42 @@ See <a href="https://github.com/opencadc/tap/tree/master/cadc-tap-tmp">cadc-tap-
 
 The youcat.properties configures some admin and optional functions of the service.
 ```
-# (optional) configure the admin user
-org.opencadc.youcat.adminUser = {identity}
+# (optional) configure the admin user (default: no admin)
+#org.opencadc.youcat.adminUser = {identity}
 
 # (optional) schema creation in the database (default: false)
-org.opencadc.youcat.createSchemaInDB = true|false
+#org.opencadc.youcat.createSchemaInDB = true|false
+
+# (optional) default serialization format for VOTable results (default: TABLEDATA)
+#org.opencadc.youcat.defaultVOTableSerialization = TABLEDATA|BINARY2
+
+# (optional) move deleted table to alternate schema before cleanup
+#org.opencadc.youcat.deletedSchemaName = {schema}
 ```
-The optional _adminUser_ (configured using the network username) can use the youcat API to create a 
+The optional _adminUser_ (configured using the network identity) can use the youcat API to create a 
 new schema for a user. This will add the schema to the `tap_schema.schemas` table with the 
 specified owner and enable the owner to further manage that schema. If not configured, creating a
-schema through the REST API is not permitted.
+schema through the REST API is not permitted. The form of the identity depends on the IdentityManager
+that is configured:
+- for the StandardIdentityManager (OpenID identity): `{issuer} {sub}`
+- for the ACIdentityManager (CADC access control system): `{X509 DN}` or `{CADC numeric ID}`
+**[changed in version 0.9.0]**
 
 The optional _createSchemaInDB_ flag is set to true, a schema created by admin will be created in 
 the database in addition to being added to the `tap_schema`. If false, `youcat` will not create 
 the schema in the database and just assume it exists and that the `tapadm` pool has permission 
 to create objects (tables and indices) in it.
+
+The optional _defaultVOTableSerialization_ configures the default serialization format for
+VOTable results **[new in version 0.8.0]**
+
+The optional _deletedSchemaName_ configures a (pre-existing) schema to use when users delete
+tables via the API. When a user deletes a table, it is renamed and removed from `tap_schema`
+in an atomic transaction and then truncated and dropped outide the transaction. If the latter
+steps fail, the refuse will be invisible via the API but will remain in the user's schema by 
+default. Configuring a _deletedSchemaName_ will cause the rename to also change the schema name
+so that it is easier for the operator to detect and cleanup when the automatic cleanup fails
+**[new in version 0.9.0]**
 
 As hard-coded behaviours of `youcat` are extracted from the build and made configurable,
 the configuration options will usually be in this file (see **development plans** below).

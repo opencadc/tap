@@ -69,6 +69,7 @@
 
 package ca.nrc.cadc.tap.writer.format;
 
+import ca.nrc.cadc.db.mappers.JdbcMapUtil;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -78,50 +79,9 @@ import java.sql.SQLException;
  */
 public class ByteArrayFormat extends AbstractResultSetFormat {
 
-    private ca.nrc.cadc.dali.util.ByteArrayFormat bfmt = new ca.nrc.cadc.dali.util.ByteArrayFormat();
-
-    @Override
-    public String format(Object t) {
-        if (t == null) {
-            return "";
-        }
-        if (t instanceof byte[]) {
-            return bfmt.format((byte[]) t);
-        }
-        throw new IllegalArgumentException(t.getClass().getCanonicalName() + " not supported.");
-    }
-
     @Override
     public Object extract(ResultSet resultSet, int columnIndex)
             throws SQLException {
-        Object object = resultSet.getObject(columnIndex);
-        if (object == null) {
-            return null;
-        }
-
-        if (object instanceof java.sql.Array) {
-            try {
-                java.sql.Array array = (java.sql.Array) object;
-                object = array.getArray();
-            } catch (SQLException e) {
-                throw new IllegalArgumentException("Error accessing array data for " + object.getClass().getCanonicalName(), e);
-            }
-        }
-
-        if (object instanceof Byte[]) {
-            Byte[] ba = (Byte[]) object;
-            byte[] ret = new byte[ba.length];
-            for (int i = 0; i < ba.length; i++) {
-                ret[i] = ba[i]; // unbox
-            }
-            object = ret;
-        }
-
-        if (object instanceof byte[]) {
-            return object;
-        }
-
-        throw new IllegalArgumentException(this.getClass().getSimpleName() + ": " + object.getClass().getCanonicalName() + " not supported.");
+        return JdbcMapUtil.getByteArray(resultSet, columnIndex);
     }
-
 }

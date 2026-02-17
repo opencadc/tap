@@ -72,6 +72,7 @@ package ca.nrc.cadc.tap.integration;
 import ca.nrc.cadc.conformance.uws2.JobResultWrapper;
 import ca.nrc.cadc.conformance.uws2.SyncUWSTest;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
+import ca.nrc.cadc.net.ContentType;
 import ca.nrc.cadc.reg.Standards;
 import java.net.URI;
 import org.apache.log4j.Logger;
@@ -92,7 +93,9 @@ public class TapSyncErrorTest extends SyncUWSTest {
     @Override
     protected void validateResponse(JobResultWrapper result) {
         Assert.assertEquals(400, result.responseCode);
-        Assert.assertEquals("application/x-votable+xml", result.contentType);
+        Assert.assertNotNull(result.contentType);
+        ContentType ct = new ContentType(result.contentType);
+        Assert.assertEquals("application/x-votable+xml", ct.getBaseType());
         Assert.assertNotNull("exception", result.throwable);
 
         try {

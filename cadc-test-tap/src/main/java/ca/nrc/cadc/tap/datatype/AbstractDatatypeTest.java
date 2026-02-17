@@ -73,6 +73,8 @@ import ca.nrc.cadc.dali.tables.TableData;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
+
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import org.apache.log4j.Logger;
@@ -89,8 +91,7 @@ public abstract class AbstractDatatypeTest extends SyncResultTest
     }
 
     @Override
-    protected void validateQueryStatus(String filename, VOTableDocument document, String status)
-    {
+    protected void validateQueryStatus(String filename, VOTableDocument document, String status) throws IOException {
         super.validateQueryStatus(filename, document, status);
 
         VOTableResource resource = document.getResourceByType("results");

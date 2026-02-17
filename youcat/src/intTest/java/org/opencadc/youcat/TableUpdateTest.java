@@ -76,6 +76,7 @@ import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.net.FileContent;
 import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.net.HttpPost;
+import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapPermissions;
@@ -92,6 +93,8 @@ import java.io.StringWriter;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.sql.DatabaseMetaData;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import javax.security.auth.Subject;
@@ -142,6 +145,7 @@ public class TableUpdateTest extends AbstractTablesTest {
                 log.info("testCreateIndex: " + cd.getColumnName());
                 ExecutionPhase expected = ExecutionPhase.COMPLETED;
                 if (cd.getColumnName().startsWith("a")) {
+                    // array column
                     expected = ExecutionPhase.ERROR;
                 }
                 doCreateIndex(schemaOwner, tableName, cd.getColumnName(), false,expected, null);
@@ -157,6 +161,9 @@ public class TableUpdateTest extends AbstractTablesTest {
 
     @Test
     public void testCreateUniqueIndex() {
+        List<String> uniqUnsupported = Arrays.asList(new String[] {
+            "interval", "point", "circle", "polygon"
+        });
         try {
             clearSchemaPerms();
             TapPermissions tp = new TapPermissions(null, true, null, null);
@@ -167,7 +174,9 @@ public class TableUpdateTest extends AbstractTablesTest {
             for (ColumnDesc cd : td.getColumnDescs()) {
 
                 ExecutionPhase expected = ExecutionPhase.COMPLETED;
-                if (cd.getColumnName().startsWith("e") || cd.getColumnName().startsWith("a")) {
+                String x = cd.getDatatype().xtype;
+                if (cd.getColumnName().startsWith("a") // array column
+                        || x != null && uniqUnsupported.contains(x)) {
                     expected = ExecutionPhase.ERROR; // unique index not allowed
                 }
                 log.info("testCreateUniqueIndex: " + cd.getColumnName() + " expect: " + expected.getValue());
@@ -222,7 +231,14 @@ public class TableUpdateTest extends AbstractTablesTest {
             for (ColumnDesc ocd : orig.getColumnDescs()) {
                 ColumnDesc cd = td.getColumn(ocd.getColumnName());
                 Assert.assertNotNull(ocd.getColumnName(), cd);
-                Assert.assertEquals(ocd.getDatatype(), cd.getDatatype()); // TapDataType.equals() is lax
+                Assert.assertEquals(ocd.getDatatype().getDatatype(), cd.getDatatype().getDatatype());
+                // compare arraysize is hard: create table imposes a limit on arraysize="*"
+                if ("uri".equals(ocd.getDatatype().xtype)) {
+                    // xtype=uri is purely a tap_schema decoration
+                    Assert.assertNull(cd.getDatatype().xtype);
+                } else {
+                    Assert.assertEquals(ocd.getDatatype().xtype, cd.getDatatype().xtype);
+                }
                 log.info("found: " + cd.getColumnName() + " " + cd.getDatatype());
             }
             
@@ -353,6 +369,74 @@ public class TableUpdateTest extends AbstractTablesTest {
 
             // cleanup, drop the view target
             doDelete(schemaOwner, testViewTarget, false);
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+
+    @Test
+    public void testIngestViewWithOtherSchema () {
+        try {
+            clearSchemaPerms();
+            TapPermissions tp = new TapPermissions(null, true, null, null);
+            super.setPerms(schemaOwner, testSchemaName, tp, 200);
+
+            final String testViewTableName = "test_ingest_view_with_other_schema";
+            final String testViewName = testSchemaName + "." + testViewTableName;
+            final String testViewTarget = "tap_schema.schemas11";
+            final String queryTestViewTarget = "tap_schema.schemas";
+
+            // try to delete the view from the tap_schema
+            try {
+                tapSchemaDAO.delete(testViewName);
+            }  catch (ResourceNotFoundException ignore) {}
+
+            // get the view target table
+            final TableDesc viewTarget = doVosiCheck(queryTestViewTarget);
+
+            // run the ingest
+            doIngestTable(schemaOwner, testViewTarget, testViewName, ExecutionPhase.COMPLETED);
+
+            // verify the tap_schema.tables view
+            TableDesc dbView = tapSchemaDAO.getTable(testViewName);
+            Assert.assertEquals(testSchemaName, dbView.getSchemaName());
+            Assert.assertEquals(testViewName, dbView.getTableName());
+            Assert.assertEquals(testViewTarget, dbView.viewTarget);
+            Assert.assertEquals(TableDesc.TableType.VIEW, dbView.tableType);
+
+            // update the view and verify
+            TableDesc view = doVosiCheck(testViewName);
+            view.description = "updated view description";
+            view.getColumn("description").description = "updated column description";
+
+            URL viewURL = new URL(certTablesURL.toExternalForm() + "/" + testViewName);
+            TableWriter tableWriter = new TableWriter();
+            StringWriter stringWriter = new StringWriter();
+            tableWriter.write(view, stringWriter);
+            String xml = stringWriter.toString();
+            log.info("updating view...\n" + xml);
+            FileContent fileContent = new FileContent(xml, TablesInputHandler.VOSI_TABLE_TYPE, StandardCharsets.UTF_8);
+            HttpPost update = new HttpPost(viewURL, fileContent, false);
+            Subject.doAs(schemaOwner, new RunnableAction(update));
+            log.info("update view: " + update.getResponseCode() + " " + update.getThrowable());
+            Assert.assertEquals(204, update.getResponseCode());
+
+            // verify updated view
+            TableDesc updatedView = doVosiCheck(testViewName);
+            Assert.assertEquals(view.description, updatedView.description);
+            Assert.assertEquals(view.getColumn("description").description, updatedView.getColumn("description").description);
+
+            // check the view target is unchanged
+            TableDesc target = doVosiCheck(queryTestViewTarget);
+            compare(viewTarget, target);
+
+            // drop the view and verify
+             doDelete(schemaOwner, testViewName, false);
+
+            // check the view target is unchanged
+            target = doVosiCheck(queryTestViewTarget);
+            compare(viewTarget, target);
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);

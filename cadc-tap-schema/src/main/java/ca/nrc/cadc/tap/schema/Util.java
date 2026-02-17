@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2024.                            (c) 2024.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,99 +62,119 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
-*
 ************************************************************************
 */
 
-package ca.nrc.cadc.tap.writer.format;
+package ca.nrc.cadc.tap.schema;
 
-import ca.nrc.cadc.date.DateUtil;
-import ca.nrc.cadc.tap.writer.format.UTCTimestampFormat;
-import ca.nrc.cadc.util.Log4jInit;
-import java.text.DateFormat;
-import java.util.Date;
-import org.apache.log4j.Level;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.cred.client.CredUtil;
+import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.tap.schema.TapPermissions;
+import java.io.IOException;
+import java.security.AccessControlException;
+import java.security.Principal;
+import java.security.cert.CertificateException;
+import java.util.Set;
+import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import static org.junit.Assert.*;
+import org.opencadc.gms.GroupURI;
+import org.opencadc.gms.IvoaGroupClient;
 
 /**
- *
- * @author jburke
+ * Utility class with static methods for checking permissions.
+ * 
+ * @author pdowler
  */
-public class UTCTimestampFormatTest
-{
-    private static final Logger LOG = Logger.getLogger(UTCTimestampFormatTest.class);
-    static
-    {
-        Log4jInit.setLevel("ca", Level.INFO);
+public abstract class Util {
+    private static final Logger log = Logger.getLogger(Util.class);
+
+    public static boolean isSchemaName(String name) {
+        String[] st = name.split("[.]");
+        return (st.length == 1);
     }
-    private static final String DATE_TIME = "2009-01-02T11:04:05.678";
-    private static DateFormat formatter;
-
-    public UTCTimestampFormatTest() { }
-
-    @BeforeClass
-    public static void setUpClass() throws Exception
-    {
-        formatter = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
-    }
-
-    @AfterClass
-    public static void tearDownClass() throws Exception
-    {
-    }
-
-    @Before
-    public void setUp() { }
-
-    @After
-    public void tearDown() { }
-
     
-    @Test
-    public void testFormatValue() throws Exception
-    {
-        LOG.debug("testFormat");
-
-        UTCTimestampFormat instance = new UTCTimestampFormat();
-
-        Date date = formatter.parse(DATE_TIME);
-        Object object;
-        String result;
-        
-        object = date;
-        result = instance.format(object);
-        assertEquals(DATE_TIME, result);
-
-        object = new java.sql.Date(date.getTime());
-        result = instance.format(object);
-        assertEquals(DATE_TIME, result);
-
-        object = new java.sql.Timestamp(date.getTime());
-        result = instance.format(object);
-        assertEquals(DATE_TIME, result);
-
-        LOG.info("testFormat passed");
+    public static boolean isTableName(String name) {
+        String[] st = name.split("[.]");
+        return (st.length == 2);
     }
-
-    @Test
-    public void testFormatNull() throws Exception
-    {
-        LOG.debug("testFormat");
-
-        UTCTimestampFormat instance = new UTCTimestampFormat();
+    
+    public static String getSchemaFromTable(String tableName) {
+        String[] st = tableName.split("[.]");
+        if (st.length == 2) {
+            return st[0];
+        }
+        throw new IllegalArgumentException("invalid table name: " + tableName + " (expected: <schema>.<table>)");
+    }
+    
+    public static String getUnqualifiedTableName(String tableName) {
+        String[] st = tableName.split("[.]");
+        if (st.length == 2) {
+            return st[1];
+        }
+        throw new IllegalArgumentException("invalid table name: " + tableName + " (expected: <schema>.<table>)");
+    }
+    
+    public static boolean isOwner(TapPermissions permissions) {
+        Subject s = AuthenticationUtil.getCurrentSubject();
+        if (s == null || s.getPrincipals() == null || s.getPrincipals().isEmpty()) {
+            return false;
+        }
+        if (isOwner(permissions, s)) {
+            return true;
+        }
+        return false;
+    }
+    
+    public static boolean isOwner(TapPermissions tp, Subject subject) {
+        if (tp.owner == null) {
+            return false;
+        }
+        for (Principal op : tp.owner.getPrincipals()) {
+            for (Principal cp : subject.getPrincipals()) {
+                if (AuthenticationUtil.equals(op, cp)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    
+    public static GroupURI getPermittedGroup(IvoaGroupClient groupClient, Set<GroupURI> permittedGroups) 
+        throws IOException, ResourceNotFoundException {
         
-        Object object = null;
-        String expResult = "";
-        String result = instance.format(object);
-        assertEquals(expResult, result);
+        // no read groups assigned
+        if (permittedGroups == null || permittedGroups.isEmpty()) {
+            return null;
+        }
+        
+        // anonymous caller
+        Subject s = AuthenticationUtil.getCurrentSubject();
+        if (s == null || s.getPrincipals() == null || s.getPrincipals().isEmpty()) {
+            return null;
+        }
+        
+        if (!ensureCredentials()) {
+            throw new AccessControlException("No delegated credentials");
+        }
 
-        LOG.info("testFormat passed");
+        try {
+            // membership in at least one of the groups
+            Set<GroupURI> memberships = groupClient.getMemberships(permittedGroups);
+            if (memberships == null || memberships.isEmpty()) {
+                return null;
+            }
+            return memberships.iterator().next();
+        } catch (InterruptedException ex) {
+            throw new RuntimeException("UNEXPECTED: " + ex, ex);
+        }
+    }
+    
+    public static boolean ensureCredentials() {
+        try {
+            return CredUtil.checkCredentials();
+        } catch (CertificateException ex) {
+            throw new RuntimeException("failed to find group memberships (invalid proxy certficate)", ex);
+        }
     }
 }

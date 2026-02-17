@@ -75,8 +75,14 @@ import ca.nrc.cadc.tap.TapSelectItem;
 import java.util.List;
 
 /**
- * FormatFactory interface.
- *
+ * FormatFactory interface. Implementations of this class create ResultSetFormat 
+ * instances for each column; the instance is responsible for extracting the value
+ * from the ResultSet and converting it into a known type that can be output by
+ * a cadc-dali TableWriter (e.g. VOTableWriter) using cadc-dali Format implementations.
+ * TODO: possiblty rename this interface in future so it doesn't get confused with
+ * the cadc-dali FormatFactory class and concept.
+ * 
+ * @see ResultSetFormat for more details
  */
 public interface FormatFactory extends TapPlugin {
 

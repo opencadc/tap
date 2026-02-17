@@ -71,10 +71,13 @@ package ca.nrc.cadc.tap.db;
 import ca.nrc.cadc.db.ConnectionConfig;
 import ca.nrc.cadc.db.DBConfig;
 import ca.nrc.cadc.db.DBUtil;
+import ca.nrc.cadc.db.DatabaseTransactionManager;
+import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.util.Log4jInit;
+import java.io.ByteArrayInputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -84,6 +87,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
+import org.opencadc.tap.io.AsciiTableData;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -144,7 +148,133 @@ public class TableCreatorTest extends TestUtil {
             Assert.fail("unexpected exception: " + unexpected);
         }
     }
-    
+
+    @Test
+    public void testTruncateDropTable() {
+        try {
+            String testTable = testSchemaName + ".testTruncateDropTable";
+            // cleanup
+            TableCreator tc = new TableCreator(dataSource);
+            try {
+                tc.dropTable(testTable);
+            } catch (Exception ignore) {
+                log.debug("cleanup-before-test failed");
+            }
+            
+            TableDesc orig = new TableDesc(testSchemaName, testTable);
+            orig.tableType = TableDesc.TableType.TABLE;
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c1", TapDataType.SHORT));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c2", TapDataType.INTEGER));
+            
+            tc.createTable(orig);
+            log.info("createTable returned");
+            
+            String sql = "SELECT * from " + testTable;
+            JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+            List<List<Object>> rows = jdbc.query(sql, new SimpleRowMapper());
+            Assert.assertNotNull("rows", rows);
+            Assert.assertTrue("empty", rows.isEmpty());
+            log.info("queries empty table");
+            
+            // add some rows, drop, rollback txn
+            StringBuilder csvData = new StringBuilder();
+            csvData.append("c0, c1, c2\n");
+            csvData.append("string0,0,1\n");
+            csvData.append("string0,2,3\n");
+            csvData.append("string0,4,5\n");
+            csvData.append("string0,6,7\n");
+            csvData.append("string0,8,9\n");
+            AsciiTableData tw = new AsciiTableData(new ByteArrayInputStream(csvData.toString().getBytes()), "text/csv");
+            TableLoader tableLoader = new TableLoader(dataSource, 3);
+            log.info("load...");
+            tableLoader.load(orig, tw);
+            log.info("load... [OK]");
+            // check
+            rows = jdbc.query(sql, new SimpleRowMapper());
+            Assert.assertNotNull("rows", rows);
+            Assert.assertEquals(5, rows.size());
+            // rollback(truncate + drop)
+            DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
+            tm.startTransaction();
+            tc.truncateTable(testTable);
+            tc.dropTable(testTable);
+            tm.rollbackTransaction();
+            // verify that rollback restored rows because truncate was inside txn
+            rows = jdbc.query(sql, new SimpleRowMapper());
+            Assert.assertNotNull("rows", rows);
+            Assert.assertFalse("not empty", rows.isEmpty());
+            
+            // truncate + rollback(drop)
+            tc.truncateTable(testTable);
+            tm.startTransaction();
+            tc.dropTable(testTable);
+            tm.rollbackTransaction();
+            // verify that rollback restored table but not rows because truncate was outside txn
+            rows = jdbc.query(sql, new SimpleRowMapper());
+            Assert.assertNotNull("rows", rows);
+            Assert.assertTrue("empty", rows.isEmpty());
+            
+            tc.dropTable(testTable);
+            //log.info("dropped table");
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+
+    @Test
+    public void testRenameTable() {
+        try {
+            String testTable = testSchemaName + ".testRenameTable1";
+            // cleanup
+            TableCreator tc = new TableCreator(dataSource);
+            try {
+                tc.dropTable(testTable);
+            } catch (Exception ignore) {
+                log.debug("cleanup-before-test failed");
+            }
+            
+            TableDesc orig = new TableDesc(testSchemaName, testTable);
+            orig.tableType = TableDesc.TableType.TABLE;
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c1", TapDataType.SHORT));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "c2", TapDataType.INTEGER));
+            
+            tc.createTable(orig);
+            log.info("createTable returned");
+            
+            final JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+            
+            String sql = "SELECT * from " + testTable;
+            List<List<Object>> rows = jdbc.query(sql, new SimpleRowMapper());
+            Assert.assertNotNull("rows", rows);
+            Assert.assertTrue("empty", rows.isEmpty());
+            
+            // rename table
+            String testTable2 = testSchemaName + ".testTable2";
+            tc.renameTable(testTable, null, "testTable2");
+            // test query
+            sql = "SELECT * from " + testTable2;
+            rows = jdbc.query(sql, new SimpleRowMapper());
+            Assert.assertNotNull("rows", rows);
+            Assert.assertTrue("empty", rows.isEmpty());
+            log.info("queries empty table");
+            
+            try {
+                tc.dropTable(testTable);
+            } catch (ResourceNotFoundException expected) {
+                log.info("caught expected: " + expected);
+            }
+            
+            tc.dropTable(testTable2);
+            log.info("dropped table");
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+
     @Test
     public void testCreateIndex() {
         try {
