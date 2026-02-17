@@ -1,0 +1,128 @@
+get:
+    operationId: read-table-metadata
+    tags: 
+      - VOSI table metadata
+    summary: get metadata for the specified table
+    description: provides the table metadata for a single schema or table
+    parameters:
+      - in: path
+        name: name
+        description: a single schema name or table name as provided in tap_schema
+        required: true
+        schema:
+          type: string
+    responses:
+        200:
+            $ref: '#/components/schemas/tableDoc'
+        401:
+            $ref: ./vosi-std-responses.yaml#/not-authenticated
+        403:
+            $ref: ./vosi-std-responses.yaml#/permission-denied
+        404:
+            $ref: ./vosi-std-responses.yaml#/not-found
+post:
+    operationId: update-table
+    tags: 
+      - VOSI table metadata
+    summary: proto - update table metadata and/or content (optional)
+    description: update the table metadata from a table description; may include rows to append if input format supports it
+    parameters:
+      - in: path
+        name: name
+        description: the fully qualified name of the table to create
+        required: true
+        schema:
+            type: string
+    requestBody:
+        description: a table description
+        $ref: '#/components/schemas/tableDoc'
+    responses:
+        204:
+            description: table updated
+        400:
+            $ref: ./vosi-std-responses.yaml#/bad-request
+        401:
+            $ref: ./vosi-std-responses.yaml#/not-authenticated
+        403:
+            $ref: ./vosi-std-responses.yaml#/permission-denied
+        404:
+            $ref: ./vosi-std-responses.yaml#/not-found
+        405:
+            $ref: ./vosi-std-responses.yaml#/not-implemented
+        413:
+            $ref: ./vosi-std-responses.yaml#/too-large
+put:
+    operationId: create-table
+    tags: 
+      - VOSI table metadata
+    summary: proto - create table (optional)
+    description: create table from a table description; may include rows if input format supports it
+    parameters:
+      - in: path
+        name: name
+        description: the fully qualified name of the table to create
+        required: true
+        schema:
+            type: string
+    requestBody:
+        description: a table description
+        $ref: '#/components/schemas/tableDoc'
+    responses:
+        201:
+            description: table created
+        400:
+            $ref: ./vosi-std-responses.yaml#/bad-request
+        401:
+            $ref: ./vosi-std-responses.yaml#/not-authenticated
+        403:
+            $ref: ./vosi-std-responses.yaml#/permission-denied
+        404:
+            $ref: ./vosi-std-responses.yaml#/not-found
+        405:
+            $ref: ./vosi-std-responses.yaml#/not-implemented
+        413:
+            $ref: ./vosi-std-responses.yaml#/too-large
+delete:
+    operationId: delete-table
+    tags: 
+      - VOSI table metadata
+    summary: proto - delete table (optional)
+    description: delete table by name
+    parameters:
+    - name: name
+      in: path
+      description: the table to delete
+      required: true
+      schema:
+        type: string
+    responses:
+        204:
+            description: table dropped
+        401:
+            $ref: ./vosi-std-responses.yaml#/not-authenticated
+        403:
+            $ref: ./vosi-std-responses.yaml#/permission-denied
+        404:
+            $ref: ./vosi-std-responses.yaml#/not-found
+        405:
+            $ref: ./vosi-std-responses.yaml#/not-implemented
+
+components:
+    schemas:
+        tableDoc:
+            description: metadata for the specified schema or table
+            content:
+                text/xml:
+                    schema:
+                        type: object
+                        xml:
+                            name: table
+                            prefix: vosi
+                            namespace: http://www.ivoa.net/xml/VOSITables/v1.0
+                application/x-votable+xml:
+                    schema:
+                        type: object
+                        xml:
+                            name: VOTABLE
+                            namespace: http://www.ivoa.net/xml/VOTable/v1.3
+
