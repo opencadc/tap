@@ -24,8 +24,8 @@ war {
 dependencies {
     implementation 'org.opencadc:cadc-util:[1.12.14,2.0)'
     implementation 'org.opencadc:cadc-rest:[1.4.5,)'
-    implementation 'org.opencadc:cadc-dali:[1.2.28,)'
-    implementation 'org.opencadc:cadc-dali-parquet:[0.5.3,)'
+    implementation 'org.opencadc:cadc-dali:[1.2.29,)'
+    implementation 'org.opencadc:cadc-dali-parquet:[0.5.4,)'
     implementation 'org.opencadc:cadc-datalink:[1.1.5,)'
     implementation 'org.opencadc:cadc-adql:[1.1.14,)'
     implementation 'org.opencadc:cadc-uws:[1.0.2,)'
