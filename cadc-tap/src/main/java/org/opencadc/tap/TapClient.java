@@ -81,6 +81,7 @@ import ca.nrc.cadc.dali.util.Format;
 import ca.nrc.cadc.dali.util.FormatFactory;
 import ca.nrc.cadc.io.ByteLimitExceededException;
 import ca.nrc.cadc.io.ResourceIterator;
+import ca.nrc.cadc.net.ContentType;
 import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.net.HttpPost;
 import ca.nrc.cadc.net.ResourceAlreadyExistsException;
@@ -363,7 +364,8 @@ public class TapClient<E> {
         try {
             post.prepare();
         }  catch (IllegalArgumentException ex) {
-            extractTapError(post.getContentType(), ex);
+            ContentType ct = new ContentType(post.getContentType());
+            extractTapError(ct.getBaseType(), ex);
         } catch (IOException ex) {
             throw new TransientException("queryForObject create query failed: " + ex.getMessage(), ex);
         }
@@ -379,13 +381,15 @@ public class TapClient<E> {
             exec.prepare();
         } catch (IllegalArgumentException ex) {
             log.debug("content-type: " + exec.getContentType() + " " + exec.getResponseCode(), ex);
-            extractTapError(exec.getContentType(), ex);
+            ContentType ct = new ContentType(exec.getContentType());
+            extractTapError(ct.getBaseType(), ex);
         } catch (IOException ex) {
             // usually corrupted or non-xml content due to unexpected network fail
             throw new TransientException("jobID=" + jobID + " queryForObject execute query failed: " + ex.getMessage(), ex);
         }
 
-        if (!VOTableWriter.CONTENT_TYPE.equals(exec.getContentType())) {
+        ContentType ct = new ContentType(exec.getContentType());
+        if (!VOTableWriter.CONTENT_TYPE.equals(ct.getBaseType())) {
             throw new RuntimeException("jobID=" + jobID + " unexpected response: " + exec.getContentType() 
                     + " expected: " + VOTableWriter.CONTENT_TYPE);
         }
@@ -453,7 +457,8 @@ public class TapClient<E> {
         try {
             post.prepare();
         }  catch (IllegalArgumentException ex) {
-            extractTapError(post.getContentType(), ex);
+            ContentType ct = new ContentType(post.getContentType());
+            extractTapError(ct.getBaseType(), ex);
         } catch (IOException ex) {
             throw new TransientException("queryForIterator create query failed: " + ex.getMessage(), ex);
         }
@@ -471,14 +476,16 @@ public class TapClient<E> {
         try {
             meta.prepare();
         } catch (IllegalArgumentException ex) {
+            ContentType ct = new ContentType(meta.getContentType());
             log.debug("content-type: " + meta.getContentType() + " " + meta.getResponseCode(), ex);
-            extractTapError(meta.getContentType(), ex);
+            extractTapError(ct.getBaseType(), ex);
         } catch (IOException ex) {
             // usually corrupted or non-xml content due to unexpected network fail
             throw new TransientException("jobID=" + jobID + " queryForIterator execute query failed: " + ex.getMessage(), ex);
         }
         
-        if (!VOTableWriter.CONTENT_TYPE.equals(meta.getContentType())) {
+        ContentType ct = new ContentType(meta.getContentType());
+        if (!VOTableWriter.CONTENT_TYPE.equals(ct.getBaseType())) {
             throw new RuntimeException("unexpected response: " + meta.getContentType() 
                     + " expected: " + VOTableWriter.CONTENT_TYPE);
         }
@@ -539,14 +546,16 @@ public class TapClient<E> {
             stream.prepare();
         } catch (IllegalArgumentException ex) {
             log.debug("content-type: " + stream.getContentType() + " " + stream.getResponseCode(), ex);
-            extractTapError(stream.getContentType(), ex);
+            ContentType cte = new ContentType(stream.getContentType());
+            extractTapError(cte.getBaseType(), ex);
         } catch (IOException ex) {
             // usually corrupted or non-xml content due to unexpected network fail
             throw new TransientException("jobID=" + jobID + " queryForIterator execute query failed: " + ex.getMessage(), ex);
         }
+        ContentType cts = new ContentType(stream.getContentType());
         InputStream istream = stream.getInputStream();
         if (istream != null) {
-            return new TsvIterator<>(mapper, formatters, stream.getContentType(), istream);
+            return new TsvIterator<>(mapper, formatters, cts.getBaseType(), istream);
         }
 
         throw new RuntimeException("BUG: query response had InputStream: null");
