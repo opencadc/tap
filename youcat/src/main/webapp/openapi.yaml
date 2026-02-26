@@ -1,0 +1,84 @@
+openapi: 3.1.0
+info:
+  title: |
+    YouCat: a TAP service with user-owned and created tables.
+  version: "0.9.2"
+  description: |
+    This service implements the WD-TAP-1.2 API specification with components imported from
+    VOSI, UWS, and DALI. Querying is completely compatible with the
+    <a href=\"http://www.ivoa.net/documents/TAP/20190927/\">TAP-1.1</a> Recommendation.
+    
+    YouCat supports user management of permissions at both the schema and table level. A schema 
+    owner is set when a YouCat allocation is created by the service operator. A table owner is
+    the user who created the table. Owners can set a flag for anonymous reading and can set 
+    groups for read-only and read-write permissons. 
+    
+    <b>The following describes the three types of <em>grants</em>:</b>
+    
+    {schema|table}.anon-read = false|true : true grants read-only permission to anonymous callers
+    
+    {schema|table}.read-only = NULL | {group URI} : grant read-only permission to a group
+    
+    {schema|table}.read-write = NULL | {group URI} : grant read-write permission to a group
+    
+    <b>What these grants mean:</b>
+        
+    read-only permission on a schema allows the TAP API to expose table existence and metadata
+    
+    read-only permission on table: allows the TAP API to expose content of a table (TAP query)
+    
+    read-write permissions on a schema: read-only + create table
+    
+    read-write permission on a table: read-only + create index, append rows, update (tap_schema) metadata
+    
+    owner of a schema has: read-write + drop (any) tables
+    
+    owner of a table has: read-write + drop table
+    
+    owner of a schema: change permissions on schema and (any) tables
+    
+    owner of a table: change permissions on table
+    
+    <b>Group URIs are in the format:</b> ivo://cadc.nrc.ca/gms?groupName
+    
+    Note: Previous versions documented a /load endpoint for bulk-loading table content (rows); that
+    endpoint is still supported but not documented below because it is not expected to be part of the
+    TAP-1.2 specification (TBD).
+    
+    Note: Previous versions documented a /permissions endpoint for viewing and modifying schema and table
+    permissions; that endpoint is still supported but not documented below because it is not expected to
+    be part of the TAP-1.2 specification (TBD).
+servers:
+- url: /youcat
+
+tags:
+    - name: VOSI Capabilities
+    - name: VOSI Table Metadata
+    - name: TAP Query
+
+paths:
+    /sync:
+        $ref: ./openapi/tap/tap-sync.yaml
+    /async:
+        $ref: ./openapi/tap/tap-async.yaml
+    /async/{jobID}:
+        $ref: ./openapi/uws/uws-job.yaml
+    /async/{jobID}/phase:
+        $ref: ./openapi/uws/uws-job-phase.yaml
+    /async/{jobID}/results/result:
+        $ref: ./openapi/tap/tap-result.yaml
+
+    /capabilities:
+        $ref: ./openapi/vosi/vosi-capabilities.yaml
+
+    /tables:
+        $ref: ./openapi/vosi/vosi-tableset.yaml
+    /tables/{name}:
+        $ref: ./openapi/vosi/vosi-table.yaml
+
+    #/table-update:
+    #    $ref: ./openapi/vosi/vosi-table-ops.yaml
+    #/table-update/{jobID}:
+    #    $ref: ./openapi/uws/uws-job.yaml
+    #/table-update/{jobID}/phase:
+    #    $ref: ./openapi/uws/uws-job-phase.yaml
