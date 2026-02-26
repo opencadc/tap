@@ -1,7 +1,7 @@
 get:
     operationId: get-tableset
     tags: 
-      - VOSI table metadata
+      - VOSI Table Metadata
     summary: VOSI TableSet
     description: Provides the table metadata in the form of a TableSet description
     parameters:
@@ -13,13 +13,13 @@ get:
             type: string
             enum: [min, max]
     responses:
-        200:
+        '200':
             $ref: '#/components/schemas/tablesetDoc'
-        400:
+        '400':
             $ref: ./vosi-std-responses.yaml#/bad-request
-        401:
+        '401':
             $ref: ./vosi-std-responses.yaml#/not-authenticated
-        403:
+        '403':
             $ref: ./vosi-std-responses.yaml#/permission-denied
 
 components:
@@ -34,4 +34,35 @@ components:
                             name: tableset
                             prefix: vosi
                             namespace: http://www.ivoa.net/xml/VOSITables/v1.0
+                    example: |
+                        <vosi:tableset xmlns:vosi="http://www.ivoa.net/xml/VOSITables/v1.0"
+                                xmlns:vs="http://www.ivoa.net/xml/VODataService/v1.1"
+                                xmlns:vte="http://www.opencadc.org/xml/VOSITables-ext/v0.1"
+                                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                            <schema>
+                            <name>tap_schema</name>
+                            <description>a special schema to describe TAP-1.1 tablesets</description>
+                            <table type="output">
+                              <name>tap_schema.schemas</name>
+                              <description>description of schemas in this tableset</description>
+                            </table>
+                            <table type="output">
+                              <name>tap_schema.tables</name>
+                              <description>description of tables in this tableset</description>
+                            </table>
+                            <table type="output">
+                              <name>tap_schema.columns</name>
+                              <description>description of columns in this tableset</description>
+                            </table>
+                            <table type="output">
+                              <name>tap_schema.keys</name>
+                              <description>description of foreign keys in this tableset</description>
+                            </table>
+                            <table type="output">
+                              <name>tap_schema.key_columns</name>
+                              <description>description of foreign key columns in this tableset</description>
+                            </table>
+                          </schema>
+                          ...
+                        </vosi:tableset>
 

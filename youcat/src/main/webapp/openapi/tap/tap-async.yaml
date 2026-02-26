@@ -2,21 +2,21 @@ get:
     operationId: query-job-list
     tags:
       - TAP Query
-    summary: list async queries
+    summary: list queries (UWS jobs)
     description: TAP asynchronous query endpoint (list UWS Jobs)
     parameters:
     responses:
-        200:
+        '200':
             $ref: ../uws/uws-responses.yaml#/job-listing
-        401:
+        '401':
             $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
-        403:
+        '403':
             $ref: ../vosi/vosi-std-responses.yaml#/permission-denied
 post:
     operationId: query-job-create
     tags:
       - TAP Query
-    summary: create async query
+    summary: create async query (UWS job)
     description: TAP asynchronous query endpoint (create UWS Job)
     parameters:
       - $ref: ./tap-lang.yaml
@@ -26,9 +26,9 @@ post:
       - $ref: ../dali/dali-responseformat.yaml
       - $ref: ../dali/dali-upload.yaml
     responses:
-        303:
+        '303':
             $ref: ../uws/uws-responses.yaml#/created
-        401:
+        '401':
             $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
-        403:
+        '403':
             $ref: ../vosi/vosi-std-responses.yaml#/permission-denied

@@ -12,15 +12,15 @@ get:
       - $ref: ../dali/dali-responseformat.yaml
       - $ref: ../dali/dali-upload.yaml
     responses:
-        200:
-            description: successful response
-        303:
+        '200':
+            $ref: './tap-result.yaml#/components/schemas/queryResult'
+        '303':
             description: redirect to the job result (optional)
-        400:
+        '400':
             $ref: ./tap-responses.yaml#/invalid-query
-        401:
+        '401':
             $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
-        403:
+        '403':
             $ref: ../vosi/vosi-std-responses.yaml#/permission-denied
 post:
     operationId: sync-query-job-create
@@ -36,14 +36,14 @@ post:
       - $ref: ../dali/dali-responseformat.yaml
       - $ref: ../dali/dali-upload.yaml
     responses:
-        200:
-            description: successful response
-        303:
+        '200':
+            $ref: './tap-result.yaml#/components/schemas/queryResult'
+        '303':
             description: redirect to the job result (optional)
-        400:
+        '400':
             $ref: ./tap-responses.yaml#/invalid-query
-        401:
+        '401':
             $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
-        403:
+        '403':
             $ref: ../vosi/vosi-std-responses.yaml#/permission-denied
 

@@ -10,27 +10,24 @@ head:
         applicable header information. SSO-next: clients use this operation to probe
         for available authentication methods.
     responses:
-        200:
+        '200':
             $ref: ./vosi-std-responses.yaml#/authenticated
-        401:
+        '401':
             $ref: ./vosi-std-responses.yaml#/not-authenticated
-        403:
-            $ref: ./vosi-std-responses.yaml#/authenticated
+        '403':
             $ref: ./vosi-std-responses.yaml#/permission-denied
 get:
     operationId: read-capabilities
     tags: 
-      - VOSI
+      - VOSI Capabilities
     summary: VOSI Capabilities with SSO-next prototype
     description: Get the set of VOResource capability descriptions for this service.
     responses:
-        200:
+        '200':
           $ref: '#/components/schemas/capabilities'
-          $ref: ./vosi-std-responses.yaml#/authenticated
-        401:
+        '401':
             $ref: ./vosi-std-responses.yaml#/not-authenticated
-        403:
-            $ref: ./vosi-std-responses.yaml#/authenticated
+        '403':
             $ref: ./vosi-std-responses.yaml#/permission-denied
 
 components:
@@ -45,3 +42,15 @@ components:
                             name: capabilities
                             prefix: vosi
                             namespace: http://www.ivoa.net/xml/VOSICapabilities/v1.0
+                    example: |
+                        <vosi:capabilities xmlns:vosi="http://www.ivoa.net/xml/VOSICapabilities/v1.0"
+                                xmlns:vr="http://www.ivoa.net/xml/VOResource/v1.0"
+                                xmlns:vs="http://www.ivoa.net/xml/VODataService/v1.1"
+                                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                            <capability standardID="ivo://ivoa.net/std/VOSI#capabilities">
+                                <interface xsi:type="vs:ParamHTTP" role="std">
+                                    <accessURL use="full">https://example.net/tap-service/capabilities</accessURL>
+                                </interface>
+                            </capability>
+                            ...
+                        </vosi:capabilities>

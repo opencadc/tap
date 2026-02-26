@@ -4,14 +4,10 @@ VOSI=$HOME/work/dev/ivoa-std/VOSI.git
 DALI=$HOME/work/dev/ivoa-std/DALI.git
 TAP=$HOME/work/dev/ivoa-std/TAP.git
 
-ARGS="$1 -avu --delete"
+ARGS="$1 -avc --delete"
 
-echo "rsync components..."
-rsync $ARGS $VOSI/openapi/ src/main/webapp/openapi/vosi/
-rsync $ARGS $DALI/openapi/ src/main/webapp/openapi/dali/
-rsync $ARGS $TAP/openapi/ src/main/webapp/openapi/tap/
-echo
-
-echo "diff TAP API..."
-diff ${TAP}/openapi.yaml src/main/webapp/openapi.yaml
+rsync $ARGS $VOSI/openapi/vosi src/main/webapp/openapi/
+rsync $ARGS $DALI/openapi/dali src/main/webapp/openapi/
+rsync $ARGS $TAP/openapi/uws src/main/webapp/openapi/
+rsync $ARGS $TAP/openapi/tap src/main/webapp/openapi/
 

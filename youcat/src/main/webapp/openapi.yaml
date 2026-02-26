@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: |
     YouCat: a TAP service with user-owned and created tables.
-  version: "0.7.5"
+  version: "0.9.2"
   description: |
     This service implements the WD-TAP-1.2 API specification with components imported from
     VOSI, UWS, and DALI. Querying is completely compatible with the
@@ -45,16 +45,18 @@ info:
     endpoint is still supported but not documented below because it is not expected to be part of the
     TAP-1.2 specification (TBD).
     
-    Note: Previous versions documented a /permissions endpoint for viewign and modifying schema and table
+    Note: Previous versions documented a /permissions endpoint for viewing and modifying schema and table
     permissions; that endpoint is still supported but not documented below because it is not expected to
     be part of the TAP-1.2 specification (TBD).
 servers:
 - url: /youcat
 
-paths:
-    /capabilities:
-        $ref: ./openapi/vosi/vosi-capabilities.yaml
+tags:
+    - name: VOSI Capabilities
+    - name: VOSI Table Metadata
+    - name: TAP Query
 
+paths:
     /sync:
         $ref: ./openapi/tap/tap-sync.yaml
     /async:
@@ -63,15 +65,20 @@ paths:
         $ref: ./openapi/uws/uws-job.yaml
     /async/{jobID}/phase:
         $ref: ./openapi/uws/uws-job-phase.yaml
+    /async/{jobID}/results/result:
+        $ref: ./openapi/tap/tap-result.yaml
+
+    /capabilities:
+        $ref: ./openapi/vosi/vosi-capabilities.yaml
 
     /tables:
         $ref: ./openapi/vosi/vosi-tableset.yaml
     /tables/{name}:
         $ref: ./openapi/vosi/vosi-table.yaml
 
-    /table-update:
-        $ref: ./openapi/vosi/vosi-table-ops.yaml
-    /table-update/{jobID}:
-        $ref: ./openapi/uws/uws-job.yaml
-    /table-update/{jobID}/phase:
-        $ref: ./openapi/uws/uws-job-phase.yaml
+    #/table-update:
+    #    $ref: ./openapi/vosi/vosi-table-ops.yaml
+    #/table-update/{jobID}:
+    #    $ref: ./openapi/uws/uws-job.yaml
+    #/table-update/{jobID}/phase:
+    #    $ref: ./openapi/uws/uws-job-phase.yaml

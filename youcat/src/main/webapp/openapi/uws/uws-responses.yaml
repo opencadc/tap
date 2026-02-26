@@ -22,16 +22,40 @@ job-listing:
                     name: jobs
                     prefix: uws
                     namespace: http://www.ivoa.net/xml/UWS/v1.0
+            example: |
+                <uws:jobs xmlns:uws="http://www.ivoa.net/xml/UWS/v1.0" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">
+                    <uws:jobref id="loqqxg8jlah0r8wp">
+                        <uws:phase>PENDING</uws:phase>
+                        <uws:runId>TEST</uws:runId>
+                        <uws:ownerId>somebody</uws:ownerId>
+                        <uws:creationTime>2024-07-16T16:38:33.090Z</uws:creationTime>
+                    </uws:jobref>
+                    ...
+                </uws:job>
         
-components:
-    schemas:
-        jobDoc:
-            description: a single UWS Job
-            content:
-                text/xml:
-                    schema:
-                        type: object
-                        xml:
-                            name: job
-                            prefix: uws
-                            namespace: http://www.ivoa.net/xml/UWS/v1.0 
+job:
+    description: a single UWS Job
+    content:
+        text/xml:
+            schema:
+                type: object
+                xml:
+                    name: job
+                    prefix: uws
+                    namespace: http://www.ivoa.net/xml/UWS/v1.0
+            example: |
+                <uws:job xmlns:uws="http://www.ivoa.net/xml/UWS/v1.0" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">
+                    <uws:jobId>loqqxg8jlah0r8wp</uws:jobId>
+                    <uws:ownerId>somebody</uws:ownerId>
+                    <uws:phase>PENDING</uws:phase>
+                    <uws:quote>2024-07-17T16:38:33.089Z</uws:quote>
+                    <uws:creationTime>2024-07-16T16:38:33.090Z</uws:creationTime>
+                    <uws:startTime xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true" />
+                    <uws:endTime xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true" />
+                    <uws:executionDuration>28800</uws:executionDuration>
+                    <uws:destruction>2024-07-23T16:38:33.089Z</uws:destruction>
+                    <uws:parameters />
+                    <uws:results />
+                </uws:job>
+
+
