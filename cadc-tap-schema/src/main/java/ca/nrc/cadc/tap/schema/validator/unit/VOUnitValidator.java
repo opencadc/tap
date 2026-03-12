@@ -355,10 +355,6 @@ public class VOUnitValidator {
                     throw new IllegalArgumentException(
                             "Invalid scale factor '" + intPart + "': leading zeros are not allowed.");
                 }
-
-               /* throw new IllegalArgumentException(
-                        "Invalid scale factor '" + intPart + "': only '1', '10', "
-                                + "or a floating-point number (VOUFLOAT) is allowed."); */
             }
         }
 
