@@ -67,6 +67,12 @@
 
 package ca.nrc.cadc.tap.schema.validator.unit;
 
+import ca.nrc.cadc.tap.schema.validator.ValidationResult;
+import ca.nrc.cadc.tap.schema.validator.Violation;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import org.apache.log4j.Logger;
@@ -128,36 +134,37 @@ public class VOUnitValidator {
 
     private static final Logger log = Logger.getLogger(VOUnitValidator.class);
 
-    public boolean validateVOUnit(String vounit) {
-        ValidationResult result = validate(vounit);
-        if (!result.isValid()) {
-            log.error("Failed for reason: " + result.getErrorMessage() + " for vounit: " + vounit);
-        }
-        return result.isValid();
-    }
+    List<String> functions = Arrays.asList("log", "ln", "exp", "sqrt");
 
     /**
      * @param vounit the string to validate;
      * @return a {@link ValidationResult} describing the outcome.
      */
     public ValidationResult validate(String vounit) {
+        List<Violation> violations = new ArrayList<>();
+
         if (vounit == null) {
-            return ValidationResult.invalid("VOUnit string must not be null.");
+            violations.add(new Violation(Violation.Severity.ERROR, "VOUnit string must not be null."));
+            return new ValidationResult(null, violations);
         }
         String trimmed = vounit.trim();
         if (trimmed.isEmpty()) {
-            return ValidationResult.invalid("VOUnit string must not be blank.");
+            violations.add(new Violation(Violation.Severity.ERROR, "VOUnit string must not be blank."));
+            return new ValidationResult(vounit, violations);
         }
 
         try {
             ParseState s = new ParseState(trimmed);
-            parseInput(s);
+            parseInput(s, violations);
             if (!s.done()) {
-                return ValidationResult.invalid("Unexpected character(s) at position " + s.pos + ": '" + trimmed.substring(s.pos) + "'");
+                violations.add(new Violation(Violation.Severity.ERROR,
+                        "Unexpected character(s) at position " + s.pos + ": '" + trimmed.substring(s.pos) + "'"));
+                return new ValidationResult(vounit, violations);
             }
-            return ValidationResult.valid();
+            return new ValidationResult(vounit, violations);
         } catch (IllegalArgumentException ex) {
-            return ValidationResult.invalid(ex.getMessage());
+            violations.add(new Violation(Violation.Severity.ERROR, ex.getMessage()));
+            return new ValidationResult(vounit, violations);
         }
     }
 
@@ -168,7 +175,7 @@ public class VOUnitValidator {
     //         | LIT1
     // ------------------------------------------------------------------
 
-    private void parseInput(ParseState s) {
+    private void parseInput(ParseState s, List<Violation> violations) {
         // LIT1 alone ("1") is a valid dimensionless unit
         if ("1".equals(s.input)) {
             s.pos = s.input.length();
@@ -181,12 +188,12 @@ public class VOUnitValidator {
         }
 
         // Parse scale factor followed by complete_expression.
-        parseScaleFactor(s);
+        parseScaleFactor(s, violations);
         if (!s.done() && s.current() == ' ') {
             // optional whitespace between a scale factor and units
             s.pos++;
         }
-        parseCompleteExpression(s);
+        parseCompleteExpression(s, violations);
     }
 
     // ------------------------------------------------------------------
@@ -195,13 +202,13 @@ public class VOUnitValidator {
     //                       | product_of_units division unit_expression
     // ------------------------------------------------------------------
 
-    private void parseCompleteExpression(ParseState s) {
-        parseProductOfUnits(s);
+    private void parseCompleteExpression(ParseState s, List<Violation> violations) {
+        parseProductOfUnits(s, violations);
 
         // Optionally: one division followed by one unit_expression
         if (!s.done() && s.current() == '/') {
             s.pos++; // consume '/'
-            parseUnitExpression(s);
+            parseUnitExpression(s, violations);
         }
     }
 
@@ -212,11 +219,11 @@ public class VOUnitValidator {
     // product          : DOT  ('.')
     // ------------------------------------------------------------------
 
-    private void parseProductOfUnits(ParseState s) {
-        parseUnitExpression(s);
+    private void parseProductOfUnits(ParseState s, List<Violation> violations) {
+        parseUnitExpression(s, violations);
         while (!s.done() && s.current() == '.') {
             s.pos++; // consume '.'
-            parseUnitExpression(s);
+            parseUnitExpression(s, violations);
         }
     }
 
@@ -228,7 +235,7 @@ public class VOUnitValidator {
     // function_application : STRING OPEN_P  function_operand CLOSE_P
     // ------------------------------------------------------------------
 
-    private void parseUnitExpression(ParseState s) {
+    private void parseUnitExpression(ParseState s, List<Violation> violations) {
         if (s.done()) {
             throw new IllegalArgumentException("Unexpected end of input: expected a unit expression.");
         }
@@ -236,7 +243,7 @@ public class VOUnitValidator {
         // OPEN_P complete_expression CLOSE_P
         if (s.current() == '(') {
             s.pos++; // consume '('
-            parseCompleteExpression(s);
+            parseCompleteExpression(s, violations);
             if (s.done() || s.current() != ')') {
                 throw new IllegalArgumentException("Expected ')' at position " + s.pos);
             }
@@ -248,17 +255,20 @@ public class VOUnitValidator {
         // A function_application is STRING '(' ..., so we can look ahead after the symbol.
         // We first try function_application.
         int savedPos = s.pos;
-        String sym = matchString(s);
-        if (sym != null) {
-            int afterSym = s.pos + sym.length();
+        Token token = matchString(s, violations); // Can have tokenType UNIT, FUNC, UNKNOWN
+        if (token != null) {
+            int afterSym = s.pos + token.value.length();
             if (afterSym < s.input.length() && s.input.charAt(afterSym) == '(') {
                 // This is a function_application: STRING OPEN_P function_operand CLOSE_P
-                s.pos += sym.length(); // consume function name
+                if (!token.type.equals(TokenType.FUNC)) {
+                    violations.add(new Violation(Violation.Severity.WARNING,
+                            "Expected a function name. Unknown function : " + token.value + " found at position " + s.pos));
+                }
+                s.pos += token.value.length(); // consume function name
                 s.pos++;              // consume '('
-                parseFunctionOperand(s);
+                parseFunctionOperand(s, violations);
                 if (s.done() || s.current() != ')') {
-                    throw new IllegalArgumentException(
-                            "Expected ')' to close function '" + sym + "' at position " + s.pos);
+                    throw new IllegalArgumentException("Expected ')' to close function '" + token + "' at position " + s.pos);
                 }
                 s.pos++; // consume ')'
                 return;
@@ -266,7 +276,7 @@ public class VOUnitValidator {
         }
         // Not a function – parse as term
         s.pos = savedPos;
-        parseTerm(s);
+        parseTerm(s, violations);
     }
 
     // ------------------------------------------------------------------
@@ -275,12 +285,12 @@ public class VOUnitValidator {
     //                    | scalefactor complete_expression
     // ------------------------------------------------------------------
 
-    private void parseFunctionOperand(ParseState s) {
-        parseScaleFactor(s);
+    private void parseFunctionOperand(ParseState s, List<Violation> violations) {
+        parseScaleFactor(s, violations);
         if (!s.done() && s.current() == ' ') {
             s.pos++;
         }
-        parseCompleteExpression(s);
+        parseCompleteExpression(s, violations);
     }
 
     // ------------------------------------------------------------------
@@ -291,7 +301,7 @@ public class VOUnitValidator {
     //               | VOUFLOAT
     // ------------------------------------------------------------------
 
-    private void parseScaleFactor(ParseState s) {
+    private void parseScaleFactor(ParseState s, List<Violation> violations) {
         if (!s.done() && !Character.isDigit(s.current())) {
             return; // not scale factor
         }
@@ -312,7 +322,7 @@ public class VOUnitValidator {
         // Check for LIT10 ** numeric_power (e.g. "10**3")
         if ("10".equals(intPart) && !s.done() && s.startsWith("**")) {
             s.pos += 2; // consume '**'
-            parseNumericPower(s);
+            parseNumericPower(s, violations);
             return;
         }
 
@@ -375,13 +385,13 @@ public class VOUnitValidator {
     //   power : STARSTAR  ('**')
     // ------------------------------------------------------------------
 
-    private void parseTerm(ParseState s) {
-        parseUnit(s);
+    private void parseTerm(ParseState s, List<Violation> violations) {
+        parseUnit(s, violations);
 
         // Optional: power numeric_power  (STARSTAR only per grammar)
         if (!s.done() && s.startsWith("**")) {
             s.pos += 2; // consume '**'
-            parseNumericPower(s);
+            parseNumericPower(s, violations);
         }
     }
 
@@ -393,7 +403,7 @@ public class VOUnitValidator {
     //        | PERCENT
     // ------------------------------------------------------------------
 
-    private void parseUnit(ParseState s) {
+    private void parseUnit(ParseState s, List<Violation> violations) {
         if (s.done()) {
             throw new IllegalArgumentException("Unexpected end of input: expected a unit.");
         }
@@ -406,22 +416,23 @@ public class VOUnitValidator {
 
         // QUOTED_STRING  (e.g. 'myunit')
         if (s.current() == '\'') {
-            parseQuotedString(s);
+            parseQuotedString(s, violations);
             return;
         }
 
         // STRING (possibly followed by an optional QUOTED_STRING)
-        String sym = matchString(s);
-        if (sym == null) {
-            throw new IllegalArgumentException(
-                    "Unknown or invalid unit symbol at position " + s.pos
-                            + ": '" + remainingInput(s) + "'");
+        Token token = matchString(s, violations);
+        if (token == null) {
+            throw new IllegalArgumentException("Broken VOUnit - Expected a unit symbol at position " + s.pos);
         }
-        s.pos += sym.length();
+        if (token.type.equals(TokenType.FUNC)) {
+            violations.add(new Violation(Violation.Severity.WARNING, "Unit symbol expected. Found a Function : '" + token.value + "'"));
+        }
+        s.pos += token.value.length();
 
         // Optional trailing QUOTED_STRING (STRING QUOTED_STRING form)
         if (!s.done() && s.current() == '\'') {
-            parseQuotedString(s);
+            parseQuotedString(s, violations);
         }
     }
 
@@ -435,7 +446,7 @@ public class VOUnitValidator {
     //                        | OPEN_P integer division UNSIGNED_INTEGER CLOSE_P
     // ------------------------------------------------------------------
 
-    private void parseNumericPower(ParseState s) {
+    private void parseNumericPower(ParseState s, List<Violation> violations) {
         if (s.done()) {
             throw new IllegalArgumentException("Expected numeric power at position " + s.pos);
         }
@@ -453,8 +464,7 @@ public class VOUnitValidator {
                 s.pos++;
             }
             if (s.pos == numStart) {
-                throw new IllegalArgumentException(
-                        "Expected number inside parenthesized power at position " + s.pos);
+                throw new IllegalArgumentException("Expected number inside parenthesized power at position " + s.pos);
             }
 
             // Optional decimal part → makes it a FLOAT
@@ -482,17 +492,16 @@ public class VOUnitValidator {
             }
 
             if (s.done() || s.current() != ')') {
-                throw new IllegalArgumentException(
-                        "Expected ')' to close parenthesized power at position " + s.pos);
+                throw new IllegalArgumentException("Expected ')' to close parenthesized power at position " + s.pos);
             }
             s.pos++; // consume ')'
         } else {
             // plain integer
-            parseSignedInteger(s);
+            parseSignedInteger(s, violations);
         }
     }
 
-    private void parseSignedInteger(ParseState s) {
+    private void parseSignedInteger(ParseState s, List<Violation> violations) {
         if (s.done()) {
             throw new IllegalArgumentException("Expected integer at position " + s.pos);
         }
@@ -512,7 +521,7 @@ public class VOUnitValidator {
     // Quoted string helper
     // ------------------------------------------------------------------
 
-    private void parseQuotedString(ParseState s) {
+    private void parseQuotedString(ParseState s, List<Violation> violations) {
         s.pos++; // consume opening '\''
         int qp = s.pos;
         while (!s.done() && s.current() != '\'') {
@@ -525,6 +534,7 @@ public class VOUnitValidator {
             throw new IllegalArgumentException("Unterminated quoted unit string.");
         }
         s.pos++; // consume closing '\''
+        violations.add(new Violation(Violation.Severity.WARNING, "Quoted unit string found : " + s.input.substring(qp, s.pos - 1)));
     }
 
     // ------------------------------------------------------------------
@@ -536,16 +546,22 @@ public class VOUnitValidator {
      * starting at the current position, without advancing {@code s.pos}.
      * Returns {@code null} if no valid symbol starts here.
      */
-    private String matchString(ParseState s) {
+    private Token matchString(ParseState s, List<Violation> violations) {
         if (s.done() || !Character.isLetter(s.current())) {
             return null;
         }
         String remaining = remainingInput(s);
 
+        for (String function : functions) {
+            if (remaining.startsWith(function)) {
+                return new Token(TokenType.FUNC, function);
+            }
+        }
+
         // Longest-match over known units (direct, then with SI & BI prefix)
-        String match = matchUnitSymbolIn(remaining);
+        String match = matchUnitSymbolIn(remaining, violations);
         if (match != null) {
-            return match;
+            return new Token(TokenType.UNIT, match);
         }
 
         // Unknown/custom unit: any run of letters/digits (VOUnits allows these)
@@ -554,16 +570,21 @@ public class VOUnitValidator {
                 && (Character.isLetterOrDigit(remaining.charAt(end)))) {
             end++;
         }
-        return end > 0 ? remaining.substring(0, end) : null;
+        String unknownString = remaining.substring(0, end);
+        if (end != 0) {
+            violations.add(new Violation(Violation.Severity.WARNING, "Unknown/Custom unit or function: " + unknownString
+                    + " at position " + s.pos + " for input: " + s.input));
+        }
+        return end > 0 ? new Token(TokenType.UNKNOWN, unknownString) : null;
     }
 
     /**
      * Tries to match a known (or prefixed) unit symbol in {@code remaining}.
      * Returns the matched token, or {@code null}.
      */
-    private String matchUnitSymbolIn(String remaining) {
+    private String matchUnitSymbolIn(String remaining, List<Violation> violations) {
         // 1. Direct match — try longest symbols first to avoid "m" shadowing "min"
-        String bestDirect = getLongestMatchingUnit(remaining);
+        String bestDirect = getLongestMatchingUnit(remaining, violations);
         if (bestDirect != null) {
             return bestDirect;
         }
@@ -578,7 +599,7 @@ public class VOUnitValidator {
 
             boolean isBinary = prefixObj.getType().equals(PrefixType.BI);
             String rest = remaining.substring(prefix.length());
-            bestDirect = getLongestMatchingUnit(rest);
+            bestDirect = getLongestMatchingUnit(rest, violations);
 
             if (bestDirect == null) {
                 if (isBinary && rest.charAt(0) == '\'') {
@@ -599,19 +620,30 @@ public class VOUnitValidator {
         return null;
     }
 
-    private String getLongestMatchingUnit(String remaining) {
-        String bestDirect = null;
+    private String getLongestMatchingUnit(String remaining, List<Violation> violations) {
+        String longestMatch = null;
         for (String unit : VOUnit.getAllSymbols()) {
-            if (remaining.startsWith(unit)) {
+            boolean matchFound = remaining.regionMatches(true, 0, unit, 0, unit.length());
+            if (matchFound) {
                 String after = remaining.substring(unit.length());
                 if (isUnitTerminator(after)) {
-                    if (bestDirect == null || unit.length() > bestDirect.length()) {
-                        bestDirect = unit;
+                    if (longestMatch == null || unit.length() > longestMatch.length()) {
+                        longestMatch = unit;
                     }
                 }
             }
         }
-        return bestDirect;
+
+        if (longestMatch != null) {
+            String actualInput = remaining.substring(0, longestMatch.length());
+            if (!actualInput.equals(longestMatch)) {
+                violations.add(new Violation(Violation.Severity.WARNING,
+                        "Unit symbol casing mismatch: found '" + actualInput
+                                + "' but expected canonical form '" + longestMatch + "'."));
+            }
+        }
+
+        return longestMatch;
     }
 
     /**
@@ -656,42 +688,25 @@ public class VOUnitValidator {
         }
     }
 
-    public static final class ValidationResult {
-        private final boolean valid;
-        private final String errorMessage;
+    public enum TokenType {
+        UNIT, FUNC, UNKNOWN;
+    }
 
-        private ValidationResult(boolean valid, String errorMessage) {
-            this.valid = valid;
-            this.errorMessage = errorMessage;
+    public static class Token {
+        final TokenType type;
+        final String value;
+
+        public Token(TokenType type, String value) {
+            this.type = type;
+            this.value = value;
         }
 
-        /**
-         * @return a successful result.
-         */
-        public static ValidationResult valid() {
-            return new ValidationResult(true, null);
+        public TokenType getType() {
+            return type;
         }
 
-        /**
-         * @return a failed result with a descriptive message.
-         */
-        public static ValidationResult invalid(String message) {
-            return new ValidationResult(false, message);
+        public String getValue() {
+            return value;
         }
-
-        /**
-         * @return {@code true} if the VOUnit string is syntactically valid.
-         */
-        public boolean isValid() {
-            return valid;
-        }
-
-        /**
-         * @return the human-readable error description, or {@code null} when valid.
-         */
-        public String getErrorMessage() {
-            return errorMessage;
-        }
-
     }
 }

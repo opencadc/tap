@@ -67,8 +67,10 @@
 
 package ca.nrc.cadc.tap.schema.validator.ucd;
 
+import ca.nrc.cadc.tap.schema.validator.ValidationResult;
+import ca.nrc.cadc.tap.schema.validator.Violation;
+
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -97,33 +99,33 @@ public final class UCDValidator {
      * Validates a UCD1+ string and returns a detailed result.
      *
      * @param ucd the UCD string to validate
-     * @return a {@link UCDValidationResult} describing validity and any violations
+     * @return a {@link ValidationResult} describing validity and any violations
      */
-    public UCDValidationResult validate(String ucd) {
+    public ValidationResult validate(String ucd) {
         log.debug("Validating UCD string: " + ucd);
-        List<UCDValidationResult.Violation> violations = new ArrayList<>();
+        List<Violation> violations = new ArrayList<>();
 
         if (ucd == null || ucd.isBlank()) {
-            violations.add(error("UCD must not be null or blank"));
-            return new UCDValidationResult(ucd, violations);
+            violations.add(new Violation(Violation.Severity.ERROR, "UCD must not be null or blank"));
+            return new ValidationResult(ucd, violations);
         }
 
         if (ucd.startsWith(";") || ucd.endsWith(";")) {
-            violations.add(error("UCD must not start or end with a semicolon"));
+            violations.add(new Violation(Violation.Severity.ERROR, "UCD must not start or end with a semicolon"));
         }
 
         // split into individual words
         String[] words = ucd.split(";", -1);
         if (words.length == 0) {
-            violations.add(error("UCD contains no words"));
-            return new UCDValidationResult(ucd, violations);
+            violations.add(new Violation(Violation.Severity.ERROR, "UCD contains no words"));
+            return new ValidationResult(ucd, violations);
         }
 
         for (int i = 0; i < words.length; i++) {
             String word = words[i];
 
             if (!WORD_PATTERN.matcher(word).matches()) {
-                violations.add(error(
+                violations.add(new Violation(Violation.Severity.ERROR,
                         "Word \"" + word + "\" at position " + (i + 1)
                                 + " does not match the allowed UCD token pattern "
                                 + "[A-Za-z][A-Za-z0-9]*(\\.[A-Za-z0-9][A-Za-z0-9-]*)* "));
@@ -135,14 +137,14 @@ public final class UCDValidator {
 
             if (inVocab && !vocabEntry.get().getWord().equals(word)) {
                 // word found case-insensitively but does not match the official casing
-                violations.add(warning(
+                violations.add(new Violation(Violation.Severity.WARNING,
                         "Word \"" + word + "\" at position " + (i + 1)
                                 + " does not match the official capitalisation \""
                                 + vocabEntry.get().getWord() + "\""));
             }
 
             if (!inVocab) {
-                violations.add(error("Word \"" + word + "\" at position " + (i + 1)
+                violations.add(new Violation(Violation.Severity.ERROR, "Word \"" + word + "\" at position " + (i + 1)
                         + " is not in the IVOA UCD1+ controlled vocabulary"));
                 continue;
             }
@@ -152,7 +154,7 @@ public final class UCDValidator {
 
             // primary word must not be S-only
             if (isPrimary && !ucdWord.canBePrimary()) {
-                violations.add(error(
+                violations.add(new Violation(Violation.Severity.ERROR,
                         "Word \"" + word + "\" has syntax flag "
                                 + ucdWord.getFlag().name()
                                 + " (secondary-only) and cannot be used as the primary word"));
@@ -160,83 +162,13 @@ public final class UCDValidator {
 
             // secondary word must not be P-only
             if (!isPrimary && !ucdWord.canBeSecondary()) {
-                violations.add(error(
+                violations.add(new Violation(Violation.Severity.ERROR,
                         "Word \"" + word + "\" at position " + (i + 1)
                                 + " has syntax flag " + ucdWord.getFlag().name()
                                 + " (primary-only) and cannot be used as a secondary word"));
             }
         }
-        return new UCDValidationResult(ucd, violations);
-    }
-
-    private static UCDValidationResult.Violation error(String message) {
-        return new UCDValidationResult.Violation(UCDValidationResult.Violation.Severity.ERROR, message);
-    }
-
-    private static UCDValidationResult.Violation warning(String message) {
-        return new UCDValidationResult.Violation(UCDValidationResult.Violation.Severity.WARNING, message);
-    }
-
-    public static final class UCDValidationResult {
-
-        public static final class Violation {
-
-            public enum Severity { ERROR, WARNING }
-
-            private final Severity severity;
-            private final String message;
-
-            public Violation(Severity severity, String message) {
-                this.severity = severity;
-                this.message = message;
-            }
-
-            public Severity getSeverity() {
-                return severity;
-            }
-
-            public String getMessage() {
-                return message;
-            }
-
-            @Override
-            public String toString() {
-                return "[" + severity + "] " + message;
-            }
-        }
-
-        private final String input;
-        private final boolean valid;
-        private final List<Violation> violations;
-
-        public UCDValidationResult(String input, List<Violation> violations) {
-            this.input = input;
-            this.violations = Collections.unmodifiableList(violations);
-            this.valid = violations.stream()
-                    .noneMatch(v -> v.getSeverity() == Violation.Severity.ERROR);
-        }
-
-        public String getInput() {
-            return input;
-        }
-
-        public boolean isValid() {
-            return valid;
-        }
-
-        public List<Violation> getViolations() {
-            return violations;
-        }
-
-        @Override
-        public String toString() {
-            if (valid) {
-                return "VALID: \"" + input + "\"";
-            }
-            StringBuilder sb = new StringBuilder("INVALID: \"").append(input).append("\"\n");
-            violations.forEach(v -> sb.append("  ").append(v).append("\n"));
-            return sb.toString().stripTrailing();
-        }
+        return new ValidationResult(ucd, violations);
     }
 
 }

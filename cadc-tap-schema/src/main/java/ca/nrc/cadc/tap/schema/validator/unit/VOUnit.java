@@ -179,8 +179,7 @@ public enum VOUnit {
         Map<String, VOUnit> map = new HashMap<>();
         for (VOUnit unit : values()) {
             if (map.containsKey(unit.symbol)) {
-                throw new IllegalStateException(
-                        "Duplicate VOUnit symbol: " + unit.symbol);
+                throw new IllegalStateException("Duplicate VOUnit symbol: " + unit.symbol);
             }
             map.put(unit.symbol, unit);
         }
