@@ -71,6 +71,10 @@ import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableField;
 import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
+import ca.nrc.cadc.tap.schema.validator.adql.ReservedKeyword;
+
+import java.util.Set;
+
 import org.apache.log4j.Logger;
 
 /**
@@ -207,6 +211,11 @@ public class TapSchemaUtil {
             if (!isValidIdentifierCharacter(identifier.charAt(i))) {
                 throw new ADQLIdentifierException("Identifier contains an invalid character " + identifier.charAt(i));
             }
+        }
+
+        Set<String> reservedWords = ReservedKeyword.getAllReservedWords();
+        if (reservedWords.contains(identifier.toLowerCase())) {
+            throw new ADQLIdentifierException("Identifier '" + identifier + "' is a reserved keyword. Use double quotes to use it as an identifier.");
         }
     }
 
