@@ -38,6 +38,9 @@ jobs:
     - name: build and test cadc-tap-server-oracle
       run: cd cadc-tap-server-oracle && ../gradlew --info clean build compileIntTest javadoc install
 
+    - name: build and test cadc-tap-tmp
+      run: cd cadc-tap-tmp && ../gradlew --info clean build compileIntTest javadoc install
+
     - name: build and test cadc-test-tap
       run: cd cadc-test-tap && ../gradlew --info clean build compileIntTest javadoc install
      
