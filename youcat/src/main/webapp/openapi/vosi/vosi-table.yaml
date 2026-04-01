@@ -1,0 +1,180 @@
+# this is the VOSI-1.2 /tables/{tablename} endpoint
+get:
+    operationId: read-table-metadata
+    tags: 
+      - VOSI Table Metadata
+    summary: get metadata for the specified table
+    description: provides the table metadata for a single schema or table
+    parameters:
+      - in: path
+        name: name
+        description: a single schema name or table name as provided in tap_schema
+        required: true
+        schema:
+          type: string
+    responses:
+        '200':
+            $ref: '#/components/schemas/tableDoc'
+        '401':
+            $ref: ./vosi-std-responses.yaml#/not-authenticated
+        '403':
+            $ref: ./vosi-std-responses.yaml#/permission-denied
+        '404':
+            $ref: ./vosi-std-responses.yaml#/not-found
+post:
+    operationId: update-table
+    tags: 
+      - VOSI Table Metadata
+    summary: proto - update table metadata and/or content (optional)
+    description: update the table metadata from a table description; may include rows to append if input format supports it
+    parameters:
+      - in: path
+        name: name
+        description: the fully qualified name of the table to create
+        required: true
+        schema:
+            type: string
+    requestBody:
+        description: a table description
+        $ref: '#/components/schemas/tableDoc'
+    responses:
+        '204':
+            description: table updated
+        '400':
+            $ref: ./vosi-std-responses.yaml#/bad-request
+        '401':
+            $ref: ./vosi-std-responses.yaml#/not-authenticated
+        '403':
+            $ref: ./vosi-std-responses.yaml#/permission-denied
+        '404':
+            $ref: ./vosi-std-responses.yaml#/not-found
+        '405':
+            $ref: ./vosi-std-responses.yaml#/not-implemented
+        '413':
+            $ref: ./vosi-std-responses.yaml#/too-large
+put:
+    operationId: create-table
+    tags: 
+      - VOSI Table Metadata
+    summary: proto - create table (optional)
+    description: create table from a table description; may include rows if input format supports it
+    parameters:
+      - in: path
+        name: name
+        description: the fully qualified name of the table to create
+        required: true
+        schema:
+            type: string
+    requestBody:
+        description: a table description
+        $ref: '#/components/schemas/tableDoc'
+    responses:
+        '201':
+            description: table created
+        '400':
+            $ref: ./vosi-std-responses.yaml#/bad-request
+        '401':
+            $ref: ./vosi-std-responses.yaml#/not-authenticated
+        '403':
+            $ref: ./vosi-std-responses.yaml#/permission-denied
+        '404':
+            $ref: ./vosi-std-responses.yaml#/not-found
+        '405':
+            $ref: ./vosi-std-responses.yaml#/not-implemented
+        '413':
+            $ref: ./vosi-std-responses.yaml#/too-large
+delete:
+    operationId: delete-table
+    tags: 
+      - VOSI Table Metadata
+    summary: proto - delete table (optional)
+    description: delete table by name
+    parameters:
+    - name: name
+      in: path
+      description: the table to delete
+      required: true
+      schema:
+        type: string
+    responses:
+        '204':
+            description: table deleted
+        '400':
+            $ref: ./vosi-std-responses.yaml#/bad-request
+        '401':
+            $ref: ./vosi-std-responses.yaml#/not-authenticated
+        '403':
+            $ref: ./vosi-std-responses.yaml#/permission-denied
+        '404':
+            $ref: ./vosi-std-responses.yaml#/not-found
+
+components:
+    schemas:
+        tableDoc:
+            description: metadata for the specified schema or table
+            content:
+                text/xml:
+                    schema:
+                        type: object
+                        xml:
+                            name: table
+                            prefix: vosi
+                            namespace: http://www.ivoa.net/xml/VOSITables/v1.0
+                    example: |
+                        <vosi:table xmlns:vosi="http://www.ivoa.net/xml/VOSITables/v1.0"
+                                xmlns:vs="http://www.ivoa.net/xml/VODataService/v1.1"
+                                xmlns:vte="http://www.opencadc.org/xml/VOSITables-ext/v0.1"
+                                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" type="output">
+                            <name>tap_schema.schemas</name>
+                            <description>description of schemas in this tableset</description>
+                            <column>
+                              <name>schema_name</name>
+                              <description>schema name for reference to tap_schema.schemas</description>
+                              <dataType xsi:type="vs:VOTableType" arraysize="64*">char</dataType>
+                              <flag>indexed</flag>
+                            </column>
+                            <column>
+                              <name>utype</name>
+                              <description>lists the utypes of schemas in the tableset</description>
+                              <dataType xsi:type="vs:VOTableType" arraysize="512*">char</dataType>
+                            </column>
+                            <column>
+                              <name>description</name>
+                              <description>describes schemas in the tableset</description>
+                              <dataType xsi:type="vs:VOTableType" arraysize="512*">char</dataType>
+                            </column>
+                            <column>
+                              <name>schema_index</name>
+                              <description>recommended sort order when listing schemas</description>
+                              <dataType xsi:type="vs:VOTableType">int</dataType>
+                            </column>
+                          </vosi:table>
+                application/x-votable+xml:
+                    schema:
+                        type: object
+                        xml:
+                            name: VOTABLE
+                            namespace: http://www.ivoa.net/xml/VOTable/v1.3
+                    example: |
+                        <VOTABLE xmlns="http://www.ivoa.net/xml/VOTable/v1.3"
+                                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.4">
+                            <RESOURCE type="results">
+                                <TABLE>
+                                <FIELD name="schema_name" datatype="char" arraysize="64*">
+                                    <DESCRIPTION>schema name for reference to tap_schema.schemas</DESCRIPTION>
+                                </FIELD>
+                                <FIELD name="utype" datatype="char" arraysize="512*">
+                                    <DESCRIPTION>lists the utypes of schemas in the tableset</DESCRIPTION>
+                                </FIELD>
+                                <FIELD name="description" datatype="char" arraysize="512*">
+                                    <DESCRIPTION>describes schemas in the tableset</DESCRIPTION>
+                                </FIELD>
+                                <FIELD name="schema_index" datatype="int">
+                                    <DESCRIPTION>recommended sort order when listing schemas</DESCRIPTION>
+                                </FIELD>
+                                <!--data goes here-->
+                              </TABLE>
+                            </RESOURCE>
+                        </VOTABLE>
+
+

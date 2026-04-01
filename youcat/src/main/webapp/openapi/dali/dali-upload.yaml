@@ -1,0 +1,8 @@
+name: UPLOAD
+in: query
+description: |
+  specify a comma-separated name,location pair for a temporary 
+  resource to be uploaded and used in the request
+schema:
+    type: string
+    pattern: '^[a-zA-Z]\w*,\S+$' 

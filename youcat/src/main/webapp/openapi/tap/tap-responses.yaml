@@ -1,0 +1,17 @@
+# UWS create job response
+invalid-query:
+    description: the requested TAP query job is invalid; this is usually the ADQL query
+    content:
+        application/x-votable+xml:
+            schema:
+                type: object
+                xml:
+                    name: VOTABLE
+                    namespace: http://www.ivoa.net/xml/VOTable/v1.3
+            example: |
+                <VOTABLE xmlns="http://www.ivoa.net/xml/VOTable/v1.3"
+                            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.4">
+                    <RESOURCE type="results">
+                        <INFO name="QUERY_STATUS" value="ERROR">Table 'Y' is not found in TAP schema</INFO>
+                    </RESOURCE>
+                </VOTABLE>

@@ -1,0 +1,10 @@
+#!/bin/bash
+
+test -d src/main/webapp && cd src/main/webapp
+
+if [[ "$1" == "-it" ]]; then
+  docker run -it --rm -v $PWD:/work:ro dshanley/vacuum /bin/bash
+else
+  docker run --rm -v $PWD:/work:ro dshanley/vacuum lint --no-clip -d openapi.yaml
+fi
+
