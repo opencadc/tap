@@ -70,6 +70,9 @@ configurations {
   // pulled by stil,unused, critical CVEs:
   runtimeOnly.exclude group: 'org.yaml', module: 'snakeyaml'
 
+  // CVE: https://avd.aquasec.com/nvd/2025/cve-2025-67721/
+  runtimeOnly.exclude group: 'io.airlift', module: 'aircompressor'
+
   // pull by parquet-avro
   runtimeOnly.exclude group: 'com.sun.jersey'
   runtimeOnly.exclude group: 'com.sun.jersey.contribs'
