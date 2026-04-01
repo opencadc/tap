@@ -71,11 +71,12 @@ paths:
     /tables/{name}:
         $ref: ./openapi/vosi/vosi-table.yaml
 
-    /table-ops:
+# note use of /table-update rather than /table-ops from VOSI
+    /table-update:
         $ref: ./openapi/vosi/vosi-table-ops.yaml
-    /table-ops/{jobID}:
+    /table-update/{jobID}:
         $ref: ./openapi/vosi/vosi-table-ops-job.yaml
-    /table-ops/{jobID}/phase:
+    /table-update/{jobID}/phase:
         $ref: ./openapi/vosi/vosi-table-ops-job-phase.yaml
 
     /load/{name}:

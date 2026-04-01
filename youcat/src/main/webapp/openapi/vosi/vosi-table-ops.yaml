@@ -12,6 +12,8 @@ get:
             $ref: ./vosi-std-responses.yaml#/not-authenticated
         '403':
             $ref: ./vosi-std-responses.yaml#/permission-denied
+        '404':
+            $ref: ./vosi-std-responses.yaml#/not-found
 post:
     operationId: vosi-table-ops-job-create
     tags:
@@ -19,13 +21,13 @@ post:
     summary: create async table update job 
     description: TAP asynchronous table update (create UWS Job)
     parameters:
-        - name: table
+        - name: TABLE
           in: query
           description: a single table name as provided in tap_schema
           required: true
           schema:
               type: string
-        - name: index
+        - name: INDEX
           in: query
           description: |
             create index operation; value is a column name in the table
@@ -33,7 +35,7 @@ post:
           required: false
           schema:
               type: string
-        - name: itype
+        - name: INDEX_TYPE
           in: query
           description: |
             qualifier to create a specialised index: a value of long-lat 
@@ -44,7 +46,7 @@ post:
           schema:
             type: string
             enum: [long-lat,x-y]
-        - name: unique
+        - name: UNIQUE
           in: query
           description: qualifier to create a unique index
           required: false
