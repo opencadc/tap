@@ -1,0 +1,54 @@
+get:
+    operationId: youcat-get-permissions
+    tags: 
+      - Deprecated
+    summary: get permissions (deprecated)
+    description: youcat get schema and table permissions endpoint (deprecated)
+    parameters:
+    - name: name
+      in: path
+      description: a single schema or table name as provided in tap_schema
+      required: true
+      schema:
+        type: string
+    responses:
+      '200':
+          $ref: '#/components/schemas/permissionDoc'
+      '401':
+        $ref: ./vosi/vosi-std-responses.yaml#/not-authenticated
+      '403':
+        $ref: ./vosi/vosi-std-responses.yaml#/permission-denied
+post:
+    operationId: youcat-set-permissions
+    tags: 
+       - Deprecated
+    summary: set permissions (deprecated)
+    description: youcat set schema and table permissions endpoint (deprecated)
+    parameters:
+    - name: name
+      in: path
+      description: a single schema or table name as provided in tap_schema
+      required: true
+      schema:
+        type: string
+    requestBody:
+      $ref: '#/components/schemas/permissionDoc'
+            
+    responses:
+        '200':
+          description: |
+            rows loaded; 
+            TBD: both partial or complete are possible
+        '401':
+            $ref: ./vosi/vosi-std-responses.yaml#/not-authenticated
+        '403':
+            $ref: ./vosi/vosi-std-responses.yaml#/permission-denied
+
+components:
+    schemas:
+        permissionDoc:
+          description: document with permissions settings
+          content:
+            text/plain:
+              schema:
+                type: string

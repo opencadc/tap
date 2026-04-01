@@ -1,5 +1,5 @@
 get:
-    operationId: job-get
+    operationId: tap-job-get
     tags:
         - TAP Query
     summary: get a UWS job description
@@ -19,7 +19,7 @@ get:
           example: WAIT=60
     responses:
         '200':
-            $ref: ./uws-responses.yaml#/job
+            $ref: ../uws/uws-responses.yaml#/job
         '401':
             $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
         '403':

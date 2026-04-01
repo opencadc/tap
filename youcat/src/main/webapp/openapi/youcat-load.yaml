@@ -1,7 +1,9 @@
 post:
-    operationId: tap-bulk-load
-    summary: bulk load or row data
-    description: TAP synchronous bulk load endpoint
+    operationId: youcat-bulk-load
+    tags: 
+      - Deprecated
+    summary: bulk load or row data (deprecated)
+    description: youcat synchronous bulk load endpoint (deprecated)
     parameters:
     - name: name
       in: path
@@ -10,22 +12,22 @@ post:
       schema:
         type: string
     requestBody:
-        required: true
-        $ref: '#/components/schemas/tableRows'
+      $ref: '#/components/schemas/tableRows'
             
     responses:
-        200:
-          description: |
-            rows loaded; 
-            TBD: both partial or complete are possible
-        401:
-            $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
-        403:
-            $ref: ../vosi/vosi-std-responses.yaml#/permission-denied
+      '200':
+        description: |
+          rows loaded; 
+          TBD: both partial or complete are possible
+      '401':
+        $ref: ./vosi/vosi-std-responses.yaml#/not-authenticated
+      '403':
+        $ref: ./vosi/vosi-std-responses.yaml#/permission-denied
 
 components:
     schemas:
         tableRows:
+            description: tabular content with rows to be appended to the table
             content:
                 text/tab-separated-values:
                     schema:

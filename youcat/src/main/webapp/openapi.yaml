@@ -41,20 +41,15 @@ info:
     
     <b>Group URIs are in the format:</b> ivo://cadc.nrc.ca/gms?groupName
     
-    Note: Previous versions documented a /load endpoint for bulk-loading table content (rows); that
-    endpoint is still supported but not documented below because it is not expected to be part of the
-    TAP-1.2 specification (TBD).
-    
-    Note: Previous versions documented a /permissions endpoint for viewing and modifying schema and table
-    permissions; that endpoint is still supported but not documented below because it is not expected to
-    be part of the TAP-1.2 specification (TBD).
 servers:
 - url: /youcat
 
 tags:
+    - name: TAP Query
     - name: VOSI Capabilities
     - name: VOSI Table Metadata
-    - name: TAP Query
+    - name: VOSI Table Operations
+    - name: Deprecated
 
 paths:
     /sync:
@@ -62,9 +57,9 @@ paths:
     /async:
         $ref: ./openapi/tap/tap-async.yaml
     /async/{jobID}:
-        $ref: ./openapi/uws/uws-job.yaml
+        $ref: ./openapi/tap/tap-async-job.yaml
     /async/{jobID}/phase:
-        $ref: ./openapi/uws/uws-job-phase.yaml
+        $ref: ./openapi/tap/tap-async-job-phase.yaml
     /async/{jobID}/results/result:
         $ref: ./openapi/tap/tap-result.yaml
 
@@ -76,9 +71,15 @@ paths:
     /tables/{name}:
         $ref: ./openapi/vosi/vosi-table.yaml
 
-    #/table-update:
-    #    $ref: ./openapi/vosi/vosi-table-ops.yaml
-    #/table-update/{jobID}:
-    #    $ref: ./openapi/uws/uws-job.yaml
-    #/table-update/{jobID}/phase:
-    #    $ref: ./openapi/uws/uws-job-phase.yaml
+    /table-ops:
+        $ref: ./openapi/vosi/vosi-table-ops.yaml
+    /table-ops/{jobID}:
+        $ref: ./openapi/vosi/vosi-table-ops-job.yaml
+    /table-ops/{jobID}/phase:
+        $ref: ./openapi/vosi/vosi-table-ops-job-phase.yaml
+
+    /load/{name}:
+      $ref: ./openapi/youcat-load.yaml
+    /permissions/{name}:
+      $ref: ./openapi/youcat-permissions.yaml
+      
