@@ -74,9 +74,6 @@ import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.profiler.Profiler;
-import ca.nrc.cadc.tap.schema.validator.ValidationResult;
-import ca.nrc.cadc.tap.schema.validator.ucd.UCDValidator;
-import ca.nrc.cadc.tap.schema.validator.unit.VOUnitValidator;
 import ca.nrc.cadc.uws.Job;
 import java.net.URI;
 import java.sql.Connection;
@@ -89,7 +86,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import javax.security.auth.Subject;
-import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 import org.opencadc.gms.GroupURI;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -463,10 +459,6 @@ public class TapSchemaDAO extends AbstractDAO {
             if (cur != null) {
                 // add/remove/rename columns not supported
                 checkMismatchedColumnSet(cur, td);
-            }
-
-            if (td.tableType.equals(TableDesc.TableType.TABLE)) {
-                validateUCDAndUnit(td);
             }
 
             tm.startTransaction();
@@ -1837,34 +1829,4 @@ public class TapSchemaDAO extends AbstractDAO {
         }
     }
 
-    private static void validateUCDAndUnit(TableDesc td) {
-        UCDValidator ucdValidator = new UCDValidator();
-        VOUnitValidator voUnitValidator = new VOUnitValidator();
-
-        StringBuilder ucdValidationViolations = new StringBuilder();
-        StringBuilder unitValidationViolations = new StringBuilder();
-        StringBuilder violations = new StringBuilder();
-
-        for (ColumnDesc cd : td.getColumnDescs()) {
-            ValidationResult ucdValidationResult = ucdValidator.validate(cd.ucd);
-            if (!ucdValidationResult.isValid()) {
-                ucdValidationViolations.append(ucdValidationResult).append("\n");
-            }
-            ValidationResult unitValidationResult = voUnitValidator.validate(cd.unit);
-            if (!unitValidationResult.isValid()) {
-                unitValidationViolations.append(unitValidationResult).append("\n");
-            }
-        }
-
-        if (ucdValidationViolations.length() > 0) {
-            violations.append("ucd validation violations: ").append(ucdValidationViolations).append("\n\n");
-        }
-        if (unitValidationViolations.length() > 0) {
-            violations.append("unit validation violations: ").append(unitValidationViolations);
-        }
-
-        if (violations.length() > 0) {
-            throw new IllegalArgumentException(violations.toString());
-        }
-    }
 }

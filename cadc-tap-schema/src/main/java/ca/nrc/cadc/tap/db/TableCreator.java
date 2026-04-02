@@ -99,18 +99,6 @@ public class TableCreator {
     }
 
     public void createTable(TableDesc table) {
-        try {
-            TapSchemaUtil.checkValidTableName(table.getTableName());
-        } catch (ADQLIdentifierException ex) {
-            throw new IllegalArgumentException("invalid table name: " + table.getTableName(), ex);
-        }
-        try {
-            for (ColumnDesc cd : table.getColumnDescs()) {
-                TapSchemaUtil.checkValidIdentifier(cd.getColumnName());
-            }
-        } catch (ADQLIdentifierException ex) {
-            throw new IllegalArgumentException(ex.getMessage());
-        }
         Profiler prof = new Profiler(TableCreator.class);
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);

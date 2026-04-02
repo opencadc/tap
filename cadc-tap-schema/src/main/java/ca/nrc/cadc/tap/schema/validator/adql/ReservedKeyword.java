@@ -1,11 +1,13 @@
 package ca.nrc.cadc.tap.schema.validator.adql;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 
+/**
+ * Enum representing reserved keywords for SQL and ADQL.
+ */
 public enum ReservedKeyword {
 
     // SQL reserved keywords
@@ -71,28 +73,24 @@ public enum ReservedKeyword {
         this.word = word;
     }
 
-    private static final Map<String, ReservedKeyword> RESERVED_WORDS;
+    private static final Map<String, ReservedKeyword> RESERVED_KEYWORDS;
 
     static {
-        Map<String, ReservedKeyword> map = new HashMap<>();
-        for (ReservedKeyword word : values()) {
-            if (map.containsKey(word.word)) {
-                throw new IllegalStateException("Duplicate Reserved Keyword : " + word.word);
+        Map<String, ReservedKeyword> map = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        for (ReservedKeyword keyword : values()) {
+            if (map.containsKey(keyword.word)) {
+                throw new IllegalStateException("Duplicate Reserved Keyword : " + keyword.word);
             }
-            map.put(word.word.toLowerCase(), word);
+            map.put(keyword.word, keyword);
         }
-        RESERVED_WORDS = Collections.unmodifiableMap(map);
+        RESERVED_KEYWORDS = Collections.unmodifiableMap(map);
     }
 
     public static Set<String> getAllReservedWords() {
-        return RESERVED_WORDS.keySet();
+        return RESERVED_KEYWORDS.keySet();
     }
 
-    public static Optional<ReservedKeyword> fromWord(String word) {
-        return Optional.ofNullable(RESERVED_WORDS.get(word));
-    }
-
-    public String getWord() {
-        return word;
+    public static boolean isReserved(String word) {
+        return RESERVED_KEYWORDS.containsKey(word);
     }
 }

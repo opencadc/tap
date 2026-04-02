@@ -133,19 +133,14 @@ public final class UCDValidator {
             }
 
             Optional<UCDWord> vocabEntry = UCDVocabulary.lookup(word);
-            boolean inVocab = vocabEntry.isPresent();
-
-            if (inVocab && !vocabEntry.get().getWord().equals(word)) {
-                // word found case-insensitively but does not match the official casing
-                violations.add(new Violation(Violation.Severity.WARNING,
-                        "Word \"" + word + "\" at position " + (i + 1)
-                                + " does not match the official capitalisation \""
-                                + vocabEntry.get().getWord() + "\""));
-            }
-
-            if (!inVocab) {
+            if (vocabEntry.isEmpty()) {
                 violations.add(new Violation(Violation.Severity.ERROR, "Word \"" + word + "\" at position " + (i + 1)
                         + " is not in the IVOA UCD1+ controlled vocabulary"));
+                continue;
+            }
+            if (vocabEntry.get().isDeprecated()) {
+                violations.add(new Violation(Violation.Severity.WARNING,"Word \"" + word + "\" at position " + (i + 1)
+                        + " is deprecated. Suggested replacement: " + vocabEntry.get().getReplacement() + "."));
                 continue;
             }
 

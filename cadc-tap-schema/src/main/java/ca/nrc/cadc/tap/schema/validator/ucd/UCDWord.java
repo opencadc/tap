@@ -95,7 +95,16 @@ public class UCDWord {
     private final String word;
     private final SyntaxFlag flag;
     private final String description;
+    private boolean deprecated = false;
+    private String replacement = null;
 
+    /**
+     * Constructor for Valid UCD words.
+     *
+     * @param word        UCD atom
+     * @param flag        syntax flag
+     * @param description description of the word
+     */
     public UCDWord(String word, SyntaxFlag flag, String description) {
         if (word == null || word.isBlank()) {
             throw new IllegalArgumentException("UCD word must not be blank");
@@ -104,6 +113,20 @@ public class UCDWord {
         this.flag = flag;
         this.description = description != null ? description : "";
     }
+
+    /**
+     * Constructor for deprecated UCD words.
+     * <p>Note: SyntaxFlag is set to Q by default for deprecated word.</p>
+     *
+     * @param word        the deprecated UCD atom
+     * @param replacement the recommended replacement word, or {@code null} if none
+     */
+    public UCDWord(String word, String replacement) {
+        this(word, SyntaxFlag.Q, "Deprecated word");
+        this.deprecated = true;
+        this.replacement = replacement;
+    }
+
 
     public String getWord() {
         return word;
@@ -115,6 +138,14 @@ public class UCDWord {
 
     public String getDescription() {
         return description;
+    }
+
+    public boolean isDeprecated() {
+        return deprecated;
+    }
+
+    public String getReplacement() {
+        return replacement;
     }
 
     public boolean canBePrimary() {

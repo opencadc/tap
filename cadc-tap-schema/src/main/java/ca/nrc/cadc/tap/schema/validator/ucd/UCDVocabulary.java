@@ -71,12 +71,11 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 
@@ -90,44 +89,40 @@ public class UCDVocabulary {
 
     private static final Logger log = Logger.getLogger(UCDVocabulary.class);
 
-    public static final String DEFAULT_RESOURCE = "https://www.ivoa.net/Documents/UCD1+/20241218/ucd-list.txt";
+    public static final String RESOURCE_UCD_LIST = "ucd-list.txt";
+    public static final String RESOURCE_DEPRECATED_UCD_LIST = "ucd-list-deprecated.txt";
 
     private static Map<String, UCDWord> words;
 
     static {
-        try (InputStream stream = new URL(DEFAULT_RESOURCE).openStream()) {
-            if (stream == null) {
-                log.info("UCD word list not found at '" + DEFAULT_RESOURCE + "'; " + "using the UCDWordEntry enum.");
-                loadFromEnum();
-            } else {
-                parseStream(stream);
+        int validWords = 0;
+        int deprecatedWords = 0;
+        try (InputStream ucdListStream = UCDVocabulary.class.getClassLoader().getResourceAsStream(RESOURCE_UCD_LIST)) {
+            if (ucdListStream == null) {
+                throw new IOException("UCD word list not found at the classpath : '" + RESOURCE_UCD_LIST + "'");
             }
+            loadUCDWords(ucdListStream);
+            validWords = words.size();
+
+            try (InputStream deprecatedUcdListStream = UCDVocabulary.class.getClassLoader().getResourceAsStream(RESOURCE_DEPRECATED_UCD_LIST)) {
+                if (deprecatedUcdListStream != null) {
+                    loadDeprecatedUCDWords(deprecatedUcdListStream);
+                }
+            }
+            deprecatedWords = words.size() - validWords;
         } catch (Exception e) {
-            log.error("Failed to load UCD word list from resource '" + DEFAULT_RESOURCE + "': " + e.getMessage());
-            loadFromEnum();
+            log.error("Failed to load UCD word list from resource '" + RESOURCE_UCD_LIST + "': " + e.getMessage());
         }
-        log.info("Loaded " + words.size() + " UCD word list.");
+        log.info("Loaded " + validWords + " valid UCD words and " + deprecatedWords + " deprecated UCD words.");
     }
 
     public UCDVocabulary() {
     }
 
-    /**
-     * Builds the vocabulary from the {@link UCDWordEntry} enum.
-     */
-    public static void loadFromEnum() {
-        log.info("Loading UCD word list from UCDWordEntry enum.");
-        words = new HashMap<>();
-        for (UCDWordEntry entry : UCDWordEntry.values()) {
-            words.put(entry.getWord().toLowerCase(), entry.toUcdWord());
-        }
-    }
-
-    private static void parseStream(InputStream inputStream) throws IOException {
-        log.info("Loading UCD word list from the default resource: " + DEFAULT_RESOURCE);
-        words = new HashMap<>();
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+    private static void loadUCDWords(InputStream inputStream) throws IOException {
+        log.info("Loading UCD word list from the default resource: " + RESOURCE_UCD_LIST);
+        words = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 line = line.strip();
@@ -146,10 +141,31 @@ public class UCDVocabulary {
                 try {
                     flag = UCDWord.SyntaxFlag.valueOf(flagStr);
                 } catch (IllegalArgumentException e) {
-                    continue; // unknown flag – skip entry
+                    throw new IOException("Invalid UCD word flag: " + flagStr + " in line: " + line, e);
                 }
                 // store with original capitalisation; look up case-insensitively
-                words.put(word.toLowerCase(), new UCDWord(word, flag, desc));
+                words.put(word, new UCDWord(word, flag, desc));
+            }
+        }
+    }
+
+    private static void loadDeprecatedUCDWords(InputStream inputStream) throws IOException {
+        log.info("Loading Deprecated UCD word list from the default resource: " + RESOURCE_DEPRECATED_UCD_LIST);
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                line = line.strip();
+                if (line.isEmpty() || line.startsWith("#")) {
+                    continue;
+                }
+                String[] parts = line.split(" ", 2);
+                if (parts.length != 2) {
+                    continue; // malformed line – skip
+                }
+                String deprecatedWord = parts[0].strip();
+                String replacementWord = parts[1].strip();
+
+                words.put(deprecatedWord, new UCDWord(deprecatedWord, replacementWord));
             }
         }
     }
@@ -164,13 +180,13 @@ public class UCDVocabulary {
         if (word == null) {
             return Optional.empty();
         }
-        return Optional.ofNullable(words.get(word.toLowerCase()));
+        return Optional.ofNullable(words.get(word));
     }
 
     /**
      * Returns true if the word exists in the controlled vocabulary.
      */
-    public boolean contains(String word) {
+    public static boolean contains(String word) {
         return lookup(word).isPresent();
     }
 
