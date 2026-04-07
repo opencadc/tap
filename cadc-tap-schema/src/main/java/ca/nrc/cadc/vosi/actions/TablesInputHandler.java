@@ -95,11 +95,10 @@ public class TablesInputHandler implements InlineContentHandler {
     public static final String VOTABLE_TYPE = "application/x-votable+xml";
     public static final String VOSI_SCHEMA_TYPE = "application/x-vosi-schema";
     public static final String PARQUET_TYPE = "application/vnd.apache.parquet";
-    // VOSI tableset schema cannot carry owner information
-    //public static final String VOSI_SCHEMA_TYPE = "text/plain"; // key = value
     
     private static final String PARQUET_CLASS_NAME = "ca.nrc.cadc.dali.tables.parquet.ParquetReader";
     private static Class PARQUET_READER_CLZ = null;
+
     static {
         try {
             // optional plugin
