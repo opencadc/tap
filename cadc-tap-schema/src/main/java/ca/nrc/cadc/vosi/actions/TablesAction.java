@@ -67,6 +67,9 @@
 
 package ca.nrc.cadc.vosi.actions;
 
+import static ca.nrc.cadc.tap.schema.TapSchemaUtil.checkValidIdentifier;
+import static ca.nrc.cadc.tap.schema.TapSchemaUtil.checkValidTableName;
+
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableResource;
@@ -77,7 +80,18 @@ import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.tap.PluginFactory;
-import ca.nrc.cadc.tap.schema.*;
+import ca.nrc.cadc.tap.schema.ADQLIdentifierException;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.SchemaDesc;
+import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapPermissions;
+import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import ca.nrc.cadc.tap.schema.TapSchemaUtil;
+import ca.nrc.cadc.tap.schema.Util;
+import ca.nrc.cadc.tap.schema.validator.ValidationResult;
+import ca.nrc.cadc.tap.schema.validator.Violation;
+import ca.nrc.cadc.tap.schema.validator.ucd.UCDValidator;
+import ca.nrc.cadc.tap.schema.validator.unit.VOUnitValidator;
 
 import java.io.IOException;
 import java.security.AccessControlException;
@@ -90,16 +104,9 @@ import javax.naming.NamingException;
 import javax.security.auth.Subject;
 import javax.sql.DataSource;
 
-import ca.nrc.cadc.tap.schema.validator.ValidationResult;
-import ca.nrc.cadc.tap.schema.validator.Violation;
-import ca.nrc.cadc.tap.schema.validator.ucd.UCDValidator;
-import ca.nrc.cadc.tap.schema.validator.unit.VOUnitValidator;
 import org.apache.log4j.Logger;
 import org.opencadc.gms.GroupURI;
 import org.opencadc.gms.IvoaGroupClient;
-
-import static ca.nrc.cadc.tap.schema.TapSchemaUtil.checkValidIdentifier;
-import static ca.nrc.cadc.tap.schema.TapSchemaUtil.checkValidTableName;
 
 /**
  *
