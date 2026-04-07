@@ -67,8 +67,6 @@
 
 package ca.nrc.cadc.vosi.actions;
 
-import ca.nrc.cadc.dali.tables.parquet.ParquetReader;
-import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableReader;
 import ca.nrc.cadc.io.ByteCountInputStream;
 import ca.nrc.cadc.rest.InlineContentException;
@@ -82,6 +80,7 @@ import ca.nrc.cadc.vosi.TableSetReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.lang.reflect.InvocationTargetException;
 import org.apache.log4j.Logger;
 
 /**
@@ -96,8 +95,18 @@ public class TablesInputHandler implements InlineContentHandler {
     public static final String VOTABLE_TYPE = "application/x-votable+xml";
     public static final String VOSI_SCHEMA_TYPE = "application/x-vosi-schema";
     public static final String PARQUET_TYPE = "application/vnd.apache.parquet";
-    // VOSI tableset schema cannot carry owner information
-    //public static final String VOSI_SCHEMA_TYPE = "text/plain"; // key = value
+    
+    private static final String PARQUET_CLASS_NAME = "ca.nrc.cadc.dali.tables.parquet.ParquetReader";
+    private static Class PARQUET_READER_CLZ = null;
+
+    static {
+        try {
+            // optional plugin
+            PARQUET_READER_CLZ = Class.forName(PARQUET_CLASS_NAME);
+        } catch (ClassNotFoundException ex) {
+            log.debug("class not found: ca.nrc.cadc.dali.tables.parquet.ParquetWriter - no parquet output");
+        }
+    }
     
     private String objectTag;
     
@@ -134,10 +143,17 @@ public class TablesInputHandler implements InlineContentHandler {
                 VOTableReader tr = new VOTableReader();
                 ByteCountInputStream istream = new ByteCountInputStream(in, BYTE_LIMIT);
                 tab = tr.read(istream);
-            } else if (PARQUET_TYPE.equalsIgnoreCase(contentType)) {
-                ByteCountInputStream istream = new ByteCountInputStream(in, BYTE_LIMIT);
-                ParquetReader parquetReader = new ParquetReader();
-                tab = parquetReader.read(istream);
+            } else if (PARQUET_TYPE.equalsIgnoreCase(contentType) && PARQUET_READER_CLZ != null) {
+                try {
+                    ByteCountInputStream istream = new ByteCountInputStream(in, BYTE_LIMIT);
+                    ca.nrc.cadc.dali.tables.TableReader r = 
+                            (ca.nrc.cadc.dali.tables.TableReader) PARQUET_READER_CLZ.getDeclaredConstructor().newInstance();
+                    tab = r.read(istream);
+                } catch (NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException ex) {
+                    throw new RuntimeException("BUG: tried ans failed to load plugin " + PARQUET_CLASS_NAME);
+                }
+            } else {
+                throw new UnsupportedOperationException("unsupported input type: " + contentType);
             }
             InlineContentHandler.Content ret = new InlineContentHandler.Content();
             ret.name = objectTag;
