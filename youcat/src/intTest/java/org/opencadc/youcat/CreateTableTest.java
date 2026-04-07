@@ -200,7 +200,7 @@ public class CreateTableTest extends AbstractTablesTest {
             c0.getDatatype().xtype = null;
                     
             log.info("illegal update: add column");
-            ColumnDesc ecd = new ColumnDesc(td.getTableName(), "add-by-update", TapDataType.CHAR);
+            ColumnDesc ecd = new ColumnDesc(td.getTableName(), "addByUpdate", TapDataType.CHAR);
             td.getColumnDescs().add(ecd);
             sw = new StringWriter();
             w.write(td, sw);
@@ -228,7 +228,7 @@ public class CreateTableTest extends AbstractTablesTest {
             Assert.assertTrue(update.getThrowable().getMessage().contains("cannot add/remove/rename"));
             
             log.info("illegal update: rename column");
-            ColumnDesc rename = new ColumnDesc(td.getTableName(), c0.getColumnName() + "-renamed", c0.getDatatype());
+            ColumnDesc rename = new ColumnDesc(td.getTableName(), c0.getColumnName() + "Renamed", c0.getDatatype());
             td.getColumnDescs().remove(c0);
             td.getColumnDescs().add(0, rename);
             sw = new StringWriter();
@@ -614,7 +614,7 @@ public class CreateTableTest extends AbstractTablesTest {
             TapPermissions tp = new TapPermissions(null, true, null, null);
             super.setPerms(schemaOwner, testSchemaName, tp, 200);
 
-            String testTable = testSchemaName + ".testCreateTableFailure"; //
+            String testTable = testSchemaName + ".testPutInvalidUnitAndUcd";
 
             // cleanup just in case
             doDelete(schemaOwner, testTable, true);
@@ -661,13 +661,13 @@ public class CreateTableTest extends AbstractTablesTest {
 
     // Expected warnings for ucds and units
     @Test
-    public void testPutWarning() {
+    public void testPutWarnings() {
         try {
             clearSchemaPerms();
             TapPermissions tp = new TapPermissions(null, true, null, null);
             super.setPerms(schemaOwner, testSchemaName, tp, 200);
 
-            String testTable = testSchemaName + ".testCreateTableFailureC3";
+            String testTable = testSchemaName + ".testPutWarnings";
 
             // cleanup just in case
             doDelete(schemaOwner, testTable, true);
@@ -678,7 +678,7 @@ public class CreateTableTest extends AbstractTablesTest {
 
             VOTableField invalidFieldDetails1 = new VOTableField("InvalidField1", TapDataType.DOUBLE.getDatatype());
             invalidFieldDetails1.ucd = "em.IR.K.Brgamma"; // Deprecated
-            invalidFieldDetails1.unit = "'test'"; // valid
+            invalidFieldDetails1.unit = "k/s"; // Should be "K/S"
             vtab.getFields().add(invalidFieldDetails1);
 
             VOTableField invalidFieldDetails2 = new VOTableField("InvalidField2", TapDataType.DOUBLE.getDatatype());
@@ -712,7 +712,8 @@ public class CreateTableTest extends AbstractTablesTest {
             Assert.assertEquals(5,content.split("\n").length);
             Assert.assertTrue(content.startsWith("warnings:"));
             Assert.assertTrue(content.contains("em.IR.K.Brgamma"));
-            Assert.assertTrue(content.contains("'test'"));
+            Assert.assertTrue(content.contains("k/s"));
+            Assert.assertFalse(content.contains("obs.atmos.turbulence.isoplanatic"));
             Assert.assertTrue(content.contains("func(10 Hz)"));
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);

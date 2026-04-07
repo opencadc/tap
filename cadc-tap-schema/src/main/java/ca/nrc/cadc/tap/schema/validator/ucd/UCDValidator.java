@@ -139,7 +139,7 @@ public final class UCDValidator {
                 continue;
             }
             if (vocabEntry.get().isDeprecated()) {
-                violations.add(new Violation(Violation.Severity.WARNING,"Word \"" + word + "\" at position " + (i + 1)
+                violations.add(new Violation(Violation.Severity.WARNING, "Word \"" + word + "\" at position " + (i + 1)
                         + " is deprecated. Suggested replacement: " + vocabEntry.get().getReplacement() + "."));
                 continue;
             }
