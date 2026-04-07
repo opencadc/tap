@@ -77,13 +77,8 @@ import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.tap.PluginFactory;
-import ca.nrc.cadc.tap.schema.ColumnDesc;
-import ca.nrc.cadc.tap.schema.SchemaDesc;
-import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.schema.TapPermissions;
-import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import ca.nrc.cadc.tap.schema.TapSchemaUtil;
-import ca.nrc.cadc.tap.schema.Util;
+import ca.nrc.cadc.tap.schema.*;
+
 import java.io.IOException;
 import java.security.AccessControlException;
 import java.security.Principal;
@@ -94,9 +89,17 @@ import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.security.auth.Subject;
 import javax.sql.DataSource;
+
+import ca.nrc.cadc.tap.schema.validator.ValidationResult;
+import ca.nrc.cadc.tap.schema.validator.Violation;
+import ca.nrc.cadc.tap.schema.validator.ucd.UCDValidator;
+import ca.nrc.cadc.tap.schema.validator.unit.VOUnitValidator;
 import org.apache.log4j.Logger;
 import org.opencadc.gms.GroupURI;
 import org.opencadc.gms.IvoaGroupClient;
+
+import static ca.nrc.cadc.tap.schema.TapSchemaUtil.checkValidIdentifier;
+import static ca.nrc.cadc.tap.schema.TapSchemaUtil.checkValidTableName;
 
 /**
  *
@@ -223,7 +226,7 @@ public abstract class TablesAction extends RestAction {
             throw new RuntimeException("BUG: no input table");
         }
 
-        String message = TapSchemaUtil.validateTableDesc(input);
+        String message = validateTableDesc(input);
         if (message != null) {
             try {
                 // TODO: causing issue : "WARN  SyncOutput - OutputStream already open, not setting response code to: 200"
@@ -703,5 +706,97 @@ public abstract class TablesAction extends RestAction {
             log.error("Failed to find JNDI key: " + jndiCreateSchemaKey, ex);
         }
         return false;
+    }
+
+    /**
+     * Validates schema name, table name, column name, UCD and Unit values and collects the results in a list.
+     * Throws an IllegalArgumentException if errors are found.
+     * Returns a String including all the Warnings.
+     */
+    public static String validateTableDesc(TableDesc td) {
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
+
+        try {
+            checkValidIdentifier(td.getSchemaName());
+        } catch (ADQLIdentifierException ex) {
+            errors.append("invalid ADQL identifier (schema name): ").append(td.getSchemaName()).append("\n");
+        }
+        try {
+            checkValidTableName(td.getTableName());
+        } catch (ADQLIdentifierException ex) {
+            errors.append("invalid ADQL identifier (table name): ").append(td.getTableName()).append("\n");
+        }
+
+        UCDValidator ucdValidator = new UCDValidator();
+        VOUnitValidator voUnitValidator = new VOUnitValidator();
+
+        for (ColumnDesc cd : td.getColumnDescs()) {
+            System.out.println("field name: " + cd.getColumnName());
+            try {
+                checkValidIdentifier(cd.getColumnName());
+            } catch (ADQLIdentifierException e) {
+                String line = "column \"" + cd.getColumnName() + "\": " + e.getMessage() + "\n";
+                errors.append(line);
+            }
+
+            if (td.tableType.equals(TableDesc.TableType.VIEW)) {
+                continue;
+            }
+
+            if (cd.ucd != null && !cd.ucd.isEmpty()) {
+                ValidationResult ucdResult = ucdValidator.validate(cd.ucd);
+                if (!ucdResult.isValid() || !ucdResult.getViolations().isEmpty()) {
+                    for (Violation v : ucdResult.getViolations()) {
+                        String line = "ucd \"" + cd.ucd + "\": " + v.getMessage() + "\n";
+                        if (v.getSeverity() == Violation.Severity.ERROR) {
+                            errors.append(line);
+                        } else {
+                            warnings.append(line);
+                        }
+                    }
+                }
+            }
+            if (cd.unit != null && !cd.unit.isEmpty()) {
+                ValidationResult unitResult = voUnitValidator.validate(cd.unit);
+                if (!unitResult.isValid() || !unitResult.getViolations().isEmpty()) {
+                    for (Violation v : unitResult.getViolations()) {
+                        String line = "unit \"" + cd.unit + "\": " + v.getMessage() + "\n";
+                        if (v.getSeverity() == Violation.Severity.ERROR) {
+                            errors.append(line);
+                        } else {
+                            warnings.append(line);
+                        }
+                    }
+                }
+            }
+        }
+
+        boolean hasErrors = errors.length() > 0;
+        boolean hasWarnings = warnings.length() > 0;
+
+        if (!hasErrors && !hasWarnings) {
+            return null;
+        }
+
+        StringBuilder result = new StringBuilder();
+        if (hasErrors) {
+            result.append("errors:\n").append(errors);
+        }
+        if (hasWarnings) {
+            if (hasErrors) {
+                result.append("\n");
+            }
+
+            result.append("warnings:\n").append(warnings);
+        }
+
+        String message = result.toString().stripTrailing();
+
+        if (hasErrors) {
+            throw new IllegalArgumentException(message);
+        }
+
+        return message;
     }
 }
