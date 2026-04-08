@@ -68,7 +68,6 @@
 package ca.nrc.cadc.tap.schema.validator;
 
 import ca.nrc.cadc.tap.schema.validator.ucd.UCDValidator;
-import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -116,7 +115,7 @@ public class UCDValidatorTest {
     }
 
     // TODO: This test has to be Commented unless testing
-    @Test
+    //@Test
     public void testUCDFile() throws IOException, NoSuchAlgorithmException {
         String ivoaResource = "https://www.ivoa.net/Documents/UCD1+/20241218/ucd-list.txt";
         String localResource = "ucd-list.txt";
@@ -137,7 +136,7 @@ public class UCDValidatorTest {
     }
 
     // TODO: This test has to be Commented unless testing
-    @Test
+    //@Test
     public void testDeprecatedUCDFile() throws IOException, NoSuchAlgorithmException {
         String ivoaResource = "https://www.ivoa.net/Documents/UCD1+/20241218/ucd-list-deprecated.txt";
         String localResource = "ucd-list-deprecated.txt";
