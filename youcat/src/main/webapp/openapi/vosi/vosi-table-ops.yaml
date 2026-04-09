@@ -5,6 +5,9 @@ get:
     summary: list async table update jobs
     description: async job listing
     parameters:
+        - $ref: ../uws/uws-phase-param.yaml
+        - $ref: ../uws/uws-after-param.yaml
+        - $ref: ../uws/uws-last-param.yaml
     responses:
         '200':
             $ref: ../uws/uws-responses.yaml#/job-listing

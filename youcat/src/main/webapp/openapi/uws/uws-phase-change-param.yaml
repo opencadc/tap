@@ -1,0 +1,8 @@
+name: PHASE
+in: query
+description: attempt to change the phase
+required: true
+schema:
+  type: string
+  enum: [ABORT, RUN]
+  example: RUN

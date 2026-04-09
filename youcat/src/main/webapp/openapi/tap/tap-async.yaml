@@ -5,6 +5,9 @@ get:
     summary: list queries (UWS jobs)
     description: TAP asynchronous query endpoint (list UWS Jobs)
     parameters:
+        - $ref: ../uws/uws-phase-param.yaml
+        - $ref: ../uws/uws-after-param.yaml
+        - $ref: ../uws/uws-last-param.yaml
     responses:
         '200':
             $ref: ../uws/uws-responses.yaml#/job-listing
