@@ -79,7 +79,7 @@ public enum ReservedKeyword {
         Map<String, ReservedKeyword> map = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         for (ReservedKeyword keyword : values()) {
             if (map.containsKey(keyword.word)) {
-                throw new IllegalStateException("Duplicate Reserved Keyword : " + keyword.word);
+                throw new IllegalStateException("BUG: Duplicate Reserved Keyword : " + keyword.word);
             }
             map.put(keyword.word, keyword);
         }

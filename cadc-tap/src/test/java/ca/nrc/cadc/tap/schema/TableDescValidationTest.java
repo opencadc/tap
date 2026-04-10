@@ -65,106 +65,34 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.schema.validator;
+package ca.nrc.cadc.tap.schema;
 
-import ca.nrc.cadc.tap.schema.validator.ucd.UCDValidator;
+import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.security.DigestInputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.List;
+public class TableDescValidationTest {
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-public class UCDValidatorTest {
-
+    // Validates Schema name, table name and column names are valid identifiers.
     @Test
-    public void testUCD() {
-        UCDValidator validator = new UCDValidator();
-
-        List<String> validUCDs = List.of(
-                "phot.flux",
-                "arith.grad;em.UV", // P, S
-                "arith.rate;em.IR.3-4um", // P, s
-                "arith.factor;arith.diff", // P, S
-                "phot.flux;phot.mag", // E,E
-                "em.wl;em.UV", // Q,S
-                "stat.error;phot.mag;em.opt.B", // P, E, S
-                "phot;phot.color" // E, C
-        );
-        List<String> invalidUCDs = List.of("", " ", ";",
-                "abc", // unknown
-                "em.UV;arith.grad", // S, P
-                "arith.rate;arith.factor", // P, P - Primary-only word in the secondary position
-                "em.radio" // S - secondary-only word in the primary position
-        );
-
-        for (String ucd : validUCDs) {
-            assertTrue(ucd + " failed to pass.", validator.validate(ucd).isValid());
-        }
-
-        for (String ucd : invalidUCDs) {
-            assertFalse(ucd + " failed to fail.", validator.validate(ucd).isValid());
-        }
-    }
-
-    // TODO: This test has to be Commented unless testing
-    //@Test
-    public void testUCDFile() throws IOException, NoSuchAlgorithmException {
-        String ivoaResource = "https://www.ivoa.net/Documents/UCD1+/20241218/ucd-list.txt";
-        String localResource = "ucd-list.txt";
-
-        byte[] ivoaMd5;
-        try (InputStream ivoaStream = new URL(ivoaResource).openStream()) {
-            Assert.assertNotNull(ivoaStream);
-            ivoaMd5 = computeMd5(ivoaStream);
-        }
-
-        byte[] localMd5;
-        try (InputStream localStream = UCDValidatorTest.class.getClassLoader().getResourceAsStream(localResource)) {
-            Assert.assertNotNull(localStream);
-            localMd5 = computeMd5(localStream);
-        }
-
-        Assert.assertArrayEquals("MD5 of local and remote ucd-list.txt do not match", ivoaMd5, localMd5);
-    }
-
-    // TODO: This test has to be Commented unless testing
-    //@Test
-    public void testDeprecatedUCDFile() throws IOException, NoSuchAlgorithmException {
-        String ivoaResource = "https://www.ivoa.net/Documents/UCD1+/20241218/ucd-list-deprecated.txt";
-        String localResource = "ucd-list-deprecated.txt";
-
-        byte[] ivoaMd5;
-        try (InputStream ivoaStream = new URL(ivoaResource).openStream()) {
-            Assert.assertNotNull(ivoaStream);
-            ivoaMd5 = computeMd5(ivoaStream);
-        }
-
-        byte[] localMd5;
-        try (InputStream localStream = UCDValidatorTest.class.getClassLoader().getResourceAsStream(localResource)) {
-            Assert.assertNotNull(localStream);
-            localMd5 = computeMd5(localStream);
-        }
-
-        Assert.assertArrayEquals("MD5 of local and remote ucd-list-deprecated.txt do not match", ivoaMd5, localMd5);
-    }
-
-    private byte[] computeMd5(InputStream inputStream) throws IOException, NoSuchAlgorithmException {
-        MessageDigest digest = MessageDigest.getInstance("MD5");
-        try (DigestInputStream dis = new DigestInputStream(inputStream, digest)) {
-            byte[] buffer = new byte[8192];
-            while (dis.read(buffer) != -1) {
-                // just consuming the stream so the digest is updated
+    public void testIdentifiers() {
+        List<String> validIdentifiers = List.of("colName", "col_type", "col123");
+        validIdentifiers.forEach(i -> {
+            try {
+                TapSchemaUtil.checkValidIdentifier(i);
+            } catch (ADQLIdentifierException e) {
+                Assert.fail("unexpected exception: " + e);
             }
-        }
-        return digest.digest();
-    }
+        });
 
+        List<String> invalidIdentifiers = List.of("names", "key", "Session", "\"colName\"", "'colName'", "col-name");
+        invalidIdentifiers.forEach(i -> {
+            try {
+                TapSchemaUtil.checkValidIdentifier(i);
+                Assert.fail("expected ADQLIdentifierException for identifier: " + i);
+            } catch (ADQLIdentifierException e) {
+                // expected
+            }
+        });
+    }
 }

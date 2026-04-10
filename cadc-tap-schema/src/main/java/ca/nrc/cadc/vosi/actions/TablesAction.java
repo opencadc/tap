@@ -118,6 +118,7 @@ public abstract class TablesAction extends RestAction {
     
     protected String jndiAdminKey;
     protected String jndiCreateSchemaKey;
+    protected String tableValidationWarnings;
     
     public TablesAction() { 
         super();
@@ -223,16 +224,7 @@ public abstract class TablesAction extends RestAction {
             throw new RuntimeException("BUG: no input table");
         }
 
-        String message = TapSchemaUtil.validateTableDesc(input);
-        if (message != null) {
-            try {
-                // TODO: causing issue : "WARN  SyncOutput - OutputStream already open, not setting response code to: 200"
-                syncOutput.getOutputStream().write(message.getBytes());
-            } catch (IOException e) {
-                log.debug("Warnings: " + message);
-                log.error("Error writing to output stream: " + e.getMessage());
-            }
-        }
+        tableValidationWarnings = TapSchemaUtil.validateTableDesc(input);
 
         // TODO: move this to PutAction (create only)
         int c = 0;

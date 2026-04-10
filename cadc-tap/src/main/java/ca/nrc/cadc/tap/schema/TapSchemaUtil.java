@@ -73,8 +73,10 @@ import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.tap.schema.validator.ValidationResult;
 import ca.nrc.cadc.tap.schema.validator.Violation;
+import ca.nrc.cadc.tap.schema.validator.adql.ReservedKeyword;
 import ca.nrc.cadc.tap.schema.validator.ucd.UCDValidator;
 import ca.nrc.cadc.tap.schema.validator.unit.VOUnitValidator;
+import java.util.Set;
 import org.apache.log4j.Logger;
 
 /**
@@ -212,6 +214,12 @@ public class TapSchemaUtil {
                 throw new ADQLIdentifierException("Identifier contains an invalid character " + identifier.charAt(i));
             }
         }
+
+        Set<String> reservedWords = ReservedKeyword.getAllReservedWords();
+        if (reservedWords.contains(identifier.toLowerCase())) {
+            throw new ADQLIdentifierException("Identifier '" + identifier + "' is a reserved keyword. Use double quotes to use it as an identifier."); // Discouraged to use quoted identifier
+        }
+
     }
 
     /**
@@ -273,9 +281,9 @@ public class TapSchemaUtil {
     }
 
     /**
-     * Validates schema name, table name, column name, UCD and Unit values and collects the results in a list.
-     * Throws an IllegalArgumentException if errors are found.
-     * Returns a String including all the Warnings.
+     * Validates schema name, table name, column name, UCD and Unit values
+     * @throws IllegalArgumentException with collected errors and warnings if errors are found.
+     * @return a String including all the Warnings.
      */
     public static String validateTableDesc(TableDesc td) {
         StringBuilder errors = new StringBuilder();
@@ -296,7 +304,6 @@ public class TapSchemaUtil {
         VOUnitValidator voUnitValidator = new VOUnitValidator();
 
         for (ColumnDesc cd : td.getColumnDescs()) {
-            System.out.println("field name: " + cd.getColumnName());
             try {
                 checkValidIdentifier(cd.getColumnName());
             } catch (ADQLIdentifierException e) {
@@ -358,7 +365,7 @@ public class TapSchemaUtil {
         String message = result.toString().stripTrailing();
 
         if (hasErrors) {
-            throw new IllegalArgumentException(message);
+            throw new IllegalArgumentException(message); // Includes all errors and warnings
         }
 
         return message;

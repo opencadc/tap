@@ -174,10 +174,10 @@ Q | obs.airMass                       |  Airmass
 S | obs.atmos                         |  Atmosphere, atmospheric phenomena affecting an observation
 Q | obs.atmos.extinction              |  Atmospheric extinction
 Q | obs.atmos.humidity                |  Amount of air humidity at observing site during an observation
-Q | obs.atmos.rain                    |  Amount of rain at the telescope site during an observation 
+Q | obs.atmos.rain                    |  Amount of rain at the telescope site during an observation
 Q | obs.atmos.refractAngle            |  Atmospheric refraction angle
 S | obs.atmos.turbulence              |  Related to atmospheric turbulence at the telescope site
-P | obs.atmos.turbulence.isoplanatic  |  Isoplanatic angle characterising the atmospheric turbulence at telescope site 
+P | obs.atmos.turbulence.isoplanatic  |  Isoplanatic angle characterising the atmospheric turbulence at telescope site
 Q | obs.atmos.water                   |  Amount of atmospheric water at observing site
 S | obs.atmos.wind                    |  Related to atmospheric wind at observing site
 S | obs.calib                         |  Calibration observation

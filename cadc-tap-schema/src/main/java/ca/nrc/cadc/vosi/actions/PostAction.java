@@ -117,6 +117,9 @@ public class PostAction extends TablesAction {
         }
         
         syncOutput.setCode(204); // no content on success
+        if (tableValidationWarnings != null && !tableValidationWarnings.isEmpty()) {
+            syncOutput.getOutputStream().write(tableValidationWarnings.getBytes()); // TODO: status code 204?
+        }
     }
     
     private void updateTable(TapSchemaDAO dao, String schemaName, String tableName) 

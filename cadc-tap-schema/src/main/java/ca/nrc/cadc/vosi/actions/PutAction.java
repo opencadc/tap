@@ -132,6 +132,9 @@ public class PutAction extends TablesAction {
         }
         
         syncOutput.setCode(200); // should be 201
+        if (tableValidationWarnings != null && !tableValidationWarnings.isEmpty()) {
+            syncOutput.getOutputStream().write(tableValidationWarnings.getBytes());
+        }
     }
     
     private void createSchema(TapSchemaDAO ts, String schema) throws Exception {

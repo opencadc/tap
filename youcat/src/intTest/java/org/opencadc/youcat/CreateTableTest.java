@@ -601,6 +601,9 @@ public class CreateTableTest extends AbstractTablesTest {
             Assert.assertNotNull("throwable", put.getThrowable());
             Assert.assertEquals("response code", 400, put.getResponseCode());
 
+            String message = put.getThrowable().getMessage();
+            Assert.assertTrue(message.contains("invalid ADQL identifier"));
+            Assert.assertTrue(message.contains("size")); // Confirms size is the reason of failure
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -652,6 +655,14 @@ public class CreateTableTest extends AbstractTablesTest {
             Subject.doAs(schemaOwner, new RunnableAction(put));
             Assert.assertNotNull("throwable", put.getThrowable());
             Assert.assertEquals("response code", 400, put.getResponseCode());
+
+            String message = put.getThrowable().getMessage();
+            Assert.assertTrue(message.startsWith("errors:")); // Confirms the ERROR is the reason of failure
+            Assert.assertTrue(message.contains("warnings"));
+            Assert.assertTrue(message.contains("pos.spherical"));
+            Assert.assertTrue(message.contains("meta;meta.code"));
+            Assert.assertTrue(message.contains("deg-2"));
+            Assert.assertTrue(message.contains("k/s/m"));
 
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
@@ -708,9 +719,12 @@ public class CreateTableTest extends AbstractTablesTest {
                 return null;
             });
 
+            Assert.assertNull("throwable", put.getThrowable());
+            Assert.assertEquals("response code", 200, put.getResponseCode());
+
             String content = new String(put.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
             Assert.assertEquals(5,content.split("\n").length);
-            Assert.assertTrue(content.startsWith("warnings:"));
+            Assert.assertTrue(content.startsWith("warnings:")); // Confirms that WARNINGS did not fail the request
             Assert.assertTrue(content.contains("em.IR.K.Brgamma"));
             Assert.assertTrue(content.contains("k/s"));
             Assert.assertFalse(content.contains("obs.atmos.turbulence.isoplanatic"));

@@ -85,7 +85,7 @@ import org.apache.log4j.Logger;
  * <p>The latest official word list (v1.6, Dec 2024) is available at:
  * <a href="https://www.ivoa.net/documents/UCD1+/20241218/">UCD1+</a>
  */
-public class UCDVocabulary {
+public abstract class UCDVocabulary {
 
     private static final Logger log = Logger.getLogger(UCDVocabulary.class);
 
@@ -111,12 +111,9 @@ public class UCDVocabulary {
             }
             deprecatedWords = words.size() - validWords;
         } catch (Exception e) {
-            log.error("Failed to load UCD word list from resource '" + RESOURCE_UCD_LIST + "': " + e.getMessage());
+            log.error("BUG: Failed to load UCD word list from resource '" + RESOURCE_UCD_LIST + "': " + e.getMessage());
         }
         log.info("Loaded " + validWords + " valid UCD words and " + deprecatedWords + " deprecated UCD words.");
-    }
-
-    public UCDVocabulary() {
     }
 
     private static void loadUCDWords(InputStream inputStream) throws IOException {
@@ -193,7 +190,7 @@ public class UCDVocabulary {
     /**
      * Returns an unmodifiable view of all registered words.
      */
-    public Set<String> getAllWords() {
+    public static Set<String> getAllWords() {
         return words.keySet();
     }
 
