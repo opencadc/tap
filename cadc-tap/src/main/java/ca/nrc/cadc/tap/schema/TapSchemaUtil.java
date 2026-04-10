@@ -217,7 +217,7 @@ public class TapSchemaUtil {
 
         Set<String> reservedWords = ReservedKeyword.getAllReservedWords();
         if (reservedWords.contains(identifier.toLowerCase())) {
-            throw new ADQLIdentifierException("Identifier '" + identifier + "' is a reserved keyword. Use double quotes to use it as an identifier."); // Discouraged to use quoted identifier
+            throw new ADQLIdentifierException("Identifier '" + identifier + "' is a reserved keyword.");
         }
 
     }
@@ -282,8 +282,8 @@ public class TapSchemaUtil {
 
     /**
      * Validates schema name, table name, column name, UCD and Unit values
-     * @throws IllegalArgumentException with collected errors and warnings if errors are found.
      * @return a String including all the Warnings.
+     * @throws IllegalArgumentException with collected errors and warnings if errors are found.
      */
     public static String validateTableDesc(TableDesc td) {
         StringBuilder errors = new StringBuilder();
