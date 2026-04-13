@@ -113,11 +113,11 @@ public abstract class UCDVocabulary {
         } catch (Exception e) {
             log.error("BUG: Failed to load UCD word list from resource '" + RESOURCE_UCD_LIST + "': " + e.getMessage());
         }
-        log.info("Loaded " + validWords + " valid UCD words and " + deprecatedWords + " deprecated UCD words.");
+        log.debug("Loaded " + validWords + " valid UCD words and " + deprecatedWords + " deprecated UCD words.");
     }
 
     private static void loadUCDWords(InputStream inputStream) throws IOException {
-        log.info("Loading UCD word list from the default resource: " + RESOURCE_UCD_LIST);
+        log.debug("Loading UCD word list from the default resource: " + RESOURCE_UCD_LIST);
         words = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
             String line;
@@ -147,7 +147,7 @@ public abstract class UCDVocabulary {
     }
 
     private static void loadDeprecatedUCDWords(InputStream inputStream) throws IOException {
-        log.info("Loading Deprecated UCD word list from the default resource: " + RESOURCE_DEPRECATED_UCD_LIST);
+        log.debug("Loading Deprecated UCD word list from the default resource: " + RESOURCE_DEPRECATED_UCD_LIST);
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {

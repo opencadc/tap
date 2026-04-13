@@ -216,7 +216,7 @@ public class TapSchemaUtil {
         }
 
         Set<String> reservedWords = ReservedKeyword.getAllReservedWords();
-        if (reservedWords.contains(identifier.toLowerCase())) {
+        if (reservedWords.contains(identifier)) {
             throw new ADQLIdentifierException("Identifier '" + identifier + "' is a reserved keyword.");
         }
 
