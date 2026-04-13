@@ -76,7 +76,6 @@ import ca.nrc.cadc.tap.schema.validator.Violation;
 import ca.nrc.cadc.tap.schema.validator.adql.ReservedKeyword;
 import ca.nrc.cadc.tap.schema.validator.ucd.UCDValidator;
 import ca.nrc.cadc.tap.schema.validator.unit.VOUnitValidator;
-import java.util.Set;
 import org.apache.log4j.Logger;
 
 /**
@@ -215,8 +214,8 @@ public class TapSchemaUtil {
             }
         }
 
-        Set<String> reservedWords = ReservedKeyword.getAllReservedWords();
-        if (reservedWords.contains(identifier)) {
+        // Identifier cannot be a reserved keyword.
+        if (ReservedKeyword.isReserved(identifier)) {
             throw new ADQLIdentifierException("Identifier '" + identifier + "' is a reserved keyword.");
         }
 
