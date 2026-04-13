@@ -68,7 +68,6 @@
 package ca.nrc.cadc.vosi.actions;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
@@ -119,6 +118,7 @@ public abstract class TablesAction extends RestAction {
     
     protected String jndiAdminKey;
     protected String jndiCreateSchemaKey;
+    protected String tableValidationWarnings;
     
     public TablesAction() { 
         super();
@@ -189,11 +189,11 @@ public abstract class TablesAction extends RestAction {
         return dao;
     }
 
-    private TableDesc toTableDesc(VOTableDocument doc) {
+    private TableDesc toTableDesc(VOTableDocument doc, String schemaName, String tableName) {
         for (VOTableResource vr : doc.getResources()) {
             VOTableTable vtab = vr.getTable();
             if (vtab != null) {
-                TableDesc ret = TapSchemaUtil.createTableDesc("default", "default", vtab);
+                TableDesc ret = TapSchemaUtil.createTableDesc(schemaName, tableName, vtab);
                 log.debug("create from VOtable: " + ret);
                 // strip out some incoming table metadata
                 // - ID attr (should be transient usage only)
@@ -216,14 +216,16 @@ public abstract class TablesAction extends RestAction {
 
         if (in instanceof TableDesc) {
             input = (TableDesc) in;
+            input.setSchemaName(schemaName);
+            input.setTableName(tableName);
         } else if (in instanceof VOTableDocument) {
-            input = toTableDesc((VOTableDocument) in);
+            input = toTableDesc((VOTableDocument) in, schemaName, tableName);
         } else {
             throw new RuntimeException("BUG: no input table");
         }
 
-        input.setSchemaName(schemaName);
-        input.setTableName(tableName);
+        tableValidationWarnings = TapSchemaUtil.validateTableDesc(input);
+
         // TODO: move this to PutAction (create only)
         int c = 0;
         for (ColumnDesc cd : input.getColumnDescs()) {
@@ -694,4 +696,5 @@ public abstract class TablesAction extends RestAction {
         }
         return false;
     }
+
 }

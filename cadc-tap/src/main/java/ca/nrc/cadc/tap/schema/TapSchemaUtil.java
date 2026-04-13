@@ -71,6 +71,11 @@ import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableField;
 import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
+import ca.nrc.cadc.tap.schema.validator.ValidationResult;
+import ca.nrc.cadc.tap.schema.validator.Violation;
+import ca.nrc.cadc.tap.schema.validator.adql.ReservedKeyword;
+import ca.nrc.cadc.tap.schema.validator.ucd.UCDValidator;
+import ca.nrc.cadc.tap.schema.validator.unit.VOUnitValidator;
 import org.apache.log4j.Logger;
 
 /**
@@ -208,6 +213,12 @@ public class TapSchemaUtil {
                 throw new ADQLIdentifierException("Identifier contains an invalid character " + identifier.charAt(i));
             }
         }
+
+        // Identifier cannot be a reserved keyword.
+        if (ReservedKeyword.isReserved(identifier)) {
+            throw new ADQLIdentifierException("Identifier '" + identifier + "' is a reserved keyword.");
+        }
+
     }
 
     /**
@@ -268,4 +279,94 @@ public class TapSchemaUtil {
         return document;
     }
 
+    /**
+     * Validates schema name, table name, column name, UCD and Unit values
+     * @return a String including all the Warnings.
+     * @throws IllegalArgumentException with collected errors and warnings if errors are found.
+     */
+    public static String validateTableDesc(TableDesc td) {
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
+
+        try {
+            checkValidIdentifier(td.getSchemaName());
+        } catch (ADQLIdentifierException ex) {
+            errors.append("invalid ADQL identifier (schema name): ").append(td.getSchemaName()).append("\n");
+        }
+        try {
+            checkValidTableName(td.getTableName());
+        } catch (ADQLIdentifierException ex) {
+            errors.append("invalid ADQL identifier (table name): ").append(td.getTableName()).append("\n");
+        }
+
+        UCDValidator ucdValidator = new UCDValidator();
+        VOUnitValidator voUnitValidator = new VOUnitValidator();
+
+        for (ColumnDesc cd : td.getColumnDescs()) {
+            try {
+                checkValidIdentifier(cd.getColumnName());
+            } catch (ADQLIdentifierException e) {
+                String line = "column \"" + cd.getColumnName() + "\": " + e.getMessage() + "\n";
+                errors.append(line);
+            }
+
+            if (td.tableType.equals(TableDesc.TableType.VIEW)) {
+                continue;
+            }
+
+            if (cd.ucd != null && !cd.ucd.isEmpty()) {
+                ValidationResult ucdResult = ucdValidator.validate(cd.ucd);
+                if (!ucdResult.isValid() || !ucdResult.getViolations().isEmpty()) {
+                    for (Violation v : ucdResult.getViolations()) {
+                        String line = "ucd \"" + cd.ucd + "\": " + v.getMessage() + "\n";
+                        if (v.getSeverity() == Violation.Severity.ERROR) {
+                            errors.append(line);
+                        } else {
+                            warnings.append(line);
+                        }
+                    }
+                }
+            }
+            if (cd.unit != null && !cd.unit.isEmpty()) {
+                ValidationResult unitResult = voUnitValidator.validate(cd.unit);
+                if (!unitResult.isValid() || !unitResult.getViolations().isEmpty()) {
+                    for (Violation v : unitResult.getViolations()) {
+                        String line = "unit \"" + cd.unit + "\": " + v.getMessage() + "\n";
+                        if (v.getSeverity() == Violation.Severity.ERROR) {
+                            errors.append(line);
+                        } else {
+                            warnings.append(line);
+                        }
+                    }
+                }
+            }
+        }
+
+        boolean hasErrors = errors.length() > 0;
+        boolean hasWarnings = warnings.length() > 0;
+
+        if (!hasErrors && !hasWarnings) {
+            return null;
+        }
+
+        StringBuilder result = new StringBuilder();
+        if (hasErrors) {
+            result.append("errors:\n").append(errors);
+        }
+        if (hasWarnings) {
+            if (hasErrors) {
+                result.append("\n");
+            }
+
+            result.append("warnings:\n").append(warnings);
+        }
+
+        String message = result.toString().stripTrailing();
+
+        if (hasErrors) {
+            throw new IllegalArgumentException(message); // Includes all errors and warnings
+        }
+
+        return message;
+    }
 }

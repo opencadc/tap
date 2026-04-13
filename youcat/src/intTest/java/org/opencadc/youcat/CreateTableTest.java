@@ -96,7 +96,9 @@ import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.util.*;
 import javax.security.auth.Subject;
 import org.apache.log4j.Level;
@@ -198,7 +200,7 @@ public class CreateTableTest extends AbstractTablesTest {
             c0.getDatatype().xtype = null;
                     
             log.info("illegal update: add column");
-            ColumnDesc ecd = new ColumnDesc(td.getTableName(), "add-by-update", TapDataType.CHAR);
+            ColumnDesc ecd = new ColumnDesc(td.getTableName(), "addByUpdate", TapDataType.CHAR);
             td.getColumnDescs().add(ecd);
             sw = new StringWriter();
             w.write(td, sw);
@@ -226,7 +228,7 @@ public class CreateTableTest extends AbstractTablesTest {
             Assert.assertTrue(update.getThrowable().getMessage().contains("cannot add/remove/rename"));
             
             log.info("illegal update: rename column");
-            ColumnDesc rename = new ColumnDesc(td.getTableName(), c0.getColumnName() + "-renamed", c0.getDatatype());
+            ColumnDesc rename = new ColumnDesc(td.getTableName(), c0.getColumnName() + "Renamed", c0.getDatatype());
             td.getColumnDescs().remove(c0);
             td.getColumnDescs().add(0, rename);
             sw = new StringWriter();
@@ -553,6 +555,180 @@ public class CreateTableTest extends AbstractTablesTest {
             
             // cleanup on success
             doDelete(admin, testCreateSchema, false);
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+
+    @Test
+    public void testPutInvalidFieldName() {
+        try {
+            clearSchemaPerms();
+            TapPermissions tp = new TapPermissions(null, true, null, null);
+            super.setPerms(schemaOwner, testSchemaName, tp, 200);
+
+            String testTable = testSchemaName + ".testPutInvalidFieldName";
+
+            // cleanup just in case
+            doDelete(schemaOwner, testTable, true);
+
+            VOTableTable vtab = new VOTableTable();
+            vtab.getFields().add(new VOTableField("c0", TapDataType.STRING.getDatatype(), TapDataType.STRING.arraysize));
+            vtab.getFields().add(new VOTableField("c1", TapDataType.INTEGER.getDatatype()));
+            vtab.getFields().add(new VOTableField("\"size\"", TapDataType.INTEGER.getDatatype()));
+
+            VOTableField invalidFieldName = new VOTableField("ACTION", TapDataType.DOUBLE.getDatatype());
+            vtab.getFields().add(invalidFieldName);
+
+            VOTableResource vres = new VOTableResource("results");
+            vres.setTable(vtab);
+            final VOTableDocument doc = new VOTableDocument();
+            doc.getResources().add(vres);
+
+            // create
+            URL tableURL = new URL(certTablesURL.toExternalForm() + "/" + testTable);
+            OutputStreamWrapper src = new OutputStreamWrapper() {
+                @Override
+                public void write(OutputStream out) throws IOException {
+                    VOTableWriter w = new VOTableWriter(VOTableWriter.SerializationType.TABLEDATA);
+                    w.write(doc, out);
+                }
+            };
+            HttpUpload put = new HttpUpload(src, tableURL);
+            put.setRequestProperty("Content-Type", TablesInputHandler.VOTABLE_TYPE);
+            Subject.doAs(schemaOwner, new RunnableAction(put));
+            Assert.assertNotNull("throwable", put.getThrowable());
+            Assert.assertEquals("response code", 400, put.getResponseCode());
+
+            String message = put.getThrowable().getMessage();
+            Assert.assertTrue(message.contains("invalid ADQL identifier"));
+            Assert.assertTrue(message.contains("size")); // Confirms size is the reason of failure
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+
+    @Test
+    public void testPutInvalidUnitAndUcd() {
+        try {
+            clearSchemaPerms();
+            TapPermissions tp = new TapPermissions(null, true, null, null);
+            super.setPerms(schemaOwner, testSchemaName, tp, 200);
+
+            String testTable = testSchemaName + ".testPutInvalidUnitAndUcd";
+
+            // cleanup just in case
+            doDelete(schemaOwner, testTable, true);
+
+            //-------
+            VOTableTable vtab = new VOTableTable();
+            vtab.getFields().add(new VOTableField("c0", TapDataType.STRING.getDatatype(), TapDataType.STRING.arraysize));
+            vtab.getFields().add(new VOTableField("c1", TapDataType.INTEGER.getDatatype()));
+
+            VOTableField invalidFieldDetails1 = new VOTableField("InvalidField1", TapDataType.DOUBLE.getDatatype());
+            invalidFieldDetails1.ucd = "pos.spherical"; // Secondary only UCD word placed at the primary position
+            invalidFieldDetails1.unit = "k/s/m";
+            vtab.getFields().add(invalidFieldDetails1);
+
+            VOTableField invalidFieldDetails2 = new VOTableField("InvalidField2", TapDataType.DOUBLE.getDatatype());
+            invalidFieldDetails2.ucd = "meta;meta.code"; // primary only word placed at the secondary position
+            invalidFieldDetails2.unit = "deg-2";
+            vtab.getFields().add(invalidFieldDetails2);
+
+            VOTableResource vres = new VOTableResource("results");
+            vres.setTable(vtab);
+            final VOTableDocument doc = new VOTableDocument();
+            doc.getResources().add(vres);
+
+            URL tableURL = new URL(certTablesURL.toExternalForm() + "/" + testTable);
+            OutputStreamWrapper src = new OutputStreamWrapper() {
+                @Override
+                public void write(OutputStream out) throws IOException {
+                    VOTableWriter w = new VOTableWriter(VOTableWriter.SerializationType.TABLEDATA);
+                    w.write(doc, out);
+                }
+            };
+            HttpUpload put = new HttpUpload(src, tableURL);
+            put.setRequestProperty("Content-Type", TablesInputHandler.VOTABLE_TYPE);
+            Subject.doAs(schemaOwner, new RunnableAction(put));
+            Assert.assertNotNull("throwable", put.getThrowable());
+            Assert.assertEquals("response code", 400, put.getResponseCode());
+
+            String message = put.getThrowable().getMessage();
+            Assert.assertTrue(message.startsWith("errors:")); // Confirms the ERROR is the reason of failure
+            Assert.assertTrue(message.contains("warnings"));
+            Assert.assertTrue(message.contains("pos.spherical"));
+            Assert.assertTrue(message.contains("meta;meta.code"));
+            Assert.assertTrue(message.contains("deg-2"));
+            Assert.assertTrue(message.contains("k/s/m"));
+
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+
+    // Expected warnings for ucds and units
+    @Test
+    public void testPutWarnings() {
+        try {
+            clearSchemaPerms();
+            TapPermissions tp = new TapPermissions(null, true, null, null);
+            super.setPerms(schemaOwner, testSchemaName, tp, 200);
+
+            String testTable = testSchemaName + ".testPutWarnings";
+
+            // cleanup just in case
+            doDelete(schemaOwner, testTable, true);
+
+            VOTableTable vtab = new VOTableTable();
+            vtab.getFields().add(new VOTableField("c0", TapDataType.STRING.getDatatype(), TapDataType.STRING.arraysize));
+            vtab.getFields().add(new VOTableField("c1", TapDataType.INTEGER.getDatatype()));
+
+            VOTableField invalidFieldDetails1 = new VOTableField("InvalidField1", TapDataType.DOUBLE.getDatatype());
+            invalidFieldDetails1.ucd = "em.IR.K.Brgamma"; // Deprecated
+            invalidFieldDetails1.unit = "k/s"; // Should be "K/S"
+            vtab.getFields().add(invalidFieldDetails1);
+
+            VOTableField invalidFieldDetails2 = new VOTableField("InvalidField2", TapDataType.DOUBLE.getDatatype());
+            invalidFieldDetails2.ucd = "obs.atmos.turbulence.isoplanatic"; // Valid
+            invalidFieldDetails2.unit = "func(10 Hz)"; // quoted/unknwon unit
+            vtab.getFields().add(invalidFieldDetails2);
+
+            //-----
+            VOTableResource vres = new VOTableResource("results");
+            vres.setTable(vtab);
+            final VOTableDocument doc = new VOTableDocument();
+            doc.getResources().add(vres);
+
+            // create
+            URL tableURL = new URL(certTablesURL.toExternalForm() + "/" + testTable);
+            OutputStreamWrapper src = new OutputStreamWrapper() {
+                @Override
+                public void write(OutputStream out) throws IOException {
+                    VOTableWriter w = new VOTableWriter(VOTableWriter.SerializationType.TABLEDATA);
+                    w.write(doc, out);
+                }
+            };
+            HttpUpload put = new HttpUpload(src, tableURL);
+            put.setRequestProperty("Content-Type", TablesInputHandler.VOTABLE_TYPE);
+            Subject.doAs(schemaOwner, (PrivilegedExceptionAction<Object>) () -> {
+                put.prepare();
+                return null;
+            });
+
+            Assert.assertNull("throwable", put.getThrowable());
+            Assert.assertEquals("response code", 200, put.getResponseCode());
+
+            String content = new String(put.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            Assert.assertEquals(5,content.split("\n").length);
+            Assert.assertTrue(content.startsWith("warnings:")); // Confirms that WARNINGS did not fail the request
+            Assert.assertTrue(content.contains("em.IR.K.Brgamma"));
+            Assert.assertTrue(content.contains("k/s"));
+            Assert.assertFalse(content.contains("obs.atmos.turbulence.isoplanatic"));
+            Assert.assertTrue(content.contains("func(10 Hz)"));
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
