@@ -694,7 +694,7 @@ public class CreateTableTest extends AbstractTablesTest {
 
             VOTableField invalidFieldDetails2 = new VOTableField("InvalidField2", TapDataType.DOUBLE.getDatatype());
             invalidFieldDetails2.ucd = "obs.atmos.turbulence.isoplanatic"; // Valid
-            invalidFieldDetails2.unit = "func(10 Hz)"; // quoted/unknwon unit
+            invalidFieldDetails2.unit = "func(10 Hz)"; // unknown unit
             vtab.getFields().add(invalidFieldDetails2);
 
             //-----

@@ -248,7 +248,6 @@ public class YoucatInitAction extends InitAction {
         if (raw == null || raw.isEmpty() || raw.equals("default")) {
             return ValidatorConfig.defaultConfig();
         } else if (raw.equals("pedantic")) {
-            System.out.println("===============PEDANTIC==========");
             return ValidatorConfig.pedantic();
         } else if (raw.equals("strict")) {
             return ValidatorConfig.strict();
