@@ -72,6 +72,7 @@ import ca.nrc.cadc.dali.tables.votable.VOTableField;
 import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.tap.schema.validator.ValidationResult;
+import ca.nrc.cadc.tap.schema.validator.ValidatorConfig;
 import ca.nrc.cadc.tap.schema.validator.Violation;
 import ca.nrc.cadc.tap.schema.validator.adql.ReservedKeyword;
 import ca.nrc.cadc.tap.schema.validator.ucd.UCDValidator;
@@ -284,7 +285,7 @@ public class TapSchemaUtil {
      * @return a String including all the Warnings.
      * @throws IllegalArgumentException with collected errors and warnings if errors are found.
      */
-    public static String validateTableDesc(TableDesc td) {
+    public static String validateTableDesc(TableDesc td, ValidatorConfig config) {
         StringBuilder errors = new StringBuilder();
         StringBuilder warnings = new StringBuilder();
 
@@ -300,7 +301,7 @@ public class TapSchemaUtil {
         }
 
         UCDValidator ucdValidator = new UCDValidator();
-        VOUnitValidator voUnitValidator = new VOUnitValidator();
+        VOUnitValidator voUnitValidator = new VOUnitValidator(config);
 
         for (ColumnDesc cd : td.getColumnDescs()) {
             try {
@@ -319,7 +320,9 @@ public class TapSchemaUtil {
                 if (!ucdResult.isValid() || !ucdResult.getViolations().isEmpty()) {
                     for (Violation v : ucdResult.getViolations()) {
                         String line = "ucd \"" + cd.ucd + "\": " + v.getMessage() + "\n";
-                        if (v.getSeverity() == Violation.Severity.ERROR) {
+                        // TODO: Finalize way to inject severity or not inject at all in Violation
+                        Violation.Severity severity = config.severityFor(v.getViolationType());
+                        if (severity == Violation.Severity.ERROR) {
                             errors.append(line);
                         } else {
                             warnings.append(line);
@@ -332,7 +335,8 @@ public class TapSchemaUtil {
                 if (!unitResult.isValid() || !unitResult.getViolations().isEmpty()) {
                     for (Violation v : unitResult.getViolations()) {
                         String line = "unit \"" + cd.unit + "\": " + v.getMessage() + "\n";
-                        if (v.getSeverity() == Violation.Severity.ERROR) {
+                        Violation.Severity severity = config.severityFor(v.getViolationType());
+                        if (severity == Violation.Severity.ERROR) {
                             errors.append(line);
                         } else {
                             warnings.append(line);

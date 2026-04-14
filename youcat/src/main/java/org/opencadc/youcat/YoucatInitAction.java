@@ -74,12 +74,15 @@ import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.rest.InitAction;
 import ca.nrc.cadc.tap.DefaultTableWriter;
 import ca.nrc.cadc.tap.schema.InitDatabaseTS;
+import ca.nrc.cadc.tap.schema.validator.ValidatorConfig;
+import ca.nrc.cadc.tap.schema.validator.ViolationType;
 import ca.nrc.cadc.util.InvalidConfigException;
 import ca.nrc.cadc.util.MultiValuedProperties;
 import ca.nrc.cadc.util.PropertiesReader;
 import ca.nrc.cadc.uws.server.impl.InitDatabaseUWS;
 import ca.nrc.cadc.vosi.actions.DeleteAction;
 import ca.nrc.cadc.vosi.actions.TablesAction;
+import java.util.EnumSet;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.security.auth.Subject;
@@ -98,6 +101,7 @@ public class YoucatInitAction extends InitAction {
     private static final String YOUCAT_CREATE = YOUCAT + ".createSchemaInDB";
     private static final String DEFAULT_VOTABLE_SERIALIZATION_KEY = YOUCAT + ".defaultVOTableSerialization";
     private static final String DELETED_SCHEMA_KEY = YOUCAT + ".deletedSchemaName";
+    private static final String METADATA_VALIDATION_STRICTNESS_KEY = YOUCAT + ".metadataValidationStrictness";
 
     private String jndiAdminKey;
     private String jndiCreateSchemaKey;
@@ -105,7 +109,8 @@ public class YoucatInitAction extends InitAction {
     private Boolean createSchemaInDB = false;
     private String defaultVOTableSerialization = null;
     private String deletedSchemaName = null;
-    
+    private String metadataValidationStrictness = null;
+
     public YoucatInitAction() { 
     }
 
@@ -181,6 +186,15 @@ public class YoucatInitAction extends InitAction {
             sb.append(deletedSchemaValue).append(" OK");
             deletedSchemaName = deletedSchemaValue;
         }
+
+        String metadataValidationStrictnessValue = mvp.getFirstPropertyValue(METADATA_VALIDATION_STRICTNESS_KEY);
+        sb.append("\n\t").append(METADATA_VALIDATION_STRICTNESS_KEY).append(": ");
+        if (metadataValidationStrictnessValue == null) {
+            sb.append("null (default)");
+        } else {
+            sb.append(metadataValidationStrictnessValue).append(" OK");
+            metadataValidationStrictness = metadataValidationStrictnessValue;
+        }
         
         log.info("init:" + sb.toString());
         
@@ -219,13 +233,39 @@ public class YoucatInitAction extends InitAction {
             InitDatabaseUWS uwsi = new InitDatabaseUWS(uws, null, "uws");
             uwsi.doInit();
             log.info("InitDatabaseUWS: OK");
-            
+
             DefaultTableWriter.setDefaultVOTableSerialization(defaultVOTableSerialization);
             DeleteAction.setDeletedSchemaName(deletedSchemaName);
 
+            //TablesAction.validatorConfig = prepareValidatorConfig(metadataValidationStrictness);
+            TablesAction.setValidatorConfig(prepareValidatorConfig(metadataValidationStrictness));
         } catch (Exception ex) {
             throw new RuntimeException("INIT FAIL: " + ex.getMessage(), ex);
         }
+    }
+
+    private static ValidatorConfig prepareValidatorConfig(String raw) {
+        if (raw == null || raw.isEmpty() || raw.equals("default")) {
+            return ValidatorConfig.defaultConfig();
+        } else if (raw.equals("pedantic")) {
+            System.out.println("===============PEDANTIC==========");
+            return ValidatorConfig.pedantic();
+        } else if (raw.equals("strict")) {
+            return ValidatorConfig.strict();
+        } else if (raw.startsWith("custom")) {
+            raw = raw.replaceAll("custom", "").replaceAll("\\(", "").replaceAll("\\)", "");
+            EnumSet<ViolationType> kinds = EnumSet.noneOf(ViolationType.class);
+            for (String token : raw.split("[,\\s]+")) {
+                token = token.trim();
+                if (!token.isEmpty()) {
+                    kinds.add(ViolationType.valueOf(token));
+                }
+            }
+            return ValidatorConfig.of(kinds.toArray(new ViolationType[0]));
+        } else {
+            throw new IllegalArgumentException("Invalid validator config: " + raw);
+        }
+
     }
 
     @Override

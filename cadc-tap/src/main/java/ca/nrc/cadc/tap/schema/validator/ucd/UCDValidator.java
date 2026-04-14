@@ -68,13 +68,13 @@
 package ca.nrc.cadc.tap.schema.validator.ucd;
 
 import ca.nrc.cadc.tap.schema.validator.ValidationResult;
+import ca.nrc.cadc.tap.schema.validator.ValidatorConfig;
 import ca.nrc.cadc.tap.schema.validator.Violation;
-
+import ca.nrc.cadc.tap.schema.validator.ViolationType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
-
 import org.apache.log4j.Logger;
 
 /**
@@ -92,8 +92,17 @@ public final class UCDValidator {
     private static final Pattern WORD_PATTERN =
             Pattern.compile("[A-Za-z][A-Za-z0-9]*(\\.[A-Za-z0-9][A-Za-z0-9\\-]*)*");
 
+    private final ValidatorConfig config;
+
     public UCDValidator() {
+        this(ValidatorConfig.defaultConfig());
+
     }
+
+    public UCDValidator(ValidatorConfig config) {
+        this.config = config;
+    }
+
 
     /**
      * Validates a UCD1+ string and returns a detailed result.
@@ -106,18 +115,18 @@ public final class UCDValidator {
         List<Violation> violations = new ArrayList<>();
 
         if (ucd == null || ucd.isBlank()) {
-            violations.add(new Violation(Violation.Severity.ERROR, "UCD must not be null or blank"));
+            violations.add(new Violation(config.severityFor(ViolationType.NULL_OR_BLANK), ViolationType.NULL_OR_BLANK, "UCD must not be null or blank"));
             return new ValidationResult(ucd, violations);
         }
 
         if (ucd.startsWith(";") || ucd.endsWith(";")) {
-            violations.add(new Violation(Violation.Severity.ERROR, "UCD must not start or end with a semicolon"));
+            violations.add(new Violation(config.severityFor(ViolationType.STRUCTURAL), ViolationType.STRUCTURAL, "UCD must not start or end with a semicolon"));
         }
 
         // split into individual words
         String[] words = ucd.split(";", -1);
-        if (words.length == 0) {
-            violations.add(new Violation(Violation.Severity.ERROR, "UCD contains no words"));
+        if (words.length == 0) { // TODO: This should be a bug as this case is not possible
+            violations.add(new Violation(config.severityFor(ViolationType.NULL_OR_BLANK), ViolationType.NULL_OR_BLANK, "UCD contains no words"));
             return new ValidationResult(ucd, violations);
         }
 
@@ -125,7 +134,7 @@ public final class UCDValidator {
             String word = words[i];
 
             if (!WORD_PATTERN.matcher(word).matches()) {
-                violations.add(new Violation(Violation.Severity.ERROR,
+                violations.add(new Violation(config.severityFor(ViolationType.STRUCTURAL), ViolationType.STRUCTURAL,
                         "Word \"" + word + "\" at position " + (i + 1)
                                 + " does not match the allowed UCD token pattern "
                                 + "[A-Za-z][A-Za-z0-9]*(\\.[A-Za-z0-9][A-Za-z0-9-]*)* "));
@@ -134,12 +143,14 @@ public final class UCDValidator {
 
             Optional<UCDWord> vocabEntry = UCDVocabulary.lookup(word);
             if (vocabEntry.isEmpty()) {
-                violations.add(new Violation(Violation.Severity.ERROR, "Word \"" + word + "\" at position " + (i + 1)
+                violations.add(new Violation(config.severityFor(ViolationType.UCD_UNKNOWN_WORD), ViolationType.UCD_UNKNOWN_WORD,
+                        "Word \"" + word + "\" at position " + (i + 1)
                         + " is not in the IVOA UCD1+ controlled vocabulary"));
                 continue;
             }
             if (vocabEntry.get().isDeprecated()) {
-                violations.add(new Violation(Violation.Severity.WARNING, "Word \"" + word + "\" at position " + (i + 1)
+                violations.add(new Violation(config.severityFor(ViolationType.UCD_DEPRECATED_WORD), ViolationType.UCD_DEPRECATED_WORD,
+                        "Word \"" + word + "\" at position " + (i + 1)
                         + " is deprecated. Suggested replacement: " + vocabEntry.get().getReplacement() + "."));
                 continue;
             }
@@ -149,7 +160,7 @@ public final class UCDValidator {
 
             // primary word must not be S-only
             if (isPrimary && !ucdWord.canBePrimary()) {
-                violations.add(new Violation(Violation.Severity.ERROR,
+                violations.add(new Violation(config.severityFor(ViolationType.UCD_PRIMARY_POSITION), ViolationType.UCD_PRIMARY_POSITION,
                         "Word \"" + word + "\" has syntax flag "
                                 + ucdWord.getFlag().name()
                                 + " (secondary-only) and cannot be used as the primary word"));
@@ -157,7 +168,7 @@ public final class UCDValidator {
 
             // secondary word must not be P-only
             if (!isPrimary && !ucdWord.canBeSecondary()) {
-                violations.add(new Violation(Violation.Severity.ERROR,
+                violations.add(new Violation(config.severityFor(ViolationType.UCD_SECONDARY_POSITION), ViolationType.UCD_SECONDARY_POSITION,
                         "Word \"" + word + "\" at position " + (i + 1)
                                 + " has syntax flag " + ucdWord.getFlag().name()
                                 + " (primary-only) and cannot be used as a secondary word"));
