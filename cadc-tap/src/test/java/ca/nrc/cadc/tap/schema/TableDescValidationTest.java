@@ -68,13 +68,16 @@
 package ca.nrc.cadc.tap.schema;
 
 import java.util.List;
+
+import ca.nrc.cadc.tap.schema.validator.IdentifierValidator;
+import ca.nrc.cadc.tap.schema.validator.Violation;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class TableDescValidationTest {
 
     // Validates Schema name, table name and column names are valid identifiers.
-    @Test
+    /*@Test
     public void testIdentifiers() {
         List<String> validIdentifiers = List.of("colName", "col_type", "col123");
         validIdentifiers.forEach(i -> {
@@ -93,6 +96,22 @@ public class TableDescValidationTest {
             } catch (ADQLIdentifierException e) {
                 // expected
             }
+        });
+    }*/
+
+    @Test
+    public void testIdentifiers() {
+        IdentifierValidator validator = new IdentifierValidator();
+        List<String> validIdentifiers = List.of("colName", "col_type", "col123");
+        validIdentifiers.forEach(i -> {
+            List<Violation> violations = validator.checkValidIdentifier(i, IdentifierValidator.IdentifierType.COLUMN_NAME);
+            Assert.assertTrue(violations.isEmpty());
+        });
+
+        List<String> invalidIdentifiers = List.of("names", "key", "Session", "\"colName\"", "'colName'", "col-name");
+        invalidIdentifiers.forEach(i -> {
+            List<Violation> violations = validator.checkValidIdentifier(i, IdentifierValidator.IdentifierType.COLUMN_NAME);
+            Assert.assertFalse(violations.isEmpty());
         });
     }
 }

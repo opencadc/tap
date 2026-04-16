@@ -6,6 +6,11 @@ public enum ViolationType {
     NULL_OR_BLANK,
     STRUCTURAL,
 
+    // --- IDENTIFIER ---
+    IDENTIFIER_INVALID_CHAR,
+    IDENTIFIER_QUOTED, // e.g. "Size" which is a reserved keyword but can be used with quotes
+    IDENTIFIER_RESERVED_KEYWORD,
+
     // --- UCD ---
     UCD_UNKNOWN_WORD, // word not in IVOA controlled vocabulary
     UCD_DEPRECATED_WORD, // word is in vocabulary but deprecated

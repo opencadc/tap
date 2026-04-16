@@ -10,16 +10,20 @@ import java.util.Set;
  */
 public class ValidatorConfig {
 
+    public enum Severity {
+        ERROR, WARNING
+    }
+
     /** Kinds that are structurally mandatory — can never be warnings. */
     private static final Set<ViolationType> ALWAYS_ERRORS = Collections.unmodifiableSet(
-            EnumSet.of(ViolationType.NULL_OR_BLANK, ViolationType.STRUCTURAL));
+            EnumSet.of(ViolationType.NULL_OR_BLANK, ViolationType.STRUCTURAL, ViolationType.IDENTIFIER_RESERVED_KEYWORD));
 
-    private final Set<ViolationType> errorKinds;
+    private final Set<ViolationType> errorTypes;
 
-    private ValidatorConfig(Set<ViolationType> errorKinds) {
+    private ValidatorConfig(Set<ViolationType> errorTypes) {
         EnumSet<ViolationType> merged = EnumSet.copyOf(ALWAYS_ERRORS);
-        merged.addAll(errorKinds);
-        this.errorKinds = Collections.unmodifiableSet(merged);
+        merged.addAll(errorTypes);
+        this.errorTypes = Collections.unmodifiableSet(merged);
     }
 
     // factories
@@ -52,10 +56,10 @@ public class ValidatorConfig {
     }
 
     public boolean isError(ViolationType violationType) {
-        return errorKinds.contains(violationType);
+        return errorTypes.contains(violationType);
     }
 
-    public Violation.Severity severityFor(ViolationType violationType) {
-        return isError(violationType) ? Violation.Severity.ERROR : Violation.Severity.WARNING;
+    public Severity severityFor(ViolationType violationType) {
+        return isError(violationType) ? Severity.ERROR : Severity.WARNING;
     }
 }

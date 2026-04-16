@@ -156,23 +156,22 @@ public class VOUnitValidator {
         List<Violation> violations = new ArrayList<>();
 
         if (vounit == null || vounit.trim().isEmpty()) {
-            violations.add(new Violation(config.severityFor(ViolationType.NULL_OR_BLANK), ViolationType.NULL_OR_BLANK,
-                    "VOUnit string must not be null or blank."));
-            return new ValidationResult(null, violations);
+            violations.add(new Violation(ViolationType.NULL_OR_BLANK, "VOUnit string must not be null or blank."));
+            return new ValidationResult(null, violations, config);
         }
         String trimmed = vounit.trim();
         try {
             ParseState s = new ParseState(trimmed);
             parseInput(s, violations);
             if (!s.done()) {
-                violations.add(new Violation(config.severityFor(ViolationType.STRUCTURAL), ViolationType.STRUCTURAL,
+                violations.add(new Violation(ViolationType.STRUCTURAL,
                         "Unexpected character(s) at position " + s.pos + ": '" + trimmed.substring(s.pos) + "'"));
-                return new ValidationResult(vounit, violations);
+                return new ValidationResult(vounit, violations, config);
             }
-            return new ValidationResult(vounit, violations);
-        } catch (IllegalArgumentException ex) { // TODO: Check on violation kind
-            violations.add(new Violation(config.severityFor(ViolationType.STRUCTURAL), ViolationType.STRUCTURAL, ex.getMessage()));
-            return new ValidationResult(vounit, violations);
+            return new ValidationResult(vounit, violations, config);
+        } catch (IllegalArgumentException ex) {
+            violations.add(new Violation(ViolationType.STRUCTURAL, ex.getMessage()));
+            return new ValidationResult(vounit, violations, config);
         }
     }
 
@@ -269,7 +268,7 @@ public class VOUnitValidator {
             if (afterSym < s.input.length() && s.input.charAt(afterSym) == '(') {
                 // This is a function_application: STRING OPEN_P function_operand CLOSE_P
                 if (!token.type.equals(TokenType.FUNC)) {
-                    violations.add(new Violation(config.severityFor(ViolationType.VOUNIT_UNKNOWN_FUNCTION), ViolationType.VOUNIT_UNKNOWN_FUNCTION,
+                    violations.add(new Violation(ViolationType.VOUNIT_UNKNOWN_FUNCTION,
                             "Expected a function name. Unknown function : " + token.value + " found at position " + s.pos));
                 }
                 s.pos += token.value.length(); // consume function name
@@ -426,8 +425,7 @@ public class VOUnitValidator {
         if (s.current() == '\'') {
             int qp = s.pos;
             parseQuotedString(s);
-            violations.add(new Violation(config.severityFor(ViolationType.VOUNIT_QUOTED_IDENTIFIER), ViolationType.VOUNIT_QUOTED_IDENTIFIER,
-                    "Quoted unit string found : " + s.input.substring(qp + 1, s.pos - 1)));
+            violations.add(new Violation(ViolationType.VOUNIT_QUOTED_IDENTIFIER, "Quoted unit string found : " + s.input.substring(qp + 1, s.pos - 1)));
             return;
         }
 
@@ -439,13 +437,12 @@ public class VOUnitValidator {
         if (token.type.equals(TokenType.UNIT)) {
             String actualInput = s.input.substring(s.pos, s.pos + token.value.length());
             if (!actualInput.equals(token.value)) {
-                violations.add(new Violation(config.severityFor(ViolationType.VOUNIT_CASE_SENSITIVE), ViolationType.VOUNIT_CASE_SENSITIVE,
+                violations.add(new Violation(ViolationType.VOUNIT_CASE_SENSITIVE,
                         "Unit symbol casing mismatch: found '" + actualInput
                                 + "' but expected canonical form '" + token.value + "'."));
             }
         } else {
-            violations.add(new Violation(config.severityFor(ViolationType.VOUNIT_UNKNOWN_UNIT), ViolationType.VOUNIT_UNKNOWN_UNIT,
-                    "Unit symbol expected. Found : '" + token.value + "' at position " + s.pos));
+            violations.add(new Violation(ViolationType.VOUNIT_UNKNOWN_UNIT, "Unit symbol expected. Found : '" + token.value + "' at position " + s.pos));
         }
         s.pos += token.value.length();
 
@@ -453,8 +450,7 @@ public class VOUnitValidator {
         if (!s.done() && s.current() == '\'') {
             int qp = s.pos;
             parseQuotedString(s);
-            violations.add(new Violation(config.severityFor(ViolationType.VOUNIT_QUOTED_IDENTIFIER), ViolationType.VOUNIT_QUOTED_IDENTIFIER,
-                    "Quoted unit string found : " + s.input.substring(qp + 1, s.pos + 1)));
+            violations.add(new Violation(ViolationType.VOUNIT_QUOTED_IDENTIFIER, "Quoted unit string found : " + s.input.substring(qp + 1, s.pos + 1)));
         }
     }
 

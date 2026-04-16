@@ -237,14 +237,13 @@ public class YoucatInitAction extends InitAction {
             DefaultTableWriter.setDefaultVOTableSerialization(defaultVOTableSerialization);
             DeleteAction.setDeletedSchemaName(deletedSchemaName);
 
-            //TablesAction.validatorConfig = prepareValidatorConfig(metadataValidationStrictness);
             TablesAction.setValidatorConfig(prepareValidatorConfig(metadataValidationStrictness));
         } catch (Exception ex) {
             throw new RuntimeException("INIT FAIL: " + ex.getMessage(), ex);
         }
     }
 
-    private static ValidatorConfig prepareValidatorConfig(String raw) {
+    private ValidatorConfig prepareValidatorConfig(String raw) {
         if (raw == null || raw.isEmpty() || raw.equals("default")) {
             return ValidatorConfig.defaultConfig();
         } else if (raw.equals("pedantic")) {
@@ -253,14 +252,14 @@ public class YoucatInitAction extends InitAction {
             return ValidatorConfig.strict();
         } else if (raw.startsWith("custom")) {
             raw = raw.replaceAll("custom", "").replaceAll("\\(", "").replaceAll("\\)", "");
-            EnumSet<ViolationType> kinds = EnumSet.noneOf(ViolationType.class);
+            EnumSet<ViolationType> types = EnumSet.noneOf(ViolationType.class);
             for (String token : raw.split("[,\\s]+")) {
                 token = token.trim();
                 if (!token.isEmpty()) {
-                    kinds.add(ViolationType.valueOf(token));
+                    types.add(ViolationType.valueOf(token));
                 }
             }
-            return ValidatorConfig.of(kinds.toArray(new ViolationType[0]));
+            return ValidatorConfig.of(types.toArray(new ViolationType[0]));
         } else {
             throw new IllegalArgumentException("Invalid validator config: " + raw);
         }

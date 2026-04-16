@@ -9,10 +9,10 @@ public class ValidationResult {
     private final boolean valid; // Constructor sets it to true if there is no violation of type ERROR
     private final List<Violation> violations;
 
-    public ValidationResult(String input, List<Violation> violations) {
+    public ValidationResult(String input, List<Violation> violations, ValidatorConfig config) {
         this.input = input;
         this.violations = Collections.unmodifiableList(violations);
-        this.valid = violations.stream().noneMatch(v -> v.getSeverity() == Violation.Severity.ERROR);
+        this.valid = violations.stream().noneMatch(v -> config.severityFor(v.getViolationType()) == ValidatorConfig.Severity.ERROR);
     }
 
     public String getInput() {
@@ -25,16 +25,6 @@ public class ValidationResult {
 
     public List<Violation> getViolations() {
         return violations;
-    }
-
-    @Override
-    public String toString() {
-        if (valid) {
-            return "VALID: \"" + input + "\"";
-        }
-        StringBuilder sb = new StringBuilder("INVALID: \"").append(input).append("\"\n");
-        violations.forEach(v -> sb.append("  ").append(v).append("\n"));
-        return sb.toString().stripTrailing();
     }
 
 }

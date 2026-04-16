@@ -92,7 +92,7 @@ public class UCDValidatorTest {
 
     @Test
     public void testUCD() {
-        UCDValidator validator = new UCDValidator();
+        UCDValidator validator = new UCDValidator(ValidatorConfig.pedantic());
 
         List<String> validUCDs = List.of(
                 "phot.flux",
@@ -108,7 +108,8 @@ public class UCDValidatorTest {
                 "abc", // unknown
                 "em.UV;arith.grad", // S, P
                 "arith.rate;arith.factor", // P, P - Primary-only word in the secondary position
-                "em.radio" // S - secondary-only word in the primary position
+                "em.radio", // S - secondary-only word in the primary position
+                "em.IR.K.Brgamma" // Deprecated word
         );
 
         for (String ucd : validUCDs) {
