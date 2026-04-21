@@ -120,8 +120,8 @@ The youcat.properties configures some admin and optional functions of the servic
 # (optional) move deleted table to alternate schema before cleanup
 #org.opencadc.youcat.deletedSchemaName = {schema}
 
-# (optional) strictness of metadata validation (default: set by the cadc-tap-schema library)
-org.opencadc.youcat.metadataValidationStrictness = pedantic
+# (optional) strictness of metadata validation (default: default)
+org.opencadc.youcat.metadataValidationStrictness = {strictness-level}
 ```
 The optional _adminUser_ (configured using the network identity) can use the youcat API to create a 
 new schema for a user. This will add the schema to the `tap_schema.schemas` table with the 
