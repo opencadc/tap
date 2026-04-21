@@ -119,6 +119,9 @@ The youcat.properties configures some admin and optional functions of the servic
 
 # (optional) move deleted table to alternate schema before cleanup
 #org.opencadc.youcat.deletedSchemaName = {schema}
+
+# (optional) strictness of metadata validation (default: set by the cadc-tap-schema library)
+org.opencadc.youcat.metadataValidationStrictness = pedantic
 ```
 The optional _adminUser_ (configured using the network identity) can use the youcat API to create a 
 new schema for a user. This will add the schema to the `tap_schema.schemas` table with the 
@@ -144,6 +147,54 @@ steps fail, the refuse will be invisible via the API but will remain in the user
 default. Configuring a _deletedSchemaName_ will cause the rename to also change the schema name
 so that it is easier for the operator to detect and cleanup when the automatic cleanup fails
 **[new in version 0.9.0]**
+
+The optional _metadataValidationStrictness_ configures the strictness of metadata validation. 
+If not specified, `default` will be configured by the service.
+Accepted values are:
+
+| Value                     | Description                                                     |
+|---------------------------|-----------------------------------------------------------------|
+| `pedantic`                | Fail on all errors **and** warnings                             |
+| `strict`                  | Fail on null or blank identifiers and structural errors only    |
+| `custom(<LIST_OF_RULES>)` | Fail only on the explicitly listed rules (see below)            |
+| `default`                 | Use the default strictness set by the `cadc-tap-schema` library |
+
+#### Custom Rules
+
+When using `custom(...)`, one or more of the following rule names may be specified as a comma-separated list:
+
+**Basic rules(Applied to all the configuration)**
+
+| Rule                          | Description                                                                      |
+|-------------------------------|----------------------------------------------------------------------------------|
+| `NULL_OR_BLANK`               | Identifier is null or blank                                                      |
+| `STRUCTURAL`                  | Structural errors (e.g. starts with a digit, contains spaces, odd quotes count)  |
+
+**Identifier rules**
+
+| Rule                          | Description                                                                      |
+|-------------------------------|----------------------------------------------------------------------------------|
+| `IDENTIFIER_INVALID_CHAR`     | Identifier contains an invalid character                                         |
+| `IDENTIFIER_QUOTED`           | Identifier is double-quoted (e.g. `"Size"`, a reserved keyword used with quotes) |
+| `IDENTIFIER_RESERVED_KEYWORD` | Identifier is a reserved SQL/ADQL keyword                                        |
+
+**UCD rules**
+
+| Rule                     | Description                                   |
+|--------------------------|-----------------------------------------------|
+| `UCD_UNKNOWN_WORD`       | Word is not in the IVOA controlled vocabulary |
+| `UCD_DEPRECATED_WORD`    | Word is in the vocabulary but deprecated      |
+| `UCD_PRIMARY_POSITION`   | S-only word used as primary                   |
+| `UCD_SECONDARY_POSITION` | P-only word used as secondary                 |
+
+**VOUnit rules**
+
+| Rule                       | Description                                                |
+|----------------------------|------------------------------------------------------------|
+| `VOUNIT_QUOTED_IDENTIFIER` | Unit contains a quoted identifier (e.g. `'furlong'`)       |
+| `VOUNIT_UNKNOWN_UNIT`      | Unrecognised base unit                                     |
+| `VOUNIT_UNKNOWN_FUNCTION`  | Unrecognised unit function                                 |
+| `VOUNIT_CASE_SENSITIVE`    | Unit violates case-sensitivity (e.g. `hz` instead of `Hz`) |
 
 As hard-coded behaviours of `youcat` are extracted from the build and made configurable,
 the configuration options will usually be in this file (see **development plans** below).
