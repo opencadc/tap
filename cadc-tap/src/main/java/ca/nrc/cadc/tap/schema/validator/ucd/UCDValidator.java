@@ -95,7 +95,7 @@ public final class UCDValidator {
     private final ValidatorConfig config;
 
     public UCDValidator() {
-        this(ValidatorConfig.defaultConfig());
+        this(ValidatorConfig.lax());
 
     }
 
@@ -125,7 +125,7 @@ public final class UCDValidator {
 
         // split into individual words
         String[] words = ucd.split(";", -1);
-        if (words.length == 0) { // TODO: This should be a bug as this case is not possible
+        if (words.length == 0) {
             violations.add(new Violation(ViolationType.NULL_OR_BLANK, "UCD contains no words"));
             return new ValidationResult(ucd, violations, config);
         }
@@ -135,7 +135,7 @@ public final class UCDValidator {
 
             if (!WORD_PATTERN.matcher(word).matches()) {
                 violations.add(new Violation(ViolationType.STRUCTURAL,
-                        "Word \"" + word + "\" at position " + (i + 1)
+                        "Word '" + word + "' at position " + (i + 1)
                                 + " does not match the allowed UCD token pattern "
                                 + "[A-Za-z][A-Za-z0-9]*(\\.[A-Za-z0-9][A-Za-z0-9-]*)* "));
                 continue;
@@ -144,13 +144,13 @@ public final class UCDValidator {
             Optional<UCDWord> vocabEntry = UCDVocabulary.lookup(word);
             if (vocabEntry.isEmpty()) {
                 violations.add(new Violation(ViolationType.UCD_UNKNOWN_WORD,
-                        "Word \"" + word + "\" at position " + (i + 1)
+                        "Word '" + word + "' at position " + (i + 1)
                         + " is not in the IVOA UCD1+ controlled vocabulary"));
                 continue;
             }
             if (vocabEntry.get().isDeprecated()) {
                 violations.add(new Violation(ViolationType.UCD_DEPRECATED_WORD,
-                        "Word \"" + word + "\" at position " + (i + 1)
+                        "Word '" + word + "' at position " + (i + 1)
                         + " is deprecated. Suggested replacement: " + vocabEntry.get().getReplacement() + "."));
                 continue;
             }
@@ -160,16 +160,16 @@ public final class UCDValidator {
 
             // primary word must not be S-only
             if (isPrimary && !ucdWord.canBePrimary()) {
-                violations.add(new Violation(ViolationType.UCD_PRIMARY_POSITION,
-                        "Word \"" + word + "\" has syntax flag "
+                violations.add(new Violation(ViolationType.UCD_POSITION_MISMATCH,
+                        "Word '" + word + "' has syntax flag "
                                 + ucdWord.getFlag().name()
                                 + " (secondary-only) and cannot be used as the primary word"));
             }
 
             // secondary word must not be P-only
             if (!isPrimary && !ucdWord.canBeSecondary()) {
-                violations.add(new Violation(ViolationType.UCD_SECONDARY_POSITION,
-                        "Word \"" + word + "\" at position " + (i + 1)
+                violations.add(new Violation(ViolationType.UCD_POSITION_MISMATCH,
+                        "Word '" + word + "' at position " + (i + 1)
                                 + " has syntax flag " + ucdWord.getFlag().name()
                                 + " (primary-only) and cannot be used as a secondary word"));
             }

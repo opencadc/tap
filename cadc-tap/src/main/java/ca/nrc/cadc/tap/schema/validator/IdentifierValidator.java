@@ -1,5 +1,6 @@
 package ca.nrc.cadc.tap.schema.validator;
 
+import ca.nrc.cadc.tap.schema.TapSchemaUtil;
 import ca.nrc.cadc.tap.schema.validator.adql.ReservedKeyword;
 
 import java.util.ArrayList;
@@ -11,19 +12,34 @@ public class IdentifierValidator {
         SCHEMA_NAME, TABLE_NAME, COLUMN_NAME
     }
 
+    private final ValidatorConfig config;
+
+    public IdentifierValidator() {
+        this(ValidatorConfig.lax());
+    }
+
+    public IdentifierValidator(ValidatorConfig config) {
+        this.config = config;
+    }
+
     /**
      * Validates that the given String is a valid ADQL identifier.
      *
      * @param identifier String to be tested.
      */
-    public List<Violation> checkValidIdentifier(String identifier, IdentifierType identifierType) {
+    public ValidationResult checkValidIdentifier(String identifier, IdentifierType identifierType) {
 
         List<Violation> violations = new ArrayList<>();
 
         // identifier shouldn't be null and cannot be an empty string.
         if (identifier == null || identifier.trim().isEmpty()) {
             violations.add(new Violation(ViolationType.NULL_OR_BLANK, "Identifier is null or empty"));
-            return violations;
+            return new ValidationResult(identifier, violations, config);
+        }
+
+        // Identifier cannot be a reserved keyword.
+        if (ReservedKeyword.isReserved(identifier)) {
+            violations.add(new Violation(ViolationType.IDENTIFIER_RESERVED_KEYWORD, "Identifier '" + identifier + "' is a reserved keyword."));
         }
 
         // identifier cannot start with, contain, or end, with a space.
@@ -33,52 +49,27 @@ public class IdentifierValidator {
         }
 
         if (identifierType.equals(IdentifierType.COLUMN_NAME) && identifier.startsWith("\"") && identifier.endsWith("\"")) {
-            violations.add(new Violation(ViolationType.IDENTIFIER_QUOTED, "Identifier is double quoted"));
+            violations.add(new Violation(ViolationType.IDENTIFIER_QUOTED,
+                    "Identifier is double quoted. Defining identifiers using double quotes is discouraged."));
             identifier = identifier.substring(1, identifier.length() - 1);
         }
 
         // identifier must start with a letter {aA-zZ}.
-        if (!isAsciiLetter(identifier.charAt(0))) {
+        if (!TapSchemaUtil.isAsciiLetter(identifier.charAt(0))) {
             violations.add(new Violation(ViolationType.STRUCTURAL, "Identifier must start with a letter"));
         }
 
         // subsequent characters must be letters, underscores, or digits.
         for (int i = 1; i < identifier.length(); i++) {
-            if (!isValidIdentifierCharacter(identifier.charAt(i))) {
-                violations.add(new Violation(ViolationType.IDENTIFIER_INVALID_CHAR, "Identifier contains an invalid character " + identifier.charAt(i)));
+            if (!TapSchemaUtil.isValidIdentifierCharacter(identifier.charAt(i))) {
+                violations.add(new Violation(ViolationType.IDENTIFIER_INVALID_CHAR, "Identifier contains an invalid character '" + identifier.charAt(i) + "'"));
             }
         }
 
-        // Identifier cannot be a reserved keyword.
-        if (ReservedKeyword.isReserved(identifier)) {
-            violations.add(new Violation(ViolationType.IDENTIFIER_RESERVED_KEYWORD, "Identifier '" + identifier + "' is a reserved keyword."));
-        }
-
-        return violations;
+        return new ValidationResult(identifier, violations, config);
     }
 
-    /**
-     * Checks if the char is a valid US ASCII letter.
-     *
-     * @param c char to test.
-     * @return true if the char is valid ASCII, false otherwise.
-     */
-    public boolean isAsciiLetter(char c) {
-        return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z';
-    }
-
-    /**
-     * Checks if the char is either a US ASCII char, an underscore,
-     * of a digit.
-     *
-     * @param c char to test.
-     * @return true if the char is a valid ADQL identifier char, false otherwise.
-     */
-    public boolean isValidIdentifierCharacter(char c) {
-        return c == '_' || isAsciiLetter(c) || Character.isDigit(c);
-    }
-
-    public List<Violation> checkValidTableName(String identifier) {
+    public ValidationResult checkValidTableName(String identifier) {
         List<Violation> violations = new ArrayList<>();
         String[] parts = identifier.split("[.]");
         String schemaName = null;
@@ -88,15 +79,15 @@ public class IdentifierValidator {
             tableName = parts[1];
         } else if (parts.length > 2) {
             violations.add(new Violation(ViolationType.STRUCTURAL, "invalid table name: " + identifier + " (too many parts)"));
-            return violations;
+            return new ValidationResult(identifier, violations, config);
         }
 
         if (schemaName != null) {
-            violations.addAll(checkValidIdentifier(schemaName, IdentifierType.SCHEMA_NAME));
+            violations.addAll(checkValidIdentifier(schemaName, IdentifierType.SCHEMA_NAME).getViolations());
         }
 
-        violations.addAll(checkValidIdentifier(tableName, IdentifierType.TABLE_NAME));
-        return violations;
+        violations.addAll(checkValidIdentifier(tableName, IdentifierType.TABLE_NAME).getViolations());
+        return new ValidationResult(identifier, violations, config);
     }
 
 }

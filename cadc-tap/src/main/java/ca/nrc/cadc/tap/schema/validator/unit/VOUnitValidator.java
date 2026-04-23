@@ -141,7 +141,7 @@ public class VOUnitValidator {
     private final ValidatorConfig config;
 
     public VOUnitValidator() {
-        this(ValidatorConfig.defaultConfig());
+        this(ValidatorConfig.lax());
     }
 
     public VOUnitValidator(ValidatorConfig config) {
@@ -269,7 +269,7 @@ public class VOUnitValidator {
                 // This is a function_application: STRING OPEN_P function_operand CLOSE_P
                 if (!token.type.equals(TokenType.FUNC)) {
                     violations.add(new Violation(ViolationType.VOUNIT_UNKNOWN_FUNCTION,
-                            "Expected a function name. Unknown function : " + token.value + " found at position " + s.pos));
+                            "Expected a function name. Unknown function : '" + token.value + "' found at position " + s.pos));
                 }
                 s.pos += token.value.length(); // consume function name
                 s.pos++; // consume '('
@@ -359,8 +359,7 @@ public class VOUnitValidator {
                     s.pos++;
                 }
                 if (s.pos == expStart) {
-                    throw new IllegalArgumentException(
-                            "Expected digits after exponent marker at position " + s.pos);
+                    throw new IllegalArgumentException("Expected digits after exponent marker at position " + s.pos);
                 }
             }
         }
@@ -369,8 +368,7 @@ public class VOUnitValidator {
         if (!hasDecimal && !hasExponent) {
             if (!"1".equals(intPart) && !"10".equals(intPart)) {
                 if (intPart.charAt(0) == '0' && intPart.length() > 1) {
-                    throw new IllegalArgumentException(
-                            "Invalid scale factor '" + intPart + "': leading zeros are not allowed.");
+                    throw new IllegalArgumentException("Invalid scale factor '" + intPart + "': leading zeros are not allowed.");
                 }
             }
         }
@@ -378,8 +376,7 @@ public class VOUnitValidator {
         // VOUFLOAT pattern 1: must start with "0" — requires decimal point
         if (s.startsWith("0")) {
             if (!s.startsWith("0.")) {
-                throw new IllegalArgumentException(
-                        "Invalid VOUFLOAT: '0' must be followed by '.' and digits.");
+                throw new IllegalArgumentException("Invalid VOUFLOAT: '0' must be followed by '.' and digits.");
             }
         }
 
@@ -425,7 +422,7 @@ public class VOUnitValidator {
         if (s.current() == '\'') {
             int qp = s.pos;
             parseQuotedString(s);
-            violations.add(new Violation(ViolationType.VOUNIT_QUOTED_IDENTIFIER, "Quoted unit string found : " + s.input.substring(qp + 1, s.pos - 1)));
+            violations.add(new Violation(ViolationType.VOUNIT_QUOTED, "Quoted unit string found : " + s.input.substring(qp + 1, s.pos - 1)));
             return;
         }
 
@@ -450,7 +447,7 @@ public class VOUnitValidator {
         if (!s.done() && s.current() == '\'') {
             int qp = s.pos;
             parseQuotedString(s);
-            violations.add(new Violation(ViolationType.VOUNIT_QUOTED_IDENTIFIER, "Quoted unit string found : " + s.input.substring(qp + 1, s.pos + 1)));
+            violations.add(new Violation(ViolationType.VOUNIT_QUOTED, "Quoted unit string found : " + s.input.substring(qp + 1, s.pos + 1)));
         }
     }
 
@@ -641,6 +638,11 @@ public class VOUnitValidator {
                 String after = remaining.substring(unit.length());
                 if (isUnitTerminator(after)) {
                     if (longestMatch == null || unit.length() > longestMatch.length()) {
+                        longestMatch = unit;
+                    } else if (unit.length() == longestMatch.length()
+                            && remaining.startsWith(unit)
+                            && !remaining.startsWith(longestMatch)) {
+                        // Prefer the exact case match over a case-insensitive one
                         longestMatch = unit;
                     }
                 }

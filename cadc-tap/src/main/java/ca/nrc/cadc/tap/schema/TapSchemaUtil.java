@@ -69,16 +69,18 @@ package ca.nrc.cadc.tap.schema;
 
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableField;
+import ca.nrc.cadc.dali.tables.votable.VOTableInfo;
 import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.tap.schema.validator.IdentifierValidator;
-import ca.nrc.cadc.tap.schema.validator.ValidationResult;
 import ca.nrc.cadc.tap.schema.validator.ValidatorConfig;
 import ca.nrc.cadc.tap.schema.validator.Violation;
 import ca.nrc.cadc.tap.schema.validator.adql.ReservedKeyword;
 import ca.nrc.cadc.tap.schema.validator.ucd.UCDValidator;
 import ca.nrc.cadc.tap.schema.validator.unit.VOUnitValidator;
+
 import java.util.List;
+
 import org.apache.log4j.Logger;
 
 /**
@@ -101,30 +103,15 @@ public class TapSchemaUtil {
      * @return
      */
     public static TableDesc createTableDesc(String schemaName, String tableName, VOTableTable votable) {
-        try {
-            checkValidIdentifier(schemaName);
-        } catch (ADQLIdentifierException ex) {
-            throw new IllegalArgumentException("invalid ADQL identifier (schema name): " + schemaName, ex);
-        }
-        try {
-            checkValidTableName(tableName);
-        } catch (ADQLIdentifierException ex) {
-            throw new IllegalArgumentException("invalid ADQL identifier (table name): " + tableName, ex);
-        }
         if (votable == null) {
             throw new IllegalArgumentException("invalid input: no VOTable with column metadata");
         }
 
         TableDesc ret = new TableDesc(schemaName, tableName);
         for (VOTableField f : votable.getFields()) {
-            try {
-                checkValidIdentifier(f.getName());
-                ColumnDesc columnDesc = TapSchemaUtil.convert(tableName, f);
-                log.debug("column: " + f + " -> " + columnDesc);
-                ret.getColumnDescs().add(columnDesc);
-            } catch (ADQLIdentifierException ex) {
-                throw new IllegalArgumentException("invalid ADQL identifier (column name): " + f.getName(), ex);
-            }
+            ColumnDesc columnDesc = TapSchemaUtil.convert(tableName, f);
+            log.debug("column: " + f + " -> " + columnDesc);
+            ret.getColumnDescs().add(columnDesc);
         }
         return ret;
     }
@@ -169,7 +156,7 @@ public class TapSchemaUtil {
 
         return ret;
     }
-    
+
     public static void checkValidTableName(String identifier)  throws ADQLIdentifierException {
         String[] parts = identifier.split("[.]");
         String schemaName = null;
@@ -231,10 +218,7 @@ public class TapSchemaUtil {
      * @return true if the char is valid ASCII, false otherwise.
      */
     public static boolean isAsciiLetter(char c) {
-        if (c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z') {
-            return true;
-        }
-        return false;
+        return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z';
     }
 
     /**
@@ -245,10 +229,7 @@ public class TapSchemaUtil {
      * @return true if the char is a valid ADQL identifier char, false otherwise.
      */
     public static boolean isValidIdentifierCharacter(char c) {
-        if (c == '_' || isAsciiLetter(c) || Character.isDigit(c)) {
-            return true;
-        }
-        return false;
+        return c == '_' || isAsciiLetter(c) || Character.isDigit(c);
     }
 
     /**
@@ -256,12 +237,12 @@ public class TapSchemaUtil {
      * @param tableDesc
      * @return
      */
-    public static VOTableDocument createVOTable(TableDesc tableDesc) {
+    public static VOTableDocument createVOTable(TableDesc tableDesc, ValidatorConfig config) {
+        String errorMsg;
         try {
-            checkValidTableName(tableDesc.getTableName());
-        } catch (ADQLIdentifierException ex) {
-            throw new IllegalArgumentException("invalid ADQL identifier (table name): "
-                    + tableDesc.getTableName(), ex);
+            errorMsg = validateTableDesc(tableDesc, config);
+        } catch (IllegalArgumentException e) {
+            errorMsg = e.getMessage();
         }
 
         VOTableDocument document = new VOTableDocument();
@@ -271,13 +252,10 @@ public class TapSchemaUtil {
         resource.setTable(table);
 
         for (ColumnDesc column : tableDesc.getColumnDescs()) {
-            try {
-                checkValidIdentifier(column.getColumnName());
-                table.getFields().add(convert(column));
-            } catch (ADQLIdentifierException ex) {
-                throw new IllegalArgumentException("invalid ADQL identifier (column name): "
-                        + column.getColumnName(), ex);
-            }
+            table.getFields().add(convert(column));
+        }
+        if (errorMsg != null) {
+            table.getInfos().add(new VOTableInfo("ERRORS & WARNINGS", errorMsg));
         }
         return document;
     }
@@ -288,115 +266,77 @@ public class TapSchemaUtil {
      * @throws IllegalArgumentException with collected errors and warnings if errors are found.
      */
     public static String validateTableDesc(TableDesc td, ValidatorConfig config) {
-        int errorsCount = 0;
-        int warningsCount = 0;
-        StringBuilder errors = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
+        List<String> errors = new java.util.ArrayList<>();
+        List<String> warnings = new java.util.ArrayList<>();
         IdentifierValidator identifierValidator = new IdentifierValidator();
 
-        List<Violation> schemaNameIssues = identifierValidator.checkValidIdentifier(td.getSchemaName(), IdentifierValidator.IdentifierType.SCHEMA_NAME);
-        if (!schemaNameIssues.isEmpty()) {
-            for (Violation v : schemaNameIssues) {
-                String line = "schema name \"" + td.getSchemaName() + "\": " + v.getMessage() + "\n";
-                ValidatorConfig.Severity severity = config.severityFor(v.getViolationType());
-                if (severity == ValidatorConfig.Severity.ERROR) {
-                    errors.append(line);
-                    errorsCount++;
-                } else {
-                    warnings.append(line);
-                    warningsCount++;
-                }
-            }
-        }
+        collectViolations("schema name", td.getSchemaName(),
+                identifierValidator.checkValidIdentifier(td.getSchemaName(), IdentifierValidator.IdentifierType.SCHEMA_NAME).getViolations(),
+                config, errors, warnings);
 
-        List<Violation> tableNameIssues = identifierValidator.checkValidTableName(td.getTableName());
-        if (!tableNameIssues.isEmpty()) {
-            for (Violation v : tableNameIssues) {
-                String line = "table name \"" + td.getTableName() + "\": " + v.getMessage() + "\n";
-                ValidatorConfig.Severity severity = config.severityFor(v.getViolationType());
-                if (severity == ValidatorConfig.Severity.ERROR) {
-                    errors.append(line);
-                    errorsCount++;
-                } else {
-                    warnings.append(line);
-                    warningsCount++;
-                }
-            }
-        }
+        collectViolations("table name", td.getTableName(),
+                identifierValidator.checkValidTableName(td.getTableName()).getViolations(), config, errors, warnings);
 
         UCDValidator ucdValidator = new UCDValidator();
         VOUnitValidator voUnitValidator = new VOUnitValidator(config);
 
         for (ColumnDesc cd : td.getColumnDescs()) {
-            try {
-                checkValidIdentifier(cd.getColumnName());
-            } catch (ADQLIdentifierException e) {
-                String line = "column \"" + cd.getColumnName() + "\": " + e.getMessage() + "\n";
-                errors.append(line);
-                errorsCount++;
-            }
+            collectViolations("column name", cd.getColumnName(),
+                    identifierValidator.checkValidIdentifier(cd.getColumnName(), IdentifierValidator.IdentifierType.COLUMN_NAME).getViolations(),
+                    config, errors, warnings);
 
-            if (td.tableType.equals(TableDesc.TableType.VIEW)) {
+            // Ignore UCD and Unit validation for views and non-strict mode(e.g. none).
+            if (td.tableType.equals(TableDesc.TableType.VIEW) || config.getConfigType().equals(ValidatorConfig.ConfigType.NONE)) {
                 continue;
             }
 
             if (cd.ucd != null && !cd.ucd.isEmpty()) {
-                ValidationResult ucdResult = ucdValidator.validate(cd.ucd);
-                if (!ucdResult.isValid() || !ucdResult.getViolations().isEmpty()) {
-                    for (Violation v : ucdResult.getViolations()) {
-                        String line = "ucd \"" + cd.ucd + "\": " + v.getMessage() + "\n";
-                        ValidatorConfig.Severity severity = config.severityFor(v.getViolationType());
-                        if (severity == ValidatorConfig.Severity.ERROR) {
-                            errors.append(line);
-                            errorsCount++;
-                        } else {
-                            warnings.append(line);
-                            warningsCount++;
-                        }
-                    }
-                }
+                collectViolations("ucd", cd.ucd, ucdValidator.validate(cd.ucd).getViolations(), config, errors, warnings);
             }
             if (cd.unit != null && !cd.unit.isEmpty()) {
-                ValidationResult unitResult = voUnitValidator.validate(cd.unit);
-                if (!unitResult.isValid() || !unitResult.getViolations().isEmpty()) {
-                    for (Violation v : unitResult.getViolations()) {
-                        String line = "unit \"" + cd.unit + "\": " + v.getMessage() + "\n";
-                        ValidatorConfig.Severity severity = config.severityFor(v.getViolationType());
-                        if (severity == ValidatorConfig.Severity.ERROR) {
-                            errors.append(line);
-                            errorsCount++;
-                        } else {
-                            warnings.append(line);
-                            warningsCount++;
-                        }
-                    }
-                }
+                collectViolations("unit", cd.unit, voUnitValidator.validate(cd.unit).getViolations(), config, errors, warnings);
             }
         }
 
-        boolean hasErrors = errors.length() > 0;
-        boolean hasWarnings = warnings.length() > 0;
-
-        if (!hasErrors && !hasWarnings) {
+        if (errors.isEmpty() && warnings.isEmpty()) {
             return null;
         }
 
         StringBuilder result = new StringBuilder();
-        result.append("errors: ").append(errorsCount).append(" warnings: ").append(warningsCount).append("\n\n");
-
-        if (hasErrors) {
-            result.append("errors:\n").append(errors).append("\n");
+        result.append("errors: ").append(errors.size()).append(", warnings: ").append(warnings.size()).append("\n\n");
+        if (!errors.isEmpty()) {
+            result.append("errors:\n");
+            errors.forEach(result::append);
+            result.append("\n");
         }
-        if (hasWarnings) {
-            result.append("warnings:\n").append(warnings);
+        if (!config.getConfigType().equals(ValidatorConfig.ConfigType.NONE) && !warnings.isEmpty()) {
+            result.append("warnings:\n");
+            warnings.forEach(result::append);
         }
 
         String message = result.toString().stripTrailing();
 
-        if (hasErrors) {
-            throw new IllegalArgumentException(message); // Includes all errors and warnings
+        if (!errors.isEmpty()) {
+            throw new IllegalArgumentException(message);
         }
 
         return message;
+    }
+
+    /**
+     * Classifies each violation by severity and appends the formatted line to the appropriate list.
+     */
+    private static void collectViolations(String fieldType, String fieldValue, List<Violation> violations,
+                                          ValidatorConfig config, List<String> errors, List<String> warnings) {
+        for (Violation v : violations) {
+            String line = fieldType + " \"" + fieldValue + "\": " + v.getMessage() + "\n";
+            if (config.severityFor(v.getViolationType()) == ValidatorConfig.Severity.ERROR) {
+                errors.add(line);
+            } else {
+                if (!config.getConfigType().equals(ValidatorConfig.ConfigType.NONE)) {
+                    warnings.add(line);
+                }
+            }
+        }
     }
 }

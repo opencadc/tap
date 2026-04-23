@@ -65,52 +65,26 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.schema;
+package ca.nrc.cadc.tap.schema.validator;
 
-import java.util.List;
-
-import ca.nrc.cadc.tap.schema.validator.IdentifierValidator;
-import ca.nrc.cadc.tap.schema.validator.Violation;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class TableDescValidationTest {
+import java.util.List;
 
-    // Validates Schema name, table name and column names are valid identifiers.
-    /*@Test
-    public void testIdentifiers() {
-        List<String> validIdentifiers = List.of("colName", "col_type", "col123");
-        validIdentifiers.forEach(i -> {
-            try {
-                TapSchemaUtil.checkValidIdentifier(i);
-            } catch (ADQLIdentifierException e) {
-                Assert.fail("unexpected exception: " + e);
-            }
-        });
-
-        List<String> invalidIdentifiers = List.of("names", "key", "Session", "\"colName\"", "'colName'", "col-name");
-        invalidIdentifiers.forEach(i -> {
-            try {
-                TapSchemaUtil.checkValidIdentifier(i);
-                Assert.fail("expected ADQLIdentifierException for identifier: " + i);
-            } catch (ADQLIdentifierException e) {
-                // expected
-            }
-        });
-    }*/
-
+public class IdentifierValidatorTest {
     @Test
     public void testIdentifiers() {
         IdentifierValidator validator = new IdentifierValidator();
         List<String> validIdentifiers = List.of("colName", "col_type", "col123");
         validIdentifiers.forEach(i -> {
-            List<Violation> violations = validator.checkValidIdentifier(i, IdentifierValidator.IdentifierType.COLUMN_NAME);
+            List<Violation> violations = validator.checkValidIdentifier(i, IdentifierValidator.IdentifierType.COLUMN_NAME).getViolations();
             Assert.assertTrue(violations.isEmpty());
         });
 
         List<String> invalidIdentifiers = List.of("names", "key", "Session", "\"colName\"", "'colName'", "col-name");
         invalidIdentifiers.forEach(i -> {
-            List<Violation> violations = validator.checkValidIdentifier(i, IdentifierValidator.IdentifierType.COLUMN_NAME);
+            List<Violation> violations = validator.checkValidIdentifier(i, IdentifierValidator.IdentifierType.COLUMN_NAME).getViolations();
             Assert.assertFalse(violations.isEmpty());
         });
     }

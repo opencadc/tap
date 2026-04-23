@@ -92,7 +92,7 @@ public class UCDValidatorTest {
 
     @Test
     public void testUCD() {
-        UCDValidator validator = new UCDValidator(ValidatorConfig.pedantic());
+        UCDValidator validator = new UCDValidator(ValidatorConfig.strict());
 
         List<String> validUCDs = List.of(
                 "phot.flux",

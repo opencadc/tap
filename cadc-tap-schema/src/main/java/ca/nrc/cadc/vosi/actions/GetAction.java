@@ -96,10 +96,16 @@ public class GetAction extends TablesAction {
     public void doAction() throws Exception {
         String schemaName = null;
         String tableName = null;
+        String action = syncInput.getParameter("action");
+        boolean validate = action != null && action.equals("validate");
+
         String[] target = getTarget();
         if (target != null) {
             schemaName = target[0];
             tableName = target[1];
+        }
+        if (validate && (schemaName == null || tableName == null)) {
+            throw new IllegalArgumentException("Either table name or schema name is missing.");
         }
         log.debug("GET: " + schemaName + " " + tableName);
 
@@ -143,11 +149,24 @@ public class GetAction extends TablesAction {
                 throw new ResourceNotFoundException("table not found: " + tableName);
             }
 
+            if (validate) {
+                String validationResult;
+                try {
+                    validationResult = TapSchemaUtil.validateTableDesc(td, validatorConfig);
+                } catch (IllegalArgumentException ex) {
+                    validationResult = ex.getMessage();
+                }
+                syncOutput.setCode(200);
+                syncOutput.setHeader("Content-Type", "text/plain");
+                syncOutput.getOutputStream().write(validationResult == null || validationResult.isEmpty()
+                        ? "OK".getBytes() : validationResult.getBytes());
+                return;
+            }
             // If the Accept header = application/x-votable+xml,
             // output the TableDesc as a VOTable
             String accept = syncInput.getHeader("Accept");
             if (VOTableWriter.CONTENT_TYPE.equals(accept)) {
-                VOTableDocument vot = TapSchemaUtil.createVOTable(td);
+                VOTableDocument vot = TapSchemaUtil.createVOTable(td, validatorConfig);
                 VOTableWriter tw = new VOTableWriter();
                 syncOutput.setCode(200);
                 syncOutput.setHeader("Content-Type", VOTableWriter.CONTENT_TYPE);

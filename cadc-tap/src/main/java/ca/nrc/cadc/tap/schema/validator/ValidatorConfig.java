@@ -14,45 +14,52 @@ public class ValidatorConfig {
         ERROR, WARNING
     }
 
+    public enum ConfigType {
+        STRICT, LAX, NONE
+    }
+
+    private final ConfigType configType;
+
     /** Kinds that are structurally mandatory — can never be warnings. */
-    private static final Set<ViolationType> ALWAYS_ERRORS = Collections.unmodifiableSet(
-            EnumSet.of(ViolationType.NULL_OR_BLANK, ViolationType.STRUCTURAL, ViolationType.IDENTIFIER_RESERVED_KEYWORD));
+    private static final Set<ViolationType> ALWAYS_ERRORS = Collections.unmodifiableSet(EnumSet.of(
+            ViolationType.NULL_OR_BLANK,
+            ViolationType.IDENTIFIER_INVALID_CHAR,
+            ViolationType.IDENTIFIER_RESERVED_KEYWORD // allowing quoted identifiers if config is not "strict"
+    ));
 
     private final Set<ViolationType> errorTypes;
 
-    private ValidatorConfig(Set<ViolationType> errorTypes) {
+    private ValidatorConfig(Set<ViolationType> errorTypes, ConfigType configType) {
         EnumSet<ViolationType> merged = EnumSet.copyOf(ALWAYS_ERRORS);
         merged.addAll(errorTypes);
         this.errorTypes = Collections.unmodifiableSet(merged);
+        this.configType = configType;
     }
 
     // factories
 
-    /** Everything is an error — full IVOA compliance required. */
-    public static ValidatorConfig pedantic() {
-        return new ValidatorConfig(EnumSet.allOf(ViolationType.class));
-    }
-
-    /** Only NULL_OR_BLANK and STRUCTURAL are errors. */
+    /** Every Violation is an error — full IVOA compliance required. */
     public static ValidatorConfig strict() {
-        return new ValidatorConfig(Collections.emptySet()); //
+        return new ValidatorConfig(EnumSet.allOf(ViolationType.class), ConfigType.STRICT);
     }
 
-    /**
-     * Default Configuration
-     */
-    public static ValidatorConfig defaultConfig() {
+    /** Default configuration.
+     *  A set including ALWAYS_ERRORS and below listed are considered errors.*/
+    public static ValidatorConfig lax() {
         return new ValidatorConfig(EnumSet.of(
-                ViolationType.NULL_OR_BLANK,
                 ViolationType.STRUCTURAL,
                 ViolationType.UCD_UNKNOWN_WORD,
-                ViolationType.UCD_PRIMARY_POSITION,
-                ViolationType.UCD_SECONDARY_POSITION));
+                ViolationType.UCD_POSITION_MISMATCH
+        ), ConfigType.LAX);
     }
 
-    /** Custom - Explicitly specify which violationTypes should be errors. */
-    public static ValidatorConfig of(ViolationType... violationTypes) {
-        return new ValidatorConfig(EnumSet.copyOf(java.util.Arrays.asList(violationTypes)));
+    /** Only ALWAYS_ERRORS set is considered errors. */
+    public static ValidatorConfig none() {
+        return new ValidatorConfig(Collections.emptySet(), ConfigType.NONE);
+    }
+
+    public ConfigType getConfigType() {
+        return configType;
     }
 
     public boolean isError(ViolationType violationType) {

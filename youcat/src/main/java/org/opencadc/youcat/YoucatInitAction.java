@@ -75,14 +75,12 @@ import ca.nrc.cadc.rest.InitAction;
 import ca.nrc.cadc.tap.DefaultTableWriter;
 import ca.nrc.cadc.tap.schema.InitDatabaseTS;
 import ca.nrc.cadc.tap.schema.validator.ValidatorConfig;
-import ca.nrc.cadc.tap.schema.validator.ViolationType;
 import ca.nrc.cadc.util.InvalidConfigException;
 import ca.nrc.cadc.util.MultiValuedProperties;
 import ca.nrc.cadc.util.PropertiesReader;
 import ca.nrc.cadc.uws.server.impl.InitDatabaseUWS;
 import ca.nrc.cadc.vosi.actions.DeleteAction;
 import ca.nrc.cadc.vosi.actions.TablesAction;
-import java.util.EnumSet;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.security.auth.Subject;
@@ -101,7 +99,7 @@ public class YoucatInitAction extends InitAction {
     private static final String YOUCAT_CREATE = YOUCAT + ".createSchemaInDB";
     private static final String DEFAULT_VOTABLE_SERIALIZATION_KEY = YOUCAT + ".defaultVOTableSerialization";
     private static final String DELETED_SCHEMA_KEY = YOUCAT + ".deletedSchemaName";
-    private static final String METADATA_VALIDATION_STRICTNESS_KEY = YOUCAT + ".metadataValidationStrictness";
+    private static final String METADATA_VALIDATION_KEY = YOUCAT + ".metadataValidation";
 
     private String jndiAdminKey;
     private String jndiCreateSchemaKey;
@@ -109,7 +107,7 @@ public class YoucatInitAction extends InitAction {
     private Boolean createSchemaInDB = false;
     private String defaultVOTableSerialization = null;
     private String deletedSchemaName = null;
-    private String metadataValidationStrictness = null;
+    private String metadataValidation = null;
 
     public YoucatInitAction() { 
     }
@@ -187,13 +185,13 @@ public class YoucatInitAction extends InitAction {
             deletedSchemaName = deletedSchemaValue;
         }
 
-        String metadataValidationStrictnessValue = mvp.getFirstPropertyValue(METADATA_VALIDATION_STRICTNESS_KEY);
-        sb.append("\n\t").append(METADATA_VALIDATION_STRICTNESS_KEY).append(": ");
-        if (metadataValidationStrictnessValue == null) {
-            sb.append("null (default)");
+        String metadataValidationValue = mvp.getFirstPropertyValue(METADATA_VALIDATION_KEY);
+        sb.append("\n\t").append(METADATA_VALIDATION_KEY).append(": ");
+        if (metadataValidationValue == null) {
+            sb.append("lax (default)");
         } else {
-            sb.append(metadataValidationStrictnessValue).append(" OK");
-            metadataValidationStrictness = metadataValidationStrictnessValue;
+            sb.append(metadataValidationValue).append(" OK");
+            metadataValidation = metadataValidationValue;
         }
         
         log.info("init:" + sb.toString());
@@ -237,31 +235,21 @@ public class YoucatInitAction extends InitAction {
             DefaultTableWriter.setDefaultVOTableSerialization(defaultVOTableSerialization);
             DeleteAction.setDeletedSchemaName(deletedSchemaName);
 
-            TablesAction.setValidatorConfig(prepareValidatorConfig(metadataValidationStrictness));
+            TablesAction.setValidatorConfig(prepareValidatorConfig(metadataValidation));
         } catch (Exception ex) {
             throw new RuntimeException("INIT FAIL: " + ex.getMessage(), ex);
         }
     }
 
-    private ValidatorConfig prepareValidatorConfig(String raw) {
-        if (raw == null || raw.isEmpty() || raw.equals("default")) {
-            return ValidatorConfig.defaultConfig();
-        } else if (raw.equals("pedantic")) {
-            return ValidatorConfig.pedantic();
-        } else if (raw.equals("strict")) {
+    private ValidatorConfig prepareValidatorConfig(String selectedConfig) {
+        if (selectedConfig == null || selectedConfig.isEmpty() || selectedConfig.equals("lax")) {
+            return ValidatorConfig.lax();
+        } else if (selectedConfig.equals("strict")) {
             return ValidatorConfig.strict();
-        } else if (raw.startsWith("custom")) {
-            raw = raw.replaceAll("custom", "").replaceAll("\\(", "").replaceAll("\\)", "");
-            EnumSet<ViolationType> types = EnumSet.noneOf(ViolationType.class);
-            for (String token : raw.split("[,\\s]+")) {
-                token = token.trim();
-                if (!token.isEmpty()) {
-                    types.add(ViolationType.valueOf(token));
-                }
-            }
-            return ValidatorConfig.of(types.toArray(new ViolationType[0]));
+        } else if (selectedConfig.equals("none")) {
+            return ValidatorConfig.none();
         } else {
-            throw new IllegalArgumentException("Invalid validator config: " + raw);
+            throw new IllegalArgumentException("Invalid validator config: " + selectedConfig);
         }
 
     }

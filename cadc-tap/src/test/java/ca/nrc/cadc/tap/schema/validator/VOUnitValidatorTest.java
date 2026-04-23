@@ -86,7 +86,7 @@ public class VOUnitValidatorTest {
         List<String> invalidVOUnits = List.of("", " ", "'a", "''", "1 0", "99", "k/s/m", "10*Jy", "Ki'furlong'", "10**(99/-9)",
                 "10.5", "10**3", "1e3", "kg.m2.s-2", "Jy/beam/RMSF", "deg-2", "logx");
 
-        VOUnitValidator validator = new VOUnitValidator(ValidatorConfig.defaultConfig());
+        VOUnitValidator validator = new VOUnitValidator(ValidatorConfig.lax());
 
         for (String vounit : validVOUnits) {
             ValidationResult result = validator.validate(vounit);
