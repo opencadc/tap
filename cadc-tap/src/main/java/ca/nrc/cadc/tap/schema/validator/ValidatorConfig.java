@@ -20,7 +20,7 @@ public class ValidatorConfig {
 
     private final ConfigType configType;
 
-    /** Kinds that are structurally mandatory — can never be warnings. */
+    /** Violation types that are structurally mandatory — can never be warnings. */
     private static final Set<ViolationType> ALWAYS_ERRORS = Collections.unmodifiableSet(EnumSet.of(
             ViolationType.NULL_OR_BLANK,
             ViolationType.IDENTIFIER_INVALID_CHAR,
@@ -49,7 +49,8 @@ public class ValidatorConfig {
         return new ValidatorConfig(EnumSet.of(
                 ViolationType.STRUCTURAL,
                 ViolationType.UCD_UNKNOWN_WORD,
-                ViolationType.UCD_POSITION_MISMATCH
+                ViolationType.UCD_POSITION_MISMATCH,
+                ViolationType.VOUNIT_CASE_SENSITIVE
         ), ConfigType.LAX);
     }
 

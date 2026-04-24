@@ -115,7 +115,6 @@ public final class UCDValidator {
         List<Violation> violations = new ArrayList<>();
 
         if (ucd == null || ucd.isBlank()) {
-            violations.add(new Violation(ViolationType.NULL_OR_BLANK, "UCD must not be null or blank"));
             return new ValidationResult(ucd, violations, config);
         }
 

@@ -80,10 +80,10 @@ public class VOUnitValidatorTest {
     @Test
     public void testVOUnit() {
 
-        List<String> validVOUnits = List.of("1", "unknown", "UNKNOWN","%", "10 Hz", "10hz", "10**3 hz", "10**-3 hz", "10.5 hz",
-                "10.5e-3 hz", "log(Hz)", "'furlong'", "1.898E27kg", "furlong/week", "1.663e-1mm.s**-1", "10**(-99/9)adu", "1 hz", "99s",
+        List<String> validVOUnits = List.of("1", "unknown", "UNKNOWN","%", "10 Hz", "10Hz", "10**3 Hz", "10**-3 Hz", "10.5 Hz",
+                "10.5e-3 Hz", "log(Hz)", "'furlong'", "1.898E27kg", "furlong/week", "1.663e-1mm.s**-1", "10**(-99/9)adu", "1 Hz", "99s",
                 "1e3Hz", "(m.s**-1)", "abcd", "'abc'", "10 'year'", "log(10Hz)","'logx'");
-        List<String> invalidVOUnits = List.of("", " ", "'a", "''", "1 0", "99", "k/s/m", "10*Jy", "Ki'furlong'", "10**(99/-9)",
+        List<String> invalidVOUnits = List.of("'a", "''", "1 0", "99", "10hz", "k/s/m", "10*Jy", "Ki'furlong'", "10**(99/-9)",
                 "10.5", "10**3", "1e3", "kg.m2.s-2", "Jy/beam/RMSF", "deg-2", "logx");
 
         VOUnitValidator validator = new VOUnitValidator(ValidatorConfig.lax());

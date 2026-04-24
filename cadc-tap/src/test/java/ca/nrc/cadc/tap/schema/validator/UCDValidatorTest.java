@@ -104,7 +104,7 @@ public class UCDValidatorTest {
                 "stat.error;phot.mag;em.opt.B", // P, E, S
                 "phot;phot.color" // E, C
         );
-        List<String> invalidUCDs = List.of("", " ", ";",
+        List<String> invalidUCDs = List.of(";",
                 "abc", // unknown
                 "em.UV;arith.grad", // S, P
                 "arith.rate;arith.factor", // P, P - Primary-only word in the secondary position

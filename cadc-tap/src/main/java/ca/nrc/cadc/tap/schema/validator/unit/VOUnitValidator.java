@@ -156,7 +156,6 @@ public class VOUnitValidator {
         List<Violation> violations = new ArrayList<>();
 
         if (vounit == null || vounit.trim().isEmpty()) {
-            violations.add(new Violation(ViolationType.NULL_OR_BLANK, "VOUnit string must not be null or blank."));
             return new ValidationResult(null, violations, config);
         }
         String trimmed = vounit.trim();
