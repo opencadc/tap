@@ -153,18 +153,22 @@ public class VOUnitValidator {
      * @return a {@link ValidationResult} describing the outcome.
      */
     public ValidationResult validate(String vounit) {
+        log.debug("Validating VOUnit: " + vounit);
         List<Violation> violations = new ArrayList<>();
 
-        if (vounit == null || vounit.trim().isEmpty()) {
+        if (vounit != null) {
+            vounit = vounit.trim();
+        }
+        if (vounit == null || vounit.isEmpty()) {
             return new ValidationResult(null, violations, config);
         }
-        String trimmed = vounit.trim();
+
         try {
-            ParseState s = new ParseState(trimmed);
+            ParseState s = new ParseState(vounit);
             parseInput(s, violations);
             if (!s.done()) {
                 violations.add(new Violation(ViolationType.STRUCTURAL,
-                        "Unexpected character(s) at position " + s.pos + ": '" + trimmed.substring(s.pos) + "'"));
+                        "Unexpected character(s) at position " + s.pos + ": '" + vounit.substring(s.pos) + "'"));
                 return new ValidationResult(vounit, violations, config);
             }
             return new ValidationResult(vounit, violations, config);

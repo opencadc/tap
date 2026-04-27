@@ -277,7 +277,7 @@ public class TapSchemaUtil {
         collectViolations("table name", td.getTableName(),
                 identifierValidator.checkValidTableName(td.getTableName()).getViolations(), config, errors, warnings);
 
-        UCDValidator ucdValidator = new UCDValidator();
+        UCDValidator ucdValidator = new UCDValidator(config);
         VOUnitValidator voUnitValidator = new VOUnitValidator(config);
 
         for (ColumnDesc cd : td.getColumnDescs()) {
