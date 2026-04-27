@@ -78,9 +78,8 @@ import ca.nrc.cadc.tap.schema.validator.Violation;
 import ca.nrc.cadc.tap.schema.validator.adql.ReservedKeyword;
 import ca.nrc.cadc.tap.schema.validator.ucd.UCDValidator;
 import ca.nrc.cadc.tap.schema.validator.unit.VOUnitValidator;
-
+import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.log4j.Logger;
 
 /**
@@ -266,8 +265,8 @@ public class TapSchemaUtil {
      * @throws IllegalArgumentException with collected errors and warnings if errors are found.
      */
     public static String validateTableDesc(TableDesc td, ValidatorConfig config) {
-        List<String> errors = new java.util.ArrayList<>();
-        List<String> warnings = new java.util.ArrayList<>();
+        List<String> errors = new ArrayList<>();
+        List<String> warnings = new ArrayList<>();
         IdentifierValidator identifierValidator = new IdentifierValidator(config);
 
         collectViolations("schema name", td.getSchemaName(),
