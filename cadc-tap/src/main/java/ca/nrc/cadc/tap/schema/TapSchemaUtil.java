@@ -268,7 +268,7 @@ public class TapSchemaUtil {
     public static String validateTableDesc(TableDesc td, ValidatorConfig config) {
         List<String> errors = new java.util.ArrayList<>();
         List<String> warnings = new java.util.ArrayList<>();
-        IdentifierValidator identifierValidator = new IdentifierValidator();
+        IdentifierValidator identifierValidator = new IdentifierValidator(config);
 
         collectViolations("schema name", td.getSchemaName(),
                 identifierValidator.checkValidIdentifier(td.getSchemaName(), IdentifierValidator.IdentifierType.SCHEMA_NAME).getViolations(),
