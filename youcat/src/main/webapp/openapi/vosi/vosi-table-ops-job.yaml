@@ -1,0 +1,18 @@
+get:
+    operationId: vosi-table-ops-job-get
+    tags:
+        - VOSI Table Operations
+    summary: get a UWS job description
+    description: job resource
+    parameters:
+        - $ref: ../uws/uws-jobid-param.yaml
+        - $ref: ../uws/uws-wait-param.yaml
+    responses:
+        '200':
+            $ref: ../uws/uws-responses.yaml#/job
+        '401':
+            $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
+        '403':
+            $ref: ../vosi/vosi-std-responses.yaml#/permission-denied
+        '404':
+            $ref: ../vosi/vosi-std-responses.yaml#/not-found

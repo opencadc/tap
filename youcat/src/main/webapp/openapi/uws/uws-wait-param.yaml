@@ -1,0 +1,8 @@
+name: WAIT
+in: query
+description: wait for the specified time in seconds or until the phase changes
+required: false
+schema:
+  type: integer
+  example: WAIT=60
+  

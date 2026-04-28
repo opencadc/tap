@@ -1,0 +1,37 @@
+get:
+    operationId: tap-job-phase-get
+    tags:
+        - TAP Query
+    summary: get a UWS job phase
+    description: job phase resource
+    parameters:
+        - $ref: ../uws/uws-jobid-param.yaml
+    responses:
+        '200':
+          description: successful response
+          content:
+              text/plain:
+                  schema:
+                      type: string
+                      example: "PENDING"
+post:
+    operationId: tap-job-phase-update
+    tags:
+        - TAP Query
+    summary: change a UWS job phase
+    description: update job
+    parameters:
+        - $ref: ../uws/uws-jobid-param.yaml
+        - $ref: ../uws/uws-phase-change-param.yaml
+    responses:
+        '200':
+            description: phase change successful
+        '400':
+            $ref: ../uws/uws-responses.yaml#/invalid-phase-change
+        '401':
+            $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
+        '403':
+            $ref: ../vosi/vosi-std-responses.yaml#/permission-denied
+        '404':
+            $ref: ../vosi/vosi-std-responses.yaml#/not-found
+

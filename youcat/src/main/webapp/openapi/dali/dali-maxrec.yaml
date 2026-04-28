@@ -1,0 +1,9 @@
+name: MAXREC
+in: query
+description: |
+  request a specific limit on number of records to return
+schema:
+    type: integer
+    format: int64
+    minimum: 0
+    exclusiveMinimum: false

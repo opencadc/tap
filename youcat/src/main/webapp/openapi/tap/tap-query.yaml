@@ -1,0 +1,7 @@
+name: QUERY
+in: query
+description: specify the query
+required: true
+schema:
+    type: string
+    example: select * from tap_schema.tables
