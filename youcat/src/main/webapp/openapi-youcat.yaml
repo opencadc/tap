@@ -1,16 +1,15 @@
 openapi: 3.1.0
 info:
   title: |
-    YouCat: a TAP service with user-owned and created tables.
+    youcat: an OpenCADC TAP service with support for user-owned and managed tables
   version: "0.9.2"
   description: |
     This service implements the WD-TAP-1.2 API specification with components imported from
-    VOSI, UWS, and DALI. Querying is completely compatible with the
-    <a href=\"http://www.ivoa.net/documents/TAP/20190927/\">TAP-1.1</a> Recommendation.
+    VOSI, UWS, and DALI. Querying is completely compatible with the IVOA TAP-1.1 Recommendation.
     
-    YouCat supports user management of permissions at both the schema and table level. A schema 
-    owner is set when a YouCat allocation is created by the service operator. A table owner is
-    the user who created the table. Owners can set a flag for anonymous reading and can set 
+    The youcat service supports user management of permissions at both the schema and table level. 
+    A schema owner is set when a YouCat allocation is created by the service operator. A table owner 
+    is the user who created the table. Owners can set a flag for anonymous reading and can set 
     groups for read-only and read-write permissons. 
     
     <b>The following describes the three types of <em>grants</em>:</b>
