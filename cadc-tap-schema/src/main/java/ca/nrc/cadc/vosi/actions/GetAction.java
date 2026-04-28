@@ -89,6 +89,9 @@ public class GetAction extends TablesAction {
 
     private static final Logger log = Logger.getLogger(GetAction.class);
 
+    private static final String VALIDATE_ACTION = "validate";
+    private static final String ACTION_PARAM = "action";
+
     public GetAction() {
     }
 
@@ -96,8 +99,7 @@ public class GetAction extends TablesAction {
     public void doAction() throws Exception {
         String schemaName = null;
         String tableName = null;
-        String action = syncInput.getParameter("action");
-        boolean validate = action != null && action.equals("validate");
+        boolean validate = VALIDATE_ACTION.equals(syncInput.getParameter(ACTION_PARAM));
 
         String[] target = getTarget();
         if (target != null) {

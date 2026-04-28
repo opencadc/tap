@@ -254,7 +254,7 @@ public class TapSchemaUtil {
             table.getFields().add(convert(column));
         }
         if (errorMsg != null) {
-            table.getInfos().add(new VOTableInfo("ERRORS & WARNINGS", errorMsg));
+            table.getInfos().add(new VOTableInfo("Server Validation Report", errorMsg));
         }
         return document;
     }
@@ -289,12 +289,8 @@ public class TapSchemaUtil {
                 continue;
             }
 
-            if (cd.ucd != null && !cd.ucd.isEmpty()) {
-                collectViolations("ucd", cd.ucd, ucdValidator.validate(cd.ucd).getViolations(), config, errors, warnings);
-            }
-            if (cd.unit != null && !cd.unit.isEmpty()) {
-                collectViolations("unit", cd.unit, voUnitValidator.validate(cd.unit).getViolations(), config, errors, warnings);
-            }
+            collectViolations("ucd", cd.ucd, ucdValidator.validate(cd.ucd).getViolations(), config, errors, warnings);
+            collectViolations("unit", cd.unit, voUnitValidator.validate(cd.unit).getViolations(), config, errors, warnings);
         }
 
         if (errors.isEmpty() && warnings.isEmpty()) {
