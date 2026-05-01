@@ -168,7 +168,7 @@ public class VOUnitValidator {
             parseInput(s, violations);
             if (!s.done()) {
                 violations.add(new Violation(ViolationType.STRUCTURAL,
-                        "Unexpected character(s) at position " + (s.pos + 1) + ": '" + vounit.substring(s.pos) + "'")); // TODO : substring?
+                        "Unexpected character(s) at position " + (s.pos + 1) + ": '" + vounit.substring(s.pos) + "'"));
                 return new ValidationResult(vounit, violations, config);
             }
             return new ValidationResult(vounit, violations, config);

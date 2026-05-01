@@ -143,7 +143,7 @@ public final class UCDValidator {
             if (isPrimary && !ucdWord.canBePrimary()) {
                 violations.add(new Violation(ViolationType.UCD_POSITION_MISMATCH,
                         "Word '" + word + "' at position " + (i + 1)
-                                + "' has syntax flag S (secondary-only) which cannot be used as the primary word"));
+                                + " has syntax flag S (secondary-only) which cannot be used as the primary word"));
             }
 
             // secondary word must not be P-only
