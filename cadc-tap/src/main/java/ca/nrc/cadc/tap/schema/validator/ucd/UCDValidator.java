@@ -132,7 +132,7 @@ public final class UCDValidator {
             if (vocabEntry.get().isDeprecated()) {
                 violations.add(new Violation(ViolationType.UCD_DEPRECATED_WORD,
                         "Word '" + word + "' at position " + (i + 1)
-                                + " is deprecated. Suggested replacement: " + vocabEntry.get().getReplacement() + "."));
+                                + " is deprecated. Suggested replacement: '" + vocabEntry.get().getReplacement() + "'"));
                 continue;
             }
 
@@ -142,17 +142,15 @@ public final class UCDValidator {
             // primary word must not be S-only
             if (isPrimary && !ucdWord.canBePrimary()) {
                 violations.add(new Violation(ViolationType.UCD_POSITION_MISMATCH,
-                        "Word '" + word + "' has syntax flag "
-                                + ucdWord.getFlag().name()
-                                + " (secondary-only) and cannot be used as the primary word"));
+                        "Word '" + word + "' at position " + (i + 1)
+                                + "' has syntax flag S (secondary-only) which cannot be used as the primary word"));
             }
 
             // secondary word must not be P-only
             if (!isPrimary && !ucdWord.canBeSecondary()) {
                 violations.add(new Violation(ViolationType.UCD_POSITION_MISMATCH,
                         "Word '" + word + "' at position " + (i + 1)
-                                + " has syntax flag " + ucdWord.getFlag().name()
-                                + " (primary-only) and cannot be used as a secondary word"));
+                                + " has syntax flag P (primary-only) which cannot be used as a secondary word"));
             }
         }
         return new ValidationResult(ucd, violations, config);
