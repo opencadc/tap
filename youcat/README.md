@@ -119,6 +119,9 @@ The youcat.properties configures some admin and optional functions of the servic
 
 # (optional) move deleted table to alternate schema before cleanup
 #org.opencadc.youcat.deletedSchemaName = {schema}
+
+# (optional) strictness of metadata validation (default: lax )
+org.opencadc.youcat.metadataValidation = strict|lax|none
 ```
 The optional _adminUser_ (configured using the network identity) can use the youcat API to create a 
 new schema for a user. This will add the schema to the `tap_schema.schemas` table with the 
@@ -144,6 +147,16 @@ steps fail, the refuse will be invisible via the API but will remain in the user
 default. Configuring a _deletedSchemaName_ will cause the rename to also change the schema name
 so that it is easier for the operator to detect and cleanup when the automatic cleanup fails
 **[new in version 0.9.0]**
+
+The optional _metadataValidation_ property configures the strictness level applied when validating table and column metadata (e.g. identifiers, UCDs, Units) against IVOA standards. 
+`metadataValidation` **Accepted values:** `strict` | `lax` | `none` _(default: `lax`)_
+
+| Level    | Behaviour                                                                                                                                                                                  |
+|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `strict` | Fails on **all** violations defined by the IVOA standard. Use this to enforce full IVOA compliance.                                                                                        |
+| `lax`    | Fails on structurally faulty values, unknown or mispositioned UCDs, invalid identifier characters, and reserved words used as identifiers. Other violations are reported as warnings only. |
+| `none`   | Fails **only** on invalid identifier characters and reserved words used as identifiers. No warnings will be reported for this setting.                                                     |
+Note: Invalid identifier characters and reserved words as identifiers are always treated as errors regardless of the configured level.
 
 As hard-coded behaviours of `youcat` are extracted from the build and made configurable,
 the configuration options will usually be in this file (see **development plans** below).

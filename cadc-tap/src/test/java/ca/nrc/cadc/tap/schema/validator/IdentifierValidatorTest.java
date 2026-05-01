@@ -67,22 +67,25 @@
 
 package ca.nrc.cadc.tap.schema.validator;
 
-public class Violation {
+import org.junit.Assert;
+import org.junit.Test;
 
-    private final ViolationType violationType;
-    private final String message;
+import java.util.List;
 
-    public Violation(ViolationType violationType, String message) {
-        this.violationType = violationType;
-        this.message = message;
+public class IdentifierValidatorTest {
+    @Test
+    public void testIdentifiers() {
+        IdentifierValidator validator = new IdentifierValidator();
+        List<String> validIdentifiers = List.of("colName", "col_type", "col123");
+        validIdentifiers.forEach(i -> {
+            List<Violation> violations = validator.checkValidIdentifier(i, IdentifierValidator.IdentifierType.COLUMN_NAME).getViolations();
+            Assert.assertTrue(violations.isEmpty());
+        });
+
+        List<String> invalidIdentifiers = List.of("names", "key", "Session", "\"colName\"", "'colName'", "col-name");
+        invalidIdentifiers.forEach(i -> {
+            List<Violation> violations = validator.checkValidIdentifier(i, IdentifierValidator.IdentifierType.COLUMN_NAME).getViolations();
+            Assert.assertFalse(violations.isEmpty());
+        });
     }
-
-    public ViolationType getViolationType() {
-        return violationType;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
 }

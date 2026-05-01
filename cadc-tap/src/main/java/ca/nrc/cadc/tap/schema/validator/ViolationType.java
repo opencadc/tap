@@ -67,22 +67,26 @@
 
 package ca.nrc.cadc.tap.schema.validator;
 
-public class Violation {
+public enum ViolationType {
 
-    private final ViolationType violationType;
-    private final String message;
+    // --- structural (always errors, cannot be downgraded) ---
+    NULL_OR_BLANK,
+    STRUCTURAL,
 
-    public Violation(ViolationType violationType, String message) {
-        this.violationType = violationType;
-        this.message = message;
-    }
+    // --- IDENTIFIER ---
+    IDENTIFIER_INVALID_CHAR,
+    IDENTIFIER_QUOTED, // e.g. "Size" which is a reserved keyword but can be used with quotes
+    IDENTIFIER_RESERVED_KEYWORD,
 
-    public ViolationType getViolationType() {
-        return violationType;
-    }
+    // --- UCD ---
+    UCD_UNKNOWN_WORD, // word not in IVOA controlled vocabulary
+    UCD_DEPRECATED_WORD, // word is in vocabulary but deprecated
+    UCD_POSITION_MISMATCH, // S-only word used as primary and P-only word used as secondary
 
-    public String getMessage() {
-        return message;
-    }
+    // --- VOUnit ---
+    VOUNIT_QUOTED, // e.g. 'furlong'
+    VOUNIT_UNKNOWN_UNIT, // unrecognised base unit
+    VOUNIT_UNKNOWN_FUNCTION,
+    VOUNIT_CASE_SENSITIVE, // e.g. 'Hz' vs 'hz' and 'G' vs 'g'
 
 }

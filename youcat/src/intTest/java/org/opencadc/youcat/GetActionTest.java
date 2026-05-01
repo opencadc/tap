@@ -65,34 +65,93 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.schema;
+package org.opencadc.youcat;
 
-import java.util.List;
+import ca.nrc.cadc.auth.RunnableAction;
+import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
+import ca.nrc.cadc.dali.tables.votable.VOTableField;
+import ca.nrc.cadc.dali.tables.votable.VOTableResource;
+import ca.nrc.cadc.dali.tables.votable.VOTableTable;
+import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
+import ca.nrc.cadc.net.HttpGet;
+import ca.nrc.cadc.net.HttpUpload;
+import ca.nrc.cadc.net.OutputStreamWrapper;
+import ca.nrc.cadc.tap.schema.TapDataType;
+import ca.nrc.cadc.tap.schema.TapPermissions;
+import ca.nrc.cadc.vosi.actions.TablesInputHandler;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class TableDescValidationTest {
+import javax.security.auth.Subject;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
-    // Validates Schema name, table name and column names are valid identifiers.
+public class GetActionTest extends AbstractTablesTest {
+
     @Test
-    public void testIdentifiers() {
-        List<String> validIdentifiers = List.of("colName", "col_type", "col123");
-        validIdentifiers.forEach(i -> {
-            try {
-                TapSchemaUtil.checkValidIdentifier(i);
-            } catch (ADQLIdentifierException e) {
-                Assert.fail("unexpected exception: " + e);
-            }
-        });
+    public void testValidateTable() {
+        try {
+            clearSchemaPerms();
+            TapPermissions tp = new TapPermissions(null, true, null, null);
+            super.setPerms(schemaOwner, testSchemaName, tp, 200);
 
-        List<String> invalidIdentifiers = List.of("names", "key", "Session", "\"colName\"", "'colName'", "col-name");
-        invalidIdentifiers.forEach(i -> {
-            try {
-                TapSchemaUtil.checkValidIdentifier(i);
-                Assert.fail("expected ADQLIdentifierException for identifier: " + i);
-            } catch (ADQLIdentifierException e) {
-                // expected
-            }
-        });
+            String testTable = testSchemaName + ".testPutWarnings";
+
+            // cleanup just in case
+            doDelete(schemaOwner, testTable, true);
+
+            VOTableTable vtab = new VOTableTable();
+            vtab.getFields().add(new VOTableField("c0", TapDataType.STRING.getDatatype(), TapDataType.STRING.arraysize));
+            vtab.getFields().add(new VOTableField("c1", TapDataType.INTEGER.getDatatype()));
+
+            VOTableField field1 = new VOTableField("Field1", TapDataType.DOUBLE.getDatatype());
+            field1.ucd = "arith.factor";
+            field1.unit = "K/S";
+            vtab.getFields().add(field1);
+
+            VOTableField field2 = new VOTableField("Field2", TapDataType.DOUBLE.getDatatype());
+            field2.ucd = "obs.atmos.turbulence.isoplanatic";
+            field2.unit = "1.898E27kg";
+            vtab.getFields().add(field2);
+
+            //-----
+            VOTableResource vres = new VOTableResource("results");
+            vres.setTable(vtab);
+            final VOTableDocument doc = new VOTableDocument();
+            doc.getResources().add(vres);
+
+            // create
+            URL tableURL = new URL(certTablesURL.toExternalForm() + "/" + testTable);
+            OutputStreamWrapper src = new OutputStreamWrapper() {
+                @Override
+                public void write(OutputStream out) throws IOException {
+                    VOTableWriter w = new VOTableWriter(VOTableWriter.SerializationType.TABLEDATA);
+                    w.write(doc, out);
+                }
+            };
+            HttpUpload put = new HttpUpload(src, tableURL);
+            put.setRequestProperty("Content-Type", TablesInputHandler.VOTABLE_TYPE);
+            Subject.doAs(schemaOwner, new RunnableAction(put));
+
+            Assert.assertNull("throwable", put.getThrowable());
+            Assert.assertEquals("response code", 200, put.getResponseCode());
+
+            // Validate the table
+            URL getURL = new URL(certTablesURL.toExternalForm() + "/" + testTable + "?action=validate");
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            HttpGet check = new HttpGet(getURL, stream);
+            Subject.doAs(schemaOwner, new RunnableAction(check));
+
+            Assert.assertNull("throwable", check.getThrowable());
+            Assert.assertEquals("response code", 200, check.getResponseCode());
+            String validationContent = stream.toString(StandardCharsets.UTF_8);
+            Assert.assertEquals("OK", validationContent);
+        } catch (Exception unexpected) {
+            Assert.fail("unexpected exception: " + unexpected);
+        }
     }
+
 }

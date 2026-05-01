@@ -68,7 +68,9 @@
 package ca.nrc.cadc.tap.schema.validator.unit;
 
 import ca.nrc.cadc.tap.schema.validator.ValidationResult;
+import ca.nrc.cadc.tap.schema.validator.ValidatorConfig;
 import ca.nrc.cadc.tap.schema.validator.Violation;
+import ca.nrc.cadc.tap.schema.validator.ViolationType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -136,35 +138,43 @@ public class VOUnitValidator {
 
     List<String> functions = Arrays.asList("log", "ln", "exp", "sqrt");
 
+    private final ValidatorConfig config;
+
+    public VOUnitValidator() {
+        this(ValidatorConfig.lax());
+    }
+
+    public VOUnitValidator(ValidatorConfig config) {
+        this.config = config;
+    }
+
     /**
      * @param vounit the string to validate;
      * @return a {@link ValidationResult} describing the outcome.
      */
     public ValidationResult validate(String vounit) {
+        log.debug("Validating VOUnit: " + vounit);
         List<Violation> violations = new ArrayList<>();
 
-        if (vounit == null) {
-            violations.add(new Violation(Violation.Severity.ERROR, "VOUnit string must not be null."));
-            return new ValidationResult(null, violations);
+        if (vounit != null) {
+            vounit = vounit.trim();
         }
-        String trimmed = vounit.trim();
-        if (trimmed.isEmpty()) {
-            violations.add(new Violation(Violation.Severity.ERROR, "VOUnit string must not be blank."));
-            return new ValidationResult(vounit, violations);
+        if (vounit == null || vounit.isEmpty()) {
+            return new ValidationResult(null, violations, config);
         }
 
         try {
-            ParseState s = new ParseState(trimmed);
+            ParseState s = new ParseState(vounit);
             parseInput(s, violations);
             if (!s.done()) {
-                violations.add(new Violation(Violation.Severity.ERROR,
-                        "Unexpected character(s) at position " + s.pos + ": '" + trimmed.substring(s.pos) + "'"));
-                return new ValidationResult(vounit, violations);
+                violations.add(new Violation(ViolationType.STRUCTURAL,
+                        "Unexpected character(s) at position " + s.pos + ": '" + vounit.substring(s.pos) + "'"));
+                return new ValidationResult(vounit, violations, config);
             }
-            return new ValidationResult(vounit, violations);
+            return new ValidationResult(vounit, violations, config);
         } catch (IllegalArgumentException ex) {
-            violations.add(new Violation(Violation.Severity.ERROR, ex.getMessage()));
-            return new ValidationResult(vounit, violations);
+            violations.add(new Violation(ViolationType.STRUCTURAL, ex.getMessage()));
+            return new ValidationResult(vounit, violations, config);
         }
     }
 
@@ -261,8 +271,8 @@ public class VOUnitValidator {
             if (afterSym < s.input.length() && s.input.charAt(afterSym) == '(') {
                 // This is a function_application: STRING OPEN_P function_operand CLOSE_P
                 if (!token.type.equals(TokenType.FUNC)) {
-                    violations.add(new Violation(Violation.Severity.WARNING,
-                            "Expected a function name. Unknown function : " + token.value + " found at position " + s.pos));
+                    violations.add(new Violation(ViolationType.VOUNIT_UNKNOWN_FUNCTION,
+                            "Expected a function name. Unknown function : '" + token.value + "' found at position " + s.pos));
                 }
                 s.pos += token.value.length(); // consume function name
                 s.pos++; // consume '('
@@ -352,8 +362,7 @@ public class VOUnitValidator {
                     s.pos++;
                 }
                 if (s.pos == expStart) {
-                    throw new IllegalArgumentException(
-                            "Expected digits after exponent marker at position " + s.pos);
+                    throw new IllegalArgumentException("Expected digits after exponent marker at position " + s.pos);
                 }
             }
         }
@@ -362,8 +371,7 @@ public class VOUnitValidator {
         if (!hasDecimal && !hasExponent) {
             if (!"1".equals(intPart) && !"10".equals(intPart)) {
                 if (intPart.charAt(0) == '0' && intPart.length() > 1) {
-                    throw new IllegalArgumentException(
-                            "Invalid scale factor '" + intPart + "': leading zeros are not allowed.");
+                    throw new IllegalArgumentException("Invalid scale factor '" + intPart + "': leading zeros are not allowed.");
                 }
             }
         }
@@ -371,8 +379,7 @@ public class VOUnitValidator {
         // VOUFLOAT pattern 1: must start with "0" — requires decimal point
         if (s.startsWith("0")) {
             if (!s.startsWith("0.")) {
-                throw new IllegalArgumentException(
-                        "Invalid VOUFLOAT: '0' must be followed by '.' and digits.");
+                throw new IllegalArgumentException("Invalid VOUFLOAT: '0' must be followed by '.' and digits.");
             }
         }
 
@@ -418,7 +425,7 @@ public class VOUnitValidator {
         if (s.current() == '\'') {
             int qp = s.pos;
             parseQuotedString(s);
-            violations.add(new Violation(Violation.Severity.WARNING, "Quoted unit string found : " + s.input.substring(qp + 1, s.pos - 1)));
+            violations.add(new Violation(ViolationType.VOUNIT_QUOTED, "Quoted unit string found : " + s.input.substring(qp + 1, s.pos - 1)));
             return;
         }
 
@@ -430,12 +437,12 @@ public class VOUnitValidator {
         if (token.type.equals(TokenType.UNIT)) {
             String actualInput = s.input.substring(s.pos, s.pos + token.value.length());
             if (!actualInput.equals(token.value)) {
-                violations.add(new Violation(Violation.Severity.WARNING,
+                violations.add(new Violation(ViolationType.VOUNIT_CASE_SENSITIVE,
                         "Unit symbol casing mismatch: found '" + actualInput
                                 + "' but expected canonical form '" + token.value + "'."));
             }
         } else {
-            violations.add(new Violation(Violation.Severity.WARNING, "Unit symbol expected. Found : '" + token.value + "' at position " + s.pos));
+            violations.add(new Violation(ViolationType.VOUNIT_UNKNOWN_UNIT, "Unit symbol expected. Found : '" + token.value + "' at position " + s.pos));
         }
         s.pos += token.value.length();
 
@@ -443,7 +450,7 @@ public class VOUnitValidator {
         if (!s.done() && s.current() == '\'') {
             int qp = s.pos;
             parseQuotedString(s);
-            violations.add(new Violation(Violation.Severity.WARNING, "Quoted unit string found : " + s.input.substring(qp + 1, s.pos + 1)));
+            violations.add(new Violation(ViolationType.VOUNIT_QUOTED, "Quoted unit string found : " + s.input.substring(qp + 1, s.pos + 1)));
         }
     }
 
@@ -634,6 +641,11 @@ public class VOUnitValidator {
                 String after = remaining.substring(unit.length());
                 if (isUnitTerminator(after)) {
                     if (longestMatch == null || unit.length() > longestMatch.length()) {
+                        longestMatch = unit;
+                    } else if (unit.length() == longestMatch.length()
+                            && remaining.startsWith(unit)
+                            && !remaining.startsWith(longestMatch)) {
+                        // Prefer the exact case match over a case-insensitive one
                         longestMatch = unit;
                     }
                 }

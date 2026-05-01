@@ -84,6 +84,7 @@ import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import ca.nrc.cadc.tap.schema.TapSchemaUtil;
 import ca.nrc.cadc.tap.schema.Util;
+import ca.nrc.cadc.tap.schema.validator.ValidatorConfig;
 import java.io.IOException;
 import java.security.AccessControlException;
 import java.security.Principal;
@@ -109,6 +110,7 @@ public abstract class TablesAction extends RestAction {
     
     public static String ADMIN_KEY = "-admin-principal";
     public static String CREATE_SCHEMA_KEY = "-create-schema-in-db";
+    public static ValidatorConfig validatorConfig;
     
     protected static final String PERMS_CONTENTTYPE = "text/plain";
     protected static final String OWNER_KEY = "owner";
@@ -141,7 +143,10 @@ public abstract class TablesAction extends RestAction {
     void checkWritableImpl() throws TransientException {
         super.checkWritable();
     }
-    
+
+    public static void setValidatorConfig(ValidatorConfig validatorConfig) {
+        TablesAction.validatorConfig = validatorConfig;
+    }
     
     @Override
     protected InlineContentHandler getInlineContentHandler() {
@@ -224,7 +229,7 @@ public abstract class TablesAction extends RestAction {
             throw new RuntimeException("BUG: no input table");
         }
 
-        tableValidationWarnings = TapSchemaUtil.validateTableDesc(input);
+        tableValidationWarnings = TapSchemaUtil.validateTableDesc(input, validatorConfig);
 
         // TODO: move this to PutAction (create only)
         int c = 0;

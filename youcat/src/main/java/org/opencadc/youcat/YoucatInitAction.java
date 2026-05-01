@@ -74,6 +74,7 @@ import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.rest.InitAction;
 import ca.nrc.cadc.tap.DefaultTableWriter;
 import ca.nrc.cadc.tap.schema.InitDatabaseTS;
+import ca.nrc.cadc.tap.schema.validator.ValidatorConfig;
 import ca.nrc.cadc.util.InvalidConfigException;
 import ca.nrc.cadc.util.MultiValuedProperties;
 import ca.nrc.cadc.util.PropertiesReader;
@@ -98,6 +99,7 @@ public class YoucatInitAction extends InitAction {
     private static final String YOUCAT_CREATE = YOUCAT + ".createSchemaInDB";
     private static final String DEFAULT_VOTABLE_SERIALIZATION_KEY = YOUCAT + ".defaultVOTableSerialization";
     private static final String DELETED_SCHEMA_KEY = YOUCAT + ".deletedSchemaName";
+    private static final String METADATA_VALIDATION_KEY = YOUCAT + ".metadataValidation";
 
     private String jndiAdminKey;
     private String jndiCreateSchemaKey;
@@ -105,7 +107,8 @@ public class YoucatInitAction extends InitAction {
     private Boolean createSchemaInDB = false;
     private String defaultVOTableSerialization = null;
     private String deletedSchemaName = null;
-    
+    private String metadataValidation = null;
+
     public YoucatInitAction() { 
     }
 
@@ -181,6 +184,15 @@ public class YoucatInitAction extends InitAction {
             sb.append(deletedSchemaValue).append(" OK");
             deletedSchemaName = deletedSchemaValue;
         }
+
+        String metadataValidationValue = mvp.getFirstPropertyValue(METADATA_VALIDATION_KEY);
+        sb.append("\n\t").append(METADATA_VALIDATION_KEY).append(": ");
+        if (metadataValidationValue == null) {
+            sb.append("lax (default)");
+        } else {
+            sb.append(metadataValidationValue).append(" OK");
+            metadataValidation = metadataValidationValue;
+        }
         
         log.info("init:" + sb.toString());
         
@@ -219,13 +231,27 @@ public class YoucatInitAction extends InitAction {
             InitDatabaseUWS uwsi = new InitDatabaseUWS(uws, null, "uws");
             uwsi.doInit();
             log.info("InitDatabaseUWS: OK");
-            
+
             DefaultTableWriter.setDefaultVOTableSerialization(defaultVOTableSerialization);
             DeleteAction.setDeletedSchemaName(deletedSchemaName);
 
+            TablesAction.setValidatorConfig(prepareValidatorConfig(metadataValidation));
         } catch (Exception ex) {
             throw new RuntimeException("INIT FAIL: " + ex.getMessage(), ex);
         }
+    }
+
+    private ValidatorConfig prepareValidatorConfig(String selectedConfig) {
+        if (selectedConfig == null || selectedConfig.isEmpty() || selectedConfig.equals("lax")) {
+            return ValidatorConfig.lax();
+        } else if (selectedConfig.equals("strict")) {
+            return ValidatorConfig.strict();
+        } else if (selectedConfig.equals("none")) {
+            return ValidatorConfig.none();
+        } else {
+            throw new IllegalArgumentException("Invalid validator config: " + selectedConfig);
+        }
+
     }
 
     @Override
