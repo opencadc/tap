@@ -168,7 +168,7 @@ public class VOUnitValidator {
             parseInput(s, violations);
             if (!s.done()) {
                 violations.add(new Violation(ViolationType.STRUCTURAL,
-                        "Unexpected character(s) at position " + s.pos + ": '" + vounit.substring(s.pos) + "'"));
+                        "Unexpected character(s) at position " + (s.pos + 1) + ": '" + vounit.substring(s.pos) + "'"));
                 return new ValidationResult(vounit, violations, config);
             }
             return new ValidationResult(vounit, violations, config);
@@ -255,7 +255,7 @@ public class VOUnitValidator {
             s.pos++; // consume '('
             parseCompleteExpression(s, violations);
             if (s.done() || s.current() != ')') {
-                throw new IllegalArgumentException("Expected ')' at position " + s.pos);
+                throw new IllegalArgumentException("Expected ')' at position " + (s.pos + 1));
             }
             s.pos++; // consume ')'
             return;
@@ -272,13 +272,13 @@ public class VOUnitValidator {
                 // This is a function_application: STRING OPEN_P function_operand CLOSE_P
                 if (!token.type.equals(TokenType.FUNC)) {
                     violations.add(new Violation(ViolationType.VOUNIT_UNKNOWN_FUNCTION,
-                            "Expected a function name. Unknown function : '" + token.value + "' found at position " + s.pos));
+                            "Expected a function name. Unknown function : '" + token.value + "' found at position " + (s.pos + 1)));
                 }
                 s.pos += token.value.length(); // consume function name
                 s.pos++; // consume '('
                 parseFunctionOperand(s, violations);
                 if (s.done() || s.current() != ')') {
-                    throw new IllegalArgumentException("Expected ')' to close function '" + token + "' at position " + s.pos);
+                    throw new IllegalArgumentException("Expected ')' to close function '" + token.value + "' at position " + (s.pos + 1));
                 }
                 s.pos++; // consume ')'
                 return;
@@ -437,12 +437,12 @@ public class VOUnitValidator {
         if (token.type.equals(TokenType.UNIT)) {
             String actualInput = s.input.substring(s.pos, s.pos + token.value.length());
             if (!actualInput.equals(token.value)) {
-                violations.add(new Violation(ViolationType.VOUNIT_CASE_SENSITIVE,
+                violations.add(new Violation(ViolationType.VOUNIT_CASE_MISMATCH,
                         "Unit symbol casing mismatch: found '" + actualInput
                                 + "' but expected canonical form '" + token.value + "'."));
             }
         } else {
-            violations.add(new Violation(ViolationType.VOUNIT_UNKNOWN_UNIT, "Unit symbol expected. Found : '" + token.value + "' at position " + s.pos));
+            violations.add(new Violation(ViolationType.VOUNIT_UNKNOWN_UNIT, "Unit symbol expected. Found : '" + token.value + "' at position " + (s.pos + 1)));
         }
         s.pos += token.value.length();
 
@@ -466,7 +466,7 @@ public class VOUnitValidator {
 
     private void parseNumericPower(ParseState s) {
         if (s.done()) {
-            throw new IllegalArgumentException("Expected numeric power at position " + s.pos);
+            throw new IllegalArgumentException("Unexpected end of input: Expected numeric power at position " + (s.pos + 1));
         }
 
         if (s.current() == '(') {
@@ -482,7 +482,7 @@ public class VOUnitValidator {
                 s.pos++;
             }
             if (s.pos == numStart) {
-                throw new IllegalArgumentException("Expected number inside parenthesized power at position " + s.pos);
+                throw new IllegalArgumentException("Expected number inside parenthesized power at position " + (s.pos + 1));
             }
 
             // Optional decimal part → makes it a FLOAT
@@ -495,8 +495,8 @@ public class VOUnitValidator {
                 // integer division UNSIGNED_INTEGER: e.g. (1/2)
                 s.pos++; // consume '/'
 
-                if (s.current() == '+' || s.current() == '-') {
-                    throw new IllegalArgumentException("Unsigned integer not allowed in denominator in the numeric power at position " + s.pos);
+                if (!s.done() && (s.current() == '+' || s.current() == '-')) {
+                    throw new IllegalArgumentException("Unsigned integer not allowed in denominator in the numeric power at position " + (s.pos + 1));
                 }
 
                 int denomStart = s.pos;
@@ -505,12 +505,12 @@ public class VOUnitValidator {
                 }
                 if (s.pos == denomStart) {
                     throw new IllegalArgumentException(
-                            "Expected denominator in fractional power at position " + s.pos + " and Found : " + s.current());
+                            "Expected denominator in fractional power at position " + (s.pos + 1));
                 }
             }
 
             if (s.done() || s.current() != ')') {
-                throw new IllegalArgumentException("Expected ')' to close parenthesized power at position " + s.pos);
+                throw new IllegalArgumentException("Expected ')' to close parenthesized power at position " + (s.pos + 1));
             }
             s.pos++; // consume ')'
         } else {
@@ -531,7 +531,7 @@ public class VOUnitValidator {
             s.pos++;
         }
         if (s.pos == start) {
-            throw new IllegalArgumentException("Expected digit(s) at position " + s.pos);
+            throw new IllegalArgumentException("Expected digit(s) at position " + (s.pos + 1));
         }
     }
 

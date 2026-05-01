@@ -87,6 +87,6 @@ public enum ViolationType {
     VOUNIT_QUOTED, // e.g. 'furlong'
     VOUNIT_UNKNOWN_UNIT, // unrecognised base unit
     VOUNIT_UNKNOWN_FUNCTION,
-    VOUNIT_CASE_SENSITIVE, // e.g. 'Hz' vs 'hz' and 'G' vs 'g'
+    VOUNIT_CASE_MISMATCH, // e.g. 'Hz' vs 'hz' and 'G' vs 'g'
 
 }

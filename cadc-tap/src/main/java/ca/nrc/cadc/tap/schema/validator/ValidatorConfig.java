@@ -90,6 +90,7 @@ public class ValidatorConfig {
     /** Violation types that are structurally mandatory — can never be warnings. */
     private static final Set<ViolationType> ALWAYS_ERRORS = Collections.unmodifiableSet(EnumSet.of(
             ViolationType.NULL_OR_BLANK,
+            ViolationType.STRUCTURAL,
             ViolationType.IDENTIFIER_INVALID_CHAR,
             ViolationType.IDENTIFIER_RESERVED_KEYWORD // allowing quoted identifiers if config is not "strict"
     ));
@@ -114,10 +115,9 @@ public class ValidatorConfig {
      *  A set including ALWAYS_ERRORS and below listed are considered errors.*/
     public static ValidatorConfig lax() {
         return new ValidatorConfig(EnumSet.of(
-                ViolationType.STRUCTURAL,
                 ViolationType.UCD_UNKNOWN_WORD,
                 ViolationType.UCD_POSITION_MISMATCH,
-                ViolationType.VOUNIT_CASE_SENSITIVE
+                ViolationType.VOUNIT_CASE_MISMATCH
         ), ConfigType.LAX);
     }
 
