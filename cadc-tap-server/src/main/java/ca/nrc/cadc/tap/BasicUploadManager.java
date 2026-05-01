@@ -70,6 +70,8 @@
 
 package ca.nrc.cadc.tap;
 
+import ca.nrc.cadc.dali.tables.ListTableData;
+import ca.nrc.cadc.dali.tables.TableData;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.io.ResourceIterator;
@@ -78,6 +80,8 @@ import ca.nrc.cadc.tap.db.TableLoader;
 import ca.nrc.cadc.tap.db.TapConstants;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapSchemaUtil;
+import ca.nrc.cadc.tap.schema.validator.ValidatorConfig;
 import ca.nrc.cadc.tap.upload.JDOMVOTableParser;
 import ca.nrc.cadc.tap.upload.UploadLimits;
 import ca.nrc.cadc.tap.upload.UploadParameters;
@@ -225,6 +229,7 @@ public class BasicUploadManager implements UploadManager {
                 final String tableName = tableDesc.getTableName();
                 try {
                     tableDesc.setTableName(databaseTableName);
+                    validateTable(tableDesc);
                     storeTable(tableDesc, parser.getVOTable());
                 } finally {
                     tableDesc.setTableName(tableName);
@@ -239,6 +244,20 @@ public class BasicUploadManager implements UploadManager {
         }
 
         return metadata;
+    }
+    
+    /**
+     * Use TapSchemaUtil to validate the table structure, including names of schema, table, 
+     * and all columns.
+     * @param td input table descriptor
+     */
+    protected void validateTable(TableDesc td) {
+        // none() includes identifier validation, just not UCDs, units, etc
+        ValidatorConfig vc = ValidatorConfig.none();
+        String report = TapSchemaUtil.validateTableDesc(td, vc);
+        if (report != null) {
+            throw new IllegalArgumentException("invalid input table: " + report);
+        }
     }
     
     /**
@@ -261,7 +280,11 @@ public class BasicUploadManager implements UploadManager {
 
             @Override
             public ResourceIterator<List<Object>> iterator() throws IOException {
-                return vot.getTableData().iterator();
+                TableData tdata = vot.getTableData();
+                if (tdata == null) {
+                    tdata = new ListTableData();
+                }
+                return tdata.iterator();
             }
 
             @Override

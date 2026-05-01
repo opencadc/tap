@@ -165,7 +165,7 @@ public class UploadParameters {
         try {
             tableName = tableNameUri[0];
         } catch (IndexOutOfBoundsException e) {
-            throw new UnsupportedOperationException("UPLOAD table name is missing: " + parameter);
+            throw new IllegalArgumentException("UPLOAD table name is missing: " + parameter);
         }
 
         // Does table name start with a valid schema.
@@ -173,10 +173,10 @@ public class UploadParameters {
         if (index >= 0) {
             String schema = tableName.substring(0, index);
             if (!schema.equalsIgnoreCase(UploadManager.SCHEMA)) {
-                throw new UnsupportedOperationException("UPLOAD table schema name is invalid: " + tableName);
+                throw new IllegalArgumentException("UPLOAD table schema name is invalid: " + tableName);
             }
             if (tableName.length() == index + 1) {
-                throw new UnsupportedOperationException("UPLOAD table name is missing: " + tableName);
+                throw new IllegalArgumentException("UPLOAD table name is missing: " + tableName);
             }
             tableName = tableName.substring(index + 1);
         }
@@ -184,13 +184,13 @@ public class UploadParameters {
         try {
             TapSchemaUtil.checkValidIdentifier(tableName);
         } catch (ADQLIdentifierException e) {
-            throw new UnsupportedOperationException("UPLOAD table name not a valid ADQL identifier: " + tableName, e);
+            throw new IllegalArgumentException("UPLOAD table name not a valid ADQL identifier: " + tableName, e);
         }
 
         // duplicate table names are not allowed.
         for (UploadTable uploadTable : uploadTables) {
             if (uploadTable.tableName.equals(tableName)) {
-                throw new UnsupportedOperationException("UPLOAD table name is a duplicate: " + tableName);
+                throw new IllegalArgumentException("UPLOAD table name is a duplicate: " + tableName);
             }
         }
         return tableName;
