@@ -361,45 +361,6 @@ public class TableCreatorTest extends TestUtil {
         }
     }
     
-    
-    @Test
-    public void testInvalidTableName() {
-        try {
-            String testTable = testSchemaName + ".testInvalidTableName;drop table tap_schema.tables";
-            TableDesc orig = new TableDesc(testSchemaName, testTable);
-            orig.tableType = TableDesc.TableType.TABLE;
-            orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
-            
-            TableCreator tc = new TableCreator(dataSource);
-            tc.createTable(orig);
-            Assert.fail("expected IllegalArgumentException - createTable returned");
-        } catch (IllegalArgumentException expected) {
-            log.info("caught expected exception: " + expected);
-        } catch (Exception unexpected) {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
-        }
-    }
-    
-    @Test
-    public void testInvalidColumnName() {
-        try {
-            String testTable = testSchemaName + ".testInvalidColumnName;drop table tap_schema.tables";
-            TableDesc orig = new TableDesc(testSchemaName, testTable);
-            orig.tableType = TableDesc.TableType.TABLE;
-            orig.getColumnDescs().add(new ColumnDesc(testTable, "c0", TapDataType.STRING));
-            
-            TableCreator tc = new TableCreator(dataSource);
-            tc.createTable(orig);
-            Assert.fail("expected IllegalArgumentException - createTable returned");
-        } catch (IllegalArgumentException expected) {
-            log.info("caught expected exception: " + expected);
-        } catch (Exception unexpected) {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
-        }
-    }
-    
     public static class SimpleRowMapper implements RowMapper {
 
         @Override

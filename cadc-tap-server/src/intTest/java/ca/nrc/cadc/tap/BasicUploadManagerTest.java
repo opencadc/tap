@@ -353,7 +353,9 @@ public class BasicUploadManagerTest
                 Map<String, TableDesc> tableDescs = uploadManager.upload(paramList, jobID);
                 Assert.fail("empty table name didn't cause an Exception");
             }
-            catch (RuntimeException ignore) { }
+            catch (IllegalArgumentException expected) { 
+                log.info("caught expected: " + expected);
+            }
 
             // table names with a spaces
             paramList.clear();
@@ -363,7 +365,9 @@ public class BasicUploadManagerTest
                 Map<String, TableDesc> tableDescs = uploadManager.upload(paramList, jobID);
                 Assert.fail("table name with a space didn't cause an Exception");
             }
-            catch (RuntimeException ignore) { }
+            catch (IllegalArgumentException expected) { 
+                log.info("caught expected: " + expected);
+            }
             
             paramList.clear();
             paramList.add(new Parameter("UPLOAD", "table name,http://localhost/foo"));
@@ -372,7 +376,9 @@ public class BasicUploadManagerTest
                 Map<String, TableDesc> tableDescs = uploadManager.upload(paramList, jobID);
                 Assert.fail("table name with a space didn't cause an Exception");
             }
-            catch (RuntimeException ignore) { }
+            catch (IllegalArgumentException expected) { 
+                log.info("caught expected: " + expected);
+            }
 
             paramList.clear();
             paramList.add(new Parameter("UPLOAD", "tablename ,http://localhost/foo"));
@@ -381,7 +387,9 @@ public class BasicUploadManagerTest
                 Map<String, TableDesc> tableDescs = uploadManager.upload(paramList, jobID);
                 Assert.fail("table name with a space didn't cause an Exception");
             }
-            catch (RuntimeException ignore) { }
+            catch (IllegalArgumentException expected) { 
+                log.info("caught expected: " + expected);
+            }
             
             // Invalid table names
             paramList.clear();
@@ -391,7 +399,9 @@ public class BasicUploadManagerTest
                 Map<String, TableDesc> tableDescs = uploadManager.upload(paramList, jobID);
                 Assert.fail("table name starting with a digit didn't cause an Exception");
             }
-            catch (RuntimeException ignore) { }
+            catch (IllegalArgumentException expected) { 
+                log.info("caught expected: " + expected);
+            }
             
             paramList.clear();
             paramList.add(new Parameter("UPLOAD", "_tablename,http://localhost/foo"));
@@ -400,7 +410,9 @@ public class BasicUploadManagerTest
                 Map<String, TableDesc> tableDescs = uploadManager.upload(paramList, jobID);
                 Assert.fail("table name starting with an underscore didn't cause an Exception");
             }
-            catch (RuntimeException ignore) { }
+            catch (IllegalArgumentException expected) { 
+                log.info("caught expected: " + expected);
+            }
             
             paramList.clear();
             paramList.add(new Parameter("UPLOAD", "tablename!,http://localhost/foo"));
@@ -409,7 +421,9 @@ public class BasicUploadManagerTest
                 Map<String, TableDesc> tableDescs = uploadManager.upload(paramList, jobID);
                 Assert.fail("table name with a exclaimation didn't cause an Exception");
             }
-            catch (RuntimeException ignore) { }
+            catch (IllegalArgumentException expected) { 
+                log.info("caught expected: " + expected);
+            }
             
             paramList.clear();
             paramList.add(new Parameter("UPLOAD", "?tablename,http://localhost/foo"));
@@ -418,7 +432,9 @@ public class BasicUploadManagerTest
                 Map<String, TableDesc> tableDescs = uploadManager.upload(paramList, jobID);
                 Assert.fail("table name with a question mark didn't cause an Exception");
             }
-            catch (RuntimeException ignore) { }
+            catch (IllegalArgumentException expected) { 
+                log.info("caught expected: " + expected);
+            }
             
             paramList.clear();
             paramList.add(new Parameter("UPLOAD", "&tablename,http://localhost/foo"));
@@ -427,7 +443,9 @@ public class BasicUploadManagerTest
                 Map<String, TableDesc> tableDescs = uploadManager.upload(paramList, jobID);
                 Assert.fail("table name with an ampersand didn't cause an Exception");
             }
-            catch (RuntimeException ignore) { }
+            catch (IllegalArgumentException expected) { 
+                log.info("caught expected: " + expected);
+            }
             
             log.debug("testInvalidTableNames passed.");
         }
@@ -461,15 +479,8 @@ public class BasicUploadManagerTest
                 Map<String, TableDesc> tableDescs = uploadManager.upload(paramList, jobID);
                 Assert.fail("column name starting with a digit didn't cause an Exception");
             }   
-            catch (RuntimeException e)
-            {
-                Throwable cause = e.getCause();
-                while(cause.getCause() != null)
-                    cause = cause.getCause();
-                if (cause instanceof ADQLIdentifierException)
-                    log.debug("caught expected: " + cause);
-                else
-                    Assert.fail(e.getCause().getMessage());
+            catch (IllegalArgumentException expected) {
+                log.info("expected exception: " + expected);
             }
 
             log.debug("testColumnNameStartsWithDigit passed.");
@@ -504,15 +515,8 @@ public class BasicUploadManagerTest
                 Map<String, TableDesc> tableDescs = uploadManager.upload(paramList, jobID);
                 Assert.fail("column name starting with an underscore didn't cause an Exception");
             }   
-            catch (RuntimeException e)
-            {
-                Throwable cause = e.getCause();
-                while(cause.getCause() != null)
-                    cause = cause.getCause();
-                if (cause instanceof ADQLIdentifierException)
-                    log.debug("caught expected: " + cause);
-                else
-                    Assert.fail(e.getCause().getMessage());
+            catch (IllegalArgumentException expected) {
+                log.info("expected exception: " + expected);
             }
 
             log.debug("testColumnNameStartsWithUnderscore passed.");
@@ -594,15 +598,8 @@ public class BasicUploadManagerTest
                 Map<String, TableDesc> tableDescs = uploadManager.upload(paramList, jobID);
                 Assert.fail("column name containing a space didn't cause an Exception");
             }
-            catch (RuntimeException e)
-            {
-                Throwable cause = e.getCause();
-                while(cause.getCause() != null)
-                    cause = cause.getCause();
-                if (cause instanceof ADQLIdentifierException)
-                    log.debug("caught expected: " + cause);
-                else
-                    Assert.fail(e.getCause().getMessage());
+            catch (IllegalArgumentException expected) {
+                log.info("expected exception: " + expected);
             }
 
             log.debug("testColumnNameContainsSpace passed.");
@@ -681,18 +678,8 @@ public class BasicUploadManagerTest
                 Map<String, TableDesc> tableDescs = uploadManager.upload(paramList, jobID);
                 Assert.fail("column name starting with an invalid letter didn't cause an Exception");
             }
-            catch (RuntimeException e)
-            {
-                Throwable cause = e.getCause();
-                while(cause.getCause() != null)
-                    cause = cause.getCause();
-                if (cause instanceof ADQLIdentifierException)
-                    log.debug("caught expected: " + cause);
-                else
-                {
-                    log.error("unexpected exception", e);
-                    Assert.fail("unexpected exception: " + e);
-                }
+            catch (IllegalArgumentException expected) {
+                log.info("expected exception: " + expected);
             }
 
             log.debug("testColumnNameStartsWithInvalidLetter passed.");
@@ -727,15 +714,8 @@ public class BasicUploadManagerTest
                 Map<String, TableDesc> tableDescs = uploadManager.upload(paramList, jobID);
                 Assert.fail("column name containing an invalid letter didn't cause an Exception");
             }
-            catch (RuntimeException e)
-            {
-                Throwable cause = e.getCause();
-                while(cause.getCause() != null)
-                    cause = cause.getCause();
-                if (cause instanceof ADQLIdentifierException)
-                    log.debug("caught expected: " + cause);
-                else
-                    Assert.fail(e.getCause().getMessage());
+            catch (IllegalArgumentException expected) {
+                log.info("expected exception: " + expected);
             }
 
             log.debug("testColumnNameContainsInvalidLetter passed.");
@@ -770,10 +750,8 @@ public class BasicUploadManagerTest
                 Map<String, TableDesc> tableDescs = uploadManager.upload(paramList, jobID);
                 Assert.fail("column name ending with an invalid letter didn't cause an Exception");
             }
-            catch (RuntimeException e)
-            {
-                if (e.getCause() instanceof MissingResourceException)
-                    Assert.fail(e.getCause().getMessage());
+            catch (IllegalArgumentException expected) {
+                log.info("expected exception: " + expected);
             }
 
             log.debug("testColumnNameEndsWithInvalidLetter passed.");
