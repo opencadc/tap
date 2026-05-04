@@ -370,6 +370,52 @@
         }
       }
     },
+    "/tables/{name}?action={action}": {
+      "get": {
+        "summary": "Validate table metadata",
+        "tags": [
+          "Support Interfaces"
+        ],
+        "description": "Validates table metadata and provides errors and warnings to improvise the table metadata.",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "description": "a single fully qualified table name (e.g. tap_schema.tables)",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "description": "specify 'validate' to validate the table metadata instead of retrieving it",
+            "required": false,
+            "type": "string",
+            "enum": ["validate"]
+          }
+        ],
+        "produces": [
+          "text/plain"
+        ],
+        "responses": {
+          "200": {
+            "description": "'OK' for valid table metadata and 'Errors' followed by 'Warnings' for invalid table metadata."
+          },
+          "500": {
+            "description": "Internal server error"
+          },
+          "503": {
+            "description": "Service too busy"
+          },
+          "default": {
+            "description": "Unexpected error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
     "/tables/{name}": {
       "get": {
         "summary": "get table metadata (VOSI)",

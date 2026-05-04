@@ -92,12 +92,21 @@ import ca.nrc.cadc.vosi.TableSetWriter;
 import ca.nrc.cadc.vosi.TableWriter;
 import ca.nrc.cadc.vosi.actions.TablesInputHandler;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.security.PrivilegedActionException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import javax.security.auth.Subject;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -198,7 +207,7 @@ public class CreateTableTest extends AbstractTablesTest {
             c0.getDatatype().xtype = null;
                     
             log.info("illegal update: add column");
-            ColumnDesc ecd = new ColumnDesc(td.getTableName(), "add-by-update", TapDataType.CHAR);
+            ColumnDesc ecd = new ColumnDesc(td.getTableName(), "addByUpdate", TapDataType.CHAR);
             td.getColumnDescs().add(ecd);
             sw = new StringWriter();
             w.write(td, sw);
@@ -226,7 +235,7 @@ public class CreateTableTest extends AbstractTablesTest {
             Assert.assertTrue(update.getThrowable().getMessage().contains("cannot add/remove/rename"));
             
             log.info("illegal update: rename column");
-            ColumnDesc rename = new ColumnDesc(td.getTableName(), c0.getColumnName() + "-renamed", c0.getDatatype());
+            ColumnDesc rename = new ColumnDesc(td.getTableName(), c0.getColumnName() + "Renamed", c0.getDatatype());
             td.getColumnDescs().remove(c0);
             td.getColumnDescs().add(0, rename);
             sw = new StringWriter();
@@ -553,6 +562,56 @@ public class CreateTableTest extends AbstractTablesTest {
             
             // cleanup on success
             doDelete(admin, testCreateSchema, false);
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+
+    @Test
+    public void testPutInvalidFieldName() {
+        try {
+            clearSchemaPerms();
+            TapPermissions tp = new TapPermissions(null, true, null, null);
+            super.setPerms(schemaOwner, testSchemaName, tp, 200);
+
+            String testTable = testSchemaName + ".testPutInvalidFieldName";
+
+            // cleanup just in case
+            doDelete(schemaOwner, testTable, true);
+
+            VOTableTable vtab = new VOTableTable();
+            vtab.getFields().add(new VOTableField("c0", TapDataType.STRING.getDatatype(), TapDataType.STRING.arraysize));
+            vtab.getFields().add(new VOTableField("c1", TapDataType.INTEGER.getDatatype()));
+
+            VOTableField invalidFieldName = new VOTableField("ACTION", TapDataType.DOUBLE.getDatatype());
+            vtab.getFields().add(invalidFieldName);
+
+            VOTableResource vres = new VOTableResource("results");
+            vres.setTable(vtab);
+            final VOTableDocument doc = new VOTableDocument();
+            doc.getResources().add(vres);
+
+            // create
+            URL tableURL = new URL(certTablesURL.toExternalForm() + "/" + testTable);
+            OutputStreamWrapper src = new OutputStreamWrapper() {
+                @Override
+                public void write(OutputStream out) throws IOException {
+                    VOTableWriter w = new VOTableWriter(VOTableWriter.SerializationType.TABLEDATA);
+                    w.write(doc, out);
+                }
+            };
+            HttpUpload put = new HttpUpload(src, tableURL);
+            put.setRequestProperty("Content-Type", TablesInputHandler.VOTABLE_TYPE);
+            Subject.doAs(schemaOwner, new RunnableAction(put));
+            Assert.assertNotNull("throwable", put.getThrowable());
+            Assert.assertEquals("response code", 400, put.getResponseCode());
+
+            String message = put.getThrowable().getMessage();
+            Assert.assertNotNull(message);
+            Assert.assertTrue(message.contains("errors: 1"));
+            Assert.assertTrue(message.contains("warnings: 0"));
+            Assert.assertTrue(message.contains("ACTION")); // Confirms ACTION is the reason of failure
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);

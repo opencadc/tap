@@ -68,7 +68,6 @@
 package ca.nrc.cadc.vosi.actions;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
@@ -85,6 +84,7 @@ import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import ca.nrc.cadc.tap.schema.TapSchemaUtil;
 import ca.nrc.cadc.tap.schema.Util;
+import ca.nrc.cadc.tap.schema.validator.ValidatorConfig;
 import java.io.IOException;
 import java.security.AccessControlException;
 import java.security.Principal;
@@ -110,6 +110,7 @@ public abstract class TablesAction extends RestAction {
     
     public static String ADMIN_KEY = "-admin-principal";
     public static String CREATE_SCHEMA_KEY = "-create-schema-in-db";
+    public static ValidatorConfig validatorConfig;
     
     protected static final String PERMS_CONTENTTYPE = "text/plain";
     protected static final String OWNER_KEY = "owner";
@@ -119,6 +120,7 @@ public abstract class TablesAction extends RestAction {
     
     protected String jndiAdminKey;
     protected String jndiCreateSchemaKey;
+    protected String tableValidationWarnings;
     
     public TablesAction() { 
         super();
@@ -141,7 +143,10 @@ public abstract class TablesAction extends RestAction {
     void checkWritableImpl() throws TransientException {
         super.checkWritable();
     }
-    
+
+    public static void setValidatorConfig(ValidatorConfig validatorConfig) {
+        TablesAction.validatorConfig = validatorConfig;
+    }
     
     @Override
     protected InlineContentHandler getInlineContentHandler() {
@@ -189,11 +194,11 @@ public abstract class TablesAction extends RestAction {
         return dao;
     }
 
-    private TableDesc toTableDesc(VOTableDocument doc) {
+    private TableDesc toTableDesc(VOTableDocument doc, String schemaName, String tableName) {
         for (VOTableResource vr : doc.getResources()) {
             VOTableTable vtab = vr.getTable();
             if (vtab != null) {
-                TableDesc ret = TapSchemaUtil.createTableDesc("default", "default", vtab);
+                TableDesc ret = TapSchemaUtil.createTableDesc(schemaName, tableName, vtab);
                 log.debug("create from VOtable: " + ret);
                 // strip out some incoming table metadata
                 // - ID attr (should be transient usage only)
@@ -216,14 +221,16 @@ public abstract class TablesAction extends RestAction {
 
         if (in instanceof TableDesc) {
             input = (TableDesc) in;
+            input.setSchemaName(schemaName);
+            input.setTableName(tableName);
         } else if (in instanceof VOTableDocument) {
-            input = toTableDesc((VOTableDocument) in);
+            input = toTableDesc((VOTableDocument) in, schemaName, tableName);
         } else {
             throw new RuntimeException("BUG: no input table");
         }
 
-        input.setSchemaName(schemaName);
-        input.setTableName(tableName);
+        tableValidationWarnings = TapSchemaUtil.validateTableDesc(input, validatorConfig);
+
         // TODO: move this to PutAction (create only)
         int c = 0;
         for (ColumnDesc cd : input.getColumnDescs()) {
@@ -694,4 +701,5 @@ public abstract class TablesAction extends RestAction {
         }
         return false;
     }
+
 }

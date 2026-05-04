@@ -76,9 +76,11 @@ import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import ca.nrc.cadc.tap.schema.TapSchemaLoader;
 import ca.nrc.cadc.tap.schema.TapSchemaUtil;
+import ca.nrc.cadc.tap.schema.validator.ValidatorConfig;
 import ca.nrc.cadc.vosi.TableSetWriter;
 import ca.nrc.cadc.vosi.TableWriter;
 import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import org.apache.log4j.Logger;
 
 /**
@@ -89,6 +91,9 @@ public class GetAction extends TablesAction {
 
     private static final Logger log = Logger.getLogger(GetAction.class);
 
+    private static final String VALIDATE_ACTION = "validate";
+    private static final String ACTION_PARAM = "action";
+
     public GetAction() {
     }
 
@@ -96,10 +101,15 @@ public class GetAction extends TablesAction {
     public void doAction() throws Exception {
         String schemaName = null;
         String tableName = null;
+        boolean validate = VALIDATE_ACTION.equals(syncInput.getParameter(ACTION_PARAM));
+
         String[] target = getTarget();
         if (target != null) {
             schemaName = target[0];
             tableName = target[1];
+        }
+        if (validate && (schemaName == null || tableName == null)) {
+            throw new IllegalArgumentException("Either table name or schema name is missing.");
         }
         log.debug("GET: " + schemaName + " " + tableName);
 
@@ -143,11 +153,35 @@ public class GetAction extends TablesAction {
                 throw new ResourceNotFoundException("table not found: " + tableName);
             }
 
+            if (validate) {
+                String validationResult;
+                try {
+                    ValidatorConfig vc = validatorConfig; // set by service config
+                    if (vc == null) {
+                        vc = ValidatorConfig.lax();
+                    }
+                    validationResult = TapSchemaUtil.validateTableDesc(td, vc);
+                } catch (IllegalArgumentException ex) {
+                    validationResult = ex.getMessage();
+                }
+                syncOutput.setCode(200);
+                syncOutput.setHeader("Content-Type", "text/plain");
+                PrintWriter w = new PrintWriter(new OutputStreamWriter(syncOutput.getOutputStream()));
+                w.print(tableName + ": ");
+                if (validationResult == null || validationResult.isEmpty()) {
+                    w.println("OK");
+                } else {
+                    w.println(validationResult);
+                }
+                w.flush();
+                w.close();
+                return;
+            }
             // If the Accept header = application/x-votable+xml,
             // output the TableDesc as a VOTable
             String accept = syncInput.getHeader("Accept");
             if (VOTableWriter.CONTENT_TYPE.equals(accept)) {
-                VOTableDocument vot = TapSchemaUtil.createVOTable(td);
+                VOTableDocument vot = TapSchemaUtil.createVOTable(td, validatorConfig);
                 VOTableWriter tw = new VOTableWriter();
                 syncOutput.setCode(200);
                 syncOutput.setHeader("Content-Type", VOTableWriter.CONTENT_TYPE);
