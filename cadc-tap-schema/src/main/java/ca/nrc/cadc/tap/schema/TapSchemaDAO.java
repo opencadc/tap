@@ -86,7 +86,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import javax.security.auth.Subject;
-import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 import org.opencadc.gms.GroupURI;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -461,7 +460,7 @@ public class TapSchemaDAO extends AbstractDAO {
                 // add/remove/rename columns not supported
                 checkMismatchedColumnSet(cur, td);
             }
-            
+
             tm.startTransaction();
             prof.checkpoint("start-transaction");
 

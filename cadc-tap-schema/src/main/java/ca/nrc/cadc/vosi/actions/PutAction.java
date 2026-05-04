@@ -74,6 +74,7 @@ import ca.nrc.cadc.dali.tables.TableData;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.io.ResourceIterator;
+import ca.nrc.cadc.net.HttpConstants;
 import ca.nrc.cadc.net.ResourceAlreadyExistsException;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.rest.InlineContentHandler;
@@ -132,6 +133,12 @@ public class PutAction extends TablesAction {
         }
         
         syncOutput.setCode(200); // should be 201
+        if (tableValidationWarnings != null && !tableValidationWarnings.isEmpty()) {
+            byte[] out = tableValidationWarnings.getBytes();
+            syncOutput.setHeader(HttpConstants.HDR_CONTENT_TYPE, "text/plain");
+            syncOutput.setHeader(HttpConstants.HDR_CONTENT_LENGTH, out.length);
+            syncOutput.getOutputStream().write(out);
+        }
     }
     
     private void createSchema(TapSchemaDAO ts, String schema) throws Exception {

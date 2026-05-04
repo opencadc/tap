@@ -67,6 +67,7 @@
 
 package ca.nrc.cadc.vosi.actions;
 
+import ca.nrc.cadc.net.HttpConstants;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
@@ -117,6 +118,12 @@ public class PostAction extends TablesAction {
         }
         
         syncOutput.setCode(204); // no content on success
+        if (tableValidationWarnings != null && !tableValidationWarnings.isEmpty()) {
+            byte[] out = tableValidationWarnings.getBytes();
+            syncOutput.setHeader(HttpConstants.HDR_CONTENT_TYPE, "text/plain");
+            syncOutput.setHeader(HttpConstants.HDR_CONTENT_LENGTH, out.length);
+            syncOutput.getOutputStream().write(out);
+        }
     }
     
     private void updateTable(TapSchemaDAO dao, String schemaName, String tableName) 
