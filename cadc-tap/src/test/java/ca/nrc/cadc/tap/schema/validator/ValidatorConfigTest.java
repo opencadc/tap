@@ -65,9 +65,12 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.tap.schema;
+package ca.nrc.cadc.tap.schema.validator;
 
-import ca.nrc.cadc.tap.schema.validator.ValidatorConfig;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
+import ca.nrc.cadc.tap.schema.TapSchemaUtil;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -106,9 +109,9 @@ public class ValidatorConfigTest {
         Assert.assertTrue(result.contains("warnings: 3"));
 
         Assert.assertTrue(result.contains("schema.name"));
-        Assert.assertFalse(result.contains("tableName"));
+        Assert.assertTrue(result.contains("tableName"));
 
-        Assert.assertFalse(result.contains("col1"));
+        Assert.assertTrue(result.contains("col1"));
         Assert.assertTrue(result.contains("\"select\""));
 
         Assert.assertTrue(result.contains("Jy/beam/RMSF")); // STRUCTURAL
@@ -165,9 +168,9 @@ public class ValidatorConfigTest {
         Assert.assertTrue(result.contains("warnings: 0"));
 
         Assert.assertTrue(result.contains("schema.name"));
-        Assert.assertFalse(result.contains("tableName"));
+        Assert.assertTrue(result.contains("tableName"));
 
-        Assert.assertFalse(result.contains("col1"));
+        Assert.assertTrue(result.contains("col1"));
         Assert.assertTrue(result.contains("\"select\""));
 
         Assert.assertTrue(result.contains("Jy/beam/RMSF")); // STRUCTURAL

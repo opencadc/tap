@@ -76,9 +76,11 @@ import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import ca.nrc.cadc.tap.schema.TapSchemaLoader;
 import ca.nrc.cadc.tap.schema.TapSchemaUtil;
+import ca.nrc.cadc.tap.schema.validator.ValidatorConfig;
 import ca.nrc.cadc.vosi.TableSetWriter;
 import ca.nrc.cadc.vosi.TableWriter;
 import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import org.apache.log4j.Logger;
 
 /**
@@ -154,14 +156,25 @@ public class GetAction extends TablesAction {
             if (validate) {
                 String validationResult;
                 try {
-                    validationResult = TapSchemaUtil.validateTableDesc(td, validatorConfig);
+                    ValidatorConfig vc = validatorConfig; // set by service config
+                    if (vc == null) {
+                        vc = ValidatorConfig.lax();
+                    }
+                    validationResult = TapSchemaUtil.validateTableDesc(td, vc);
                 } catch (IllegalArgumentException ex) {
                     validationResult = ex.getMessage();
                 }
                 syncOutput.setCode(200);
                 syncOutput.setHeader("Content-Type", "text/plain");
-                syncOutput.getOutputStream().write(validationResult == null || validationResult.isEmpty()
-                        ? "OK".getBytes() : validationResult.getBytes());
+                PrintWriter w = new PrintWriter(new OutputStreamWriter(syncOutput.getOutputStream()));
+                w.print(tableName + ": ");
+                if (validationResult == null || validationResult.isEmpty()) {
+                    w.println("OK");
+                } else {
+                    w.println(validationResult);
+                }
+                w.flush();
+                w.close();
                 return;
             }
             // If the Accept header = application/x-votable+xml,

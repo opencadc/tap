@@ -269,18 +269,21 @@ public class TapSchemaUtil {
         List<String> warnings = new ArrayList<>();
         IdentifierValidator identifierValidator = new IdentifierValidator(config);
 
-        collectViolations("schema name", td.getSchemaName(),
+        String contextPrefix = td.getSchemaName() + ": ";
+        collectViolations(contextPrefix, "schema name", td.getSchemaName(),
                 identifierValidator.checkValidIdentifier(td.getSchemaName(), IdentifierValidator.IdentifierType.SCHEMA_NAME).getViolations(),
                 config, errors, warnings);
 
-        collectViolations("table name", td.getTableName(),
+        contextPrefix = td.getTableName() + ": ";
+        collectViolations(contextPrefix, "table name", td.getTableName(),
                 identifierValidator.checkValidTableName(td.getTableName()).getViolations(), config, errors, warnings);
 
         UCDValidator ucdValidator = new UCDValidator(config);
         VOUnitValidator voUnitValidator = new VOUnitValidator(config);
 
         for (ColumnDesc cd : td.getColumnDescs()) {
-            collectViolations("column name", cd.getColumnName(),
+            contextPrefix = td.getTableName() + "." + cd.getColumnName() + ": ";
+            collectViolations(contextPrefix , "column name", cd.getColumnName(),
                     identifierValidator.checkValidIdentifier(cd.getColumnName(), IdentifierValidator.IdentifierType.COLUMN_NAME).getViolations(),
                     config, errors, warnings);
 
@@ -289,8 +292,8 @@ public class TapSchemaUtil {
                 continue;
             }
 
-            collectViolations("ucd", cd.ucd, ucdValidator.validate(cd.ucd).getViolations(), config, errors, warnings);
-            collectViolations("unit", cd.unit, voUnitValidator.validate(cd.unit).getViolations(), config, errors, warnings);
+            collectViolations(contextPrefix, "ucd", cd.ucd, ucdValidator.validate(cd.ucd).getViolations(), config, errors, warnings);
+            collectViolations(contextPrefix , "unit", cd.unit, voUnitValidator.validate(cd.unit).getViolations(), config, errors, warnings);
         }
 
         if (errors.isEmpty() && warnings.isEmpty()) {
@@ -321,10 +324,10 @@ public class TapSchemaUtil {
     /**
      * Classifies each violation by severity and appends the formatted line to the appropriate list.
      */
-    private static void collectViolations(String fieldType, String fieldValue, List<Violation> violations,
+    private static void collectViolations(String pre, String fieldType, String fieldValue, List<Violation> violations,
                                           ValidatorConfig config, List<String> errors, List<String> warnings) {
         for (Violation v : violations) {
-            String line = fieldType + " \"" + fieldValue + "\": " + v.getMessage() + "\n";
+            String line = pre + fieldType + " \"" + fieldValue + "\": " + v.getMessage() + "\n";
             if (config.severityFor(v.getViolationType()) == ValidatorConfig.Severity.ERROR) {
                 errors.add(line);
             } else {

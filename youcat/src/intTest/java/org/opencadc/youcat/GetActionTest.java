@@ -148,7 +148,10 @@ public class GetActionTest extends AbstractTablesTest {
             Assert.assertNull("throwable", check.getThrowable());
             Assert.assertEquals("response code", 200, check.getResponseCode());
             String validationContent = stream.toString(StandardCharsets.UTF_8);
-            Assert.assertEquals("OK", validationContent);
+            Assert.assertNotNull(validationContent);
+            validationContent = validationContent.trim();
+            String expected = testTable + ": OK";
+            Assert.assertEquals(expected, validationContent);
         } catch (Exception unexpected) {
             Assert.fail("unexpected exception: " + unexpected);
         }
