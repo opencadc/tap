@@ -1,5 +1,9 @@
 name: RESPONSEFORMAT
 in: query
 description: select output table format
+required: false
 schema:
     type: string
+    examples: 
+      - application/x-votable+xml
+      - vot

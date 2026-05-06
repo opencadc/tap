@@ -28,33 +28,34 @@ post:
           in: query
           description: a single table name as provided in tap_schema
           required: true
+          explode: false
           schema:
               type: string
         - name: INDEX
           in: query
           description: |
             create index operation; value is a column name in the table
-            or a comma-separated list of columns
-          required: false
+            or (NOT IMPLEMENTED) a comma-separated list of columns; order matters
+          required: true
           schema:
-              type: string
+            type: string
+            #pattern: ??
         - name: INDEX_TYPE
           in: query
           description: |
-            qualifier to create a specialised index: a value of long-lat 
+            NOT IMPLEMENTED: qualifier to create a specialised index: a value of long-lat 
             requires 2 numeric columns which are used as longitude,latitude
             pairs (spherical coordinates); a value of x-y requires 2 numeric
-            columns which are used as x,y pairs (cartesian coordinates)
+            columns which are used as x,y pairs (cartesian coordinates); 
           required: false
+          # style: form (default), explode: true, and type: array
+          # means the normal zero or more param=value
+          explode: true
           schema:
-            type: string
-            enum: [long-lat,x-y]
-        - name: UNIQUE
-          in: query
-          description: qualifier to create a unique index
-          required: false
-          schema:
-              type: boolean
+            type: array
+            items:
+              type: string
+              enum: [long-lat,x-y,unique]
     responses:
         '303':
             $ref: ../uws/uws-responses.yaml#/created
