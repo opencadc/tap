@@ -1,0 +1,11 @@
+name: LAST
+in: query
+description: |
+  limit the number of jobs listed to the specified value; use of LAST
+  also causes the server to return jobs in order of creationTime (descending)
+  with the most recent jobs first
+required: false
+schema:
+  type: integer
+  minimum: 0
+  example: 10

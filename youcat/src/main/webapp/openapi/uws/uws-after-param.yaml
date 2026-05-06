@@ -1,0 +1,8 @@
+name: AFTER
+in: query
+description: list jobs with creationTime after the specified value
+required: false
+schema:
+  type: string
+  format: date-time
+  example: "2017-07-21T17:32:28Z"

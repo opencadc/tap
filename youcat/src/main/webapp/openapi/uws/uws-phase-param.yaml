@@ -1,0 +1,7 @@
+name: PHASE
+in: query
+description: list jobs in this execution phase
+required: false
+schema:
+  type: string
+  example: "EXECUTING"

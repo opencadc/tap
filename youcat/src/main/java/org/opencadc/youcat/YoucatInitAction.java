@@ -81,6 +81,10 @@ import ca.nrc.cadc.util.PropertiesReader;
 import ca.nrc.cadc.uws.server.impl.InitDatabaseUWS;
 import ca.nrc.cadc.vosi.actions.DeleteAction;
 import ca.nrc.cadc.vosi.actions.TablesAction;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.security.auth.Subject;
@@ -107,6 +111,8 @@ public class YoucatInitAction extends InitAction {
     private Boolean createSchemaInDB = false;
     private String defaultVOTableSerialization = null;
     private String deletedSchemaName = null;
+    
+    private boolean adminConfigured = false;
     private String metadataValidation = null;
 
     public YoucatInitAction() { 
@@ -127,10 +133,12 @@ public class YoucatInitAction extends InitAction {
         sb.append("\n\t").append(YOUCAT_ADMIN).append(": ");
         if (adminUserStr == null) {
             sb.append("MISSING");
+            this.adminConfigured = false;
         } else {
             try {
                 IdentityManager im = AuthenticationUtil.getIdentityManager();
                 admin = im.toSubject(adminUserStr);
+                this.adminConfigured = true;
                 String str = admin.toString().replaceAll("\n", " ");
                 sb.append(str).append(" OK");
             } catch (Exception ex) {
@@ -236,6 +244,25 @@ public class YoucatInitAction extends InitAction {
             DeleteAction.setDeletedSchemaName(deletedSchemaName);
 
             TablesAction.setValidatorConfig(prepareValidatorConfig(metadataValidation));
+            initOpenApiDocs();
+        } catch (Exception ex) {
+            throw new RuntimeException("INIT FAIL: " + ex.getMessage(), ex);
+        }
+    }
+    
+    private void initOpenApiDocs() {
+        try {
+            URL resURL = super.getResource("openapi-base.yaml");
+            if (adminConfigured) {
+                resURL = super.getResource("openapi-youcat.yaml");
+            }
+            
+            String path = resURL.getPath();
+            log.debug("found openapi: " + resURL + " at " + path);
+            Path src = Path.of(resURL.toURI());
+            Path dest = src.getParent().resolve("openapi.yaml");
+            Files.copy(src, dest, StandardCopyOption.COPY_ATTRIBUTES);
+            log.info("api docs: " + src + " -> " + dest);
         } catch (Exception ex) {
             throw new RuntimeException("INIT FAIL: " + ex.getMessage(), ex);
         }

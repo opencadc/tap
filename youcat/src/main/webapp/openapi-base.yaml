@@ -1,0 +1,41 @@
+openapi: 3.1.0
+info:
+  title: |
+    TAP: generic OpenCADC TAP service implementation
+  version: "0.9.4"
+  description: |
+    This service implements the WD-TAP-1.2 API specification with components imported from
+    VOSI, UWS, and DALI. Querying is completely compatible with the IVOA TAP-1.1 Recommendation.
+    
+    This service is configured for basic TAP operation only. While the service implements
+    the complete standard, the UWS job child paths described below are a subset.
+    
+servers:
+- url: /youcat
+
+tags:
+    - name: TAP Query
+    - name: VOSI Capabilities
+    - name: VOSI Table Metadata
+
+paths:
+    /sync:
+        $ref: ./openapi/tap/tap-sync.yaml
+    /async:
+        $ref: ./openapi/tap/tap-async.yaml
+    /async/{jobID}:
+        $ref: ./openapi/tap/tap-async-job.yaml
+    /async/{jobID}/phase:
+        $ref: ./openapi/tap/tap-async-job-phase.yaml
+    /async/{jobID}/results/result:
+        $ref: ./openapi/tap/tap-result.yaml
+
+    /capabilities:
+        $ref: ./openapi/vosi/vosi-capabilities.yaml
+
+    /tables:
+        $ref: ./openapi/vosi/vosi-tableset.yaml
+    /tables/{name}:
+        $ref: ./openapi/vosi/vosi-table-11.yaml
+
+      

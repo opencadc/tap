@@ -1,0 +1,38 @@
+get:
+    operationId: vosi-table-ops-job-phase-get
+    tags:
+        - VOSI Table Operations 
+    summary: get a UWS job phase
+    description: job phase resource
+    parameters:
+        - $ref: ../uws/uws-jobid-param.yaml
+    responses:
+        '200':
+          description: the current phase
+          content:
+              text/plain:
+                  schema:
+                      type: string
+                      example: "PENDING"
+
+post:
+    operationId: vosi-table-ops-job-phase-update
+    tags:
+        - VOSI Table Operations
+    summary: change a UWS job phase
+    description: update job
+    parameters:
+        - $ref: ../uws/uws-jobid-param.yaml
+        - $ref: ../uws/uws-phase-change-param.yaml 
+    responses:
+        '200':
+            description: phase change successful
+        '400':
+            $ref: ../uws/uws-responses.yaml#/invalid-phase-change
+        '401':
+            $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
+        '403':
+            $ref: ../vosi/vosi-std-responses.yaml#/permission-denied
+        '404':
+            $ref: ../vosi/vosi-std-responses.yaml#/not-found
+
