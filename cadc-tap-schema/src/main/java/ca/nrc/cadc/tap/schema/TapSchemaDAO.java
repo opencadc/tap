@@ -72,6 +72,7 @@ package ca.nrc.cadc.tap.schema;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
+import ca.nrc.cadc.db.mappers.JdbcMapUtil;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.uws.Job;
@@ -124,9 +125,10 @@ public class TapSchemaDAO extends AbstractDAO {
         "schema_name", "table_type", "description", "utype", "table_index", "api_created", "view_target", "table_name"};
     protected String orderTablesClause = " ORDER BY schema_name,table_index,table_name";
 
-    private String[] tsColumnsCols = new String[] { "description", "utype", "ucd", "unit", "datatype", "arraysize",
+    private String[] tsColumnsCols = new String[] { "description", "utype", "ucd", "unit", "datatype", "arraysize", "\"size\"",
         "xtype", "principal", "indexed", "std", "column_id", "column_index", "table_name", "column_name" };
     protected String orderColumnsClause = " ORDER BY table_name,column_index,column_name";
+    private static int SIZE_COL_INDEX = 7; // 1-based in the above tsColumnCols array
 
     private String[] tsKeysCols = new String[] { "key_id", "from_table", "target_table", "description,utype" };
     protected String orderKeysClause = " ORDER BY key_id,from_table,target_table";
@@ -1289,6 +1291,7 @@ public class TapSchemaDAO extends AbstractDAO {
             safeSetString(sb, ps, col++, column.unit);
             safeSetString(sb, ps, col++, column.getDatatype().getDatatype());
             safeSetString(sb, ps, col++, column.getDatatype().arraysize);
+            safeSetInteger(sb, ps, col++, arraysizeToSize(column.getDatatype().arraysize));
             safeSetString(sb, ps, col++, column.getDatatype().xtype);
             safeSetBoolean(sb, ps, col++, column.principal);
             safeSetBoolean(sb, ps, col++, column.indexed);
@@ -1300,6 +1303,24 @@ public class TapSchemaDAO extends AbstractDAO {
             log.debug("values: " + sb.toString());
 
             return ps;
+        }
+    }
+    
+    static Integer arraysizeToSize(String arraysize) {
+        // not convertible
+        if (arraysize == null || arraysize.equals("*") || arraysize.contains("x")) {
+            return null;
+        }
+        // trailing *
+        String s = arraysize;
+        if (arraysize.endsWith("*")) {
+            s = arraysize.substring(0, arraysize.length() - 1);
+        }
+        try {
+            return Integer.parseInt(s);
+        } catch (NumberFormatException ex) {
+            throw new RuntimeException("BUG: failed to convert arraysize '" + arraysize 
+                    + "' to equivalent integer size ", ex);
         }
     }
 
@@ -1655,6 +1676,7 @@ public class TapSchemaDAO extends AbstractDAO {
             String cn = rs.getString("column_name");
             String dt = rs.getString("datatype");
             String as = rs.getString("arraysize");
+            // ignore "size"
             String xt = rs.getString("xtype");
 
             log.debug("ColumnMapper: " + tn + "," + cn + "," + dt + "," + as + "," + xt);
@@ -1667,12 +1689,14 @@ public class TapSchemaDAO extends AbstractDAO {
             col.ucd = rs.getString("ucd");
             col.unit = rs.getString("unit");
 
-            col.principal = intToBoolean(rs.getInt("principal"));
-            col.indexed = intToBoolean(rs.getInt("indexed"));
-            col.std = intToBoolean(rs.getInt("std"));
+            col.principal = intToBoolean(JdbcMapUtil.getInteger(rs.getObject("principal")));
+            col.indexed = intToBoolean(JdbcMapUtil.getInteger(rs.getObject("indexed")));
+            col.std = intToBoolean(JdbcMapUtil.getInteger(rs.getObject("std")));
             col.columnID = rs.getString("column_id");
-            col.columnIndex = rs.getInt("column_index");
+            col.columnIndex = JdbcMapUtil.getInteger(rs.getObject("column_index"));
             
+            // at least in postgresql, the quotes in "size" are not in the ResultSet so use hard-coded position
+            col._size = JdbcMapUtil.getInteger(rs.getObject(SIZE_COL_INDEX));
             return col;
         }
 

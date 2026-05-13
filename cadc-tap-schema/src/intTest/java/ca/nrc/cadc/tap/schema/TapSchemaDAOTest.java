@@ -224,12 +224,52 @@ public class TapSchemaDAOTest extends TestUtil {
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c8", TapDataType.POINT));
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c9", TapDataType.CIRCLE));
             orig.getColumnDescs().add(new ColumnDesc(testTable, "c10", TapDataType.POLYGON));
-
+            // timestamp variations
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "date_only", new TapDataType("char", "10", "timestamp")));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "date_time", new TapDataType("char", "19", "timestamp")));
+            orig.getColumnDescs().add(new ColumnDesc(testTable, "date_time_ms_var", new TapDataType("char", "23*", "timestamp")));
+            
+            // optional content
+            orig.getColumn("c0").description = "ident";
+            orig.getColumn("c2").indexed = true;
+            orig.getColumn("c4").principal = true;
+            orig.getColumn("c6").std = true;
+            orig.getColumn("c8").ucd = "main";
+            orig.getColumn("c10").unit = "deg";
+            orig.getColumn("c10").utype = "caom2:Position.bounds";
+            orig.getColumn("date_only").columnID = "flibble";
+            orig.getColumn("date_time_ms_var").columnIndex = 1;
+            
             dao.put(orig);
             td = dao.getTable(testTable);
             Assert.assertNotNull("created table", td);
+            Assert.assertEquals(orig.getSchemaName(), td.getSchemaName());
+            Assert.assertEquals(orig.getTableName(), td.getTableName());
             Assert.assertEquals("num columns", orig.getColumnDescs().size(), td.getColumnDescs().size());
-
+            for (ColumnDesc ocd : orig.getColumnDescs()) {
+                ColumnDesc acd = td.getColumn(ocd.getColumnName());
+                log.info(ocd.getColumnName() + ": " + ocd.columnIndex + " " + acd.columnIndex);
+                Assert.assertNotNull(acd);
+                TapDataType odt = ocd.getDatatype();
+                TapDataType adt = acd.getDatatype();
+                log.info(ocd.getColumnName() + ": " + odt + " -> " + adt);
+                Assert.assertEquals(ocd.getDatatype().getDatatype(), acd.getDatatype().getDatatype());
+                Assert.assertEquals(ocd.getDatatype().arraysize, acd.getDatatype().arraysize);
+                Assert.assertEquals(ocd.getDatatype().xtype, acd.getDatatype().xtype);
+                Assert.assertEquals(ocd.description, acd.description);
+                Assert.assertEquals(ocd.indexed, acd.indexed);
+                Assert.assertEquals(ocd.principal, acd.principal);
+                Assert.assertEquals(ocd.std, acd.std);
+                Assert.assertEquals(ocd.ucd, acd.ucd);
+                Assert.assertEquals(ocd.unit, acd.unit);
+                Assert.assertEquals(ocd.utype, acd.utype);
+                
+                // correct arraysizeToSize() is tested in a unit test
+                // this tests roundf trip
+                Integer expectedSize = TapSchemaDAO.arraysizeToSize(odt.arraysize);
+                log.info(ocd.getColumnName() + ": " + odt.arraysize + " -> " + expectedSize + " vs " + acd._size);
+                Assert.assertEquals(expectedSize, acd._size);
+            }
             dao.delete(td.getTableName());
             td = dao.getTable(testTable);
             Assert.assertNull("delete confirmed", td);
