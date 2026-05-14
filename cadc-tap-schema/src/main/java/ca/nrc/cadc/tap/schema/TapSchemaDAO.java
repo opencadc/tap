@@ -235,6 +235,7 @@ public class TapSchemaDAO extends AbstractDAO {
         SchemaDesc ret = null;
         if (schemaDescs.size() == 1) {
             ret = schemaDescs.get(0);
+            ret.tapPermissions = getSchemaPermissions(schemaName);
         } else {
             throw new RuntimeException("BUG: found " + schemaDescs.size() + " schema matching " + schemaName);
         }
@@ -319,6 +320,7 @@ public class TapSchemaDAO extends AbstractDAO {
             return null;
         }
         TableDesc ret = tableDescs.get(0);
+        ret.tapPermissions = getTablePermissions(tableName);
         prof.checkpoint("get-table");
 
         if (depth > TAB_DEPTH) {
