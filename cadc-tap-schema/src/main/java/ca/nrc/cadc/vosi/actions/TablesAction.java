@@ -68,6 +68,7 @@
 package ca.nrc.cadc.vosi.actions;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
@@ -106,6 +107,11 @@ import org.opencadc.gms.IvoaGroupClient;
 public abstract class TablesAction extends RestAction {
     private static final Logger log = Logger.getLogger(TablesAction.class);
 
+    protected static final String HDR_OWNER = "x-vosi-owner";
+    protected static final String HDR_AUTH_READ = "x-vosi-auth-read";
+    protected static final String HDR_GROUP_RO = "x-vosi-group-ro";
+    protected static final String HDR_GROUP_RW = "x-vosi-group-rw";
+    
     static final String INPUT_TAG = "inputTable";
     
     public static String ADMIN_KEY = "-admin-principal";
@@ -153,6 +159,27 @@ public abstract class TablesAction extends RestAction {
         return null;
     }
     
+    protected void setPermissionHeaders(TapPermissions perms) {
+        log.warn("permissions: " + perms);
+        if (!syncOutput.isOpen() && perms != null && perms.owner != null) {
+            IdentityManager im = AuthenticationUtil.getIdentityManager();
+            String str = im.toDisplayString(perms.owner);
+            syncOutput.setHeader(HDR_OWNER, str);
+            // internal: isPublic null|false -> authentication required
+            if (perms.isPublic == null || !perms.isPublic) {
+                syncOutput.setHeader(HDR_AUTH_READ, "true");
+            } else {
+                syncOutput.setHeader(HDR_AUTH_READ, "false");
+            }
+            if (perms.readGroup != null) {
+                syncOutput.setHeader(HDR_GROUP_RO, perms.readGroup.getURI().toASCIIString());
+            }
+            if (perms.readWriteGroup != null) {
+                syncOutput.setHeader(HDR_GROUP_RW, perms.readWriteGroup.getURI().toASCIIString());
+            }
+        }
+    }
+
     String getTableName() throws ResourceNotFoundException {
         String[] ss = getTarget();
         if (ss == null) {

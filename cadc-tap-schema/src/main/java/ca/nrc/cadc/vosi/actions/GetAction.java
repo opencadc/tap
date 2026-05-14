@@ -165,6 +165,7 @@ public class GetAction extends TablesAction {
                     validationResult = ex.getMessage();
                 }
                 syncOutput.setCode(200);
+                setPermissionHeaders(td.tapPermissions);
                 syncOutput.setHeader("Content-Type", "text/plain");
                 PrintWriter w = new PrintWriter(new OutputStreamWriter(syncOutput.getOutputStream()));
                 w.print(tableName + ": ");
@@ -184,11 +185,13 @@ public class GetAction extends TablesAction {
                 VOTableDocument vot = TapSchemaUtil.createVOTable(td, validatorConfig);
                 VOTableWriter tw = new VOTableWriter();
                 syncOutput.setCode(200);
+                setPermissionHeaders(td.tapPermissions);
                 syncOutput.setHeader("Content-Type", VOTableWriter.CONTENT_TYPE);
                 tw.write(vot, new OutputStreamWriter(syncOutput.getOutputStream()));
             } else {
                 TableWriter tw = new TableWriter();
                 syncOutput.setCode(200);
+                setPermissionHeaders(td.tapPermissions);
                 syncOutput.setHeader("Content-Type", "text/xml");
                 tw.write(td, new OutputStreamWriter(syncOutput.getOutputStream()));
             }
@@ -204,6 +207,7 @@ public class GetAction extends TablesAction {
 
             TableSetWriter tsw = new TableSetWriter();
             syncOutput.setCode(200);
+            setPermissionHeaders(sd.tapPermissions);
             syncOutput.setHeader("Content-Type", "text/xml");
             tsw.write(tapSchema, new OutputStreamWriter(syncOutput.getOutputStream()));
         } else {

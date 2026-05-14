@@ -81,13 +81,21 @@ import org.opencadc.gms.GroupURI;
  */
 public class TapPermissions {
     
-    public Subject owner;
+    /**
+     * Server-side support for tracking the user managed schemas and tables. This 
+     * reference is included to support server-side permission checking and is generally
+     * reconstructed from the persisted ownerID.
+     */
+    public transient Subject owner;
+
     public Object ownerID;
+    
     public Boolean isPublic;
     public GroupURI readGroup;
     public GroupURI readWriteGroup;
     
     public TapPermissions() {
+
     }
 
     public TapPermissions(Subject owner, Boolean isPublic, GroupURI readGroup, GroupURI readWriteGroup) {
