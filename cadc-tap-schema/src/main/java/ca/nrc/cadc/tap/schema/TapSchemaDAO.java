@@ -416,6 +416,11 @@ public class TapSchemaDAO extends AbstractDAO {
             log.debug("put: " + sd.getSchemaName());
             sps.setSchema(sd);
             jdbc.update(sps);
+            
+            log.warn("put: set permissions " + sd.tapPermissions);
+            if (sd.tapPermissions != null) {
+                setSchemaPermissions(sd.getSchemaName(), sd.tapPermissions);
+            }
 
             log.debug("commit transaction");
             tm.commitTransaction();
@@ -483,6 +488,11 @@ public class TapSchemaDAO extends AbstractDAO {
                 jdbc.update(pcs);
             }
             prof.checkpoint("put-columns");
+
+            log.warn("put: set permissions " + td.tapPermissions);
+            if (td.tapPermissions != null) {
+                setTablePermissions(td.getTableName(), td.tapPermissions);
+            }
 
             log.debug("commit transaction");
             tm.commitTransaction();

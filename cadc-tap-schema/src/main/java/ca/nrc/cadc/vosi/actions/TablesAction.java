@@ -87,6 +87,8 @@ import ca.nrc.cadc.tap.schema.TapSchemaUtil;
 import ca.nrc.cadc.tap.schema.Util;
 import ca.nrc.cadc.tap.schema.validator.ValidatorConfig;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.Set;
@@ -107,10 +109,13 @@ import org.opencadc.gms.IvoaGroupClient;
 public abstract class TablesAction extends RestAction {
     private static final Logger log = Logger.getLogger(TablesAction.class);
 
-    protected static final String HDR_OWNER = "x-vosi-owner";
-    protected static final String HDR_AUTH_READ = "x-vosi-auth-read";
-    protected static final String HDR_GROUP_RO = "x-vosi-group-ro";
-    protected static final String HDR_GROUP_RW = "x-vosi-group-rw";
+    public static final String HDR_OWNER = "x-vosi-owner";
+    public static final String HDR_AUTH_READ = "x-vosi-auth-read";
+    public static final String HDR_GROUP_RO = "x-vosi-group-ro";
+    public static final String HDR_GROUP_RW = "x-vosi-group-rw";
+    
+    // syntactically valid null group value
+    protected static final GroupURI CLEAR_GROUP = new GroupURI(URI.create("ivo://opencadc.org/nogroup?nogroup"));
     
     static final String INPUT_TAG = "inputTable";
     
@@ -178,6 +183,55 @@ public abstract class TablesAction extends RestAction {
                 syncOutput.setHeader(HDR_GROUP_RW, perms.readWriteGroup.getURI().toASCIIString());
             }
         }
+    }
+    
+    // return permissions to change
+    protected TapPermissions getPermissionHeaders() throws IllegalArgumentException {
+        TapPermissions ret = new TapPermissions();
+        String ownerStr = syncInput.getHeader(HDR_OWNER);
+        String auth = syncInput.getHeader(HDR_AUTH_READ);
+        String gro = syncInput.getHeader(HDR_GROUP_RO);
+        String grw = syncInput.getHeader(HDR_GROUP_RW);
+        log.warn("getPermissionHeaders: " + ownerStr + "," + auth + "," + gro + "," + grw);
+        boolean returnTP = false;
+        if (ownerStr != null) {
+            IdentityManager im = AuthenticationUtil.getIdentityManager();
+            ret.owner = im.toSubject(ownerStr);
+            returnTP = true;
+        }
+        if (auth != null)  {
+            ret.isPublic = !Boolean.getBoolean(auth);
+            returnTP = true;
+        }
+        if (gro != null) {
+            if ("null".equals(gro)) {
+                ret.readGroup = CLEAR_GROUP;
+            } else {
+                try {
+                    ret.readGroup = new GroupURI(new URI(gro));
+                } catch (URISyntaxException ex) {
+                    throw new IllegalArgumentException("invalid group uri: " + gro);
+                }
+            }
+            returnTP = true;
+        }
+        if (grw != null) {
+            if ("null".equals(grw)) {
+                ret.readWriteGroup = CLEAR_GROUP;
+            } else {
+                try {
+                    ret.readWriteGroup = new GroupURI(new URI(grw));
+                } catch (URISyntaxException ex) {
+                    throw new IllegalArgumentException("invalid group uri: " + grw);
+                }
+            }
+            returnTP = true;
+        }
+        if (returnTP) {
+            log.warn("permissions patch: " + ret);
+            return ret;
+        }
+        return null;
     }
 
     String getTableName() throws ResourceNotFoundException {
