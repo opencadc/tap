@@ -113,10 +113,10 @@ public class ParquetReaderTest extends AbstractTablesTest {
         clearSchemaPerms();
 
         TapPermissions tapPermissions = new TapPermissions(null, true, null, null);
-        super.setPerms(schemaOwner, testSchemaName, tapPermissions, 200);
+        super.setPerms(schemaOwner, testSchemaName, tapPermissions, 204);
 
         doCreateTable(schemaOwner, testTable);
-        setPerms(schemaOwner, testTable, tapPermissions, 200);
+        setPerms(schemaOwner, testTable, tapPermissions, 204);
 
         // load table data
         loadTableData(testTable);

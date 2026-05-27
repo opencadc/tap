@@ -98,6 +98,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringWriter;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.security.PrivilegedActionException;
@@ -112,6 +113,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
+import org.opencadc.gms.GroupURI;
 
 /**
  *
@@ -152,14 +154,23 @@ public class CreateTableTest extends AbstractTablesTest {
         try {
             clearSchemaPerms();
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            super.setPerms(schemaOwner, testSchemaName, tp, 200);
+            super.setPerms(schemaOwner, testSchemaName, tp, 204);
             
             String testTable = testSchemaName + ".testCreateQueryUpdateDropVOSI";
-            final TableDesc orig = doCreateTable(schemaOwner, testTable);
+            GroupURI gro = new GroupURI(new URI(VALID_READ_GROUP));
+            GroupURI grw = new GroupURI(new URI(VALID_TEST_GROUP));
+            TapPermissions expected = new TapPermissions(true, gro, grw);
+            final TableDesc orig = doCreateTable(schemaOwner, testTable, expected);
             TableDesc td = doVosiCheck(testTable);
             compare(orig, td);
+            TapPermissions actual = getPermissions(schemaOwner, testTable, 200);
+            Assert.assertNotNull(actual);
+            Assert.assertEquals(expected.isPublic, actual.isPublic);
+            Assert.assertEquals(expected.readGroup, actual.readGroup);
+            Assert.assertEquals(expected.readWriteGroup, actual.readWriteGroup);
             
-            super.setPerms(schemaOwner, testTable, tp, 200);
+            // simplify permissions for later tests
+            super.setPerms(schemaOwner, testTable, tp, 204);
             
             VOTableTable vt = doQueryCheck(testTable);
             TableData tdata = vt.getTableData();
@@ -269,7 +280,7 @@ public class CreateTableTest extends AbstractTablesTest {
         try {
             clearSchemaPerms();
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            super.setPerms(schemaOwner, testSchemaName, tp, 200);
+            super.setPerms(schemaOwner, testSchemaName, tp, 204);
             
             String testTable = testSchemaName + ".testCreateQueryDropVOTable";
 
@@ -281,7 +292,7 @@ public class CreateTableTest extends AbstractTablesTest {
 
             TableDesc td = doVosiCheck(testTable);
             
-            super.setPerms(schemaOwner, testTable, tp, 200);
+            super.setPerms(schemaOwner, testTable, tp, 204);
             
             VOTableTable vt = doQueryCheck(testTable);
             VOTableField field0 = vt.getFields().get(0);
@@ -309,7 +320,7 @@ public class CreateTableTest extends AbstractTablesTest {
         // Permission updates
         clearSchemaPerms();
         TapPermissions tp = new TapPermissions(null, true, null, null);
-        super.setPerms(schemaOwner, testSchemaName, tp, 200);
+        super.setPerms(schemaOwner, testSchemaName, tp, 204);
 
         // delete table if it exists
         doDelete(schemaOwner, testTable, true);
@@ -321,7 +332,7 @@ public class CreateTableTest extends AbstractTablesTest {
         // Create table from Parquet data
         createTableFromParquet(testTable);
 
-        super.setPerms(schemaOwner, testTable, tp, 200);
+        super.setPerms(schemaOwner, testTable, tp, 204);
 
         // Verify the table created from Parquet data
         VOTableTable voTableTable = doQueryCheck(testTable);
@@ -573,7 +584,7 @@ public class CreateTableTest extends AbstractTablesTest {
         try {
             clearSchemaPerms();
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            super.setPerms(schemaOwner, testSchemaName, tp, 200);
+            super.setPerms(schemaOwner, testSchemaName, tp, 204);
 
             String testTable = testSchemaName + ".testPutInvalidFieldName";
 

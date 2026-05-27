@@ -137,7 +137,7 @@ public class TableUpdateTest extends AbstractTablesTest {
         try {
             clearSchemaPerms();
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            super.setPerms(schemaOwner, testSchemaName, tp, 200);
+            super.setPerms(schemaOwner, testSchemaName, tp, 204);
 
             String tableName = testSchemaName + ".testCreateIndex";
             TableDesc td = doCreateTable(schemaOwner, tableName);
@@ -167,7 +167,7 @@ public class TableUpdateTest extends AbstractTablesTest {
         try {
             clearSchemaPerms();
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            super.setPerms(schemaOwner, testSchemaName, tp, 200);
+            super.setPerms(schemaOwner, testSchemaName, tp, 204);
 
             String tableName = testSchemaName + ".testCreateUniqueIndex";
             TableDesc td = doCreateTable(schemaOwner, tableName);
@@ -196,7 +196,7 @@ public class TableUpdateTest extends AbstractTablesTest {
         try {
             clearSchemaPerms();
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            super.setPerms(schemaOwner, testSchemaName, tp, 200);
+            super.setPerms(schemaOwner, testSchemaName, tp, 204);
 
             final String testTable = testSchemaName + ".test_ingest_table";
             
@@ -319,7 +319,7 @@ public class TableUpdateTest extends AbstractTablesTest {
         try {
             clearSchemaPerms();
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            super.setPerms(schemaOwner, testSchemaName, tp, 200);
+            super.setPerms(schemaOwner, testSchemaName, tp, 204);
 
             final String testViewName = testSchemaName + ".test_ingest_view_name";
             final String testViewTarget = testSchemaName + ".test_ingest_view_target";
@@ -380,7 +380,7 @@ public class TableUpdateTest extends AbstractTablesTest {
         try {
             clearSchemaPerms();
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            super.setPerms(schemaOwner, testSchemaName, tp, 200);
+            super.setPerms(schemaOwner, testSchemaName, tp, 204);
 
             final String testViewTableName = "test_ingest_view_with_other_schema";
             final String testViewName = testSchemaName + "." + testViewTableName;

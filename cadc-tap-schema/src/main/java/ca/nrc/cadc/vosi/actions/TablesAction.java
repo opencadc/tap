@@ -165,7 +165,7 @@ public abstract class TablesAction extends RestAction {
     }
     
     protected void setPermissionHeaders(TapPermissions perms) {
-        log.warn("setPermissionHeaders: " + perms);
+        log.debug("setPermissionHeaders: " + perms);
         // only output permission headers for tables owned by users
         if (perms != null && perms.owner != null) {
             IdentityManager im = AuthenticationUtil.getIdentityManager();
@@ -200,8 +200,8 @@ public abstract class TablesAction extends RestAction {
         final String rmgro = syncInput.getHeader(HDR_UNSET_GROUP_RO);
         final String rmgrw = syncInput.getHeader(HDR_UNSET_GROUP_RW);
         
-        log.warn("getPermissionHeaders:   set " + ownerStr + "," + auth + "," + gro + "," + grw);
-        log.warn("getPermissionHeaders: unset " + rmgro + "," + rmgrw);
+        log.debug("getPermissionHeaders:   set " + ownerStr + "," + auth + "," + gro + "," + grw);
+        log.debug("getPermissionHeaders: unset " + rmgro + "," + rmgrw);
         boolean returnTP = false;
         if (ownerStr != null) {
             IdentityManager im = AuthenticationUtil.getIdentityManager();
@@ -240,7 +240,7 @@ public abstract class TablesAction extends RestAction {
         }
 
         if (returnTP) {
-            log.warn("permissions patch: " + ret);
+            log.debug("permissions patch: " + ret);
             return ret;
         }
         return null;
