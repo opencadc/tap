@@ -121,7 +121,8 @@ public class GetPermissionsAction extends TablesAction {
         String readGroupString = getGroupString(permissions.readGroup);
         String readWriteGroupString = getGroupString(permissions.readWriteGroup);
         sb.append(OWNER_KEY).append("=").append(ownerString).append("\n");
-        sb.append(PUBLIC_KEY).append("=").append(Boolean.toString(permissions.isPublic)).append("\n");
+        String pub = (permissions.isPublic != null && permissions.isPublic ? "true" : "false");
+        sb.append(PUBLIC_KEY).append("=").append(pub).append("\n");
         sb.append(RGROUP_KEY).append("=").append(readGroupString).append("\n");
         sb.append(RWGROUP_KEY).append("=").append(readWriteGroupString).append("\n");
         

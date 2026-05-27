@@ -172,23 +172,22 @@ public class PostAction extends TablesAction {
             }
         }
         if (inputPerms != null) {
-            // TODO: only admin can set owner? schema-owner could take ownership...
-            if (inputPerms.isPublic != null && inputPerms.isPublic) {
+            // TODO: only admin can set owner
+            // only merge non-null permissions into the current permissions
+            if (inputPerms.unsetIsPublic) {
+                cur.tapPermissions.isPublic = null;
+            } else if (inputPerms.isPublic != null) {
                 cur.tapPermissions.isPublic = inputPerms.isPublic;
             }
-            if (inputPerms.readGroup != null) {
-                if (CLEAR_GROUP.equals(inputPerms.readGroup)) {
-                    cur.tapPermissions.readGroup = null;
-                } else {
-                    cur.tapPermissions.readGroup = inputPerms.readGroup;
-                }
+            if (inputPerms.unsetReadGroup) {
+                cur.tapPermissions.readGroup = null;
+            } else if (inputPerms.readGroup != null) {
+                cur.tapPermissions.readGroup = inputPerms.readGroup;
             }
-            if (inputPerms.readWriteGroup != null) {
-                if (CLEAR_GROUP.equals(inputPerms.readWriteGroup)) {
-                    cur.tapPermissions.readWriteGroup = null;
-                } else {
-                    cur.tapPermissions.readWriteGroup = inputPerms.readWriteGroup;
-                }
+            if (inputPerms.unsetReadWriteGroup) {
+                cur.tapPermissions.readWriteGroup = null;
+            } else if (inputPerms.readWriteGroup != null) {
+                cur.tapPermissions.readWriteGroup = inputPerms.readWriteGroup;
             }
         }
         // update
@@ -214,19 +213,21 @@ public class PostAction extends TablesAction {
         }
         if (inputPerms != null) {
             // TODO: only admin can set owner
-            if (inputPerms.readGroup != null) {
-                if (CLEAR_GROUP.equals(inputPerms.readGroup)) {
-                    cur.tapPermissions.readGroup = null;
-                } else {
-                    cur.tapPermissions.readGroup = inputPerms.readGroup;
-                }
+            // only merge non-null permissions into the current permissions
+            if (inputPerms.unsetIsPublic) {
+                cur.tapPermissions.isPublic = null;
+            } else if (inputPerms.isPublic != null) {
+                cur.tapPermissions.isPublic = inputPerms.isPublic;
             }
-            if (inputPerms.readWriteGroup != null) {
-                if (CLEAR_GROUP.equals(inputPerms.readWriteGroup)) {
-                    cur.tapPermissions.readWriteGroup = null;
-                } else {
-                    cur.tapPermissions.readWriteGroup = inputPerms.readWriteGroup;
-                }
+            if (inputPerms.unsetReadGroup) {
+                cur.tapPermissions.readGroup = null;
+            } else if (inputPerms.readGroup != null) {
+                cur.tapPermissions.readGroup = inputPerms.readGroup;
+            }
+            if (inputPerms.unsetReadWriteGroup) {
+                cur.tapPermissions.readWriteGroup = null;
+            } else if (inputPerms.readWriteGroup != null) {
+                cur.tapPermissions.readWriteGroup = inputPerms.readWriteGroup;
             }
         }
         // update

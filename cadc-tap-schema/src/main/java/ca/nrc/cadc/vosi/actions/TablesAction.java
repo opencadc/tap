@@ -110,12 +110,12 @@ public abstract class TablesAction extends RestAction {
     private static final Logger log = Logger.getLogger(TablesAction.class);
 
     public static final String HDR_OWNER = "x-vosi-owner";
-    public static final String HDR_AUTH_READ = "x-vosi-auth-read";
-    public static final String HDR_GROUP_RO = "x-vosi-group-ro";
-    public static final String HDR_GROUP_RW = "x-vosi-group-rw";
-    
-    // syntactically valid null group value
-    protected static final GroupURI CLEAR_GROUP = new GroupURI(URI.create("ivo://opencadc.org/nogroup?nogroup"));
+    public static final String HDR_AUTH_READ = "x-vosi-set-auth-read";
+    public static final String HDR_GROUP_RO = "x-vosi-set-group-ro";
+    public static final String HDR_GROUP_RW = "x-vosi-set-group-rw";
+    public static final String HDR_UNSET_AUTH_READ = "x-vosi-unset-auth-read";
+    public static final String HDR_UNSET_GROUP_RO = "x-vosi-unset-group-ro";
+    public static final String HDR_UNSET_GROUP_RW = "x-vosi-unset-group-rw";
     
     static final String INPUT_TAG = "inputTable";
     
@@ -165,17 +165,21 @@ public abstract class TablesAction extends RestAction {
     }
     
     protected void setPermissionHeaders(TapPermissions perms) {
-        log.warn("permissions: " + perms);
-        if (!syncOutput.isOpen() && perms != null && perms.owner != null) {
+        log.warn("setPermissionHeaders: " + perms);
+        // only output permission headers for tables owned by users
+        if (perms != null && perms.owner != null) {
             IdentityManager im = AuthenticationUtil.getIdentityManager();
             String str = im.toDisplayString(perms.owner);
             syncOutput.setHeader(HDR_OWNER, str);
-            // internal: isPublic null|false -> authentication required
+            // internal: isPublic null means false
             if (perms.isPublic == null || !perms.isPublic) {
+                // caller must authenticate to read/query
                 syncOutput.setHeader(HDR_AUTH_READ, "true");
-            } else {
+            } else if (perms.isPublic != null || perms.isPublic) {
+                // be explicit for user-managed tables
                 syncOutput.setHeader(HDR_AUTH_READ, "false");
             }
+            
             if (perms.readGroup != null) {
                 syncOutput.setHeader(HDR_GROUP_RO, perms.readGroup.getURI().toASCIIString());
             }
@@ -188,45 +192,53 @@ public abstract class TablesAction extends RestAction {
     // return permissions to change
     protected TapPermissions getPermissionHeaders() throws IllegalArgumentException {
         TapPermissions ret = new TapPermissions();
-        String ownerStr = syncInput.getHeader(HDR_OWNER);
-        String auth = syncInput.getHeader(HDR_AUTH_READ);
-        String gro = syncInput.getHeader(HDR_GROUP_RO);
-        String grw = syncInput.getHeader(HDR_GROUP_RW);
-        log.warn("getPermissionHeaders: " + ownerStr + "," + auth + "," + gro + "," + grw);
+        final String ownerStr = syncInput.getHeader(HDR_OWNER);
+        final String auth = syncInput.getHeader(HDR_AUTH_READ);
+        final String gro = syncInput.getHeader(HDR_GROUP_RO);
+        final String grw = syncInput.getHeader(HDR_GROUP_RW);
+        final String rmauth = syncInput.getHeader(HDR_UNSET_AUTH_READ);
+        final String rmgro = syncInput.getHeader(HDR_UNSET_GROUP_RO);
+        final String rmgrw = syncInput.getHeader(HDR_UNSET_GROUP_RW);
+        
+        log.warn("getPermissionHeaders:   set " + ownerStr + "," + auth + "," + gro + "," + grw);
+        log.warn("getPermissionHeaders: unset " + rmgro + "," + rmgrw);
         boolean returnTP = false;
         if (ownerStr != null) {
             IdentityManager im = AuthenticationUtil.getIdentityManager();
             ret.owner = im.toSubject(ownerStr);
             returnTP = true;
         }
-        if (auth != null)  {
-            ret.isPublic = !Boolean.getBoolean(auth);
+        // TBD: unset takes priority over set??
+        if ("true".equals(rmauth)) {
+            ret.unsetIsPublic = true;
+            returnTP = true;
+        } else if (auth != null)  {
+            ret.isPublic = "false".equals(auth);
             returnTP = true;
         }
-        if (gro != null) {
-            if ("null".equals(gro)) {
-                ret.readGroup = CLEAR_GROUP;
-            } else {
-                try {
-                    ret.readGroup = new GroupURI(new URI(gro));
-                } catch (URISyntaxException ex) {
-                    throw new IllegalArgumentException("invalid group uri: " + gro);
-                }
+        if ("true".equals(rmgro)) {
+            ret.unsetReadGroup = true;
+            returnTP = true;
+        } else if (gro != null) {
+            try {
+                ret.readGroup = new GroupURI(new URI(gro));
+                returnTP = true;
+            } catch (URISyntaxException ex) {
+                throw new IllegalArgumentException("invalid group uri: " + gro);
             }
-            returnTP = true;
         }
-        if (grw != null) {
-            if ("null".equals(grw)) {
-                ret.readWriteGroup = CLEAR_GROUP;
-            } else {
-                try {
-                    ret.readWriteGroup = new GroupURI(new URI(grw));
-                } catch (URISyntaxException ex) {
-                    throw new IllegalArgumentException("invalid group uri: " + grw);
-                }
+        if ("true".equals(rmgrw)) {
+            ret.unsetReadWriteGroup = true;
+            returnTP = true;
+        } else if (grw != null) {
+            try {
+                ret.readWriteGroup = new GroupURI(new URI(grw));
+                returnTP = true;
+            } catch (URISyntaxException ex) {
+                throw new IllegalArgumentException("invalid group uri: " + grw);
             }
-            returnTP = true;
         }
+
         if (returnTP) {
             log.warn("permissions patch: " + ret);
             return ret;
@@ -295,7 +307,8 @@ public abstract class TablesAction extends RestAction {
     protected TableDesc getInputTable(String schemaName, String tableName) {
         Object in = syncInput.getContent(INPUT_TAG);
         if (in == null) {
-            throw new IllegalArgumentException("no input: expected a document describing the table to create/update");
+            //throw new IllegalArgumentException("no input: expected a document describing the table to create/update");
+            return null;
         }
 
         TableDesc input;
@@ -324,7 +337,8 @@ public abstract class TablesAction extends RestAction {
     protected SchemaDesc getInputSchema(String schemaName) {
         Object in = syncInput.getContent(INPUT_TAG);
         if (in == null) {
-            throw new IllegalArgumentException("no input: expected a document describing the schema to create/update");
+            //throw new IllegalArgumentException("no input: expected a document describing the schema to create/update");
+            return null;
         }
         if (in instanceof SchemaDesc) {
             SchemaDesc input = (SchemaDesc) in;
@@ -395,10 +409,10 @@ public abstract class TablesAction extends RestAction {
             throw new ResourceNotFoundException("schema not found: " + schemaName);
         }
         if (schemaPermissions.owner == null) {
-            logInfo.setMessage("view table allowed: null schema owner");
+            logInfo.setMessage("view schema allowed: null schema owner");
             return schemaPermissions;
         }
-        if (schemaPermissions.isPublic) {
+        if (schemaPermissions.isPublic != null && schemaPermissions.isPublic) {
             logInfo.setMessage("view table allowed: public schema");
             return schemaPermissions;
         }
@@ -488,6 +502,14 @@ public abstract class TablesAction extends RestAction {
         TapPermissions tablePermissions = dao.getTablePermissions(tableName);
         if (tablePermissions == null) {
             throw new ResourceNotFoundException("table not found: " + tableName);
+        }
+        if (schemaPermissions.owner == null) {
+            logInfo.setMessage("view table allowed: null schema owner");
+            return tablePermissions;
+        }
+        if (schemaPermissions.isPublic != null && schemaPermissions.isPublic) {
+            logInfo.setMessage("view table allowed: public schema");
+            return tablePermissions;
         }
         if (Util.isOwner(schemaPermissions)) {
             logInfo.setMessage("view table permissions allowed: schema owner");
@@ -601,7 +623,7 @@ public abstract class TablesAction extends RestAction {
             logInfo.setMessage("view table allowed: null schema owner");
             return;
         }
-        if (schemaPermissions.isPublic) {
+        if (schemaPermissions.isPublic != null && schemaPermissions.isPublic) {
             logInfo.setMessage("view table allowed: public schema");
             return;
         }
@@ -610,7 +632,7 @@ public abstract class TablesAction extends RestAction {
             logInfo.setMessage("view table allowed: null table owner");
             return;
         }
-        if (tablePermissions.isPublic) {
+        if (tablePermissions.isPublic != null && tablePermissions.isPublic) {
             logInfo.setMessage("view table allowed: public table");
             return;
         }
