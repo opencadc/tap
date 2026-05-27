@@ -467,7 +467,7 @@ public class TapSchemaDAOTest extends TestUtil {
             TapPermissions tp0 = dao.getTablePermissions(td.getTableName());
             Assert.assertNotNull(tp0);
             Assert.assertNull("owner", tp0.owner);
-            Assert.assertFalse("anon", tp0.isPublic);
+            Assert.assertNull("anon", tp0.isPublic);
             Assert.assertNull("read-only", tp0.readGroup);
             Assert.assertNull("read-write", tp0.readWriteGroup);
             
@@ -512,7 +512,7 @@ public class TapSchemaDAOTest extends TestUtil {
             TapPermissions sp2 = dao.getSchemaPermissions("intTest");
             Assert.assertNotNull(sp2);
             Assert.assertNull("null owner", sp2.owner);
-            Assert.assertFalse("anon", sp2.isPublic);
+            Assert.assertNull("anon", sp2.isPublic);
             Assert.assertNull("read-only", sp2.readGroup);
             Assert.assertNull("read-write", sp2.readWriteGroup);
             
@@ -521,7 +521,7 @@ public class TapSchemaDAOTest extends TestUtil {
             TapPermissions tp4 = dao.getTablePermissions(td.getTableName());
             Assert.assertNotNull(tp4);
             Assert.assertNull("null owner", tp4.owner);
-            Assert.assertFalse("anon", tp4.isPublic);
+            Assert.assertNull("anon", tp4.isPublic);
             Assert.assertNull("read-only", tp4.readGroup);
             Assert.assertNull("read-write", tp4.readWriteGroup);
             
