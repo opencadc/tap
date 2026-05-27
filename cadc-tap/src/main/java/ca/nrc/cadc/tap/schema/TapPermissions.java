@@ -94,8 +94,26 @@ public class TapPermissions {
     public GroupURI readGroup;
     public GroupURI readWriteGroup;
     
+    public transient boolean unsetIsPublic = false;
+    public transient boolean unsetReadGroup = false;
+    public transient boolean unsetReadWriteGroup = false;
+    
     public TapPermissions() {
 
+    }
+
+    /**
+     * Convenient ctor for typical set permissions operations. Owner not included because it cannot
+     * normally be set by users.
+     * 
+     * @param isPublic 
+     * @param readGroup
+     * @param readWriteGroup 
+     */
+    public TapPermissions(Boolean isPublic, GroupURI readGroup, GroupURI readWriteGroup) {
+        this.isPublic = isPublic;
+        this.readGroup = readGroup;
+        this.readWriteGroup = readWriteGroup;
     }
 
     public TapPermissions(Subject owner, Boolean isPublic, GroupURI readGroup, GroupURI readWriteGroup) {
@@ -114,17 +132,23 @@ public class TapPermissions {
         }
         sb.append(",");
         sb.append("isPublic=");
-        if (isPublic != null) {
+        if (unsetIsPublic) {
+            sb.append("UNSET");
+        } else if (isPublic != null) {
             sb.append(isPublic);
         }
         sb.append(",");
         sb.append("readGroup=");
-        if (readGroup != null) {
+        if (unsetReadGroup) {
+            sb.append("UNSET");
+        } else if (readGroup != null) {
             sb.append(readGroup.getURI());
         }
         sb.append(",");
         sb.append("readWriteGroup=");
-        if (readWriteGroup != null) {
+        if (unsetReadWriteGroup) {
+            sb.append("UNSET");
+        } else if (readWriteGroup != null) {
             sb.append(readWriteGroup.getURI());
         }
         return sb.toString();
