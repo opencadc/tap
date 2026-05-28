@@ -110,9 +110,9 @@ public abstract class TablesAction extends RestAction {
     private static final Logger log = Logger.getLogger(TablesAction.class);
 
     public static final String HDR_OWNER = "x-vosi-owner";
-    public static final String HDR_AUTH_READ = "x-vosi-set-auth-read";
-    public static final String HDR_GROUP_RO = "x-vosi-set-group-ro";
-    public static final String HDR_GROUP_RW = "x-vosi-set-group-rw";
+    public static final String HDR_AUTH_READ = "x-vosi-auth-read";
+    public static final String HDR_GROUP_RO = "x-vosi-group-ro";
+    public static final String HDR_GROUP_RW = "x-vosi-group-rw";
     public static final String HDR_UNSET_AUTH_READ = "x-vosi-unset-auth-read";
     public static final String HDR_UNSET_GROUP_RO = "x-vosi-unset-group-ro";
     public static final String HDR_UNSET_GROUP_RW = "x-vosi-unset-group-rw";
