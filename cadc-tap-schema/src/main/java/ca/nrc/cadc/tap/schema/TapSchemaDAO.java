@@ -1712,7 +1712,7 @@ public class TapSchemaDAO extends AbstractDAO {
             col.columnIndex = JdbcMapUtil.getInteger(rs.getObject("column_index"));
             
             // at least in postgresql, the quotes in "size" are not in the ResultSet so use hard-coded position
-            col._size = JdbcMapUtil.getInteger(rs.getObject(SIZE_COL_INDEX));
+            col.compatSize = JdbcMapUtil.getInteger(rs.getObject(SIZE_COL_INDEX));
             return col;
         }
 

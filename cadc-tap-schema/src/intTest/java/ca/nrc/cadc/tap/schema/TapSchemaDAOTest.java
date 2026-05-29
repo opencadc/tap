@@ -265,10 +265,10 @@ public class TapSchemaDAOTest extends TestUtil {
                 Assert.assertEquals(ocd.utype, acd.utype);
                 
                 // correct arraysizeToSize() is tested in a unit test
-                // this tests roundf trip
+                // this tests round trip
                 Integer expectedSize = TapSchemaDAO.arraysizeToSize(odt.arraysize);
-                log.info(ocd.getColumnName() + ": " + odt.arraysize + " -> " + expectedSize + " vs " + acd._size);
-                Assert.assertEquals(expectedSize, acd._size);
+                log.info(ocd.getColumnName() + ": " + odt.arraysize + " -> " + expectedSize + " vs " + acd.compatSize);
+                Assert.assertEquals(expectedSize, acd.compatSize);
             }
             dao.delete(td.getTableName());
             td = dao.getTable(testTable);

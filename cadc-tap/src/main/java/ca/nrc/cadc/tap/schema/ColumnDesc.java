@@ -89,7 +89,7 @@ public class ColumnDesc {
     public Integer columnIndex;
     
     // backwards compat tap_schema.columns."size" field for testing
-    public transient Integer _size;
+    public transient Integer compatSize;
 
     /**
      * An id attribute value to tag the column so the VOTableField element gets an XML ID.
