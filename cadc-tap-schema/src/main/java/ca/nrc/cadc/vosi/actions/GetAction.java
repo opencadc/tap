@@ -69,6 +69,7 @@ package ca.nrc.cadc.vosi.actions;
 
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
+import ca.nrc.cadc.net.HttpConstants;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
@@ -182,17 +183,17 @@ public class GetAction extends TablesAction {
             // output the TableDesc as a VOTable
             String accept = syncInput.getHeader("Accept");
             if (VOTableWriter.CONTENT_TYPE.equals(accept)) {
-                VOTableDocument vot = TapSchemaUtil.createVOTable(td, validatorConfig);
-                VOTableWriter tw = new VOTableWriter();
+                final VOTableDocument vot = TapSchemaUtil.createVOTable(td, validatorConfig);
+                final VOTableWriter tw = new VOTableWriter();
                 syncOutput.setCode(200);
                 setPermissionHeaders(td.tapPermissions);
-                syncOutput.setHeader("Content-Type", VOTableWriter.CONTENT_TYPE);
+                syncOutput.setHeader(HttpConstants.HDR_CONTENT_TYPE, VOTableWriter.CONTENT_TYPE);
                 tw.write(vot, new OutputStreamWriter(syncOutput.getOutputStream()));
             } else {
-                TableWriter tw = new TableWriter();
+                final TableWriter tw = new TableWriter();
                 syncOutput.setCode(200);
                 setPermissionHeaders(td.tapPermissions);
-                syncOutput.setHeader("Content-Type", "text/xml");
+                syncOutput.setHeader(HttpConstants.HDR_CONTENT_TYPE, "text/xml");
                 tw.write(td, new OutputStreamWriter(syncOutput.getOutputStream()));
             }
         } else if (schemaName != null) {
@@ -205,18 +206,18 @@ public class GetAction extends TablesAction {
             TapSchema tapSchema = new TapSchema();
             tapSchema.getSchemaDescs().add(sd);
 
-            TableSetWriter tsw = new TableSetWriter();
+            final TableSetWriter tsw = new TableSetWriter();
             syncOutput.setCode(200);
             setPermissionHeaders(sd.tapPermissions);
-            syncOutput.setHeader("Content-Type", "text/xml");
+            syncOutput.setHeader(HttpConstants.HDR_CONTENT_TYPE, "text/xml");
             tsw.write(tapSchema, new OutputStreamWriter(syncOutput.getOutputStream()));
         } else {
             TapSchemaLoader loader = new TapSchemaLoader(dao);
             TapSchema tapSchema = loader.load(depth);
 
-            TableSetWriter tsw = new TableSetWriter();
+            final TableSetWriter tsw = new TableSetWriter();
             syncOutput.setCode(200);
-            syncOutput.setHeader("Content-Type", "text/xml");
+            syncOutput.setHeader(HttpConstants.HDR_CONTENT_TYPE, "text/xml");
             tsw.write(tapSchema, new OutputStreamWriter(syncOutput.getOutputStream()));
         }
     }
