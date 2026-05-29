@@ -113,9 +113,7 @@ public abstract class TablesAction extends RestAction {
     public static final String HDR_AUTH_READ = "x-vosi-auth-read";
     public static final String HDR_GROUP_RO = "x-vosi-group-ro";
     public static final String HDR_GROUP_RW = "x-vosi-group-rw";
-    public static final String HDR_UNSET_AUTH_READ = "x-vosi-unset-auth-read";
-    public static final String HDR_UNSET_GROUP_RO = "x-vosi-unset-group-ro";
-    public static final String HDR_UNSET_GROUP_RW = "x-vosi-unset-group-rw";
+    public static final String HDR_UNSET_VALUE = "null";
     
     static final String INPUT_TAG = "inputTable";
     
@@ -196,27 +194,22 @@ public abstract class TablesAction extends RestAction {
         final String auth = syncInput.getHeader(HDR_AUTH_READ);
         final String gro = syncInput.getHeader(HDR_GROUP_RO);
         final String grw = syncInput.getHeader(HDR_GROUP_RW);
-        final String rmauth = syncInput.getHeader(HDR_UNSET_AUTH_READ);
-        final String rmgro = syncInput.getHeader(HDR_UNSET_GROUP_RO);
-        final String rmgrw = syncInput.getHeader(HDR_UNSET_GROUP_RW);
         
         log.debug("getPermissionHeaders:   set " + ownerStr + "," + auth + "," + gro + "," + grw);
-        log.debug("getPermissionHeaders: unset " + rmgro + "," + rmgrw);
         boolean returnTP = false;
         if (ownerStr != null) {
             IdentityManager im = AuthenticationUtil.getIdentityManager();
             ret.owner = im.toSubject(ownerStr);
             returnTP = true;
         }
-        // TBD: unset takes priority over set??
-        if ("true".equals(rmauth)) {
+        if (HDR_UNSET_VALUE.equals(auth)) {
             ret.unsetIsPublic = true;
             returnTP = true;
         } else if (auth != null)  {
             ret.isPublic = "false".equals(auth);
             returnTP = true;
         }
-        if ("true".equals(rmgro)) {
+        if (HDR_UNSET_VALUE.equals(gro)) {
             ret.unsetReadGroup = true;
             returnTP = true;
         } else if (gro != null) {
@@ -227,7 +220,7 @@ public abstract class TablesAction extends RestAction {
                 throw new IllegalArgumentException("invalid group uri: " + gro);
             }
         }
-        if ("true".equals(rmgrw)) {
+        if (HDR_UNSET_VALUE.equals(grw)) {
             ret.unsetReadWriteGroup = true;
             returnTP = true;
         } else if (grw != null) {

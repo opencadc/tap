@@ -430,17 +430,17 @@ abstract class AbstractTablesTest {
                 trans.setRequestProperty(TablesAction.HDR_AUTH_READ, "true");
             }
         } else {
-            trans.setRequestProperty(TablesAction.HDR_UNSET_AUTH_READ, "true");
+            trans.setRequestProperty(TablesAction.HDR_AUTH_READ, TablesAction.HDR_UNSET_VALUE);
         }
         if (tp.readGroup != null) {
             trans.setRequestProperty(TablesAction.HDR_GROUP_RO, tp.readGroup.getURI().toASCIIString());
         } else {
-            trans.setRequestProperty(TablesAction.HDR_UNSET_GROUP_RO, "true");
+            trans.setRequestProperty(TablesAction.HDR_GROUP_RO, TablesAction.HDR_UNSET_VALUE);
         }
         if (tp.readWriteGroup != null) {
             trans.setRequestProperty(TablesAction.HDR_GROUP_RW, tp.readWriteGroup.getURI().toASCIIString());
         } else {
-            trans.setRequestProperty(TablesAction.HDR_UNSET_GROUP_RW, "true");
+            trans.setRequestProperty(TablesAction.HDR_GROUP_RW, TablesAction.HDR_UNSET_VALUE);
         }
     }
 

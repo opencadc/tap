@@ -1,0 +1,9 @@
+# request header
+name: x-vosi-auth-read
+in: header
+description: flag indicating that the resource requires authentication to read
+required: false
+schema:
+  type: string
+  enum: ["true", "false", "null"]
+

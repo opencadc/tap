@@ -1,0 +1,10 @@
+# request header
+name: x-vosi-group-read
+in: header
+description: a GMS group identifier indicating a group with read permission, or literal null
+required: false
+schema:
+  oneOf:
+    - type: string
+      format: uri
+    - type: "null"

@@ -34,6 +34,10 @@ post:
         required: true
         schema:
             type: string
+      - $ref: ./vosi-auth-read.yaml
+      - $ref: ./vosi-group-read.yaml
+      - $ref: ./vosi-group-write.yaml
+      - $ref: ./vosi-owner.yaml
     requestBody:
         description: a table description
         $ref: '#/components/schemas/tableDoc'
@@ -65,6 +69,10 @@ put:
         required: true
         schema:
             type: string
+      - $ref: ./vosi-auth-read.yaml
+      - $ref: ./vosi-group-read.yaml
+      - $ref: ./vosi-group-write.yaml
+      - $ref: ./vosi-owner.yaml
     requestBody:
         description: a table description
         $ref: '#/components/schemas/tableDoc'
@@ -112,14 +120,36 @@ components:
     schemas:
         tableDoc:
             description: metadata for the specified schema or table
+            headers:
+              x-vosi-auth-read:
+                description: flag indicating that the resource requires authentication to read
+                required: false
+                schema:
+                  type: string
+                  enum: ["true", "false"]
+              x-vosi-group-read:
+                description: a GMS group identifier indicating a group with read permission
+                required: false
+                schema:
+                  type: string
+              x-vosi-group-write:
+                description: a GMS group identifier indicating a group with write permission
+                required: false
+                schema:
+                  type: string
+              x-vosi-owner:
+                description: identifier for the owner of the schema or table
+                required: false
+                schema:
+                  type: string
             content:
                 text/xml:
                     schema:
-                        type: object
-                        xml:
-                            name: table
-                            prefix: vosi
-                            namespace: http://www.ivoa.net/xml/VOSITables/v1.0
+                      type: object
+                      xml:
+                        name: table
+                        prefix: vosi
+                        namespace: http://www.ivoa.net/xml/VOSITables/v1.0
                     example: |
                         <vosi:table xmlns:vosi="http://www.ivoa.net/xml/VOSITables/v1.0"
                                 xmlns:vs="http://www.ivoa.net/xml/VODataService/v1.1"
@@ -148,18 +178,18 @@ components:
                               <description>recommended sort order when listing schemas</description>
                               <dataType xsi:type="vs:VOTableType">int</dataType>
                             </column>
-                          </vosi:table>
+                        </vosi:table>
                 application/x-votable+xml:
                     schema:
-                        type: object
-                        xml:
-                            name: VOTABLE
-                            namespace: http://www.ivoa.net/xml/VOTable/v1.3
+                      type: object
+                      xml:
+                        name: VOTABLE
+                        namespace: http://www.ivoa.net/xml/VOTable/v1.3
                     example: |
                         <VOTABLE xmlns="http://www.ivoa.net/xml/VOTable/v1.3"
                                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.4">
                             <RESOURCE type="results">
-                                <TABLE>
+                              <TABLE>
                                 <FIELD name="schema_name" datatype="char" arraysize="64*">
                                     <DESCRIPTION>schema name for reference to tap_schema.schemas</DESCRIPTION>
                                 </FIELD>
@@ -172,9 +202,6 @@ components:
                                 <FIELD name="schema_index" datatype="int">
                                     <DESCRIPTION>recommended sort order when listing schemas</DESCRIPTION>
                                 </FIELD>
-                                <!--data goes here-->
                               </TABLE>
                             </RESOURCE>
                         </VOTABLE>
-
-
