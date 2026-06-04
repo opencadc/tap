@@ -72,6 +72,7 @@ public enum ViolationType {
     // --- structural (always errors, cannot be downgraded) ---
     NULL_OR_BLANK,
     STRUCTURAL,
+    DUPLICATE_IDENTIFIER,
 
     // --- IDENTIFIER ---
     IDENTIFIER_INVALID_CHAR,

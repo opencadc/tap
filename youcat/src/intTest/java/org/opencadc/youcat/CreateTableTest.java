@@ -467,7 +467,7 @@ public class CreateTableTest extends AbstractTablesTest {
             }
         };
         HttpUpload put = new HttpUpload(src, tableURL);
-        put.setContentType(TablesInputHandler.VOTABLE_TYPE);
+        put.setRequestProperty(HttpConstants.HDR_CONTENT_TYPE, TablesInputHandler.VOTABLE_TYPE);
         Subject.doAs(schemaOwner, new RunnableAction(put));
         Assert.assertNull("throwable", put.getThrowable());
         Assert.assertEquals("response code", 200, put.getResponseCode());
@@ -612,6 +612,98 @@ public class CreateTableTest extends AbstractTablesTest {
             Assert.assertTrue(message.contains("errors: 1"));
             Assert.assertTrue(message.contains("warnings: 0"));
             Assert.assertTrue(message.contains("ACTION")); // Confirms ACTION is the reason of failure
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+
+    // Test failures with meaningful messages
+    @Test
+    public void testCreateTableFailures() {
+        try {
+            clearSchemaPerms();
+            TapPermissions tp = new TapPermissions(null, true, null, null);
+            super.setPerms(schemaOwner, testSchemaName, tp, 200);
+
+            String testTable = testSchemaName + ".testCreateTableFailure";
+
+            // cleanup just in case
+            doDelete(schemaOwner, testTable, true);
+
+
+            VOTableTable vtab = new VOTableTable();
+            // Test 1: faulty datatype - expected 400 Bad Request
+            vtab.getFields().add(new VOTableField("c0", TapDataType.STRING.getDatatype(), TapDataType.STRING.arraysize));
+            vtab.getFields().add(new VOTableField("c1", TapDataType.SHORT.getDatatype()));
+            vtab.getFields().add(new VOTableField("c2", TapDataType.INTEGER.getDatatype()));
+            vtab.getFields().add(new VOTableField("c3", "unicodeChar"));
+
+            VOTableResource vres = new VOTableResource("results");
+            vres.setTable(vtab);
+            final VOTableDocument doc = new VOTableDocument();
+            doc.getResources().add(vres);
+
+            // create
+            URL tableURL = new URL(certTablesURL.toExternalForm() + "/" + testTable);
+            OutputStreamWrapper src = new OutputStreamWrapper() {
+                @Override
+                public void write(OutputStream out) throws IOException {
+                    VOTableWriter w = new VOTableWriter(VOTableWriter.SerializationType.TABLEDATA);
+                    w.write(doc, out);
+                }
+            };
+            HttpUpload put = new HttpUpload(src, tableURL);
+            put.setRequestProperty(HttpConstants.HDR_CONTENT_TYPE, TablesInputHandler.VOTABLE_TYPE);
+            Subject.doAs(schemaOwner, new RunnableAction(put));
+            Assert.assertEquals("response code", 400, put.getResponseCode());
+            Assert.assertNotNull("throwable", put.getThrowable());
+
+            // TAP query check (Table is not created)
+            String adql = "SELECT * from " + testTable;
+            Map<String, Object> params = new TreeMap<String, Object>();
+            params.put("LANG", "ADQL");
+            params.put("QUERY", adql);
+            log.info("doQueryCheck: " + testTable + " " + anonQueryURL);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            HttpPost doit = new HttpPost(anonQueryURL, params, out);
+            doit.run();
+            Assert.assertEquals("response code", 400, doit.getResponseCode());
+            Assert.assertNotNull("throwable", doit.getThrowable());
+
+            // Test 2: duplicate names
+            vtab = new VOTableTable();
+            vtab.getFields().add(new VOTableField("c0", TapDataType.STRING.getDatatype(), TapDataType.STRING.arraysize));
+            vtab.getFields().add(new VOTableField("c1", TapDataType.SHORT.getDatatype()));
+            vtab.getFields().add(new VOTableField("c2", TapDataType.INTEGER.getDatatype()));
+            vtab.getFields().add(new VOTableField("c2", TapDataType.STRING.getDatatype(), TapDataType.STRING.arraysize));
+
+            vres = new VOTableResource("results");
+            vres.setTable(vtab);
+            final VOTableDocument doc1 = new VOTableDocument();
+            doc1.getResources().add(vres);
+
+            // create
+            src = new OutputStreamWrapper() {
+                @Override
+                public void write(OutputStream out) throws IOException {
+                    VOTableWriter w = new VOTableWriter(VOTableWriter.SerializationType.TABLEDATA);
+                    w.write(doc1, out);
+                }
+            };
+            put = new HttpUpload(src, tableURL);
+            put.setRequestProperty(HttpConstants.HDR_CONTENT_TYPE, TablesInputHandler.VOTABLE_TYPE);
+            Subject.doAs(schemaOwner, new RunnableAction(put));
+            Assert.assertEquals("response code", 400, put.getResponseCode());
+            Assert.assertNotNull("throwable", put.getThrowable());
+
+            // TAP query check (Table is not created)
+            out = new ByteArrayOutputStream();
+            doit = new HttpPost(anonQueryURL, params, out);
+            doit.run();
+            Assert.assertEquals("response code", 400, doit.getResponseCode());
+            Assert.assertNotNull("throwable", doit.getThrowable());
+
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
