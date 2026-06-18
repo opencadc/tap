@@ -127,7 +127,7 @@ public class TableCreator {
                 prof.checkpoint("rollback-transaction");
                 log.debug("create table failed - rollback: OK");
             } catch (Exception oops) {
-                log.debug("create table failed - rollback : FAIL", oops);
+                log.error("create table failed - rollback : FAIL", oops);
             }
             throw rethrow;
         } catch (Exception ex) {
