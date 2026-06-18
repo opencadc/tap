@@ -121,41 +121,38 @@ public class TableCreator {
             tm.commitTransaction();
             prof.checkpoint("commit-transaction");
         } catch (UnsupportedOperationException | IllegalArgumentException rethrow) {
-            log.error("create table failed - rollback", rethrow);
-            if (rollback(tm, prof, false)) {
-                log.error("create table failed - rollback: OK");
+            try {
+                log.debug("create table failed - rollback", rethrow);
+                tm.rollbackTransaction();
+                prof.checkpoint("rollback-transaction");
+                log.debug("create table failed - rollback: OK");
+            } catch (Exception oops) {
+                log.debug("create table failed - rollback : FAIL", oops);
             }
             throw rethrow;
         } catch (Exception ex) {
-            log.error("create table failed - rollback", ex);
-            if (rollback(tm, prof, false)) {
-                log.error("create table failed - rollback: OK");
+            try {
+                log.debug("create table failed - rollback", ex);
+                tm.rollbackTransaction();
+                prof.checkpoint("rollback-transaction");
+                log.debug("create table failed - rollback: OK");
+            } catch (Exception oops) {
+                log.error("create table failed - rollback : FAIL", oops);
             }
             throw new RuntimeException("failed to create table " + table.getTableName() + " with cause: " + ex.getMessage(), ex);
         } finally {
             if (tm.isOpen()) {
                 log.error("BUG: open transaction in finally - trying to rollback");
-                if (rollback(tm, prof, true)) {
+                try {
+                    tm.rollbackTransaction();
+                    prof.checkpoint("rollback-transaction");
                     log.error("BUG: rollback in finally: OK");
+                } catch (Exception oops) {
+                    log.error("BUG: rollback in finally: FAIL", oops);
                 }
                 throw new RuntimeException("BUG: open transaction in finally");
             }
         }
-    }
-
-    private static boolean rollback(DatabaseTransactionManager tm, Profiler prof, boolean isFinally) {
-        try {
-            tm.rollbackTransaction();
-            prof.checkpoint("rollback-transaction");
-        } catch (Exception oops) {
-            if (isFinally) {
-                log.error("BUG: rollback in finally: FAIL", oops);
-            } else {
-                log.error("create table failed - rollback : FAIL", oops);
-            }
-            return false;
-        }
-        return true;
     }
 
     /**

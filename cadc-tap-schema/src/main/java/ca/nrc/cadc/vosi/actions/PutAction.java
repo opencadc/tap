@@ -311,42 +311,39 @@ public class PutAction extends TablesAction {
             tm.commitTransaction();
             prof.checkpoint("commit-transaction");
         } catch (UnsupportedOperationException | IllegalArgumentException | IOException rethrow) {
-            log.error("PUT failed - rollback", rethrow);
-            if (rollback(tm, prof, false)) {
-                log.error("PUT failed - rollback: OK");
+            try {
+                log.debug("PUT failed - rollback", rethrow);
+                tm.rollbackTransaction();
+                prof.checkpoint("rollback-transaction");
+                log.debug("PUT failed - rollback: OK");
+            } catch (Exception oops) {
+                log.error("PUT failed - rollback: FAIL", oops);
             }
             throw rethrow;
         } catch (Exception ex) {
-            log.error("PUT failed - rollback", ex);
-            if (rollback(tm, prof, false)) {
-                log.error("PUT failed - rollback: OK");
+            try {
+                log.debug("PUT failed - rollback", ex);
+                tm.rollbackTransaction();
+                prof.checkpoint("rollback-transaction");
+                log.debug("PUT failed - rollback: OK");
+            } catch (Exception oops) {
+                log.error("PUT failed - rollback: FAIL", oops);
             }
             throw new RuntimeException("failed to create/add " + tableName + " with cause: " + ex.getMessage(), ex);
         } finally {
             if (tm.isOpen()) {
-                log.error("BUG: open transaction in finally - trying to rollback");
-                if (rollback(tm, prof, true)) {
+                try {
+                    log.error("BUG: open transaction in finally - trying to rollback");
+                    tm.rollbackTransaction();
+                    prof.checkpoint("rollback-transaction");
                     log.error("BUG: rollback in finally: OK");
+                } catch (Exception oops) {
+                    log.error("BUG: rollback in finally: FAIL", oops);
                 }
                 throw new RuntimeException("BUG: open transaction in finally");
             }
         }
         syncOutput.setCode(200);
-    }
-
-    private static boolean rollback(DatabaseTransactionManager tm, Profiler prof, boolean isFinally) {
-        try {
-            tm.rollbackTransaction();
-            prof.checkpoint("rollback-transaction");
-        } catch (Exception oops) {
-            if (isFinally) {
-                log.error("BUG: rollback in finally: FAIL", oops);
-            } else {
-                log.error("PUT failed - rollback : FAIL", oops);
-            }
-            return false;
-        }
-        return true;
     }
 
     @Override
