@@ -125,7 +125,7 @@ public class PutAction extends TablesAction {
                 TablesAction.checkSchemaWritePermissions(ts, schemaName, logInfo);
                 createTable(ts, schemaName, tableName);
             } else {
-                checkIsAdmin();
+                checkAdminPermission();
                 createSchema(ts, schemaName);
             }
         } finally {

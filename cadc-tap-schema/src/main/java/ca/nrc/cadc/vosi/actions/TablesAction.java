@@ -413,7 +413,7 @@ public abstract class TablesAction extends RestAction {
             logInfo.setMessage("view schema permissions allowed: schema owner");
             return schemaPermissions;
         }
-        if (checkIsAdmin()) {
+        if (isAdmin()) {
             logInfo.setMessage("view schema permissions allowed: admin");
             return schemaPermissions;
         }
@@ -512,7 +512,7 @@ public abstract class TablesAction extends RestAction {
             logInfo.setMessage("view table permissions allowed: table owner");
             return tablePermissions;
         }
-        if (checkIsAdmin()) {
+        if (isAdmin()) {
             logInfo.setMessage("view table permissions allowed: admin");
             return tablePermissions;
         }
@@ -638,7 +638,7 @@ public abstract class TablesAction extends RestAction {
             logInfo.setMessage("view table allowed: schema owner");
             return;
         }
-        if (checkIsAdmin()) {
+        if (isAdmin()) {
             logInfo.setMessage("view table allowed: admin");
             return;
         }
@@ -765,7 +765,7 @@ public abstract class TablesAction extends RestAction {
     }
     
     // check if the caller is an admin
-    boolean checkIsAdmin() {
+    boolean isAdmin() {
         try {
             Context ctx = new InitialContext();
             Subject admin = (Subject) ctx.lookup(jndiAdminKey);
@@ -783,6 +783,13 @@ public abstract class TablesAction extends RestAction {
             log.error("Failed to find JNDI key: " + jndiAdminKey, ex);
         }
         return false;
+    }
+    
+    void checkAdminPermission() throws AccessControlException {
+        if (isAdmin()) {
+            return;
+        }
+        throw new AccessControlException("permission denied");
     }
     
     boolean getCreateSchemaEnabled() {

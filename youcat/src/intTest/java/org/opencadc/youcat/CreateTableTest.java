@@ -580,6 +580,38 @@ public class CreateTableTest extends AbstractTablesTest {
     }
 
     @Test
+    public void testCreateSchemaPermissions() {
+        
+        // TODO: use schemaOwner subject to determine the user name here
+        final String owner = "cadcauthtest1";
+        
+        try {
+            final String schemaName = "testCreateSchemaPermissions";
+            final URL schemaURL = new URL(certTablesURL.toExternalForm() + "/" + schemaName);
+            
+            SchemaDesc orig = new SchemaDesc(schemaName);
+            orig.description = "original description";
+            TableSetWriter w = new TableSetWriter();
+            StringWriter sw = new StringWriter();
+            TapSchema ts = new TapSchema();
+            ts.getSchemaDescs().add(orig);
+            w.write(ts, sw);
+            String xml = sw.toString();
+            log.info("update description:\n" + xml);
+            FileContent fc = new FileContent(xml, TablesInputHandler.VOSI_SCHEMA_TYPE, Charset.forName("UTF-8"));
+            HttpUpload create = new HttpUpload(fc, schemaURL);
+            create.setRequestProperty("x-schema-owner", owner);
+            Subject.doAs(schemaOwner, new RunnableAction(create)); // NOT admin
+            log.info("update: " + create.getResponseCode() + " " + create.getThrowable());
+            
+            Assert.assertEquals(403, create.getResponseCode());
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+
+    @Test
     public void testPutInvalidFieldName() {
         try {
             clearSchemaPerms();
