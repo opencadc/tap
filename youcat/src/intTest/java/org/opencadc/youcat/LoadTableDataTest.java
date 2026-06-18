@@ -245,16 +245,16 @@ public class LoadTableDataTest extends AbstractTablesTest {
             log.info("start");
             
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            setPerms(schemaOwner, testSchemaName, tp, 200);
+            setPerms(schemaOwner, testSchemaName, tp, 204);
             
             String testTable = testSchemaName + ".testAllDataTypesTSV";
             doCreateTable(schemaOwner, testTable);
-            setPerms(schemaOwner, testTable, tp, 200);
+            setPerms(schemaOwner, testTable, tp, 204);
 
             String data = AbstractTablesTest.doPrepareDataAllDataTypesTSV();
             doUploadTSVData(testTable, data);
 
-            VOTableTable vt = doQueryForVOT(testTable);
+            VOTableTable vt = doQueryForVOT(testTable); // hard-coded anon query
             verifyAllDataTypes(vt, false, false);
 
             doDelete(schemaOwner, testTable, false);
@@ -271,11 +271,11 @@ public class LoadTableDataTest extends AbstractTablesTest {
             log.info("start");
             // Step - 1 : Create test table with all data types
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            setPerms(schemaOwner, testSchemaName, tp, 200);
+            setPerms(schemaOwner, testSchemaName, tp, 204);
 
             String testTable = testSchemaName + ".testAllDataTypesBinary2";
             doCreateTable(schemaOwner, testTable);
-            setPerms(schemaOwner, testTable, tp, 200);
+            setPerms(schemaOwner, testTable, tp, 204);
 
             // Step - 2 : Load data into test table
             String data = doPrepareDataAllDataTypesTSV();
@@ -316,11 +316,11 @@ public class LoadTableDataTest extends AbstractTablesTest {
             log.info("start");
             
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            setPerms(schemaOwner, testSchemaName, tp, 200);
+            setPerms(schemaOwner, testSchemaName, tp, 204);
             
             String testTable = testSchemaName + ".testAllDataTypesFits";
             doCreateTable(schemaOwner, testTable);
-            setPerms(schemaOwner, testTable, tp, 200);
+            setPerms(schemaOwner, testTable, tp, 204);
             
             String data = doPrepareDataAllDataTypesTSV();
             doUploadTSVData(testTable, data);
@@ -346,7 +346,7 @@ public class LoadTableDataTest extends AbstractTablesTest {
             
             doDelete(schemaOwner, testTable, false);
             doCreateTable(schemaOwner, testTable);
-            setPerms(schemaOwner, testTable, tp, 200);
+            setPerms(schemaOwner, testTable, tp, 204);
             
             // Post the FITS table
             byte[] bytes = Files.readAllBytes(Paths.get(fitsFilename));
@@ -380,11 +380,11 @@ public class LoadTableDataTest extends AbstractTablesTest {
             log.info("start");
             
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            setPerms(schemaOwner, testSchemaName, tp, 200);
+            setPerms(schemaOwner, testSchemaName, tp, 204);
             
             String testTable = testSchemaName + ".testMixedContentTypeASCII";
             doCreateTable(schemaOwner, testTable);
-            setPerms(schemaOwner, testTable, tp, 200);
+            setPerms(schemaOwner, testTable, tp, 204);
             
             StringBuilder data = new StringBuilder();
             data.append("c0, c6, c2\n");
@@ -457,11 +457,11 @@ public class LoadTableDataTest extends AbstractTablesTest {
             log.info("start");
             
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            setPerms(schemaOwner, testSchemaName, tp, 200);
+            setPerms(schemaOwner, testSchemaName, tp, 204);
             
             String testTable = testSchemaName + ".testMultipleBatches";
             doCreateTable(schemaOwner, testTable);
-            setPerms(schemaOwner, testTable, tp, 200);
+            setPerms(schemaOwner, testTable, tp, 204);
             
             StringBuilder data = new StringBuilder();
             data.append("c0\tc6\tc2\n");
@@ -497,11 +497,11 @@ public class LoadTableDataTest extends AbstractTablesTest {
             log.info("start");
             
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            setPerms(schemaOwner, testSchemaName, tp, 200);
+            setPerms(schemaOwner, testSchemaName, tp, 204);
             
             String testTable = testSchemaName + ".testErrorInMiddle";
             doCreateTable(schemaOwner, testTable);
-            setPerms(schemaOwner, testTable, tp, 200);
+            setPerms(schemaOwner, testTable, tp, 204);
             
             StringBuilder data = new StringBuilder();
             data.append("c0\tc6\tc2\n");

@@ -73,6 +73,7 @@ import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import org.apache.log4j.Logger;
 
@@ -116,7 +117,7 @@ public class PostAction extends TablesAction {
             TablesAction.checkSchemaWritePermissions(ts, schemaName, logInfo);
             updateSchema(ts, schemaName);
         }
-        
+
         syncOutput.setCode(204); // no content on success
         if (tableValidationWarnings != null && !tableValidationWarnings.isEmpty()) {
             byte[] out = tableValidationWarnings.getBytes();
@@ -129,8 +130,9 @@ public class PostAction extends TablesAction {
     private void updateTable(TapSchemaDAO dao, String schemaName, String tableName) 
             throws ResourceNotFoundException {
         TableDesc inputTable = getInputTable(schemaName, tableName);
-        if (inputTable == null) {
-            throw new IllegalArgumentException("no input table");
+        TapPermissions inputPerms = getPermissionHeaders();
+        if (inputTable == null && inputPerms == null) {
+            throw new IllegalArgumentException("no input table|permissions");
         }
         
         TableDesc cur = dao.getTable(tableName);
@@ -138,34 +140,55 @@ public class PostAction extends TablesAction {
             throw new ResourceNotFoundException("not found: table " + tableName);
         }
         
-        TapSchemaDAO.checkMismatchedColumnSet(cur, inputTable);
-
-        // merge allowed changes
-        int numCols = 0;
-        cur.description = inputTable.description;
-        cur.utype = inputTable.utype;
-        for (ColumnDesc cd : cur.getColumnDescs()) {
-            ColumnDesc inputCD = inputTable.getColumn(cd.getColumnName());
-            // above column match check should catch this, but just in case:
-            if (inputCD == null) {
-                throw new IllegalArgumentException("column missing from input table: " + cd.getColumnName());
+        if (inputTable != null) {
+            TapSchemaDAO.checkMismatchedColumnSet(cur, inputTable);
+        
+            // merge allowed changes
+            int numCols = 0;
+            cur.description = inputTable.description;
+            cur.utype = inputTable.utype;
+            for (ColumnDesc cd : cur.getColumnDescs()) {
+                ColumnDesc inputCD = inputTable.getColumn(cd.getColumnName());
+                // above column match check should catch this, but just in case:
+                if (inputCD == null) {
+                    throw new IllegalArgumentException("column missing from input table: " + cd.getColumnName());
+                }
+                if (!cd.getDatatype().equals(inputCD.getDatatype())) {
+                    throw new UnsupportedOperationException("cannot change " + cd.getColumnName() + " from "
+                            + cd.getDatatype() + " -> " + inputCD.getDatatype());
+                }
+                cd.description = inputCD.description;
+                cd.ucd = inputCD.ucd;
+                cd.unit = inputCD.unit;
+                cd.utype = inputCD.utype;
+                cd.principal = inputCD.principal;
+                cd.std = inputCD.std;
+                cd.columnID = inputCD.columnID;
+                // ignore: indexed (internal)
+                numCols++;
             }
-            if (!cd.getDatatype().equals(inputCD.getDatatype())) {
-                throw new UnsupportedOperationException("cannot change " + cd.getColumnName() + " from "
-                        + cd.getDatatype() + " -> " + inputCD.getDatatype());
+            if (numCols != cur.getColumnDescs().size()) {
+                throw new IllegalArgumentException("column list mismatch: cannot update");
             }
-            cd.description = inputCD.description;
-            cd.ucd = inputCD.ucd;
-            cd.unit = inputCD.unit;
-            cd.utype = inputCD.utype;
-            cd.principal = inputCD.principal;
-            cd.std = inputCD.std;
-            cd.columnID = inputCD.columnID;
-            // ignore: indexed (internal)
-            numCols++;
         }
-        if (numCols != cur.getColumnDescs().size()) {
-            throw new IllegalArgumentException("column list mismatch: cannot update");
+        if (inputPerms != null) {
+            // TODO: only admin can set owner
+            // only merge non-null permissions into the current permissions
+            if (inputPerms.unsetIsPublic) {
+                cur.tapPermissions.isPublic = null;
+            } else if (inputPerms.isPublic != null) {
+                cur.tapPermissions.isPublic = inputPerms.isPublic;
+            }
+            if (inputPerms.unsetReadGroup) {
+                cur.tapPermissions.readGroup = null;
+            } else if (inputPerms.readGroup != null) {
+                cur.tapPermissions.readGroup = inputPerms.readGroup;
+            }
+            if (inputPerms.unsetReadWriteGroup) {
+                cur.tapPermissions.readWriteGroup = null;
+            } else if (inputPerms.readWriteGroup != null) {
+                cur.tapPermissions.readWriteGroup = inputPerms.readWriteGroup;
+            }
         }
         // update
         dao.put(cur);
@@ -174,14 +197,39 @@ public class PostAction extends TablesAction {
     private void updateSchema(TapSchemaDAO dao, String schemaName) 
             throws ResourceNotFoundException {
         SchemaDesc inputSchema = getInputSchema(schemaName);
+        TapPermissions inputPerms = getPermissionHeaders();
+        if (inputSchema == null && inputPerms == null) {
+            throw new IllegalArgumentException("no input schema|permissions");
+        }
         
         SchemaDesc cur = dao.getSchema(schemaName, 0);
         if (cur == null) {
             throw new ResourceNotFoundException("not found: schema " + schemaName);
         }
         // merge allowed changes
-        cur.description = inputSchema.description;
-        cur.utype = inputSchema.utype;
+        if (inputSchema != null) {
+            cur.description = inputSchema.description;
+            cur.utype = inputSchema.utype;
+        }
+        if (inputPerms != null) {
+            // TODO: only admin can set owner
+            // only merge non-null permissions into the current permissions
+            if (inputPerms.unsetIsPublic) {
+                cur.tapPermissions.isPublic = null;
+            } else if (inputPerms.isPublic != null) {
+                cur.tapPermissions.isPublic = inputPerms.isPublic;
+            }
+            if (inputPerms.unsetReadGroup) {
+                cur.tapPermissions.readGroup = null;
+            } else if (inputPerms.readGroup != null) {
+                cur.tapPermissions.readGroup = inputPerms.readGroup;
+            }
+            if (inputPerms.unsetReadWriteGroup) {
+                cur.tapPermissions.readWriteGroup = null;
+            } else if (inputPerms.readWriteGroup != null) {
+                cur.tapPermissions.readWriteGroup = inputPerms.readWriteGroup;
+            }
+        }
         // update
         dao.put(cur);
     }

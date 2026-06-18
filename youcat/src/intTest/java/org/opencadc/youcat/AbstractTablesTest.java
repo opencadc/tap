@@ -82,10 +82,12 @@ import ca.nrc.cadc.dali.tables.votable.VOTableReader;
 import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.net.FileContent;
+import ca.nrc.cadc.net.HttpConstants;
 import ca.nrc.cadc.net.HttpDelete;
 import ca.nrc.cadc.net.HttpDownload;
 import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.net.HttpPost;
+import ca.nrc.cadc.net.HttpTransfer;
 import ca.nrc.cadc.net.HttpUpload;
 import ca.nrc.cadc.net.InputStreamWrapper;
 import ca.nrc.cadc.net.OutputStreamWrapper;
@@ -107,6 +109,7 @@ import ca.nrc.cadc.vosi.TableReader;
 import ca.nrc.cadc.vosi.TableSetReader;
 import ca.nrc.cadc.vosi.TableWriter;
 import ca.nrc.cadc.vosi.actions.TableContentHandler;
+import ca.nrc.cadc.vosi.actions.TablesAction;
 import ca.nrc.cadc.vosi.actions.TablesInputHandler;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -136,6 +139,7 @@ import org.junit.Assert;
 import org.opencadc.tap.TapClient;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import org.opencadc.gms.GroupURI;
 
 /**
  * base class with common setup and methods.
@@ -155,6 +159,7 @@ abstract class AbstractTablesTest {
     static final String SCHEMA_GROUP_MEMBER = "youcat-member.pem"; // member of group
     
     static String VALID_TEST_GROUP = "ivo://cadc.nrc.ca/gms?YouCat-ReadWrite";
+    static String VALID_READ_GROUP = "ivo://cadc.nrc.ca/gms?YouCat-ReadOnly";
 
     Subject admin;
     Subject anon;
@@ -247,6 +252,10 @@ abstract class AbstractTablesTest {
     }
     
     TableDesc doCreateTable(Subject subject, String tableName) throws Exception {
+        return doCreateTable(subject, tableName, null);
+    }
+    
+    TableDesc doCreateTable(Subject subject, String tableName, TapPermissions tp) throws Exception {
         checkTestSchema(tableName);
 
         // cleanup just in case
@@ -292,7 +301,10 @@ abstract class AbstractTablesTest {
             }
         };
         HttpUpload put = new HttpUpload(src, tableURL);
-        put.setContentType(TablesInputHandler.VOSI_TABLE_TYPE);
+        put.setRequestProperty(HttpConstants.HDR_CONTENT_TYPE, TablesInputHandler.VOSI_TABLE_TYPE);
+        if (tp != null) {
+            setPermHeaders(put, tp);
+        }
         log.info("doCreateTable: " + tableURL);
         Subject.doAs(subject, new RunnableAction(put));
         log.info("doCreateTable: " + put.getResponseCode());
@@ -356,12 +368,16 @@ abstract class AbstractTablesTest {
     }
     
     protected void clearSchemaPerms() throws MalformedURLException {
+        log.info("clearSchemaPerms");
         TapPermissions tp = new TapPermissions();
-        tp.isPublic = false;
-        setPerms(schemaOwner, testSchemaName, tp, 200);
+        setPerms(schemaOwner, testSchemaName, tp, 204);
     }
     
     protected void setPerms(Subject subject, String name, TapPermissions tp, int expectedCode) throws MalformedURLException {
+        setPermsVOSI(subject, name, tp, expectedCode);
+    }
+
+    protected void setPermsEndpoint(Subject subject, String name, TapPermissions tp, int expectedCode) throws MalformedURLException {
         checkTestSchema(name);
         
         StringBuilder perms = new StringBuilder();
@@ -390,6 +406,82 @@ abstract class AbstractTablesTest {
         Subject.doAs(subject, new RunnableAction(post));
         Assert.assertEquals(expectedCode, post.getResponseCode());
         
+    }
+
+    protected void setPermsVOSI(Subject subject, String name, TapPermissions tp, int expectedCode) throws MalformedURLException {
+        log.info("setPermsVOSI: " + name + " " + tp);
+        checkTestSchema(name);
+        Map<String,Object> map = new TreeMap<>();
+        URL targetURL = new URL(certTablesURL.toExternalForm() + "/" + name);
+        HttpPost post = new HttpPost(targetURL, map, true);
+        setPermHeaders(post, tp);
+        post.setMaxRetries(0); // testing read-only and offline mode
+        Subject.doAs(subject, new RunnableAction(post));
+        log.info("POST /tables/" + name + ": " + post.getResponseCode() + " " + post.getThrowable());
+        Assert.assertEquals(expectedCode, post.getResponseCode());
+    }
+    
+    private void setPermHeaders(HttpTransfer trans, TapPermissions tp) {
+        if (tp.isPublic != null) {
+            // auth_read == auth required == !isPublic
+            if (tp.isPublic) {
+                trans.setRequestProperty(TablesAction.HDR_AUTH_READ, "false");
+            } else {
+                trans.setRequestProperty(TablesAction.HDR_AUTH_READ, "true");
+            }
+        } else {
+            trans.setRequestProperty(TablesAction.HDR_AUTH_READ, TablesAction.HDR_UNSET_VALUE);
+        }
+        if (tp.readGroup != null) {
+            trans.setRequestProperty(TablesAction.HDR_GROUP_RO, tp.readGroup.getURI().toASCIIString());
+        } else {
+            trans.setRequestProperty(TablesAction.HDR_GROUP_RO, TablesAction.HDR_UNSET_VALUE);
+        }
+        if (tp.readWriteGroup != null) {
+            trans.setRequestProperty(TablesAction.HDR_GROUP_RW, tp.readWriteGroup.getURI().toASCIIString());
+        } else {
+            trans.setRequestProperty(TablesAction.HDR_GROUP_RW, TablesAction.HDR_UNSET_VALUE);
+        }
+    }
+
+    protected final TapPermissions getPermissions(Subject subject, String name, int expectedCode) throws Exception {
+        return getPermissionsVOSI(subject, name, expectedCode);
+    }
+    
+    protected final  TapPermissions getPermissionsVOSI(Subject subject, String name, int expectedCode) throws Exception {
+        URL targetURL = new URL(certTablesURL.toExternalForm() + "/" + name);
+        HttpGet head = new HttpGet(targetURL, false);
+        head.setHeadOnly(true);
+        log.info("getPermissionsVOSI: " + targetURL);
+        Subject.doAs(subject, new RunnableAction(head));
+        log.info("HEAD /tables/" + name + ": " + head.getResponseCode() + " " + head.getThrowable());
+        
+        String o = head.getResponseHeader(TablesAction.HDR_OWNER);
+        log.info(TablesAction.HDR_OWNER + " = " + o);
+        
+        String authRead = head.getResponseHeader(TablesAction.HDR_AUTH_READ);
+        String gro = head.getResponseHeader(TablesAction.HDR_GROUP_RO);
+        String grw = head.getResponseHeader(TablesAction.HDR_GROUP_RW);
+        log.info(TablesAction.HDR_AUTH_READ + " = " + authRead);
+        log.info(TablesAction.HDR_GROUP_RO + " = " + gro);
+        log.info(TablesAction.HDR_GROUP_RW + " = " + grw);
+        
+        TapPermissions ret = new TapPermissions();
+        if (o != null) {
+            ret.owner = new Subject();
+            ret.owner.getPrincipals().add(new HttpPrincipal(o));
+        }
+        if (authRead != null) {
+            boolean ar = Boolean.parseBoolean(authRead);
+            ret.isPublic = !ar;
+        }
+        if (gro != null) {
+            ret.readGroup = new GroupURI(new URI(gro));
+        }
+        if (grw != null) {
+            ret.readWriteGroup = new GroupURI(new URI(grw));
+        }
+        return ret;
     }
 
     protected void compare(TableDesc expected, TableDesc actual) {

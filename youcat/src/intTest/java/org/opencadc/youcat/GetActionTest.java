@@ -96,7 +96,7 @@ public class GetActionTest extends AbstractTablesTest {
         try {
             clearSchemaPerms();
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            super.setPerms(schemaOwner, testSchemaName, tp, 200);
+            super.setPerms(schemaOwner, testSchemaName, tp, 204);
 
             String testTable = testSchemaName + ".testPutWarnings";
 

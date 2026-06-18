@@ -1,0 +1,7 @@
+# request header
+name: x-vosi-owner
+in: header
+description: identifier for the owner of the schema or table
+required: false
+schema:
+  type: string

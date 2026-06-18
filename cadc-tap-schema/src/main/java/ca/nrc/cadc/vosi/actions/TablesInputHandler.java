@@ -153,7 +153,7 @@ public class TablesInputHandler implements InlineContentHandler {
                     throw new RuntimeException("BUG: tried ans failed to load plugin " + PARQUET_CLASS_NAME);
                 }
             } else {
-                throw new UnsupportedOperationException("unsupported input type: " + contentType);
+                log.debug("unsupported input type: " + contentType + " -- body ignored");
             }
             InlineContentHandler.Content ret = new InlineContentHandler.Content();
             ret.name = objectTag;

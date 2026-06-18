@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2024.                            (c) 2024.
+*  (c) 2026.                            (c) 2026.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -63,92 +63,63 @@
 *                                       <http://www.gnu.org/licenses/>.
 *
 ************************************************************************
- */
+*/
 
 package ca.nrc.cadc.vosi.actions;
 
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.IdentityManager;
-import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.tap.schema.TapPermissions;
+import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.tap.schema.SchemaDesc;
+import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import ca.nrc.cadc.tap.schema.Util;
-import java.io.OutputStream;
-import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
-import org.opencadc.gms.GroupURI;
 
 /**
- * Return the permissions for the object identified by the 'name'
- * parameter.
- * 
- * @author majorb
  *
+ * @author pdowler
  */
-public class GetPermissionsAction extends TablesAction {
-    
-    private static final Logger log = Logger.getLogger(GetPermissionsAction.class);
+public class HeadAction extends TablesAction {
+    private static final Logger log = Logger.getLogger(HeadAction.class);
+
+    public HeadAction() { 
+    }
 
     @Override
     public void doAction() throws Exception {
+        String schemaName = null;
+        String tableName = null;
         String[] target = getTarget();
-        if (target == null) {
-            throw new IllegalArgumentException("no schema|table name in path");
+        if (target != null) {
+            schemaName = target[0];
+            tableName = target[1];
         }
-        String name = target[0]; // schema
-        if (target[1] != null) {
-            name = target[1]; // table
-        }
-        log.debug("name: " + name);
+        log.debug("HEAD: " + schemaName + " " + tableName);
         
         checkReadable();
-        
+         
         TapSchemaDAO dao = getTapSchemaDAO();
-        TapPermissions permissions = null;
-        if (Util.isSchemaName(name)) {
-            permissions = checkViewSchemaPermissions(dao, name, logInfo);
-        } else if (Util.isTableName(name)) {
-            permissions = checkViewTablePermissions(dao, name, logInfo);
+        if (tableName != null) {
+            checkTableReadPermissions(dao, tableName, logInfo);
+            TableDesc td = dao.getTable(tableName);
+            if (td == null) {
+                // currently, permission check already threw this
+                throw new ResourceNotFoundException("table not found: " + tableName);
+            }
+            syncOutput.setCode(200);
+            setPermissionHeaders(td.tapPermissions);
+        } else if (schemaName != null) {
+            checkViewSchemaPermissions(dao, schemaName, logInfo);
+            SchemaDesc sd = dao.getSchema(schemaName, TapSchemaDAO.MIN_DEPTH);
+            if (sd == null) {
+                // currently, permission check already threw this
+                throw new ResourceNotFoundException("schema not found: " + schemaName);
+            }
+            syncOutput.setCode(200);
+            setPermissionHeaders(sd.tapPermissions);
         } else {
-            throw new IllegalArgumentException("No such object: " + name);
+            // HEAD /tables
+            syncOutput.setCode(200);
         }
-        
-        syncOutput.setCode(200);
-        syncOutput.setHeader("Content-Type", PERMS_CONTENTTYPE);
-        
-        StringBuilder sb = new StringBuilder();
-        String ownerString = getOwnerString(permissions.owner);
-        String readGroupString = getGroupString(permissions.readGroup);
-        String readWriteGroupString = getGroupString(permissions.readWriteGroup);
-        sb.append(OWNER_KEY).append("=").append(ownerString).append("\n");
-        String pub = (permissions.isPublic != null && permissions.isPublic ? "true" : "false");
-        sb.append(PUBLIC_KEY).append("=").append(pub).append("\n");
-        sb.append(RGROUP_KEY).append("=").append(readGroupString).append("\n");
-        sb.append(RWGROUP_KEY).append("=").append(readWriteGroupString).append("\n");
-        
-        OutputStream out = syncOutput.getOutputStream();
-        out.write(sb.toString().getBytes());
     }
     
-    @Override
-    protected InlineContentHandler getInlineContentHandler() {
-        return null;
-    }
     
-    // return the the x500 DN or a blank string
-    private String getOwnerString(Subject s) {
-        if (s == null) {
-            return "";
-        }
-        IdentityManager im = AuthenticationUtil.getIdentityManager();
-        return im.toDisplayString(s);
-    }
-            
-    private String getGroupString(GroupURI group) {
-        if (group == null) {
-            return "";
-        }
-        return group.toString();
-    }
-
 }

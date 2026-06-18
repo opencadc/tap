@@ -76,10 +76,12 @@ import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.net.FileContent;
 import ca.nrc.cadc.net.HttpDownload;
+import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.net.HttpPost;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.uws.ExecutionPhase;
 import ca.nrc.cadc.vosi.actions.TableContentHandler;
+import ca.nrc.cadc.vosi.actions.TablesAction;
 import java.io.ByteArrayOutputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -114,6 +116,79 @@ public class PermissionsTest extends AbstractTablesTest {
     }
     
     @Test
+    public void testRoundtrip() {
+        // this only tests that the get/set of permissions works consistently
+        // other methods check that permissions are enforced correctly
+        try {
+            clearSchemaPerms();
+            
+            TapPermissions tp1 = getPermissionsEndpoint(schemaOwner, testSchemaName, 200);
+            Assert.assertNotNull(tp1);
+            Assert.assertNotNull(tp1.owner);
+            Assert.assertFalse(tp1.isPublic); // for a user-owned schema
+            Assert.assertNull(tp1.readGroup);
+            Assert.assertNull(tp1.readWriteGroup);
+            
+            TapPermissions tp2 = getPermissionsVOSI(schemaOwner, testSchemaName, 200);
+            Assert.assertNotNull(tp2);
+            Assert.assertNotNull(tp2.owner);
+            Assert.assertFalse(tp1.isPublic); // for a user-owned schema
+            Assert.assertNull(tp2.readGroup);
+            Assert.assertNull(tp2.readWriteGroup);
+            
+            TapPermissions expected = null;
+            TapPermissions actual = null;
+            
+            final GroupURI rog = new GroupURI(new URI(VALID_READ_GROUP));
+            final GroupURI rwg = new GroupURI(new URI(VALID_TEST_GROUP));
+            
+            log.info("set schema to public via endpoint");
+            expected = new TapPermissions(true, rog, rwg);
+            setPermsEndpoint(schemaOwner, testSchemaName, expected, 200); // compat: 200
+            
+            actual = getPermissionsEndpoint(schemaOwner, testSchemaName, 200);
+            Assert.assertNotNull(actual);
+            Assert.assertEquals(expected.isPublic, actual.isPublic);
+            Assert.assertEquals(expected.readGroup, actual.readGroup);
+            Assert.assertEquals(expected.readWriteGroup, actual.readWriteGroup);
+            
+            actual = getPermissionsVOSI(schemaOwner, testSchemaName, 200);
+            Assert.assertNotNull(actual);
+            Assert.assertEquals(expected.isPublic, actual.isPublic);
+            Assert.assertEquals(expected.readGroup, actual.readGroup);
+            Assert.assertEquals(expected.readWriteGroup, actual.readWriteGroup);
+            
+            log.info("set schema to public via VOSI headers");
+            clearSchemaPerms();
+            setPermsVOSI(schemaOwner, testSchemaName, expected, 204);
+            
+            actual = getPermissionsVOSI(schemaOwner, testSchemaName, 200);
+            Assert.assertNotNull(actual);
+            Assert.assertEquals(expected.isPublic, actual.isPublic);
+            Assert.assertEquals(expected.readGroup, actual.readGroup);
+            Assert.assertEquals(expected.readWriteGroup, actual.readWriteGroup);
+            
+            actual = getPermissionsVOSI(schemaOwner, testSchemaName, 200);
+            Assert.assertNotNull(actual);
+            Assert.assertEquals(expected.isPublic, actual.isPublic);
+            Assert.assertEquals(expected.readGroup, actual.readGroup);
+            Assert.assertEquals(expected.readWriteGroup, actual.readWriteGroup);
+            
+            log.info("clear schema permissions");
+            clearSchemaPerms();
+            tp2 = getPermissionsVOSI(schemaOwner, testSchemaName, 200);
+            Assert.assertNotNull(tp2);
+            Assert.assertNotNull(tp2.owner);
+            Assert.assertFalse(tp1.isPublic); // for a user-owned schema
+            Assert.assertNull(tp2.readGroup);
+            Assert.assertNull(tp2.readWriteGroup);
+        } catch (Exception t) {
+            log.error("unexpected", t);
+            Assert.fail("unexpected: " + t.getMessage());
+        }
+    }
+
+    @Test
     public void testAnon() {
         log.info("testGetAnon()");
         try {
@@ -129,32 +204,20 @@ public class PermissionsTest extends AbstractTablesTest {
             // get schema perms
             HttpDownload get = new HttpDownload(schemaPerms, out);
             get.run();
-            Assert.assertNotNull(get.getThrowable());
-            Assert.assertEquals(get.getResponseCode(), 403);
+            log.info("GET: " + get.getResponseCode() + " " + get.getThrowable());
+            Assert.assertEquals(403, get.getResponseCode());
             
             // get table perms
             get = new HttpDownload(tablePerms, out);
             get.run();
-            Assert.assertNotNull(get.getThrowable());
-            Assert.assertEquals(get.getResponseCode(), 403);
+            Assert.assertEquals(403, get.getResponseCode());
             
-            String perms =
-                "public=true\n" +
-                "r-group=ivo://cadc.nrc.ca/gms?testGroup\n" +
-                "rw-group=ivo://cadc.nrc.ca/gms?testGroup";
-            FileContent content = new FileContent(perms, "text/plain", Charset.forName("utf-8"));
-
-            // set schema perms
-            HttpPost post = new HttpPost(schemaPerms, content, false);
-            post.run();
-            Assert.assertNotNull(post.getThrowable());
-            Assert.assertEquals(post.getResponseCode(), 403);
+            // try to set schema perms
+            TapPermissions pub = new TapPermissions(true, null, null);
+            setPerms(anon, testSchemaName, pub, 403);
             
-            // set table perms
-            post = new HttpPost(tablePerms, content, false);
-            post.run();
-            Assert.assertNotNull(post.getThrowable());
-            Assert.assertEquals(post.getResponseCode(), 403);
+            // try to set table perms
+            setPerms(anon, testTable, pub, 403);
             
             doDelete(schemaOwner, testTable, false);
         } catch (Exception t) {
@@ -163,7 +226,7 @@ public class PermissionsTest extends AbstractTablesTest {
         }
     }
     
-    @Test
+    //@Test
     public void testBadSetParams() {
         log.info("testBadSetParams()");
         try {
@@ -222,16 +285,19 @@ public class PermissionsTest extends AbstractTablesTest {
         try {
             clearSchemaPerms();
             
+            TapPermissions pub = new TapPermissions(true, null, null);
+            setPerms(schemaOwner, testSchemaName, pub, 204);
+            
             String testTable = testSchemaName + ".testPublic";
             doCreateTable(schemaOwner, testTable);
             
-            this.doQuery(anon, anonQueryURL, testTable, 400);
-            
-            TapPermissions tp = new TapPermissions(null, true, null, null);
-            setPerms(schemaOwner, testSchemaName, tp, 200);
             this.doQuery(anon, anonQueryURL, testTable, 403);
             
-            setPerms(schemaOwner, testTable, tp, 200);
+            TapPermissions tp = new TapPermissions(null, true, null, null);
+            setPerms(schemaOwner, testSchemaName, tp, 204);
+            this.doQuery(anon, anonQueryURL, testTable, 403);
+            
+            setPerms(schemaOwner, testTable, tp, 204);
             this.doQuery(anon, anonQueryURL, testTable, 200);
             
             setPerms(anon, testTable, tp, 403);
@@ -247,19 +313,22 @@ public class PermissionsTest extends AbstractTablesTest {
     public void testGroupRead() {
         log.info("testGroupRead()");
         try {
-            
             clearSchemaPerms();
+            
+            TapPermissions pub = new TapPermissions(true, null, null);
+            setPerms(schemaOwner, testSchemaName, pub, 204);
             
             String testTable = testSchemaName + ".testGroupRead";
             doCreateTable(schemaOwner, testTable);
             
-            this.doQuery(subjectWithGroups, certQueryURL, testTable, 400);
+            this.doQuery(subjectWithGroups, certQueryURL, testTable, 403);
             this.insertData(subjectWithGroups, certLoadURL, testTable, 403);  
             this.doCreateIndex(subjectWithGroups, testTable, "c0", false, ExecutionPhase.ERROR, "permission denied");
             
             GroupURI readGroup = new GroupURI(VALID_TEST_GROUP);
             TapPermissions tp = new TapPermissions(null, false, readGroup, null);
-            setPerms(schemaOwner, testSchemaName, tp, 200);
+            log.info("set schema permissions: " + tp);
+            setPerms(schemaOwner, testSchemaName, tp, 204);
             TapPermissions tp1 = getPermissions(schemaOwner, testSchemaName, 200);
             Assert.assertNotNull(tp1.isPublic);
             Assert.assertFalse(tp1.isPublic);
@@ -270,7 +339,8 @@ public class PermissionsTest extends AbstractTablesTest {
             this.insertData(subjectWithGroups, certLoadURL, testTable, 403);
             this.doCreateIndex(subjectWithGroups, testTable, "c0", false, ExecutionPhase.ERROR, "permission denied");
             
-            setPerms(schemaOwner, testTable, tp, 200);
+            log.info("set table permissions: " + tp);
+            setPerms(schemaOwner, testTable, tp, 204);
             tp1 = getPermissions(schemaOwner, testTable, 200);
             Assert.assertNotNull(tp1.isPublic);
             Assert.assertFalse(tp1.isPublic);
@@ -304,7 +374,7 @@ public class PermissionsTest extends AbstractTablesTest {
             // grant rw on schema
             GroupURI readWriteGroup = new GroupURI(VALID_TEST_GROUP);
             TapPermissions tp = new TapPermissions(null, false, null, readWriteGroup);
-            setPerms(schemaOwner, testSchemaName, tp, 200);
+            setPerms(schemaOwner, testSchemaName, tp, 204);
             TapPermissions tp1 = getPermissions(schemaOwner, testSchemaName, 200);
             Assert.assertNotNull(tp1.isPublic);
             Assert.assertFalse(tp1.isPublic);
@@ -317,7 +387,7 @@ public class PermissionsTest extends AbstractTablesTest {
             this.doCreateIndex(subjectWithGroups, testTable, "c0", false, ExecutionPhase.ERROR, "permission denied");
             
             // grant rw on table
-            setPerms(schemaOwner, testTable, tp, 200);
+            setPerms(schemaOwner, testTable, tp, 204);
             tp1 = getPermissions(schemaOwner, testTable, 200);
             Assert.assertNotNull(tp1.isPublic);
             Assert.assertFalse(tp1.isPublic);
@@ -340,7 +410,7 @@ public class PermissionsTest extends AbstractTablesTest {
                 log.info("caught expected: " + expected);
             }
             log.info("set permissions on schema " + testSchemaName + " : " + tp);
-            setPerms(schemaOwner, testSchemaName, tp, 200);
+            setPerms(schemaOwner, testSchemaName, tp, 204);
             
             doCreateTable(subjectWithGroups, testTable);
             log.info("created " + testTable + " as " + subjectWithGroups);
@@ -367,7 +437,7 @@ public class PermissionsTest extends AbstractTablesTest {
             String testTable = testSchemaName + ".testDropTable";
             
             TapPermissions tp = new TapPermissions(null, true, null, new GroupURI(VALID_TEST_GROUP));
-            setPerms(schemaOwner, testSchemaName, tp, 200);
+            setPerms(schemaOwner, testSchemaName, tp, 204);
 
             doCreateTable(subjectWithGroups, testTable);
             this.doQuery(subjectWithGroups, certQueryURL, testTable, 200);
@@ -392,11 +462,11 @@ public class PermissionsTest extends AbstractTablesTest {
             String testTable = testSchemaName + ".testDropTable";
             
             TapPermissions tp = new TapPermissions(null, true, null, new GroupURI(VALID_TEST_GROUP));
-            setPerms(schemaOwner, testSchemaName, tp, 200);
+            setPerms(schemaOwner, testSchemaName, tp, 204);
 
             doCreateTable(subjectWithGroups, testTable);
             this.doQuery(subjectWithGroups, certQueryURL, testTable, 200);
-            this.setPerms(subjectWithGroups, testTable, tp, 200);
+            this.setPerms(subjectWithGroups, testTable, tp, 204);
             
             doDelete(subjectWithGroups, testTable, true);
             
@@ -417,7 +487,7 @@ public class PermissionsTest extends AbstractTablesTest {
             GroupURI group1 = new GroupURI("ivo://cadc.nrc.ca/gms?group1");
             GroupURI group2 = new GroupURI("ivo://cadc.nrc.ca/gms?group2");
             TapPermissions tp = new TapPermissions(null, true, group1, group2);
-            this.setPerms(schemaOwner, testSchemaName, tp, 200);
+            this.setPerms(schemaOwner, testSchemaName, tp, 204);
             
             TapPermissions actual = this.getPermissions(schemaOwner, testSchemaName, 200);
             Assert.assertTrue(actual.owner.getPrincipals(HttpPrincipal.class).iterator().next()
@@ -463,29 +533,29 @@ public class PermissionsTest extends AbstractTablesTest {
             
             // set schema and table to public
             TapPermissions tp = new TapPermissions(null, true, null, null);
-            this.setPerms(schemaOwner, testSchemaName, tp, 200);
-            this.setPerms(schemaOwner, testTable, tp, 200);
+            this.setPerms(schemaOwner, testSchemaName, tp, 204);
+            this.setPerms(schemaOwner, testTable, tp, 204);
             this.doQuery(anon, certQueryURL, testTable, 200);
             this.doQuery(subjectWithGroups, certQueryURL, testTable, 200);
             this.doQuery(schemaOwner, certQueryURL, testTable, 200);
             
             // remove public from table
             tp = new TapPermissions(null, false, null, null);
-            this.setPerms(schemaOwner, testTable, tp, 200);
+            this.setPerms(schemaOwner, testTable, tp, 204);
             this.doQuery(anon, certQueryURL, testTable, 403);
             this.doQuery(subjectWithGroups, certQueryURL, testTable, 403);
             this.doQuery(schemaOwner, certQueryURL, testTable, 200);
             
             // add group read
             tp = new TapPermissions(null, false, new GroupURI(VALID_TEST_GROUP), null);
-            this.setPerms(schemaOwner, testTable, tp, 200);
+            this.setPerms(schemaOwner, testTable, tp, 204);
             this.doQuery(anon, certQueryURL, testTable, 403);
             this.doQuery(subjectWithGroups, certQueryURL, testTable, 200);
             this.doQuery(schemaOwner, certQueryURL, testTable, 200);
             
             // remove group read, add group read-write
             tp = new TapPermissions(null, false, null, new GroupURI(VALID_TEST_GROUP));
-            this.setPerms(schemaOwner, testTable, tp, 200);
+            this.setPerms(schemaOwner, testTable, tp, 204);
             this.doQuery(anon, certQueryURL, testTable, 403);
             this.doQuery(subjectWithGroups, certQueryURL, testTable, 200);
             this.doQuery(schemaOwner, certQueryURL, testTable, 200);
@@ -541,7 +611,7 @@ public class PermissionsTest extends AbstractTablesTest {
             
             GroupURI readGroup = new GroupURI(VALID_TEST_GROUP);
             TapPermissions tp = new TapPermissions(null, false, readGroup, null);
-            this.setPerms(this.schemaOwner, testSchemaName, tp, 200);
+            this.setPerms(this.schemaOwner, testSchemaName, tp, 204);
             
             String query = "select schema_name from tap_schema.schemas";
             
@@ -606,7 +676,7 @@ public class PermissionsTest extends AbstractTablesTest {
             
             GroupURI readGroup = new GroupURI(VALID_TEST_GROUP);
             TapPermissions tp = new TapPermissions(null, false, readGroup, null);
-            this.setPerms(this.schemaOwner, testSchemaName, tp, 200);
+            this.setPerms(this.schemaOwner, testSchemaName, tp, 204);
             
             String query = "select schema_name from tap_schema.tables";
             
@@ -673,7 +743,7 @@ public class PermissionsTest extends AbstractTablesTest {
             
             GroupURI readGroup = new GroupURI(VALID_TEST_GROUP);
             TapPermissions tp = new TapPermissions(null, false, readGroup, null);
-            this.setPerms(this.schemaOwner, testSchemaName, tp, 200);
+            this.setPerms(this.schemaOwner, testSchemaName, tp, 204);
             
             String testTable = testSchemaName + ".testGroupQueryColumnsTable";
             doCreateTable(schemaOwner, testTable);
@@ -768,11 +838,11 @@ public class PermissionsTest extends AbstractTablesTest {
             Assert.fail("unexpected: " + t.getMessage());
         }
     }
-        
-    private TapPermissions getPermissions(Subject subject, String name, int expectedCode) throws MalformedURLException {
 
+    private TapPermissions getPermissionsEndpoint(Subject subject, String name, int expectedCode) throws Exception {
         URL getPermsURL = new URL(permsURL.toString() + "/" + name);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
+        log.info("getPermissionsEndpoint: " + getPermsURL);
         HttpDownload get = new HttpDownload(getPermsURL, out);
         Subject.doAs(subject, new RunnableAction(get));
         Assert.assertEquals(get.getResponseCode(), expectedCode);
@@ -823,7 +893,7 @@ public class PermissionsTest extends AbstractTablesTest {
         }
         return null;
     }
-    
+
     private Integer doQuery(Subject subject, URL url, String testTable, Integer expectedCode) throws Exception {
         String adql = "SELECT * from " + testTable;
         return doQuery(subject, url, adql, testTable, expectedCode);

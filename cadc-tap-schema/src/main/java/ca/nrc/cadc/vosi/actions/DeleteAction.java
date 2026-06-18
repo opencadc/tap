@@ -118,7 +118,7 @@ public class DeleteAction extends TablesAction {
             TablesAction.checkDropTablePermission(ts, tableName, logInfo);
             dropTable(ts, tableName);
         } else {
-            checkIsAdmin();
+            checkAdminPermission();
             dropSchema(ts, schemaName);
         }
             
