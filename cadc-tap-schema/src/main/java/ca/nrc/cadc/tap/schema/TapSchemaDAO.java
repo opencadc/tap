@@ -71,6 +71,7 @@ package ca.nrc.cadc.tap.schema;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.IdentityManager;
+import ca.nrc.cadc.dali.tables.votable.VOTableUtil;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
 import ca.nrc.cadc.db.mappers.JdbcMapUtil;
 import ca.nrc.cadc.net.ResourceNotFoundException;
@@ -1323,23 +1324,17 @@ public class TapSchemaDAO extends AbstractDAO {
     }
     
     static Integer arraysizeToSize(String arraysize) {
-        // not convertible
-        if (arraysize == null || arraysize.equals("*") || arraysize.contains("x")) {
+        int[] as = VOTableUtil.getArrayShape(arraysize);
+        if (as == null || as.length > 1) {
             return null;
         }
-        // trailing *
-        String s = arraysize;
-        if (arraysize.endsWith("*")) {
-            s = arraysize.substring(0, arraysize.length() - 1);
+        if (as[0] == -1) {
+            // see comment in getArrayShape
+            return null;
         }
-        try {
-            return Integer.parseInt(s);
-        } catch (NumberFormatException ex) {
-            throw new RuntimeException("BUG: failed to convert arraysize '" + arraysize 
-                    + "' to equivalent integer size ", ex);
-        }
+        return as[0];
     }
-
+    
     private class DeleteSchemaStatement implements PreparedStatementCreator {
         private SchemaDesc schema;
 

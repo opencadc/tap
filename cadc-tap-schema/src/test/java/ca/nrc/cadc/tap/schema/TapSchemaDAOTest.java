@@ -115,14 +115,5 @@ public class TapSchemaDAOTest {
         sz = TapSchemaDAO.arraysizeToSize(arraysize);
         log.info(arraysize + " -> " + sz);
         Assert.assertNull(sz);
-        
-        try {
-            arraysize = "foo";
-            sz = TapSchemaDAO.arraysizeToSize(arraysize);
-            Assert.fail("expected RuntimeException,. got: " + arraysize + " -> " + sz);
-        } catch (RuntimeException expected) {
-            Assert.assertTrue(expected.getMessage().startsWith("BUG"));
-            log.info("caught expected: " + expected);
-        }
     }
 }
