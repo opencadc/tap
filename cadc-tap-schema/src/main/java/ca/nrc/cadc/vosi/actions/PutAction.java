@@ -316,21 +316,30 @@ public class PutAction extends TablesAction {
             
             tm.commitTransaction();
             prof.checkpoint("commit-transaction");
-        } catch (Exception ex) {
+        } catch (UnsupportedOperationException | IllegalArgumentException | IOException rethrow) {
             try {
-                log.error("PUT failed - rollback", ex);
+                log.debug("PUT failed - rollback", rethrow);
                 tm.rollbackTransaction();
                 prof.checkpoint("rollback-transaction");
-                log.error("PUT failed - rollback: OK");
+                log.debug("PUT failed - rollback: OK");
             } catch (Exception oops) {
-                log.error("PUT failed - rollback : FAIL", oops);
+                log.error("PUT failed - rollback: FAIL", oops);
             }
-            // TODO: categorise failures better
-            throw new RuntimeException("failed to create/add " + tableName, ex);
-        } finally { 
+            throw rethrow;
+        } catch (Exception ex) {
+            try {
+                log.debug("PUT failed - rollback", ex);
+                tm.rollbackTransaction();
+                prof.checkpoint("rollback-transaction");
+                log.debug("PUT failed - rollback: OK");
+            } catch (Exception oops) {
+                log.error("PUT failed - rollback: FAIL", oops);
+            }
+            throw new RuntimeException("failed to create/add " + tableName + " with cause: " + ex.getMessage(), ex);
+        } finally {
             if (tm.isOpen()) {
-                log.error("BUG: open transaction in finally - trying to rollback");
                 try {
+                    log.error("BUG: open transaction in finally - trying to rollback");
                     tm.rollbackTransaction();
                     prof.checkpoint("rollback-transaction");
                     log.error("BUG: rollback in finally: OK");

@@ -75,11 +75,15 @@ import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.tap.schema.validator.IdentifierValidator;
 import ca.nrc.cadc.tap.schema.validator.ValidatorConfig;
 import ca.nrc.cadc.tap.schema.validator.Violation;
+import ca.nrc.cadc.tap.schema.validator.ViolationType;
 import ca.nrc.cadc.tap.schema.validator.adql.ReservedKeyword;
 import ca.nrc.cadc.tap.schema.validator.ucd.UCDValidator;
 import ca.nrc.cadc.tap.schema.validator.unit.VOUnitValidator;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
 import org.apache.log4j.Logger;
 
 /**
@@ -267,6 +271,7 @@ public class TapSchemaUtil {
     public static String validateTableDesc(TableDesc td, ValidatorConfig config) {
         List<String> errors = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
+        Set<String> names = new HashSet<>();
         IdentifierValidator identifierValidator = new IdentifierValidator(config);
 
         String contextPrefix = td.getSchemaName() + ": ";
@@ -287,6 +292,11 @@ public class TapSchemaUtil {
                     identifierValidator.checkValidIdentifier(cd.getColumnName(), IdentifierValidator.IdentifierType.COLUMN_NAME).getViolations(),
                     config, errors, warnings);
 
+            if (!names.add(cd.getColumnName())) {
+                collectViolations(contextPrefix, "column name", cd.getColumnName(),
+                        List.of(new Violation[]{new Violation(ViolationType.DUPLICATE_IDENTIFIER, "Duplicate column name: " + cd.getColumnName())}),
+                        config, errors, warnings);
+            }
             // Ignore UCD and Unit validation for views and non-strict mode(e.g. none).
             if (td.tableType.equals(TableDesc.TableType.VIEW) || config.getConfigType().equals(ValidatorConfig.ConfigType.NONE)) {
                 continue;

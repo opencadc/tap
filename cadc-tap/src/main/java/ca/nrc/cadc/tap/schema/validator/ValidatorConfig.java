@@ -92,7 +92,8 @@ public class ValidatorConfig {
             ViolationType.NULL_OR_BLANK,
             ViolationType.STRUCTURAL,
             ViolationType.IDENTIFIER_INVALID_CHAR,
-            ViolationType.IDENTIFIER_RESERVED_KEYWORD // allowing quoted identifiers if config is not "strict"
+            ViolationType.IDENTIFIER_RESERVED_KEYWORD, // allowing quoted identifiers if config is not "strict"
+            ViolationType.DUPLICATE_IDENTIFIER
     ));
 
     private final Set<ViolationType> errorTypes;

@@ -120,18 +120,27 @@ public class TableCreator {
             
             tm.commitTransaction();
             prof.checkpoint("commit-transaction");
-        } catch (Exception ex) {
+        } catch (UnsupportedOperationException | IllegalArgumentException rethrow) {
             try {
-                log.error("create table failed - rollback", ex);
+                log.debug("create table failed - rollback", rethrow);
                 tm.rollbackTransaction();
                 prof.checkpoint("rollback-transaction");
-                log.error("create table failed - rollback: OK");
+                log.debug("create table failed - rollback: OK");
             } catch (Exception oops) {
                 log.error("create table failed - rollback : FAIL", oops);
             }
-            // TODO: categorise failures better
-            throw new RuntimeException("failed to create table " + table.getTableName(), ex);
-        } finally { 
+            throw rethrow;
+        } catch (Exception ex) {
+            try {
+                log.debug("create table failed - rollback", ex);
+                tm.rollbackTransaction();
+                prof.checkpoint("rollback-transaction");
+                log.debug("create table failed - rollback: OK");
+            } catch (Exception oops) {
+                log.error("create table failed - rollback : FAIL", oops);
+            }
+            throw new RuntimeException("failed to create table " + table.getTableName() + " with cause: " + ex.getMessage(), ex);
+        } finally {
             if (tm.isOpen()) {
                 log.error("BUG: open transaction in finally - trying to rollback");
                 try {
@@ -145,7 +154,7 @@ public class TableCreator {
             }
         }
     }
-    
+
     /**
      * Change a table name. This can also optionally change the schema name.
      * 

@@ -179,9 +179,6 @@ public class BasicDataTypeMapper implements DatabaseDataType {
     public String getDataType(ColumnDesc columnDesc) {
         TapDataType tt = columnDesc.getDatatype();
         TypePair dbt = findTypePair(tt);
-        if (dbt == null) {
-            throw new UnsupportedOperationException("unsupported database column type: " + tt);
-        }
 
         String ret = dbt.str;
         if (ret.equals("CHAR")) {
@@ -277,7 +274,7 @@ public class BasicDataTypeMapper implements DatabaseDataType {
             dbt = dataTypes.get(tmp);
         }
         if (dbt == null) {
-            throw new UnsupportedOperationException("unexpected datatype: " + tt);
+            throw new UnsupportedOperationException("Unexpected/Unsupported datatype: " + tt.getDatatype());
         }
 
         log.debug("findTypePair: " + tt + " -> " + dbt);
