@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2024.                            (c) 2024.
+*  (c) 2026.                            (c) 2026.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -63,92 +63,57 @@
 *                                       <http://www.gnu.org/licenses/>.
 *
 ************************************************************************
- */
+*/
 
-package ca.nrc.cadc.vosi.actions;
+package ca.nrc.cadc.tap.schema;
 
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.IdentityManager;
-import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.tap.schema.TapPermissions;
-import ca.nrc.cadc.tap.schema.TapSchemaDAO;
-import ca.nrc.cadc.tap.schema.Util;
-import java.io.OutputStream;
-import javax.security.auth.Subject;
+import ca.nrc.cadc.util.Log4jInit;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.opencadc.gms.GroupURI;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
- * Return the permissions for the object identified by the 'name'
- * parameter.
- * 
- * @author majorb
  *
+ * @author pdowler
  */
-public class GetPermissionsAction extends TablesAction {
-    
-    private static final Logger log = Logger.getLogger(GetPermissionsAction.class);
+public class TapSchemaDAOTest {
+    private static final Logger log = Logger.getLogger(TapSchemaDAOTest.class);
 
-    @Override
-    public void doAction() throws Exception {
-        String[] target = getTarget();
-        if (target == null) {
-            throw new IllegalArgumentException("no schema|table name in path");
-        }
-        String name = target[0]; // schema
-        if (target[1] != null) {
-            name = target[1]; // table
-        }
-        log.debug("name: " + name);
-        
-        checkReadable();
-        
-        TapSchemaDAO dao = getTapSchemaDAO();
-        TapPermissions permissions = null;
-        if (Util.isSchemaName(name)) {
-            permissions = checkViewSchemaPermissions(dao, name, logInfo);
-        } else if (Util.isTableName(name)) {
-            permissions = checkViewTablePermissions(dao, name, logInfo);
-        } else {
-            throw new IllegalArgumentException("No such object: " + name);
-        }
-        
-        syncOutput.setCode(200);
-        syncOutput.setHeader("Content-Type", PERMS_CONTENTTYPE);
-        
-        StringBuilder sb = new StringBuilder();
-        String ownerString = getOwnerString(permissions.owner);
-        String readGroupString = getGroupString(permissions.readGroup);
-        String readWriteGroupString = getGroupString(permissions.readWriteGroup);
-        sb.append(OWNER_KEY).append("=").append(ownerString).append("\n");
-        String pub = (permissions.isPublic != null && permissions.isPublic ? "true" : "false");
-        sb.append(PUBLIC_KEY).append("=").append(pub).append("\n");
-        sb.append(RGROUP_KEY).append("=").append(readGroupString).append("\n");
-        sb.append(RWGROUP_KEY).append("=").append(readWriteGroupString).append("\n");
-        
-        OutputStream out = syncOutput.getOutputStream();
-        out.write(sb.toString().getBytes());
-    }
-    
-    @Override
-    protected InlineContentHandler getInlineContentHandler() {
-        return null;
-    }
-    
-    // return the the x500 DN or a blank string
-    private String getOwnerString(Subject s) {
-        if (s == null) {
-            return "";
-        }
-        IdentityManager im = AuthenticationUtil.getIdentityManager();
-        return im.toDisplayString(s);
-    }
-            
-    private String getGroupString(GroupURI group) {
-        if (group == null) {
-            return "";
-        }
-        return group.toString();
+    static {
+        Log4jInit.setLevel("ca.nrc.cadc.tap.schema", Level.INFO);
     }
 
+    public TapSchemaDAOTest() { 
+    }
+
+    @Test
+    public void testArraysizeToSize() throws Exception {
+        String arraysize = "4";
+        Integer sz = TapSchemaDAO.arraysizeToSize(arraysize);
+        log.info(arraysize + " -> " + sz);
+        Assert.assertNotNull(sz);
+        Assert.assertEquals(4, sz.intValue());
+        
+        arraysize = "4*";
+        sz = TapSchemaDAO.arraysizeToSize(arraysize);
+        log.info(arraysize + " -> " + sz);
+        Assert.assertNotNull(sz);
+        Assert.assertEquals(4, sz.intValue());
+        
+        arraysize = null;
+        sz = TapSchemaDAO.arraysizeToSize(arraysize);
+        log.info(arraysize + " -> " + sz);
+        Assert.assertNull(sz);
+
+        arraysize = "*";
+        sz = TapSchemaDAO.arraysizeToSize(arraysize);
+        log.info(arraysize + " -> " + sz);
+        Assert.assertNull(sz);
+        
+        arraysize = "4x4";
+        sz = TapSchemaDAO.arraysizeToSize(arraysize);
+        log.info(arraysize + " -> " + sz);
+        Assert.assertNull(sz);
+    }
 }

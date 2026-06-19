@@ -29,11 +29,11 @@ components:
             content:
                 text/xml:
                     schema:
-                        type: object
-                        xml:
-                            name: tableset
-                            prefix: vosi
-                            namespace: http://www.ivoa.net/xml/VOSITables/v1.0
+                      type: object
+                      xml:
+                        name: tableset
+                        prefix: vosi
+                        namespace: http://www.ivoa.net/xml/VOSITables/v1.0
                     example: |
                         <vosi:tableset xmlns:vosi="http://www.ivoa.net/xml/VOSITables/v1.0"
                                 xmlns:vs="http://www.ivoa.net/xml/VODataService/v1.1"
@@ -63,6 +63,4 @@ components:
                               <description>description of foreign key columns in this tableset</description>
                             </table>
                           </schema>
-                          ...
                         </vosi:tableset>
-

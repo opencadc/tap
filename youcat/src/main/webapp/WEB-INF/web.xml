@@ -44,6 +44,10 @@
             <param-value>org.opencadc.youcat.YoucatInitAction</param-value>
         </init-param>
         <init-param>
+            <param-name>head</param-name>
+            <param-value>ca.nrc.cadc.vosi.actions.HeadAction</param-value>
+        </init-param>
+        <init-param>
             <param-name>get</param-name>
             <param-value>ca.nrc.cadc.vosi.actions.GetAction</param-value>
         </init-param>

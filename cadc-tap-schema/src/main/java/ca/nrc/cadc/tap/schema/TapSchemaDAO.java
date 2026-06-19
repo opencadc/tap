@@ -71,7 +71,9 @@ package ca.nrc.cadc.tap.schema;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.IdentityManager;
+import ca.nrc.cadc.dali.tables.votable.VOTableUtil;
 import ca.nrc.cadc.db.DatabaseTransactionManager;
+import ca.nrc.cadc.db.mappers.JdbcMapUtil;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.uws.Job;
@@ -124,9 +126,10 @@ public class TapSchemaDAO extends AbstractDAO {
         "schema_name", "table_type", "description", "utype", "table_index", "api_created", "view_target", "table_name"};
     protected String orderTablesClause = " ORDER BY schema_name,table_index,table_name";
 
-    private String[] tsColumnsCols = new String[] { "description", "utype", "ucd", "unit", "datatype", "arraysize",
+    private String[] tsColumnsCols = new String[] { "description", "utype", "ucd", "unit", "datatype", "arraysize", "\"size\"",
         "xtype", "principal", "indexed", "std", "column_id", "column_index", "table_name", "column_name" };
     protected String orderColumnsClause = " ORDER BY table_name,column_index,column_name";
+    private static int SIZE_COL_INDEX = 7; // 1-based in the above tsColumnCols array
 
     private String[] tsKeysCols = new String[] { "key_id", "from_table", "target_table", "description,utype" };
     protected String orderKeysClause = " ORDER BY key_id,from_table,target_table";
@@ -196,7 +199,9 @@ public class TapSchemaDAO extends AbstractDAO {
 
         IdentityManager identityManager = AuthenticationUtil.getIdentityManager();
         log.debug("IdentityManager: " + identityManager);
-        TapPermissionsMapper tapPermissionsMapper = new TapPermissionsMapper(identityManager);
+        // gss includes tsSchemaCols + accessControlCols
+        int permColumnOffset = 1 + tsSchemaCols.length;
+        TapPermissionsMapper tapPermissionsMapper = new TapPermissionsMapper(identityManager, permColumnOffset);
         
         // TAP_SCHEMA.schemas
         GetSchemasStatement gss = new GetSchemasStatement(schemasTableName);
@@ -204,7 +209,7 @@ public class TapSchemaDAO extends AbstractDAO {
             gss.setOrderBy(orderSchemaClause);
         }
         List<SchemaDesc> schemaDescs = jdbc.query(gss, new SchemaMapper(tapPermissionsMapper));
-        depthQuery(schemaDescs,tapPermissionsMapper, null, depth, jdbc);
+        depthQuery(schemaDescs, identityManager, null, depth, jdbc);
 
         TapSchema ret = new TapSchema();
         ret.getSchemaDescs().addAll(schemaDescs);
@@ -224,25 +229,25 @@ public class TapSchemaDAO extends AbstractDAO {
         gss.setSchemaName(schemaName);
         IdentityManager identityManager = AuthenticationUtil.getIdentityManager();
         log.debug("IdentityManager: " + identityManager);
-        TapPermissionsMapper tapPermissionsMapper = new TapPermissionsMapper(identityManager);
+        // gss includes tsSchemaCols + accessControlCols
+        int permColumnOffset = 1 + tsSchemaCols.length;
+        TapPermissionsMapper tapPermissionsMapper = new TapPermissionsMapper(identityManager, permColumnOffset);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         List<SchemaDesc> schemaDescs = jdbc.query(gss, new SchemaMapper(tapPermissionsMapper));
         if (schemaDescs.isEmpty()) {
             return null;
         }
-        SchemaDesc ret = null;
-        if (schemaDescs.size() == 1) {
-            ret = schemaDescs.get(0);
-        } else {
-            throw new RuntimeException("BUG: found " + schemaDescs.size() + " schema matching " + schemaName);
-        }
-        depthQuery(schemaDescs, tapPermissionsMapper, schemaName, depth, jdbc);
+        SchemaDesc ret = schemaDescs.get(0);
+        //ret.tapPermissions = getSchemaPermissions(schemaName);
+        log.debug("schema perms: " + ret.tapPermissions);
+        
+        depthQuery(schemaDescs, identityManager, schemaName, depth, jdbc);
         
         return ret;
     }
     
     // reusable code for get(depth) and getSchema(depth)
-    private void depthQuery(List<SchemaDesc> schemaDescs, TapPermissionsMapper tapPermissionsMapper, 
+    private void depthQuery(List<SchemaDesc> schemaDescs, IdentityManager identityManager, 
             String schemaName, int depth, JdbcTemplate jdbc) {
         if (depth > MIN_DEPTH) {
             // TAP_SCHEMA.tables
@@ -251,7 +256,10 @@ public class TapSchemaDAO extends AbstractDAO {
             if (ordered) {
                 gts.setOrderBy(orderTablesClause);
             }
-            List<TableDesc> tableDescs = jdbc.query(gts, new TableMapper(tapPermissionsMapper));
+            // gts includes tsTablesCols + accessControlCols
+            int permColumnOffset = 1 + tsTablesCols.length;
+            TapPermissionsMapper tpm = new TapPermissionsMapper(identityManager, permColumnOffset);
+            List<TableDesc> tableDescs = jdbc.query(gts, new TableMapper(tpm));
             addTablesToSchemas(schemaDescs,  tableDescs);
             
             if (depth > TAB_DEPTH) {
@@ -317,6 +325,7 @@ public class TapSchemaDAO extends AbstractDAO {
             return null;
         }
         TableDesc ret = tableDescs.get(0);
+        ret.tapPermissions = getTablePermissions(tableName);
         prof.checkpoint("get-table");
 
         if (depth > TAB_DEPTH) {
@@ -412,6 +421,10 @@ public class TapSchemaDAO extends AbstractDAO {
             log.debug("put: " + sd.getSchemaName());
             sps.setSchema(sd);
             jdbc.update(sps);
+            
+            if (sd.tapPermissions != null) {
+                setSchemaPermissions(sd.getSchemaName(), sd.tapPermissions);
+            }
 
             log.debug("commit transaction");
             tm.commitTransaction();
@@ -479,6 +492,11 @@ public class TapSchemaDAO extends AbstractDAO {
                 jdbc.update(pcs);
             }
             prof.checkpoint("put-columns");
+
+            log.debug("put: set permissions " + td.tapPermissions);
+            if (td.tapPermissions != null) {
+                setTablePermissions(td.getTableName(), td.tapPermissions);
+            }
 
             log.debug("commit transaction");
             tm.commitTransaction();
@@ -740,6 +758,7 @@ public class TapSchemaDAO extends AbstractDAO {
      * @throws ResourceNotFoundException
      */
     public void setSchemaPermissions(String schemaName, TapPermissions tp) throws ResourceNotFoundException {
+        log.debug("setSchemaPermissions: " + schemaName + " " + tp);
         if (tp.owner != null) {
             IdentityManager im = AuthenticationUtil.getIdentityManager();
             tp.ownerID = im.toOwner(tp.owner);
@@ -1289,6 +1308,7 @@ public class TapSchemaDAO extends AbstractDAO {
             safeSetString(sb, ps, col++, column.unit);
             safeSetString(sb, ps, col++, column.getDatatype().getDatatype());
             safeSetString(sb, ps, col++, column.getDatatype().arraysize);
+            safeSetInteger(sb, ps, col++, arraysizeToSize(column.getDatatype().arraysize));
             safeSetString(sb, ps, col++, column.getDatatype().xtype);
             safeSetBoolean(sb, ps, col++, column.principal);
             safeSetBoolean(sb, ps, col++, column.indexed);
@@ -1302,7 +1322,19 @@ public class TapSchemaDAO extends AbstractDAO {
             return ps;
         }
     }
-
+    
+    static Integer arraysizeToSize(String arraysize) {
+        int[] as = VOTableUtil.getArrayShape(arraysize);
+        if (as == null || as.length > 1) {
+            return null;
+        }
+        if (as[0] == -1) {
+            // see comment in getArrayShape
+            return null;
+        }
+        return as[0];
+    }
+    
     private class DeleteSchemaStatement implements PreparedStatementCreator {
         private SchemaDesc schema;
 
@@ -1655,6 +1687,7 @@ public class TapSchemaDAO extends AbstractDAO {
             String cn = rs.getString("column_name");
             String dt = rs.getString("datatype");
             String as = rs.getString("arraysize");
+            // ignore "size"
             String xt = rs.getString("xtype");
 
             log.debug("ColumnMapper: " + tn + "," + cn + "," + dt + "," + as + "," + xt);
@@ -1667,12 +1700,14 @@ public class TapSchemaDAO extends AbstractDAO {
             col.ucd = rs.getString("ucd");
             col.unit = rs.getString("unit");
 
-            col.principal = intToBoolean(rs.getInt("principal"));
-            col.indexed = intToBoolean(rs.getInt("indexed"));
-            col.std = intToBoolean(rs.getInt("std"));
+            col.principal = intToBoolean(JdbcMapUtil.getInteger(rs.getObject("principal")));
+            col.indexed = intToBoolean(JdbcMapUtil.getInteger(rs.getObject("indexed")));
+            col.std = intToBoolean(JdbcMapUtil.getInteger(rs.getObject("std")));
             col.columnID = rs.getString("column_id");
-            col.columnIndex = rs.getInt("column_index");
+            col.columnIndex = JdbcMapUtil.getInteger(rs.getObject("column_index"));
             
+            // at least in postgresql, the quotes in "size" are not in the ResultSet so use hard-coded position
+            col.compatSize = JdbcMapUtil.getInteger(rs.getObject(SIZE_COL_INDEX));
             return col;
         }
 
@@ -1721,27 +1756,35 @@ public class TapSchemaDAO extends AbstractDAO {
     private static final class TapPermissionsMapper implements RowMapper {
 
         private IdentityManager identityManager;
+        private int columnOffset = 1;
 
         public TapPermissionsMapper(IdentityManager identityManager) {
             this.identityManager = identityManager;
         }
 
+        // when re-used as a partial rowmapper
+        public TapPermissionsMapper(IdentityManager identityManager, int columnOffset) {
+            this.identityManager = identityManager;
+            this.columnOffset = columnOffset;
+        }
+
         public TapPermissions mapRow(ResultSet rs, int rowNum) throws SQLException {
-            String ownerVal = rs.getString(ownerCol);
+            int col = columnOffset;
+            String ownerVal = rs.getString(col++);
             log.debug("found owner: " + ownerVal);
-            int readAnon = rs.getInt(readAnonCol);
+            Integer readAnon = JdbcMapUtil.getInteger(rs, col++);
             log.debug("found readAnon: " + readAnon);
-            String rog = rs.getString(readOnlyCol);
-            log.debug("found readOnly: " + rog);
-            String rwg = rs.getString(readWriteCol);
-            log.debug("found readAnon: " + rwg);
+            String rog = rs.getString(col++);
+            log.debug("found rog: " + rog);
+            String rwg = rs.getString(col++);
+            log.debug("found rwg: " + rwg);
 
             Subject owner = null;
             if (ownerVal != null) {
                 owner = identityManager.toSubject(ownerVal);
             }
             // a value of zero is either null or false
-            boolean isPublic = readAnon != 0;
+            Boolean isPublic = (readAnon == null ? null : (readAnon == 1));
             GroupURI readGroup = null;
             GroupURI readWriteGroup = null;
             if (rog != null) {

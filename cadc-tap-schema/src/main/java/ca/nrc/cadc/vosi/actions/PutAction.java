@@ -125,7 +125,7 @@ public class PutAction extends TablesAction {
                 TablesAction.checkSchemaWritePermissions(ts, schemaName, logInfo);
                 createTable(ts, schemaName, tableName);
             } else {
-                checkIsAdmin();
+                checkAdminPermission();
                 createSchema(ts, schemaName);
             }
         } finally {
@@ -173,8 +173,11 @@ public class PutAction extends TablesAction {
         
         // flag schema as created using the TAP API
         inputSchema.apiCreated = true;
-        TapPermissions perms = new TapPermissions();
-        perms.owner = im.augment(s);
+        TapPermissions tapPerms = getPermissionHeaders();
+        if (tapPerms == null) {
+            tapPerms = new TapPermissions();
+        }
+        tapPerms.owner = im.augment(s);
         
         String[] createSQL = new String[] {
             "CREATE SCHEMA " + schema,
@@ -197,8 +200,8 @@ public class PutAction extends TablesAction {
             }
             log.debug("update tap_schema: " + inputSchema);
             ts.put(inputSchema);
-            log.debug("set permissions: " + perms);
-            ts.setSchemaPermissions(schema, perms);
+            log.debug("set permissions: " + tapPerms);
+            ts.setSchemaPermissions(schema, tapPerms);
             
             tm.commitTransaction();
         } catch (UnsupportedOperationException ex) {
@@ -303,9 +306,12 @@ public class PutAction extends TablesAction {
             prof.checkpoint("insert-into-tap-schema");
             
             // set the permissions to be initially private
-            TapPermissions tablePermissions = new TapPermissions(
-                AuthenticationUtil.getCurrentSubject(), false, null, null);
-            ts.setTablePermissions(tableName, tablePermissions);
+            TapPermissions tapPerms = getPermissionHeaders();
+            if (tapPerms == null) {
+                tapPerms = new TapPermissions();
+            }
+            tapPerms.owner = AuthenticationUtil.getCurrentSubject();
+            ts.setTablePermissions(tableName, tapPerms);
             prof.checkpoint("set-permissions");
             
             tm.commitTransaction();

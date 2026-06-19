@@ -35,7 +35,7 @@ post:
           in: query
           description: |
             create index operation; value is a column name in the table
-            or (NOT IMPLEMENTED) a comma-separated list of columns; order matters
+            or a comma-separated list of columns; order matters
           required: true
           schema:
             type: string
@@ -43,7 +43,7 @@ post:
         - name: INDEX_TYPE
           in: query
           description: |
-            NOT IMPLEMENTED: qualifier to create a specialised index: a value of long-lat 
+            qualifier to create a specialised index: a value of long-lat 
             requires 2 numeric columns which are used as longitude,latitude
             pairs (spherical coordinates); a value of x-y requires 2 numeric
             columns which are used as x,y pairs (cartesian coordinates); 
