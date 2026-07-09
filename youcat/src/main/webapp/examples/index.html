@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CAOM Query Examples</title>
+    </head>
+    <body>
+        <div vocab="http://www.ivoa.net/rdf/examples#">
+            <div id="tap-schema-query" resource="#tap-schema-query" typeof="example">
+                <h2 property="name">tap_schema: tables join columns</h2>
+                <p>
+                    standardID: <span property="capability">ivo://ivoa.net/std/TAP</span>
+                </p>
+                <!-- Table target configuration -->
+                <p>
+                    tables: 
+                    <span property="table">tap_schema.tables</span>
+                    JOIN
+                    <span property="table">tap_schema.columns</span>
+                </p>
+
+                <p>parameters:</p>
+                <div property="generic-parameter" typeof="keyval">
+                    <span property="key">LANG</span> = <span property="value">ADQL</span>
+                </div>
+
+                <div property="generic-parameter" typeof="keyval">
+                    <span property="key">QUERY</span> =
+                    <pre property="value">
+                    SELECT t.table_name, t.utype, c.column_name, c.datatype, c.arraysize, c.xtype
+                    FROM tap_schema.tables t join tap_schema.columns c on t.table_name=c.table_name
+                    where t.schema_name = 'tap_schema'
+                    </pre>
+                </div>
+            </div>
+            
+            <div id="public-user-tables" resource="#public-user-tables" typeof="example">
+                <h2 property="name">Query for public user tables</h2>
+                <p>
+                    standardID: <span property="capability">ivo://ivoa.net/std/TAP</span>
+                </p>
+                <!-- Table target configuration -->
+                <p>
+                    tables: 
+                    <span property="table">tap_schema.schemas</span>
+                    JOIN
+                    <span property="table">tap_schema.tables</span>
+                </p>
+
+                <p>parameters:</p>
+                <div property="generic-parameter" typeof="keyval">
+                    <span property="key">LANG</span> = <span property="value">ADQL</span>
+                </div>
+
+                <div property="generic-parameter" typeof="keyval">
+                    <span property="key">QUERY</span> =
+                    <pre property="value">
+                    SELECT s.schema_name, s.description, t.table_name, t.description, t.utype
+                    FROM tap_schema.schemas s join tap_schema.tables t on s.schema_name=t.schema_name
+                    where t.schema_name != 'tap_schema'
+                    </pre>
+                </div>
+                
+                <p>
+                    Note: This service supports access control on schemas and tables and some schemas
+                    and tables are not public (anonymously query allowed). Authenticating <em>may</em>
+                    make additional tables visible and allow queries to be executed (depending on the 
+                    caller being the owner of the schema or table or being a member of an IVOA GMS 
+                    <em>group</em> that has been granted access.
+                </p>
+            </div>
+        </div>
+    </body>
+</html>
