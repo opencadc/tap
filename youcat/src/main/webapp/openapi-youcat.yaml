@@ -45,6 +45,7 @@ servers:
 
 tags:
     - name: TAP Query
+    - name: DALI Examples
     - name: VOSI Capabilities
     - name: VOSI Table Metadata
     - name: VOSI Table Operations
@@ -83,3 +84,5 @@ paths:
     /permissions/{name}:
       $ref: ./openapi/youcat-permissions.yaml
       
+    /examples:
+        $ref: ./openapi/dali/dali-examples.yaml

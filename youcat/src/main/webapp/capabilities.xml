@@ -21,7 +21,6 @@
     <interface xsi:type="vs:ParamHTTP" role="std" version="1.0">
       <accessURL use="full">https://example.net/youcat/logControl</accessURL>
       <securityMethod standardID="ivo://ivoa.net/sso#tls-with-certificate"/>
-      <securityMethod standardID="ivo://ivoa.net/sso#token"/>
     </interface> 
   </capability> 
   

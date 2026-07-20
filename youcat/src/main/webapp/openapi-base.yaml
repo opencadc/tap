@@ -15,6 +15,7 @@ servers:
 
 tags:
     - name: TAP Query
+    - name: DALI Examples
     - name: VOSI Capabilities
     - name: VOSI Table Metadata
 
@@ -38,4 +39,5 @@ paths:
     /tables/{name}:
         $ref: ./openapi/vosi/vosi-table-11.yaml
 
-      
+    /examples:
+        $ref: ./openapi/dali/dali-examples.yaml
