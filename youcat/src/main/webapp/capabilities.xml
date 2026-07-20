@@ -30,6 +30,7 @@
       <securityMethod/>
       <securityMethod standardID="ivo://ivoa.net/sso#cookie"/>
       <securityMethod standardID="ivo://ivoa.net/sso#tls-with-certificate"/>
+      <securityMethod standardID="ivo://ivoa.net/sso#token"/>
     </interface>
   </capability>
   
@@ -39,6 +40,7 @@
       <accessURL use="base">https://example.net/youcat/table-update</accessURL>
       <securityMethod standardID="ivo://ivoa.net/sso#cookie"/>
       <securityMethod standardID="ivo://ivoa.net/sso#tls-with-certificate"/>
+      <securityMethod standardID="ivo://ivoa.net/sso#token"/>
     </interface>
   </capability>
   
@@ -48,6 +50,7 @@
       <accessURL use="base">https://example.net/youcat/load</accessURL>
       <securityMethod standardID="ivo://ivoa.net/sso#cookie"/>
       <securityMethod standardID="ivo://ivoa.net/sso#tls-with-certificate"/>
+      <securityMethod standardID="ivo://ivoa.net/sso#token"/>
     </interface>
   </capability>
   
@@ -57,6 +60,7 @@
       <accessURL use="base">https://example.net/youcat/permissions</accessURL>
       <securityMethod standardID="ivo://ivoa.net/sso#cookie"/>
       <securityMethod standardID="ivo://ivoa.net/sso#tls-with-certificate"/>
+      <securityMethod standardID="ivo://ivoa.net/sso#token"/>
     </interface>
   </capability>
 
@@ -74,6 +78,7 @@
       <securityMethod/>
       <securityMethod standardID="ivo://ivoa.net/sso#cookie"/>
       <securityMethod standardID="ivo://ivoa.net/sso#tls-with-certificate"/>
+      <securityMethod standardID="ivo://ivoa.net/sso#token"/>
     </interface>
     
     <language>
