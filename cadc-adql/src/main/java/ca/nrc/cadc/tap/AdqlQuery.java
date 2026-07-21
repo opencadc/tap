@@ -74,6 +74,7 @@ import ca.nrc.cadc.tap.parser.ParserUtil;
 import ca.nrc.cadc.tap.parser.QuerySelectDeParser;
 import ca.nrc.cadc.tap.parser.converter.AllColumnConverter;
 import ca.nrc.cadc.tap.parser.converter.TableNameConverter;
+import ca.nrc.cadc.tap.parser.converter.TableNameReferenceConverter;
 import ca.nrc.cadc.tap.parser.extractor.SelectListExpressionExtractor;
 import ca.nrc.cadc.tap.parser.extractor.SelectListExtractor;
 import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
@@ -184,7 +185,8 @@ public class AdqlQuery extends AbstractTapQuery
                 tnc.put(tableDesc.getTableName(), newName);
                 log.debug("TableNameConverter " + tableDesc.getTableName() + " -> " + newName);
             }
-            sn = new SelectNavigator(new ExpressionNavigator(), new ReferenceNavigator(), tnc);
+            TableNameReferenceConverter tnrc = new TableNameReferenceConverter(tnc.map);
+            sn = new SelectNavigator(new ExpressionNavigator(), tnrc, tnc);
             navigatorList.add(sn);
         }
         

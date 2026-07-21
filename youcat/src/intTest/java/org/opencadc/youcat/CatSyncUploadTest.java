@@ -74,6 +74,42 @@ public class CatSyncUploadTest extends TapSyncUploadTest {
         }
     }
     
+    @Test
+    public void testUploadTableRefs() {
+        try {
+            Log4jInit.setLevel("org.opencadc.youcat", Level.DEBUG);
+            
+            File binFile = FileUtil.getFileFromResource("TAPUploadTest-1.xml", CatSyncUploadTest.class);
+            
+            String tableName = "mytab";
+            Map<String, Object> params = new HashMap<String, Object>();
+            params.put("upload1", binFile);
+            params.put("UPLOAD", tableName + ",param:upload1");
+            params.put("LANG", "ADQL");
+            params.put("QUERY", "select * from tap_upload." + tableName
+                + " WHERE tap_upload." + tableName + ".str1 = 'BLAST'");
+
+            JobResultWrapper result = createAndExecuteSyncParamJobPOST("testUploadFile", params);
+
+            Assert.assertNull(result.throwable);
+            Assert.assertEquals(200, result.responseCode);
+
+            Assert.assertNotNull(result.syncOutput);
+            ByteArrayInputStream istream = new ByteArrayInputStream(result.syncOutput);
+            VOTableReader vrdr = new VOTableReader();
+            VOTableDocument vot = vrdr.read(istream);
+
+            String queryStatus = getQueryStatus(vot);
+            Assert.assertNotNull("QUERY_STATUS", queryStatus);
+            Assert.assertEquals("OK", queryStatus);
+
+            // TODO: verify round-trip of testFile1 -> vot?
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+    
     static String getQueryStatus(VOTableDocument vot) {
         VOTableResource vr = vot.getResourceByType("results");
         Assert.assertNotNull(vr);
