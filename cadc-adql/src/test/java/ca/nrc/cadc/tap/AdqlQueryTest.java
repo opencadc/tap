@@ -292,6 +292,40 @@ public class AdqlQueryTest
     }
     
     @Test
+    public void testOffset() {
+        _query = "select t_integer from tap_schema.alldatatypes order by t_integer offset 5";
+        _expected = "select t_integer from tap_schema.alldatatypes order by t_integer asc offset 5";
+        doit();
+    }
+
+    @Test
+    public void testOffsetNoOrderBy() {
+        _query = "select t_integer from tap_schema.alldatatypes offset 5";
+        _expected = "select t_integer from tap_schema.alldatatypes offset 5";
+        doit();
+    }
+
+    @Test
+    public void testTopAndOffset() {
+        _query = "select top 10 t_integer from tap_schema.alldatatypes order by t_integer offset 5";
+        _expected = "select top 10 t_integer from tap_schema.alldatatypes order by t_integer asc offset 5";
+        doit();
+    }
+
+    @Test
+    public void testLimitOffset() {
+        // MySQL-style "LIMIT offset,row_count" still uses the LIMIT keyword and stays rejected
+        _query = "select t_integer from tap_schema.alldatatypes limit 5,10";
+        _expected = null;
+        try {
+            doit();
+            Assert.fail("expected IllegalArgumentException, but successful parse");
+        } catch (IllegalArgumentException expected) {
+            log.info("caught expected: " + expected);
+        }
+    }
+
+    @Test
     public void testTopAndLimit() {
         _query = "select top 10 t_integer from tap_schema.alldatatypes limit 20";
         _expected = null;
