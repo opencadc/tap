@@ -227,7 +227,7 @@ public class TableUpdateRunner implements JobRunner {
 
                 ep = jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING, ExecutionPhase.COMPLETED, new Date());
                 logInfo.setSuccess(true);
-            } catch (AccessControlException | IllegalArgumentException | ResourceNotFoundException ex) {
+            } catch (AccessControlException | IllegalArgumentException | ResourceNotFoundException | UnsupportedOperationException ex) {
                 logInfo.setMessage(ex.getMessage());
                 logInfo.setSuccess(true);
                 ErrorSummary es = new ErrorSummary(ex.getMessage(), ErrorType.FATAL);
@@ -362,10 +362,10 @@ public class TableUpdateRunner implements JobRunner {
             } catch (Exception oops) {
                 log.error("create index and update tap_schema - rollback : FAIL", oops);
             }
-            if (ex instanceof IllegalArgumentException) {
+            if (ex instanceof IllegalArgumentException || ex instanceof UnsupportedOperationException) {
                 throw ex;
             }
-            throw new RuntimeException("failed to update table " + tableName + " reason: " + ex.getMessage(), ex);
+            throw new RuntimeException("failed to update table " + tableName + ". reason: " + ex.getMessage(), ex);
         } finally {
             if (tm.isOpen()) {
                 log.error("BUG: open transaction in finally - trying to rollback");

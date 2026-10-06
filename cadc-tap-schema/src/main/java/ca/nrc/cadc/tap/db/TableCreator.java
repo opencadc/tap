@@ -386,7 +386,14 @@ public class TableCreator {
         }
 
         String indexType = indexTypes == null || indexTypes.isEmpty() ? null : indexTypes.get(0);
-        boolean unique = indexType != null && indexType.equals("unique");
+
+        if (hasIndexType(indexTypes, "long-lat")) {
+            CoordinateValidator.validateLongLatColumns(columns.get(0), columns.get(1));
+        } else if (indexType != null && indexType.equalsIgnoreCase("x-y")) { // Kept For hint for future
+            throw new UnsupportedOperationException("Unsupported: x-y index type is not supported");
+        }
+
+        boolean unique = hasIndexType(indexTypes, "unique");
 
         StringBuilder sb = new StringBuilder();
         sb.append("CREATE");
@@ -395,49 +402,21 @@ public class TableCreator {
         }
         sb.append(" INDEX ").append(indexName);
         sb.append(" ON ").append(first.getTableName());
-        if (indexType != null && (indexType.equalsIgnoreCase("long-lat") || indexType.equalsIgnoreCase("x-y"))) {
-            // Hardcoded because columns dont say for sure if it is a coordinate.
-            sb.append(" USING ").append("GIST"); // TODO: Automate this instead of hardcoding
-        } else {
-            String using = ddType.getIndexUsingQualifier(first, unique);
-            if (using != null) {
-                sb.append(" USING ").append(using);
-            }
-        }
-        sb.append(" (");
+        sb.append(" ").append(ddType.getIndexExpression(columns, indexTypes));
 
-        if (indexType != null && indexType.equalsIgnoreCase("long-lat")) {
-            CoordinateValidator.validateLongLatColumns(columns.get(0), columns.get(1));
-            sb.append(buildSpointExpression(columns, first));
-        } else if (indexType != null && indexType.equalsIgnoreCase("x-y")) {
-            //sb.append("point(").append(columns.get(0).getColumnName()).append(", ").append(columns.get(1).getColumnName()).append(")");
-            throw new UnsupportedOperationException("x-y index type is not yet supported");
-        } else { // single column index
-            sb.append(first.getColumnName());
-            String iop = ddType.getIndexColumnOperator(first);
-            if (iop != null) {
-                sb.append(" ").append(iop);
-            }
-        }
-        sb.append(")");
-        
         return sb.toString();
     }
 
-    private static String buildSpointExpression(List<ColumnDesc> columns, ColumnDesc column) {
-        boolean isRadian = column.unit != null //default behaviour: assume degrees
-                && (column.unit.equalsIgnoreCase("rad")
-                || column.unit.equalsIgnoreCase("radians"));
-
-        String ra = columns.get(0).getColumnName();
-        String dec = columns.get(1).getColumnName();
-
-        if (!isRadian) {
-            ra = "radians(" + ra + ")";
-            dec = "radians(" + dec + ")";
+    private static boolean hasIndexType(List<String> indexTypes, String type) {
+        if (indexTypes == null) {
+            return false;
         }
-
-        return "((spoint(" + ra + ", " + dec + "))::scircle)";
+        for (String it : indexTypes) {
+            if (type.equalsIgnoreCase(it)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

@@ -75,6 +75,7 @@ import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.dali.Polygon;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
+import java.util.List;
 
 /**
  * Interface to convert ADQL data types to a database
@@ -101,6 +102,20 @@ public interface DatabaseDataType {
     Integer getType(ColumnDesc columnDesc);
 
     /**
+     * Generate the backend-specific part of a CREATE INDEX statement: everything
+     * that follows <code>CREATE [UNIQUE] INDEX &lt;name&gt; ON &lt;table_name&gt;</code>.
+     * This includes any access method qualifier (e.g. <code>USING gist</code>) and the
+     * parenthesised column list or index expression.
+     *
+     * @param columns one or more columns in the index
+     * @param indexTypes optional index types (e.g. "unique", "long-lat"); may be null or empty
+     * @return index expression, e.g. <code>(a, b)</code> or <code>USING gist (expr)</code>
+     * @throws IllegalArgumentException if the columns are not valid for the requested index
+     * @throws UnsupportedOperationException if the index type (combination) is not supported
+     */
+    String getIndexExpression(List<ColumnDesc> columns, List<String> indexTypes);
+
+    /**
      * Convert a database data type to a a TAP data type. This is only used by
      * the TableIngester to read a database table and create a TAP table description
      * of it.
@@ -123,26 +138,6 @@ public interface DatabaseDataType {
      * @return internal name
      */
     String toInternalDatabaseObjectName(String name);
-
-    /**
-     * Get an optional USING qualifier for index creation.
-     *
-     * @param columnDesc
-     * @param unique
-     * @return USING qualifier or null if not applicable
-     * @throws IllegalArgumentException if unique==true and the column type or qualifier
-     *         does not support unique indices
-     */
-    String getIndexUsingQualifier(ColumnDesc columnDesc, boolean unique);
-
-    /**
-     * Get an optional operator for index creation. If you don't know what this
-     * is just return null.
-     *
-     * @param columnDesc
-     * @return
-     */
-    String getIndexColumnOperator(ColumnDesc columnDesc);
 
     /**
      * Convert TAP-1.0 ADQL/STC region value to a database object for insert.

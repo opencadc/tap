@@ -80,6 +80,8 @@ import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.List;
+import java.util.Objects;
 import org.apache.log4j.Logger;
 import org.postgresql.util.PGobject;
 
@@ -91,7 +93,8 @@ public class PostgresDataTypeMapper extends BasicDataTypeMapper {
     private static final Logger log = Logger.getLogger(PostgresDataTypeMapper.class);
 
     public static TapDataType TT_UIID = new TapDataType("char", "36", "uuid");
-    
+    public static String INDEX_METHOD_GIST = "gist";
+
     public PostgresDataTypeMapper() {
         // DALI
         dataTypes.put(TapDataType.POINT, new TypePair("spoint", null));
@@ -134,31 +137,6 @@ public class PostgresDataTypeMapper extends BasicDataTypeMapper {
         return name.toLowerCase();
     }
 
-    @Override
-    public String getIndexColumnOperator(ColumnDesc columnDesc) {
-        return null;
-    }
-
-    @Override
-    public String getIndexUsingQualifier(ColumnDesc columnDesc, boolean unique) {
-        TypePair tp = findTypePair(columnDesc.getDatatype());
-        if (tp.str.contains("[")) {
-            throw new IllegalArgumentException("index not supported for array column type: " + columnDesc.getDatatype());
-        }
-        switch(tp.str) {
-            case "spoint":
-            case "scircle":
-            case "spoly":
-            case "polygon":
-                if (unique) {
-                    throw new IllegalArgumentException("unique index not supported for column type: " + columnDesc.getDatatype());
-                }
-                return "gist";
-            default:
-                return null;
-        }
-    }
-    
     @Override
     public Object getPointObject(ca.nrc.cadc.stc.Position pos)
     {
@@ -336,6 +314,84 @@ public class PostgresDataTypeMapper extends BasicDataTypeMapper {
         } catch (SQLException ex) {
             throw new RuntimeException("BUG: failed to convert long[] to PGobject", ex);
         }
+    }
+
+    @Override
+    public String getIndexExpression(List<ColumnDesc> columns, List<String> indexTypes) {
+        boolean unique = false;
+        String special = null;
+        if (indexTypes != null) {
+            for (String it : indexTypes) {
+                if ("unique".equalsIgnoreCase(it)) {
+                    unique = true;
+                } else if ("long-lat".equalsIgnoreCase(it) || "x-y".equalsIgnoreCase(it)) {
+                    if (special != null) {
+                        throw new UnsupportedOperationException("combination of index types: " + indexTypes + " is not supported");
+                    }
+                    special = it.toLowerCase();
+                } else {
+                    throw new UnsupportedOperationException("index type not supported: " + it);
+                }
+            }
+        }
+
+        if ("long-lat".equals(special)) {
+            if (unique) {
+                throw new IllegalArgumentException("unique index not supported for index type: long-lat");
+            }
+            if (columns.size() != 2) {
+                throw new IllegalArgumentException("long-lat index requires exactly 2 columns, found: " + columns.size());
+            }
+            return "USING " + INDEX_METHOD_GIST + " (" + buildSpointExpression(columns.get(0), columns.get(1)) + ")";
+        }
+        if ("x-y".equals(special)) {
+            throw new UnsupportedOperationException("Unsupported: x-y index type is not supported");
+        }
+
+        // plain column index: all columns must use the same access method
+        String using = null;
+        for (int i = 0; i < columns.size(); i++) {
+            String u = getAccessMethod(columns.get(i), unique);
+            if (i > 0 && !Objects.equals(using, u)) {
+                throw new IllegalArgumentException("multi-column index with mixed column types not supported: " + columns);
+            }
+            using = u;
+        }
+        String colList = toColumnList(columns);
+        if (using != null) {
+            return "USING " + using + " " + colList;
+        }
+        return colList;
+    }
+
+    // access method needed for a single column, null for default (btree)
+    private String getAccessMethod(ColumnDesc columnDesc, boolean unique) {
+        TypePair tp = findTypePair(columnDesc.getDatatype());
+        if (tp.str.contains("[")) {
+            throw new IllegalArgumentException("index not supported for array column type: " + columnDesc.getDatatype());
+        }
+        switch (tp.str) {
+            case "spoint":
+            case "scircle":
+            case "spoly":
+            case "polygon":
+                if (unique) {
+                    throw new IllegalArgumentException("unique index not supported for column type: " + columnDesc.getDatatype());
+                }
+                return INDEX_METHOD_GIST;
+            default:
+                return null;
+        }
+    }
+
+    private static String buildSpointExpression(ColumnDesc lon, ColumnDesc lat) {
+        return "((spoint(" + toRadians(lon) + ", " + toRadians(lat) + "))::scircle)";
+    }
+
+    private static String toRadians(ColumnDesc cd) {
+        boolean isRadian = cd.unit != null // default: assume degrees
+                && (cd.unit.equalsIgnoreCase("rad") || cd.unit.equalsIgnoreCase("radians"));
+        return isRadian ? cd.getColumnName() : "radians(" + cd.getColumnName() + ")";
     }
 
 }

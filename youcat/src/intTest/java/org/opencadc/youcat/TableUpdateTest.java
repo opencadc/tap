@@ -255,7 +255,7 @@ public class TableUpdateTest extends AbstractTablesTest {
 
             doCreateIndex(schemaOwner, tableName, List.of("c1", "c2"), null, "long-lat", ExecutionPhase.COMPLETED, null);
             doCreateIndex(schemaOwner, tableName, List.of("c1", "c2"), null, "x-y", ExecutionPhase.ERROR,
-                    "unexpected failure: failed to update table int_test_schema.testCreateMultiColIndex reason: x-y index type is not yet supported");
+                    "Unsupported: x-y index type is not supported");
 
             // cleanup on success
             doDelete(schemaOwner, tableName, false);
