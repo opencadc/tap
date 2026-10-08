@@ -78,6 +78,7 @@ import java.util.List;
 import net.sf.jsqlparser.expression.ExpressionVisitor;
 import net.sf.jsqlparser.expression.LongValue;
 import net.sf.jsqlparser.statement.select.AllColumns;
+import net.sf.jsqlparser.statement.select.Limit;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.SelectExpressionItem;
 import net.sf.jsqlparser.statement.select.SelectItem;
@@ -130,6 +131,28 @@ public class OracleQuerySelectDeParser extends QuerySelectDeParser {
 
             super.visit(outerPlainSelect);
         }
+    }
+
+    /**
+     * ADQL-2.1 OFFSET-only (no TOP/LIMIT row cap) needs Oracle's ANSI row-limiting
+     * syntax: "OFFSET n ROWS", not the bare "OFFSET n" the base class emits for
+     * Postgres/MySQL. TOP is not affected -- it never reaches here as a Limit,
+     * since it's translated separately above via the ROWNUM subselect rewrite.
+     *
+     * @param limit
+     */
+    @Override
+    public void deparseLimit(Limit limit) {
+        boolean hasRowCount = limit.isRowCountSet() || limit.isRowCountJdbcParameter() || limit.isLimitAll();
+        if (!hasRowCount) {
+            if (limit.isOffsetJdbcParameter()) {
+                getBuffer().append(" OFFSET ? ROWS");
+            } else if (limit.getOffset() != 0) {
+                getBuffer().append(" OFFSET ").append(limit.getOffset()).append(" ROWS");
+            }
+            return;
+        }
+        super.deparseLimit(limit);
     }
 
     @Override

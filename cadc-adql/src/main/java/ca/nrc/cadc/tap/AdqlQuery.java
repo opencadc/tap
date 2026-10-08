@@ -227,7 +227,9 @@ public class AdqlQuery extends AbstractTapQuery
                 PlainSelect plainSelect = (PlainSelect) selectBody;
                 Top top = plainSelect.getTop();
                 Limit lim = plainSelect.getLimit();
-                if (lim != null) {
+                // a Limit with only an offset represents ADQL-2.1's OFFSET clause and is
+                // allowed; only reject a Limit that carries an actual LIMIT-keyword row count.
+                if (lim != null && (lim.isRowCountSet() || lim.isRowCountJdbcParameter() || lim.isLimitAll())) {
                     throw new IllegalArgumentException("invalid ADQL keyword: LIMIT");
                 }
                 //if (top != null && lim != null) {

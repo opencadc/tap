@@ -100,8 +100,26 @@ public class QuerySelectDeParserTest
         instance.setBuffer(new StringBuffer());
         instance.deparseLimit(lim0);
         Assert.assertEquals("LIMIT 0", instance.getBuffer().toString().trim());
+
+        // ADQL-2.1 OFFSET only: no TOP/LIMIT was ever set, so rowCount is the
+        // unestablished default (0) and must not be collapsed to LIMIT 0.
+        Limit offsetOnly = new Limit();
+        offsetOnly.setOffset(5);
+        instance = new QuerySelectDeParser();
+        instance.setBuffer(new StringBuffer());
+        instance.deparseLimit(offsetOnly);
+        Assert.assertEquals("OFFSET 5", instance.getBuffer().toString().trim());
+
+        // TOP converted to a row count alongside a pre-existing OFFSET.
+        Limit topWithOffset = new Limit();
+        topWithOffset.setOffset(5);
+        topWithOffset.setRowCount(10);
+        instance = new QuerySelectDeParser();
+        instance.setBuffer(new StringBuffer());
+        instance.deparseLimit(topWithOffset);
+        Assert.assertEquals("LIMIT 10 OFFSET 5", instance.getBuffer().toString().trim());
     }
-    
+
     Job job = new Job() 
     {
         @Override

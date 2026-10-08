@@ -202,15 +202,29 @@ public class QuerySelectDeParser extends SelectDeParser
 
     /**
      * Incorrectly handles limit of 0 by setting the limit to BigInt.MAX when
-     * the limit is 0 so hard code LIMIT 0.
-     * 
+     * the limit is 0 so hard code LIMIT 0. A Limit that never had a row count
+     * established (ADQL-2.1 OFFSET-only, no TOP) is not a "limit of 0" and must
+     * not be collapsed to LIMIT 0 -- it only carries an OFFSET.
+     *
      * @param limit
      */
     @Override
     public void deparseLimit(Limit limit)
     {
         log.debug("visit(" +  limit.getClass().getSimpleName() + ") " + limit);
-        if (limit.getRowCount() == 0)
+        boolean hasRowCount = limit.isRowCountSet() || limit.isRowCountJdbcParameter() || limit.isLimitAll();
+        if (!hasRowCount)
+        {
+            if (limit.isOffsetJdbcParameter())
+            {
+                buffer.append(" OFFSET ?");
+            }
+            else if (limit.getOffset() != 0)
+            {
+                buffer.append(" OFFSET ").append(limit.getOffset());
+            }
+        }
+        else if (limit.getRowCount() == 0)
         {
             buffer.append(" LIMIT 0");
         }

@@ -6,10 +6,11 @@ package net.sf.jsqlparser.statement.select;
 public class Limit {
 	private long offset;
 	private long rowCount ;
+	private boolean rowCountSet = false;
 	private boolean rowCountJdbcParameter = false;
 	private boolean offsetJdbcParameter = false;
 	private boolean limitAll;
-	
+
 	public long getOffset() {
 		return offset;
 	}
@@ -24,6 +25,15 @@ public class Limit {
 
 	public void setRowCount(long l) {
 		rowCount = l;
+		rowCountSet = true;
+	}
+
+	/**
+	 * @return true if a row count was explicitly established (via LIMIT n or
+	 *     LIMIT n OFFSET m), as opposed to a Limit that only carries an OFFSET.
+	 */
+	public boolean isRowCountSet() {
+		return rowCountSet;
 	}
 
 	public boolean isOffsetJdbcParameter() {
