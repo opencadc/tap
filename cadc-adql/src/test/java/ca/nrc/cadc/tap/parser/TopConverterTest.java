@@ -189,6 +189,31 @@ public class TopConverterTest
     }
     
     @Test
+    public void testTopWithOffset()
+    {
+        Statement s = null;
+        _query = "select top 1234 t_string as xx, aa.t_bytes as yy from tap_schema.alldatatypes as aa "
+                + "order by t_string offset 5";
+        try
+        {
+            s = ParserUtil.receiveQuery(_query);
+            ParserUtil.parseStatement(s, _sn);
+        }
+        catch (Exception ae)
+        {
+            ae.printStackTrace(System.out);
+            fail(ae.toString());
+        }
+        String sql = s.toString().toLowerCase();
+        if (sql.indexOf("top") >= 0)
+            fail("TOP is not converted.");
+        if (sql.indexOf("limit 1234") < 0)
+            fail("LIMIT is missing from result.");
+        if (sql.indexOf("offset 5") < 0)
+            fail("pre-existing OFFSET was lost during TOP conversion.");
+    }
+
+    @Test
     public void testJoin()
     {
         _query = "select top 1234 t_string, aa.t_bytes, bb.* from tap_schema.alldatatypes as aa, tap_schema.tables as bb " +

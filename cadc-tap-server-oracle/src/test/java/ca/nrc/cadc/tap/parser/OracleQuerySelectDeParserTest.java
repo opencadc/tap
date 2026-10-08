@@ -79,6 +79,7 @@ import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
+import net.sf.jsqlparser.statement.select.Limit;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 
 import net.sf.jsqlparser.statement.select.SelectExpressionItem;
@@ -168,6 +169,65 @@ public class OracleQuerySelectDeParserTest {
 
         Assert.assertEquals("Wrong query output",
                             "SELECT * FROM (SELECT abs(t.y) FROM t WHERE t.y <> NULL) WHERE ROWNUM <= 1000",
+                            buffer.toString());
+    }
+
+    @Test
+    public void visitOffsetOnly() {
+        final StringBuffer buffer = new StringBuffer();
+        final ExpressionVisitor expressionVisitor = new OracleExpressionDeParser(null, buffer);
+        final OracleQuerySelectDeParser testSubject = new OracleQuerySelectDeParser(expressionVisitor, buffer);
+        final PlainSelect plainSelect = new PlainSelect();
+        final Table table = new Table(null, "t");
+
+        final List<SelectItem> selectItemList = new ArrayList<>();
+        final SelectExpressionItem itemX = new SelectExpressionItem();
+        itemX.setExpression(new Column(table, "x"));
+        selectItemList.add(itemX);
+
+        final Limit limit = new Limit();
+        limit.setOffset(10);
+
+        plainSelect.setSelectItems(selectItemList);
+        plainSelect.setFromItem(table);
+        plainSelect.setLimit(limit);
+        testSubject.visit(plainSelect);
+
+        // ADQL-2.1 OFFSET-only (no TOP) must use Oracle's ANSI "OFFSET n ROWS",
+        // not the bare "OFFSET n" that Postgres/MySQL accept.
+        Assert.assertEquals("Wrong query output",
+                            "SELECT t.x FROM t OFFSET 10 ROWS",
+                            buffer.toString());
+    }
+
+    @Test
+    public void visitTopWithOffset() {
+        final StringBuffer buffer = new StringBuffer();
+        final ExpressionVisitor expressionVisitor = new OracleExpressionDeParser(null, buffer);
+        final OracleQuerySelectDeParser testSubject = new OracleQuerySelectDeParser(expressionVisitor, buffer);
+        final PlainSelect plainSelect = new PlainSelect();
+        final Table table = new Table(null, "t");
+
+        final List<SelectItem> selectItemList = new ArrayList<>();
+        final SelectExpressionItem itemX = new SelectExpressionItem();
+        itemX.setExpression(new Column(table, "x"));
+        selectItemList.add(itemX);
+
+        final Top top = new Top();
+        top.setRowCount(5);
+        final Limit limit = new Limit();
+        limit.setOffset(10);
+
+        plainSelect.setSelectItems(selectItemList);
+        plainSelect.setFromItem(table);
+        plainSelect.setTop(top);
+        plainSelect.setLimit(limit);
+        testSubject.visit(plainSelect);
+
+        // the pre-existing OFFSET must survive the ROWNUM rewrite of TOP, and still
+        // use the ANSI "ROWS" form inside the wrapped inner query.
+        Assert.assertEquals("Wrong query output",
+                            "SELECT * FROM (SELECT t.x FROM t OFFSET 10 ROWS) WHERE ROWNUM <= 5",
                             buffer.toString());
     }
 }

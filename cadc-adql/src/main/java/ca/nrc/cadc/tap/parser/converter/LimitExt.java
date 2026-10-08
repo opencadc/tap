@@ -115,6 +115,15 @@ public class LimitExt extends Limit
         return rowCount;
     }
 
+    /**
+     * A LimitExt is only ever constructed by TopConverter to represent an
+     * explicit "TOP 0", so it always carries an established row count.
+     */
+    public boolean isRowCountSet()
+    {
+        return true;
+    }
+
     public void setOffset(long l)
     {
         offset = l;
