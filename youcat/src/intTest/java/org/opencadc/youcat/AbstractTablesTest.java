@@ -319,6 +319,8 @@ abstract class AbstractTablesTest {
         Assert.assertEquals("response code", 200, put.getResponseCode());
     }
 
+    // optional Boolean unique tests the old unique=true|false param (backwards compat
+    // optional indexType is the current way to specify unique (or other values)
     void doCreateIndex(Subject subject, String tableName, List<String> indexCols, Boolean unique, String indexType, ExecutionPhase expected, String emsg) throws Exception {
         checkTestSchema(tableName);
 

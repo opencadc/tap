@@ -333,7 +333,8 @@ public class TableCreatorTest extends TestUtil {
             tc.createTable(orig);
             log.info("createTable returned");
             
-            tc.createIndex(List.of(col), null);
+            List<String> uniq = List.of("unique");
+            tc.createIndex(List.of(col), uniq);
             log.info("createIndex returned");
             
             String sql = "SELECT * from " + testTable;
