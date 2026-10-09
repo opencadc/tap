@@ -274,7 +274,7 @@ public class TableUpdateTest extends AbstractTablesTest {
             try {
                 result = Subject.doAs(schemaOwner, new AuthQueryTest.SyncQueryAction(certQueryURL, params, null, "text/plain"));
                 Assert.assertNotNull(result);
-                log.debug("query-plan:\n" + result);
+                log.info("query-plan before index:\n" + result);
                 Assert.assertTrue(result.contains("Seq Scan"));
                 Assert.assertFalse(result.contains("Bitmap Index Scan"));
             } catch (PrivilegedActionException e) {
@@ -292,7 +292,7 @@ public class TableUpdateTest extends AbstractTablesTest {
             try {
                 result = Subject.doAs(schemaOwner, new AuthQueryTest.SyncQueryAction(certQueryURL, params, null, "text/plain"));
                 Assert.assertNotNull(result);
-                log.debug("query-plan:\n" + result);
+                log.info("query-plan after index:\n" + result);
                 Assert.assertFalse(result.contains("Seq Scan"));
                 Assert.assertTrue(result.contains("Bitmap Index Scan"));
                 Assert.assertTrue(result.contains("i_int_test_schema_testcreatemulticolindex_c1_c2"));
