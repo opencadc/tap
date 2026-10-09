@@ -78,6 +78,7 @@ import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
 import java.sql.Types;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.apache.log4j.Logger;
 
@@ -210,13 +211,15 @@ public class BasicDataTypeMapper implements DatabaseDataType {
     }
 
     @Override
-    public String getIndexUsingQualifier(ColumnDesc columnDesc, boolean unique) {
-        return null;
-    }
-
-    @Override
-    public String getIndexColumnOperator(ColumnDesc columnDesc) {
-        return null;
+    public String getIndexExpression(List<ColumnDesc> columns, List<String> indexTypes) {
+        if (indexTypes != null) {
+            for (String it : indexTypes) {
+                if (!"unique".equalsIgnoreCase(it)) {
+                    throw new UnsupportedOperationException("index type not supported: " + it);
+                }
+            }
+        }
+        return toColumnList(columns);
     }
 
     /**
@@ -361,4 +364,23 @@ public class BasicDataTypeMapper implements DatabaseDataType {
     public Object getArrayObject(double[] val) {
         throw new UnsupportedOperationException();
     }
+
+    /**
+     * Format the columns as a parenthesised, comma-separated list: (a, b, c).
+     *
+     * @param columns index columns
+     * @return column list
+     */
+    protected String toColumnList(List<ColumnDesc> columns) {
+        StringBuilder sb = new StringBuilder("(");
+        for (int i = 0; i < columns.size(); i++) {
+            if (i > 0) {
+                sb.append(", ");
+            }
+            sb.append(columns.get(i).getColumnName());
+        }
+        sb.append(")");
+        return sb.toString();
+    }
+
 }

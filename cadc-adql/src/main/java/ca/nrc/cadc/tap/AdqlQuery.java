@@ -111,7 +111,7 @@ import org.apache.log4j.Logger;
  * this implementation only allows BLOB and CLOB column references in the select
  * list.
  * This class supports extension by delegating calls to a subclass of itself 
- * named ca..nrc.cadc.tap.impl.AdqlQueryImpl. Delegate implementation
+ * named ca.nrc.cadc.tap.impl.AdqlQueryImpl. Delegate implementation
  * is optional.
  * 
  * @author pdowler

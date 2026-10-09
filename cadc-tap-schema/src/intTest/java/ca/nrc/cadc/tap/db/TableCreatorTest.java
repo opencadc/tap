@@ -295,7 +295,7 @@ public class TableCreatorTest extends TestUtil {
             tc.createTable(orig);
             log.info("createTable returned");
             
-            tc.createIndex(col, false);
+            tc.createIndex(List.of(col), null);
             log.info("createIndex returned");
             
             String sql = "SELECT * from " + testTable;
@@ -333,7 +333,7 @@ public class TableCreatorTest extends TestUtil {
             tc.createTable(orig);
             log.info("createTable returned");
             
-            tc.createIndex(col, true);
+            tc.createIndex(List.of(col), null);
             log.info("createIndex returned");
             
             String sql = "SELECT * from " + testTable;

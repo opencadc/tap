@@ -79,6 +79,7 @@ import ca.nrc.cadc.net.HttpPost;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.tap.schema.TapPermissions;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import ca.nrc.cadc.util.Log4jInit;
@@ -90,8 +91,10 @@ import ca.nrc.cadc.vosi.actions.TablesInputHandler;
 import java.io.ByteArrayOutputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.security.PrivilegedActionException;
 import java.sql.DatabaseMetaData;
 import java.util.Arrays;
 import java.util.List;
@@ -148,7 +151,7 @@ public class TableUpdateTest extends AbstractTablesTest {
                     // array column
                     expected = ExecutionPhase.ERROR;
                 }
-                doCreateIndex(schemaOwner, tableName, cd.getColumnName(), false,expected, null);
+                doCreateIndex(schemaOwner, tableName, List.of(cd.getColumnName()), false, null, expected, null);
             }
 
             // cleanup on success
@@ -160,7 +163,7 @@ public class TableUpdateTest extends AbstractTablesTest {
     }
 
     @Test
-    public void testCreateUniqueIndex() {
+    public void testCreateUniqueIndexBC() { // Backward compatible test
         List<String> uniqUnsupported = Arrays.asList(new String[] {
             "interval", "point", "circle", "polygon"
         });
@@ -180,9 +183,122 @@ public class TableUpdateTest extends AbstractTablesTest {
                     expected = ExecutionPhase.ERROR; // unique index not allowed
                 }
                 log.info("testCreateUniqueIndex: " + cd.getColumnName() + " expect: " + expected.getValue());
-                doCreateIndex(schemaOwner, tableName, cd.getColumnName(), true, expected, null);
+                doCreateIndex(schemaOwner, tableName, List.of(cd.getColumnName()), true, null, expected, null);
             }
 
+            // cleanup on success
+            doDelete(schemaOwner, tableName, false);
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+
+    @Test
+    public void testCreateUniqueIndex() {
+        List<String> uniqUnsupported = Arrays.asList("interval", "point", "circle", "polygon");
+        try {
+            clearSchemaPerms();
+            TapPermissions tp = new TapPermissions(null, true, null, null);
+            super.setPerms(schemaOwner, testSchemaName, tp, 204);
+
+            String tableName = testSchemaName + ".testCreateUniqueIndex";
+            doDelete(schemaOwner, tableName, true);
+
+            TableDesc td = doCreateTable(schemaOwner, tableName);
+            for (ColumnDesc cd : td.getColumnDescs()) {
+
+                ExecutionPhase expected = ExecutionPhase.COMPLETED;
+                String x = cd.getDatatype().xtype;
+                if (cd.getColumnName().startsWith("a") // array column
+                        || x != null && uniqUnsupported.contains(x)) {
+                    expected = ExecutionPhase.ERROR; // unique index not allowed
+                }
+                log.info("testCreateUniqueIndex: " + cd.getColumnName() + " expect: " + expected.getValue());
+                doCreateIndex(schemaOwner, tableName, List.of(cd.getColumnName()), null, "unique", expected, null);
+            }
+
+            // cleanup on success
+            doDelete(schemaOwner, tableName, false);
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+
+    /**
+     * Step1: create a table with columns: c0, c1 and c2
+     * Step2: Execute a select query on the table, and verify that it used a "Seq Scan" query plan
+     * Step3: Validate success for: Create a long-lat index on the table
+     * Step4: Validate failure for: Create an x-y index on the table
+     * Step5: Execute a select query on the table, and verify that it used a "Bitmap Index Scan" query plan - Used the created long-lat index
+     * */
+    @Test
+    public void testCreateMultiColIndex() {
+        try {
+            clearSchemaPerms();
+            TapPermissions tp = new TapPermissions(null, true, null, null);
+            super.setPerms(schemaOwner, testSchemaName, tp, 204);
+
+            String tableName = testSchemaName + ".testCreateMultiColIndex";
+            doDelete(schemaOwner, tableName, true);
+
+            // prepare table
+            final TableDesc orig = new TableDesc(testSchemaName, tableName);
+            orig.description = "created by intTest";
+            orig.tableType = TableDesc.TableType.TABLE;
+            orig.tableIndex = 1;
+
+            orig.getColumnDescs().add(new ColumnDesc(tableName, "c0", TapDataType.INTEGER));
+            orig.getColumnDescs().add(new ColumnDesc(tableName, "c1", TapDataType.DOUBLE));
+            orig.getColumnDescs().add(new ColumnDesc(tableName, "c2", TapDataType.DOUBLE));
+
+            URL tableURL = new URL(certTablesURL.toExternalForm() + "/" + tableName);
+            TableWriter w = new TableWriter();
+            StringWriter sw = new StringWriter();
+            w.write(orig, sw);
+            log.info("VOSI-table description:\n" + sw);
+
+            // step1: create table
+            createTable(schemaOwner, tp, orig, tableURL);
+
+            String adql = "SELECT top 10 * FROM int_test_schema.testCreateMultiColIndex WHERE " +
+                    "INTERSECTS(POINT('ICRS GEOCENTER', c1, c2), CIRCLE('ICRS GEOCENTER', 240.45, 28.6203, 0.0167)) = 1";
+            Map<String, Object> params = new TreeMap<>();
+            params.put("LANG", "ADQL");
+            params.put("QUERY", adql);
+            params.put("query-plan", true);
+            String result;
+
+            // step2: verify: query plan should be Seq Scan for a select query
+            try {
+                result = Subject.doAs(schemaOwner, new AuthQueryTest.SyncQueryAction(certQueryURL, params, null, "text/plain"));
+                Assert.assertNotNull(result);
+                log.debug("query-plan:\n" + result);
+                Assert.assertTrue(result.contains("Seq Scan"));
+                Assert.assertFalse(result.contains("Bitmap Index Scan"));
+            } catch (PrivilegedActionException e) {
+                throw new RuntimeException(e);
+            }
+
+            // step 3: create long-lat index
+            doCreateIndex(schemaOwner, tableName, List.of("c1", "c2"), null, "long-lat", ExecutionPhase.COMPLETED, null);
+
+            // step4: crate an x-y index - failure expected
+            doCreateIndex(schemaOwner, tableName, List.of("c1", "c2"), null, "x-y", ExecutionPhase.ERROR,
+                    "Unsupported: x-y index type is not supported");
+
+            // step5: verify: query plan should be Bitmap Index Scan for a select query
+            try {
+                result = Subject.doAs(schemaOwner, new AuthQueryTest.SyncQueryAction(certQueryURL, params, null, "text/plain"));
+                Assert.assertNotNull(result);
+                log.debug("query-plan:\n" + result);
+                Assert.assertFalse(result.contains("Seq Scan"));
+                Assert.assertTrue(result.contains("Bitmap Index Scan"));
+                Assert.assertTrue(result.contains("i_int_test_schema_testcreatemulticolindex_c1_c2"));
+            } catch (PrivilegedActionException e) {
+                throw new RuntimeException(e);
+            }
             // cleanup on success
             doDelete(schemaOwner, tableName, false);
         } catch (Exception unexpected) {

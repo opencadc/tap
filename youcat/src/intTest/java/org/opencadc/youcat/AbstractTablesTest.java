@@ -292,7 +292,12 @@ abstract class AbstractTablesTest {
         StringWriter sw = new StringWriter();
         w.write(orig, sw);
         log.info("VOSI-table description:\n" + sw.toString());
-        
+
+        createTable(subject, tp, orig, tableURL);
+        return orig;
+    }
+
+    public void createTable(Subject subject, TapPermissions tp, TableDesc orig, URL tableURL) throws Exception {
         OutputStreamWrapper src = new OutputStreamWrapper() {
             @Override
             public void write(OutputStream out) throws IOException {
@@ -312,19 +317,25 @@ abstract class AbstractTablesTest {
             throw (Exception) put.getThrowable();
         }
         Assert.assertEquals("response code", 200, put.getResponseCode());
-        return orig;
     }
-    
-    void doCreateIndex(Subject subject, String tableName, String indexCol, boolean unique, ExecutionPhase expected, String emsg) throws Exception {
+
+    void doCreateIndex(Subject subject, String tableName, List<String> indexCols, Boolean unique, String indexType, ExecutionPhase expected, String emsg) throws Exception {
         checkTestSchema(tableName);
 
         Assert.assertNotNull("found async table-update URL", certUpdateURL);
-        
+        String indexValue = String.join(",", indexCols);
+
         // create job
         Map<String,Object> params = new TreeMap<String,Object>();
-        params.put("index", indexCol);
+        params.put("index", indexValue);
         params.put("table", tableName);
-        params.put("unique", Boolean.toString(unique));
+        if (unique != null) {
+            params.put("unique", unique);
+        }
+        if (indexType != null) {
+            params.put("index_type", indexType);
+        }
+
         HttpPost post = new HttpPost(certUpdateURL, params, false);
         post.setMaxRetries(0); // testing read-only and offline mode
         Subject.doAs(subject, new RunnableAction(post));

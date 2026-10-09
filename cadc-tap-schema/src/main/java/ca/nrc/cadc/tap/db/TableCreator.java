@@ -76,6 +76,8 @@ import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapSchemaUtil;
 import ca.nrc.cadc.tap.schema.Util;
+import java.util.List;
+import java.util.Set;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -282,32 +284,39 @@ public class TableCreator {
             throw new RuntimeException("failed to drop table " + tableName, ex);
         }
     }
-    
-    public void createIndex(ColumnDesc cd, boolean unique) {
-        try {
-            TapSchemaUtil.checkValidTableName(cd.getTableName());
-        } catch (ADQLIdentifierException ex) {
-            throw new IllegalArgumentException("invalid table name: " + cd.getTableName(), ex);
+
+    public void createIndex(List<ColumnDesc> columns, List<String> indexTypes) {
+        if (columns == null || columns.isEmpty()) {
+            throw new IllegalArgumentException("columns list must not be empty");
         }
+        // TODO: Validation can be skipped here? Table creation process already checks for valid identifiers.
+        String tableName = columns.get(0).getTableName();
         try {
-            TapSchemaUtil.checkValidIdentifier(cd.getColumnName());
+            TapSchemaUtil.checkValidTableName(tableName);
         } catch (ADQLIdentifierException ex) {
-            throw new IllegalArgumentException("invalid column name: " + cd.getColumnName(), ex);
+            throw new IllegalArgumentException("invalid table name: " + tableName, ex);
         }
-        
-        String sql = generateCreateIndex(cd, unique);
-        
+        for (ColumnDesc cd : columns) {
+            try {
+                TapSchemaUtil.checkValidIdentifier(cd.getColumnName());
+            } catch (ADQLIdentifierException ex) {
+                throw new IllegalArgumentException("invalid column name: " + cd.getColumnName(), ex);
+            }
+        }
+
+        String sql = generateCreateIndex(columns, indexTypes);
+
         Profiler prof = new Profiler(TableCreator.class);
         DatabaseTransactionManager tm = new DatabaseTransactionManager(dataSource);
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         try {
             tm.startTransaction();
             prof.checkpoint("start-transaction");
-            
+
             log.debug("sql:\n" + sql);
             jdbc.execute(sql);
             prof.checkpoint("create-index");
-            
+
             tm.commitTransaction();
             prof.checkpoint("commit-transaction");
         } catch (Exception ex) {
@@ -322,8 +331,15 @@ public class TableCreator {
             if (ex instanceof IllegalArgumentException) {
                 throw ex;
             }
-            throw new RuntimeException("failed to create index on " + cd.getTableName() + "(" + cd.getColumnName() + ")", ex);
-        } finally { 
+            StringBuilder cols = new StringBuilder(); //readable column list for the error message
+            for (ColumnDesc cd : columns) {
+                if (cols.length() > 0) {
+                    cols.append(",");
+                }
+                cols.append(cd.getColumnName());
+            }
+            throw new RuntimeException("failed to create index on " + tableName + "(" + cols + ")", ex);
+        } finally {
             if (tm.isOpen()) {
                 log.error("BUG: open transaction in finally - trying to rollback");
                 try {
@@ -357,29 +373,122 @@ public class TableCreator {
         return sb.toString();
     }
     
-    private String generateCreateIndex(ColumnDesc cd, boolean unique) {
+    private String generateCreateIndex(List<ColumnDesc> columns, List<String> indexTypes) {
+        if (indexTypes != null && indexTypes.size() > 1) {
+            throw new UnsupportedOperationException("combination of index types : " + indexTypes + "is not supported.");
+        }
+
+        ColumnDesc first = columns.get(0);
+        StringBuilder indexName = new StringBuilder("i_");
+        indexName.append(first.getTableName().replace(".", "_"));
+        for (ColumnDesc cd : columns) {
+            indexName.append("_").append(cd.getColumnName());
+        }
+
+        String indexType = indexTypes == null || indexTypes.isEmpty() ? null : indexTypes.get(0);
+
+        if (hasIndexType(indexTypes, "long-lat")) {
+            CoordinateValidator.validateLongLatColumns(columns.get(0), columns.get(1));
+        } else if (indexType != null && indexType.equalsIgnoreCase("x-y")) { // Kept For hint for future
+            throw new UnsupportedOperationException("Unsupported: x-y index type is not supported");
+        }
+
+        boolean unique = hasIndexType(indexTypes, "unique");
+
         StringBuilder sb = new StringBuilder();
         sb.append("CREATE");
         if (unique) {
             sb.append(" UNIQUE");
         }
-        sb.append(" INDEX ");
-        String indexName = "i_" + cd.getTableName().replace(".", "_") + "_" + cd.getColumnName();
-        sb.append(indexName);
-        sb.append(" ON ").append(cd.getTableName());
-        
-        String using = ddType.getIndexUsingQualifier(cd, unique);
-        if (using != null) {
-            sb.append(" USING ").append(using);
-        }
-        sb.append(" (");
-        sb.append(cd.getColumnName());
-        String iop = ddType.getIndexColumnOperator(cd);
-        if (iop != null) {
-            sb.append(" ").append(iop);
-        }
-        sb.append(")");
-        
+        sb.append(" INDEX ").append(indexName);
+        sb.append(" ON ").append(first.getTableName());
+        sb.append(" ").append(ddType.getIndexExpression(columns, indexTypes));
+
         return sb.toString();
     }
+
+    private static boolean hasIndexType(List<String> indexTypes, String type) {
+        if (indexTypes == null) {
+            return false;
+        }
+        for (String it : indexTypes) {
+            if (type.equalsIgnoreCase(it)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Validates the combination of selected columns and index type.
+     * */
+    private static class CoordinateValidator {
+
+        private static final Set<String> IVOA_GENERIC_UCDS = Set.of("pos", "pos.eq", "pos.galactic", "pos.ecliptic", "pos.supergalactic", "pos.bodyrc");
+
+        // UCDs from IVOA standard - valid for RA.
+        private static final Set<String> IVOA_LONGITUDE_UCDS = Set.of(
+                "pos.eq.ra",
+                "pos.galactic.lon",
+                "pos.ecliptic.lon",
+                "pos.supergalactic.lon",
+                "pos.bodyrc.lon",
+                "pos.earth.lon"
+        );
+
+        // UCDs from IVOA standard - valid for Dec.
+        private static final Set<String> IVOA_LATITUDE_UCDS = Set.of(
+                "pos.eq.dec",
+                "pos.galactic.lat",
+                "pos.ecliptic.lat",
+                "pos.supergalactic.lat",
+                "pos.bodyrc.lat",
+                "pos.earth.lat"
+        );
+
+        /**
+         * Validates spherical Longitude and Latitude columns.
+         */
+        public static void validateLongLatColumns(ColumnDesc lonCol, ColumnDesc latCol) {
+            // 1. Data Type Check
+            if (!lonCol.getDatatype().getDatatype().equalsIgnoreCase("double")
+                    && !lonCol.getDatatype().getDatatype().equalsIgnoreCase("float")) {
+                throw new IllegalArgumentException(lonCol.getColumnName() + " must be of type double or float.");
+            }
+            if (!latCol.getDatatype().getDatatype().equalsIgnoreCase("double")
+                    && !latCol.getDatatype().getDatatype().equalsIgnoreCase("float")) {
+                throw new IllegalArgumentException(latCol.getColumnName() + " must be of type double or float.");
+            }
+
+            // 2. Validate UCDs
+            if (!matchesIVOAUcdSet(lonCol.ucd, IVOA_LONGITUDE_UCDS)) {
+                throw new IllegalArgumentException(
+                        String.format("Column '%s' (UCD: '%s') is not a valid Longitude/RA column.",
+                                lonCol.getColumnName(), lonCol.ucd)
+                );
+            }
+            if (!matchesIVOAUcdSet(latCol.ucd, IVOA_LATITUDE_UCDS)) {
+                throw new IllegalArgumentException(
+                        String.format("Column 1 '%s' (UCD: '%s') is not a valid Latitude/Dec column.",
+                                latCol.getColumnName(), latCol.ucd)
+                );
+            }
+        }
+
+        private static boolean matchesIVOAUcdSet(String rawUcd, Set<String> targetUCDs) {
+            if (rawUcd == null || rawUcd.isBlank()) {
+                return true; // Note: the default behavior allows null UCDs.
+            }
+
+            // Handle semicolon-separated secondary UCD atoms (e.g. "pos.eq.ra;meta.main")
+            String[] atoms = rawUcd.trim().toLowerCase().split(";");
+            for (String atom : atoms) {
+                if (targetUCDs.contains(atom.trim()) || IVOA_GENERIC_UCDS.contains(atom.trim())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
 }

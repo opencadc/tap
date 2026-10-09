@@ -323,7 +323,7 @@ public class PermissionsTest extends AbstractTablesTest {
             
             this.doQuery(subjectWithGroups, certQueryURL, testTable, 403);
             this.insertData(subjectWithGroups, certLoadURL, testTable, 403);  
-            this.doCreateIndex(subjectWithGroups, testTable, "c0", false, ExecutionPhase.ERROR, "permission denied");
+            this.doCreateIndex(subjectWithGroups, testTable, List.of("c0"), null, "unique", ExecutionPhase.ERROR, "permission denied");
             
             GroupURI readGroup = new GroupURI(VALID_TEST_GROUP);
             TapPermissions tp = new TapPermissions(null, false, readGroup, null);
@@ -337,7 +337,7 @@ public class PermissionsTest extends AbstractTablesTest {
             
             this.doQuery(subjectWithGroups, certQueryURL, testTable, 403);
             this.insertData(subjectWithGroups, certLoadURL, testTable, 403);
-            this.doCreateIndex(subjectWithGroups, testTable, "c0", false, ExecutionPhase.ERROR, "permission denied");
+            this.doCreateIndex(subjectWithGroups, testTable, List.of("c0"), null, "unique", ExecutionPhase.ERROR, "permission denied");
             
             log.info("set table permissions: " + tp);
             setPerms(schemaOwner, testTable, tp, 204);
@@ -349,7 +349,7 @@ public class PermissionsTest extends AbstractTablesTest {
             
             this.doQuery(subjectWithGroups, certQueryURL, testTable, 200);
             this.insertData(subjectWithGroups, certLoadURL, testTable, 403);
-            this.doCreateIndex(subjectWithGroups, testTable, "c0", false, ExecutionPhase.ERROR, "permission denied");
+            this.doCreateIndex(subjectWithGroups, testTable, List.of("c0"), null, "unique", ExecutionPhase.ERROR, "permission denied");
             
             doDelete(schemaOwner, testTable, false);
         } catch (Exception t) {
@@ -369,7 +369,7 @@ public class PermissionsTest extends AbstractTablesTest {
             
             this.doQuery(subjectWithGroups, certQueryURL, testTable, 400);
             this.insertData(subjectWithGroups, certLoadURL, testTable, 403);
-            this.doCreateIndex(subjectWithGroups, testTable, "c0", false, ExecutionPhase.ERROR, "permission denied");;
+            this.doCreateIndex(subjectWithGroups, testTable, List.of("c0"), null, "unique", ExecutionPhase.ERROR, "permission denied");;
             
             // grant rw on schema
             GroupURI readWriteGroup = new GroupURI(VALID_TEST_GROUP);
@@ -384,7 +384,7 @@ public class PermissionsTest extends AbstractTablesTest {
             // denied
             this.doQuery(subjectWithGroups, certQueryURL, testTable, 403);
             this.insertData(subjectWithGroups, certLoadURL, testTable, 403);
-            this.doCreateIndex(subjectWithGroups, testTable, "c0", false, ExecutionPhase.ERROR, "permission denied");
+            this.doCreateIndex(subjectWithGroups, testTable, List.of("c0"), null, "unique", ExecutionPhase.ERROR, "permission denied");
             
             // grant rw on table
             setPerms(schemaOwner, testTable, tp, 204);
@@ -397,7 +397,7 @@ public class PermissionsTest extends AbstractTablesTest {
             // allowed
             this.doQuery(subjectWithGroups, certQueryURL, testTable, 200);
             this.insertData(subjectWithGroups, certLoadURL, testTable, 200);
-            this.doCreateIndex(subjectWithGroups, testTable, "c0", false, ExecutionPhase.COMPLETED, null);
+            this.doCreateIndex(subjectWithGroups, testTable, List.of("c0"), null, "unique", ExecutionPhase.COMPLETED, null);
            
             doDelete(schemaOwner, testTable, false);
             

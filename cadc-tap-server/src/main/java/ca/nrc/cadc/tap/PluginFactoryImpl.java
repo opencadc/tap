@@ -296,4 +296,19 @@ public class PluginFactoryImpl extends PluginFactory {
         ret.setJob(job);
         return ret;
     }
+
+    public QueryPlanner getQueryPlanner() {
+        String name = QueryPlanner.class.getName();
+        String className = config.getProperty(name);
+        if (className == null) {
+            return null; // not configured = not supported
+        }
+        try {
+            Class<?> clazz = Class.forName(className);
+            return (QueryPlanner) clazz.newInstance();
+        } catch (Exception ex) {
+            throw new RuntimeException("config error: failed to create QueryPlanner: " + className, ex);
+        }
+    }
+
 }

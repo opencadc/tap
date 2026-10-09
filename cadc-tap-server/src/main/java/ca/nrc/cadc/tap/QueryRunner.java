@@ -89,6 +89,7 @@ import ca.nrc.cadc.uws.server.JobUpdater;
 import ca.nrc.cadc.uws.util.JobLogInfo;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.net.URI;
@@ -103,6 +104,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 import javax.naming.Context;
 import javax.naming.InitialContext;
@@ -337,8 +339,20 @@ public class QueryRunner implements JobRunner {
             final String queryInfo = query.getInfo();
             this.internalSQL = query.getSQL();
 
+            Optional<Parameter> queryPlanOptional = paramList.stream().filter(param -> param.getName().equalsIgnoreCase("query-plan")).findFirst();
+            boolean queryPlan = queryPlanOptional.isPresent() && queryPlanOptional.get().getValue().equalsIgnoreCase("true");
+
+            QueryPlanner queryPlanner = null;
+            if (queryPlan) {
+                log.debug("creating Query Planner...");
+                queryPlanner = pfac.getQueryPlanner();
+                if (queryPlanner == null) {
+                    throw new UnsupportedOperationException("query-plan is not supported by this TAP service backend");
+                }
+            }
+
             log.debug("creating TapTableWriter...");
-            TableWriter tableWriter = pfac.getTableWriter();
+            TableWriter tableWriter = pfac.getTableWriter(); // TODO: Instanciate only if queryplan is not requested?
             tableWriter.setSelectList(selectList);
             tableWriter.setQueryInfo(queryInfo);
             this.resultTemplate = tableWriter.generateOutputTable();
@@ -384,20 +398,26 @@ public class QueryRunner implements JobRunner {
                     t1 = t2;
                     diagnostics.add(new Result("diag", URI.create("jndi:connect:" + dt)));
 
-                    // make fetch size (client batch size) small,
-                    // and restrict to forward only so that client memory usage is minimal since
-                    // we are only interested in reading the ResultSet once
                     log.debug("setAutoCommit: " + pfac.getAutoCommit());
                     connection.setAutoCommit(pfac.getAutoCommit());
 
                     log.debug("executing query: " + internalSQL);
-                    pstmt = connection.prepareStatement(internalSQL);
-                    pstmt.setFetchDirection(ResultSet.FETCH_FORWARD);
-                    if (maxRows == null || maxRows > 1000) {
-                        log.debug("maxRows = " + maxRows + ": setting fetchSize = 1000");
-                        pstmt.setFetchSize(1000);
+                    if (queryPlan) {
+                        String planSql = queryPlanner.prepareQueryPlanStatement(internalSQL);
+                        log.debug("query plan statement: " + planSql);
+                        pstmt = connection.prepareStatement(planSql);
                     } else {
-                        log.debug("maxRows = " + maxRows + ": not setting fetchSize");
+                        pstmt = connection.prepareStatement(internalSQL);
+                        // make fetch size (client batch size) small,
+                        // and restrict to forward only so that client memory usage is minimal since
+                        // we are only interested in reading the ResultSet once
+                        pstmt.setFetchDirection(ResultSet.FETCH_FORWARD);
+                        if (maxRows == null || maxRows > 1000) {
+                            log.debug("maxRows = " + maxRows + ": setting fetchSize = 1000");
+                            pstmt.setFetchSize(1000);
+                        } else {
+                            log.debug("maxRows = " + maxRows + ": not setting fetchSize");
+                        }
                     }
                     resultSet = pstmt.executeQuery();
                     log.debug("result set: " + resultSet.getClass().getName());
@@ -408,21 +428,34 @@ public class QueryRunner implements JobRunner {
                 t1 = t2;
                 diagnostics.add(new Result("diag", URI.create("query:execute:" + dt)));
 
-                String filename = "result_" + job.getID() + "." + tableWriter.getExtension();
-                String contentType = tableWriter.getContentType();
+                String filename;
+                String contentType;
+                if (queryPlan) {
+                    contentType = queryPlanner.getContentType();
+                    filename = "queryplan_" + job.getID() + "." + queryPlanner.getExtension();
+                } else {
+                    contentType = tableWriter.getContentType();
+                    filename = "result_" + job.getID() + "." + tableWriter.getExtension();
+                }
 
                 if (syncOutput != null) {
-
                     log.debug("streaming output: " + contentType);
                     syncOutput.setHeader("Content-Type", contentType);
                     String disp = "inline; filename=\"" + filename + "\"";
                     syncOutput.setHeader("Content-Disposition", disp);
-                    if (maxRows == null) {
-                        tableWriter.write(resultSet, syncOutput.getOutputStream());
+                    if (queryPlan) {
+                        PrintWriter pw = new PrintWriter(syncOutput.getOutputStream());
+                        while (resultSet.next()) {
+                            pw.println(resultSet.getString(1));
+                        }
+                        pw.flush();
                     } else {
-                        tableWriter.write(resultSet, syncOutput.getOutputStream(), maxRows.longValue());
+                        if (maxRows == null) {
+                            tableWriter.write(resultSet, syncOutput.getOutputStream());
+                        } else {
+                            tableWriter.write(resultSet, syncOutput.getOutputStream(), maxRows.longValue());
+                        }
                     }
-
                     t2 = System.currentTimeMillis();
                     dt = t2 - t1;
                     t1 = t2;
@@ -448,10 +481,12 @@ public class QueryRunner implements JobRunner {
                     throw new RuntimeException("BUG: both syncOutput and ResultStore are null");
                 }
 
-                log.debug("executing query... " + tableWriter.getRowCount() + " rows [OK]");
-                // note: final chosen here because we could in theory write intermediate rowcounts or state
-                // as suggested by Dave Morris 
-                diagnostics.add(new Result("rowcount", URI.create("final:" + tableWriter.getRowCount())));
+                if (!queryPlan) {
+                    log.debug("executing query... " + tableWriter.getRowCount() + " rows [OK]");
+                    // note: final chosen here because we could in theory write intermediate rowcounts or state
+                    // as suggested by Dave Morris
+                    diagnostics.add(new Result("rowcount", URI.create("final:" + tableWriter.getRowCount())));
+                }
             } catch (SQLException ex) {
                 log.error("SQL Execution error.", ex);
                 throw ex;

@@ -173,16 +173,16 @@ public class TableCreatorTest extends TestUtil {
                 if (cd.getColumnName().charAt(0) == 'e') {
                     // unique not supported
                     try {
-                        tc.createIndex(cd, true);
+                        tc.createIndex(List.of(cd), List.of("unique"));
                     } catch (IllegalArgumentException expected) {
                         log.info("caught expected: " + expected);
                     }
                     // regular index supported
-                    tc.createIndex(cd, false);
+                    tc.createIndex(List.of(cd), null);
                 } else if (cd.getColumnName().charAt(0) == 'a') {
                     // index not supported
                     try {
-                        tc.createIndex(cd, false);
+                        tc.createIndex(List.of(cd), null);
                     } catch (IllegalArgumentException expected) {
                         log.info("caught expected: " + expected);
                     }
