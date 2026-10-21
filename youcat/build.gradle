@@ -33,7 +33,7 @@ dependencies {
     implementation 'org.opencadc:cadc-tap:[1.1.27,)'
     implementation 'org.opencadc:cadc-tap-schema:[1.2.20,)'
     implementation 'org.opencadc:cadc-tap-server:[1.1.40,)'
-    implementation 'org.opencadc:cadc-tap-server-pg:[1.1.6,)'
+    implementation 'org.opencadc:cadc-tap-server-pg:[1.1.7,)'
     implementation 'org.opencadc:cadc-adql:[1.1.18,)'
     implementation 'org.opencadc:cadc-vosi:[1.4.11,2.0)'
     implementation 'org.opencadc:cadc-registry:[1.9.2,)'
