@@ -111,7 +111,7 @@ import org.apache.log4j.Logger;
  * this implementation only allows BLOB and CLOB column references in the select
  * list.
  * This class supports extension by delegating calls to a subclass of itself 
- * named ca.nrc.cadc.tap.impl.AdqlQueryImpl. Delegate implementation
+ * named ca..nrc.cadc.tap.impl.AdqlQueryImpl. Delegate implementation
  * is optional.
  * 
  * @author pdowler
@@ -120,6 +120,8 @@ import org.apache.log4j.Logger;
 public class AdqlQuery extends AbstractTapQuery
 {
     private static Logger log = Logger.getLogger(AdqlQuery.class);
+
+    public static final String ADQL_VERSION = "2.0";
 
     protected String queryString;
 
@@ -135,7 +137,7 @@ public class AdqlQuery extends AbstractTapQuery
 
     /**
      * Instantiate with the default BaseExpressionDeParser. 
-     * @see setDeparserImpl
+     * @see #setDeparserImpl
      */
     public AdqlQuery() {
         super();
@@ -216,7 +218,7 @@ public class AdqlQuery extends AbstractTapQuery
             while (cause.getCause() != null) {
                 cause = cause.getCause();
             }
-            throw new IllegalArgumentException("ADQL syntax error: " + cause.getMessage());
+            throw new IllegalArgumentException("ADQL-" + ADQL_VERSION + " syntax error: " + cause.getMessage());
         }
 
         // maxRowCount vs TOP vs LIMIT
