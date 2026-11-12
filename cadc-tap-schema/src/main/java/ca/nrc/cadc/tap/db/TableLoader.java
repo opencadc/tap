@@ -159,7 +159,7 @@ public class TableLoader {
                     tm.startTransaction();
                     prof.checkpoint("start-transaction");
                 }
-                BulkInsertStatement bulkInsertStatement = new BulkInsertStatement(reorgTable);
+                BulkInsertStatement bulkInsertStatement = createBulkInsertStatement(reorgTable);
                 
                 while (batch.size() < batchSize && dataIterator.hasNext()) {
                     nextRow = dataIterator.next();
@@ -257,11 +257,15 @@ public class TableLoader {
         return sb.toString();
     }
     
-    private class BulkInsertStatement implements ParameterizedPreparedStatementSetter<List<Object>> {
+    BulkInsertStatement createBulkInsertStatement(TableDesc tableDesc) {
+        return new BulkInsertStatement(tableDesc);
+    }
+
+    class BulkInsertStatement implements ParameterizedPreparedStatementSetter<List<Object>> {
         private final Calendar utc = Calendar.getInstance(DateUtil.UTC);
-        private TableDesc tableDesc;
-        
-        public BulkInsertStatement(TableDesc tableDesc) {
+        final TableDesc tableDesc;
+
+        BulkInsertStatement(TableDesc tableDesc) {
             this.tableDesc = tableDesc;
         }
 

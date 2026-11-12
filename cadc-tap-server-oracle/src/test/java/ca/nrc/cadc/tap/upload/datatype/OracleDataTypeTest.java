@@ -70,6 +70,8 @@
 package ca.nrc.cadc.tap.upload.datatype;
 
 
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.Polygon;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
 import static org.junit.Assert.*;
@@ -97,5 +99,38 @@ public class OracleDataTypeTest {
         final String dataType = testSubject.getDataType(columnDesc);
 
         assertEquals("Wrong datatype.", "VARCHAR2(256)", dataType);
+    }
+
+    @Test
+    public void getDoubleDataType() {
+        final OracleDataType testSubject = new OracleDataType();
+        final ColumnDesc columnDesc = new ColumnDesc("mytable", "mycolumn", TapDataType.DOUBLE);
+        assertEquals("Wrong datatype.", "BINARY_DOUBLE", testSubject.getDataType(columnDesc));
+    }
+
+    @Test
+    public void getIntervalDataType() {
+        final OracleDataType testSubject = new OracleDataType();
+        final ColumnDesc columnDesc = new ColumnDesc("mytable", "mycolumn", TapDataType.INTERVAL);
+        assertEquals("Wrong datatype.", "VARCHAR2(128)", testSubject.getDataType(columnDesc));
+    }
+
+    @Test
+    public void getDoubleArrayDataType() {
+        final OracleDataType testSubject = new OracleDataType();
+        final TapDataType tapDataType = new TapDataType("double", "8", null);
+        final ColumnDesc columnDesc = new ColumnDesc("mytable", "mycolumn", tapDataType);
+        assertEquals("Wrong datatype.", "VARCHAR2(3072)", testSubject.getDataType(columnDesc));
+    }
+
+    @Test
+    public void getPolygonObjectReturnsDaliPolygon() {
+        final OracleDataType testSubject = new OracleDataType();
+        final Polygon polygon = new Polygon();
+        polygon.getVertices().add(new Point(1.0D, 2.0D));
+        polygon.getVertices().add(new Point(3.0D, 4.0D));
+        polygon.getVertices().add(new Point(5.0D, 6.0D));
+
+        assertSame(polygon, testSubject.getPolygonObject(polygon));
     }
 }

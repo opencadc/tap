@@ -8,6 +8,9 @@ ALMA currently has a [sample implementation](https://github.com/opencadc/alma/tr
 
 This has been tested with Oracle 11 _g_ XE, 12, and 19.
 
+When bulk-loading tables that include `POLYGON` columns, use `ca.nrc.cadc.tap.db.OracleTableLoader`
+instead of `TableLoader` so DALI polygons are bound as `MDSYS.SDO_GEOMETRY`.
+
 In order to use the ADQL `CONTAINS` and `INTERSECTS` functions, it is necessary to have `SDO_GEOMETRY` columns that 
 contain the shape data, so that Oracle can create a Spatial Index on it.  It is necessary for your database to have
 the proper `SRID` initialized for all geometric objects.  See [Oracle Spatial Concepts](https://docs.oracle.com/en/database/oracle/oracle-database/19/spatl/spatial-concepts.html).
