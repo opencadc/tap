@@ -70,6 +70,11 @@
 package ca.nrc.cadc.tap.upload.datatype;
 
 
+import ca.nrc.cadc.dali.DoubleInterval;
+import ca.nrc.cadc.dali.Interval;
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.Polygon;
+import ca.nrc.cadc.dali.util.DoubleIntervalFormat;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
 import static org.junit.Assert.*;
@@ -97,5 +102,75 @@ public class OracleDataTypeTest {
         final String dataType = testSubject.getDataType(columnDesc);
 
         assertEquals("Wrong datatype.", "VARCHAR2(256)", dataType);
+    }
+
+    @Test
+    public void getDoubleDataType() {
+        final OracleDataType testSubject = new OracleDataType();
+        final ColumnDesc columnDesc = new ColumnDesc("mytable", "mycolumn", TapDataType.DOUBLE);
+        assertEquals("Wrong datatype.", "BINARY_DOUBLE", testSubject.getDataType(columnDesc));
+    }
+
+    @Test
+    public void getIntervalDataType() {
+        final OracleDataType testSubject = new OracleDataType();
+        final ColumnDesc columnDesc = new ColumnDesc("mytable", "mycolumn", TapDataType.INTERVAL);
+        assertEquals("Wrong datatype.", "VARCHAR2(128)", testSubject.getDataType(columnDesc));
+    }
+
+    @Test
+    public void getDoubleArrayDataType() {
+        final OracleDataType testSubject = new OracleDataType();
+        final TapDataType tapDataType = new TapDataType("double", "8", null);
+        final ColumnDesc columnDesc = new ColumnDesc("mytable", "mycolumn", tapDataType);
+        assertEquals("Wrong datatype.", "VARCHAR2(3072)", testSubject.getDataType(columnDesc));
+    }
+
+    @Test
+    public void getUploadVOTable13Xtypes() {
+        final OracleDataType mapper = new OracleDataType();
+
+        assertEquals("VARCHAR2(36)",
+                     mapper.getDataType(new ColumnDesc("t", "planeID",
+                             new TapDataType("char", "36", "uuid"))));
+        assertEquals("VARCHAR2(128)",
+                     mapper.getDataType(new ColumnDesc("t", "planeURI",
+                             new TapDataType("char", "128*", "uri"))));
+        assertEquals("SDO_GEOMETRY",
+                     mapper.getDataType(new ColumnDesc("t", "position_bounds", TapDataType.POLYGON)));
+        assertEquals("SDO_GEOMETRY",
+                     mapper.getDataType(new ColumnDesc("t", "position_centroid", TapDataType.POINT)));
+        assertEquals("VARCHAR2(128)",
+                     mapper.getDataType(new ColumnDesc("t", "energy_bounds", TapDataType.INTERVAL)));
+        assertEquals("TIMESTAMP",
+                     mapper.getDataType(new ColumnDesc("t", "lastModified", TapDataType.TIMESTAMP)));
+    }
+
+    @Test
+    public void getIntervalObjectFormatsDaliInterval() {
+        final OracleDataType mapper = new OracleDataType();
+        final Interval<Double> interval = new Interval<>(1.174e-6, 1.332e-6);
+
+        assertEquals(new DoubleIntervalFormat().format(interval),
+                     mapper.getIntervalObject(new DoubleInterval(interval.getLower(), interval.getUpper())));
+    }
+
+    @Test
+    public void getPointObjectReturnsDaliPoint() {
+        final OracleDataType mapper = new OracleDataType();
+        final Point point = new Point(19.32, -34.15);
+
+        assertSame(point, mapper.getPointObject(point));
+    }
+
+    @Test
+    public void getPolygonObjectReturnsDaliPolygon() {
+        final OracleDataType testSubject = new OracleDataType();
+        final Polygon polygon = new Polygon();
+        polygon.getVertices().add(new Point(1.0D, 2.0D));
+        polygon.getVertices().add(new Point(3.0D, 4.0D));
+        polygon.getVertices().add(new Point(5.0D, 6.0D));
+
+        assertSame(polygon, testSubject.getPolygonObject(polygon));
     }
 }

@@ -69,6 +69,10 @@
 
 package ca.nrc.cadc.tap.oracle;
 
+import ca.nrc.cadc.dali.DoubleInterval;
+import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.Polygon;
+import ca.nrc.cadc.dali.util.DoubleIntervalFormat;
 import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
 import ca.nrc.cadc.tap.schema.TapDataType;
 
@@ -78,19 +82,39 @@ public class OracleDataTypeMapper extends BasicDataTypeMapper {
     // HACK: arbitrary sensible limit.  Maximum is 4000 for Oracle.
     private static final String DEFAULT_VARCHAR2_QUANTIFIER = "(3072)";
 
+    public static TapDataType TAP_DATA_TYPE_UUID = new TapDataType("char", "36", "uuid");
 
     public OracleDataTypeMapper() {
         super();
-        dataTypes.put(TapDataType.POINT, new TypePair("POINT", null));
-        dataTypes.put(TapDataType.CIRCLE, new TypePair("CIRCLE", null));
-        dataTypes.put(TapDataType.POLYGON, new TypePair("POLYGON", null));
+        dataTypes.put(TapDataType.POINT, new TypePair("SDO_GEOMETRY", null));
+        dataTypes.put(TapDataType.CIRCLE, new TypePair("SDO_GEOMETRY", null));
+        dataTypes.put(TapDataType.POLYGON, new TypePair("SDO_GEOMETRY", null));
+        dataTypes.put(TapDataType.URI, new TypePair("CHAR", Types.VARCHAR));
+        dataTypes.put(TapDataType.TIMESTAMP, new TypePair("TIMESTAMP", Types.TIMESTAMP));
         dataTypes.put(TapDataType.INTEGER, new TypePair("INT", Types.INTEGER));
         dataTypes.put(TapDataType.CLOB, new TypePair("CHAR", Types.INTEGER));
         dataTypes.put(TapDataType.LONG, new TypePair("NUMBER(38)", Types.BIGINT));
+        // Override PostgreSQL-oriented names from BasicDataTypeMapper (e.g. DOUBLE PRECISION).
+        dataTypes.put(TapDataType.FLOAT, new TypePair("BINARY_FLOAT", Types.FLOAT));
+        dataTypes.put(TapDataType.DOUBLE, new TypePair("BINARY_DOUBLE", Types.DOUBLE));
+
+        dataTypes.put(TapDataType.INTERVAL, new TypePair("VARCHAR2(128)", Types.VARCHAR));
+        // TAP float/double columns with arraysize (e.g. upload VOTable) match via findTypePair's "*" fallback.
+        // Oracle has no Postgres-style float[]/double[] DDL; use VARCHAR2 for ephemeral TAP_UPLOAD staging.
+        dataTypes.put(new TapDataType("float", "*", null), new TypePair("VARCHAR2(3072)", Types.VARCHAR));
+        dataTypes.put(new TapDataType("double", "*", null), new TypePair("VARCHAR2(3072)", Types.VARCHAR));
+
+        // UUIDs are stored as VARCHAR2(36) in Oracle as there is no native UUID type.
+        dataTypes.put(TAP_DATA_TYPE_UUID, new TypePair("VARCHAR2(36)", Types.VARCHAR));
 
         // Allow "timestamp" as well as "adql:TIMESTAMP" as an xtype value.
         dataTypes.put(new TapDataType("char", "*", "adql:TIMESTAMP"),
                       new TypePair("TIMESTAMP", Types.TIMESTAMP));
+
+        dbDataTypes.put("uuid", TAP_DATA_TYPE_UUID);
+        dbDataTypes.put("uri", TapDataType.URI);
+        dbDataTypes.put("interval", TapDataType.INTERVAL);
+        dbDataTypes.put("sdo_geometry", TapDataType.POLYGON);
     }
 
     @Override
@@ -101,5 +125,20 @@ public class OracleDataTypeMapper extends BasicDataTypeMapper {
     @Override
     protected String getDefaultCharlimit() {
         return DEFAULT_VARCHAR2_QUANTIFIER;
+    }
+
+    @Override
+    public Object getPointObject(Point p) {
+        return p;
+    }
+
+    @Override
+    public Object getPolygonObject(Polygon poly) {
+        return poly;
+    }
+
+    @Override
+    public Object getIntervalObject(DoubleInterval inter) {
+        return new DoubleIntervalFormat().format(inter);
     }
 }
