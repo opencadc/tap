@@ -79,6 +79,8 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Struct;
 
+import oracle.jdbc.OracleConnection;
+
 
 /**
  * Build {@code MDSYS.SDO_GEOMETRY} values for JDBC insert/update.
@@ -87,9 +89,41 @@ public final class OracleSdoGeometry {
 
     static final String SDO_GEOMETRY_TYPE = "MDSYS.SDO_GEOMETRY";
 
+    static final String SDO_POINT_TYPE = "MDSYS.SDO_POINT_TYPE";
+
+    private static final String SDO_ELEM_INFO_ARRAY_TYPE = "MDSYS.SDO_ELEM_INFO_ARRAY";
+    private static final String SDO_ORDINATE_ARRAY_TYPE = "MDSYS.SDO_ORDINATE_ARRAY";
+
     private static final int[] POLYGON_ELEM_INFO = new int[] { 1, 2003, 1 };
 
     private OracleSdoGeometry() {
+    }
+
+    /**
+     * Materialize a DALI point as {@code MDSYS.SDO_GEOMETRY}.
+     */
+    public static Struct createPoint(Connection connection, Point point) throws SQLException {
+        if (point == null) {
+            return null;
+        }
+
+        Object[] pointAttributes = new Object[] {
+            BigDecimal.valueOf(point.getLongitude()),
+            BigDecimal.valueOf(point.getLatitude()),
+            null
+        };
+        OracleConnection oracleConnection = asOracleConnection(connection);
+        Struct sdoPoint = oracleConnection.createStruct(SDO_POINT_TYPE, pointAttributes);
+
+        Object[] attributes = new Object[] {
+            BigDecimal.valueOf(OracleGeometricFunction.POINT_GEO_TYPE),
+            BigDecimal.valueOf(OracleGeometricFunction.SRID_VALUE),
+            sdoPoint,
+            null,
+            null
+        };
+
+        return OracleSdoGeometry.asOracleConnection(connection).createStruct(SDO_GEOMETRY_TYPE, attributes);
     }
 
     /**
@@ -116,8 +150,8 @@ public final class OracleSdoGeometry {
             ordinates[ordinateIndex++] = BigDecimal.valueOf(p.getLatitude());
         }
 
-        Array elemInfoArray = connection.createArrayOf("NUMBER", elemInfo);
-        Array ordinatesArray = connection.createArrayOf("NUMBER", ordinates);
+        Array elemInfoArray = createNamedArray(connection, SDO_ELEM_INFO_ARRAY_TYPE, elemInfo);
+        Array ordinatesArray = createNamedArray(connection, SDO_ORDINATE_ARRAY_TYPE, ordinates);
 
         Object[] attributes = new Object[] {
             BigDecimal.valueOf(OracleGeometricFunction.POLYGON_GEO_TYPE),
@@ -127,6 +161,25 @@ public final class OracleSdoGeometry {
             ordinatesArray
         };
 
-        return connection.createStruct(SDO_GEOMETRY_TYPE, attributes);
+        return OracleSdoGeometry.asOracleConnection(connection).createStruct(SDO_GEOMETRY_TYPE, attributes);
+    }
+
+    /**
+     * Oracle VARRAY types ({@code SDO_*_ARRAY}) require {@code OracleConnection.createOracleArray},
+     * not JDBC {@code Connection.createArrayOf}. Object structs likewise need an unwrapped connection.
+     *
+     * @see <a href="https://docs.oracle.com/en/database/oracle/oracle-database/19/jjdbc/Oracle-collections.html"
+     *     >Oracle collections</a>
+     */
+    private static Array createNamedArray(Connection connection, String sqlTypeName, Object elements)
+            throws SQLException {
+        return OracleSdoGeometry.asOracleConnection(connection).createOracleArray(sqlTypeName, elements);
+    }
+
+    private static OracleConnection asOracleConnection(Connection connection) throws SQLException {
+        if (!connection.isWrapperFor(OracleConnection.class)) {
+            throw new SQLException("Not an Oracle JDBC connection: " + connection.getClass().getName());
+        }
+        return connection.unwrap(OracleConnection.class);
     }
 }

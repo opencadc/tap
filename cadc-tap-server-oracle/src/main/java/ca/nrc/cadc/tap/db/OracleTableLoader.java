@@ -69,22 +69,27 @@
 
 package ca.nrc.cadc.tap.db;
 
+import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.dali.Polygon;
 import ca.nrc.cadc.tap.oracle.OracleSdoGeometry;
+import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
 
 import java.sql.Connection;
+import java.util.Calendar;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.List;
+import java.util.UUID;
 import javax.sql.DataSource;
 
 
 /**
  * Oracle table data load with {@code SDO_GEOMETRY} bind support. Use this in place of
- * {@link TableLoader} when bulk loading {@link TapDataType#POLYGON} columns.
+ * {@link TableLoader} when bulk loading DALI {@code point} or {@code polygon} columns.
  */
 public class OracleTableLoader extends TableLoader {
 
@@ -99,6 +104,8 @@ public class OracleTableLoader extends TableLoader {
 
     private class OracleBulkInsertStatement extends BulkInsertStatement {
 
+        private final Calendar utc = Calendar.getInstance(DateUtil.UTC);
+
         OracleBulkInsertStatement(TableDesc tableDesc) {
             super(tableDesc);
         }
@@ -106,16 +113,34 @@ public class OracleTableLoader extends TableLoader {
         @Override
         public void setValues(PreparedStatement ps, List<Object> row) throws SQLException {
             Connection connection = ps.getConnection();
+            int col = 1;
             for (int i = 0; i < row.size(); i++) {
                 Object val = row.get(i);
-                if (val instanceof Polygon) {
-                    ColumnDesc cd = tableDesc.getColumnDescs().get(i);
-                    if (TapDataType.POLYGON.equals(cd.getDatatype())) {
-                        row.set(i, OracleSdoGeometry.createPolygon(connection, (Polygon) val));
-                    }
+                ColumnDesc cd = tableDesc.getColumnDescs().get(i);
+                if (val instanceof Polygon && isPolygonColumn(cd)) {
+                    ps.setObject(col++, OracleSdoGeometry.createPolygon(connection, (Polygon) val), Types.STRUCT);
+                } else if (val instanceof Point && isPointColumn(cd)) {
+                    ps.setObject(col++, OracleSdoGeometry.createPoint(connection, (Point) val), Types.STRUCT);
+                } else if (val instanceof UUID) {
+                    ps.setString(col++, val.toString());
+                } else if (val != null && val instanceof java.util.Date
+                        && TapDataType.TIMESTAMP.equals(cd.getDatatype())) {
+                    java.util.Date d = (java.util.Date) val;
+                    ps.setTimestamp(col++, new java.sql.Timestamp(d.getTime()), utc);
+                } else {
+                    ps.setObject(col++, val);
                 }
             }
-            super.setValues(ps, row);
+        }
+
+        private boolean isPolygonColumn(ColumnDesc cd) {
+            return TapDataType.POLYGON.equals(cd.getDatatype())
+                    || "polygon".equals(cd.getDatatype().xtype);
+        }
+
+        private boolean isPointColumn(ColumnDesc cd) {
+            return TapDataType.POINT.equals(cd.getDatatype())
+                    || "point".equals(cd.getDatatype().xtype);
         }
     }
 }
