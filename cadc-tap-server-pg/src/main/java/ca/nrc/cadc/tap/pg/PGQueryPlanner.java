@@ -83,12 +83,12 @@ public class PGQueryPlanner implements QueryPlanner {
 
     @Override
     public String getContentType() {
-        return "text/plain";
+        return "application/yaml";
     }
 
     @Override
     public String getExtension() {
-        return "txt";
+        return "yaml";
     }
 
     // Check if the user has permission to query the query plan.

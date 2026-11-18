@@ -272,7 +272,7 @@ public class TableUpdateTest extends AbstractTablesTest {
 
             // step2: verify: query plan should be Seq Scan for a select query
             try {
-                result = Subject.doAs(schemaOwner, new AuthQueryTest.SyncQueryAction(certQueryURL, params, null, "text/plain"));
+                result = Subject.doAs(schemaOwner, new AuthQueryTest.SyncQueryAction(certQueryURL, params, null, "application/yaml"));
                 Assert.assertNotNull(result);
                 log.info("query-plan before index:\n" + result);
                 Assert.assertTrue(result.contains("Seq Scan"));
@@ -290,7 +290,7 @@ public class TableUpdateTest extends AbstractTablesTest {
 
             // step5: verify: query plan should be Bitmap Index Scan for a select query
             try {
-                result = Subject.doAs(schemaOwner, new AuthQueryTest.SyncQueryAction(certQueryURL, params, null, "text/plain"));
+                result = Subject.doAs(schemaOwner, new AuthQueryTest.SyncQueryAction(certQueryURL, params, null, "application/yaml"));
                 Assert.assertNotNull(result);
                 log.info("query-plan after index:\n" + result);
                 Assert.assertFalse(result.contains("Seq Scan"));
