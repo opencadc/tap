@@ -324,6 +324,139 @@ public class PgsRegionConverterTest
         doit();
     }
 
+    // DISTANCE between a column position and a constant position
+    private static final String P = "spoint(radians(ra), radians(dec))";
+    private static final String Q = "spoint(radians(10), radians(20))";
+
+    private static String lowered(String p, String q, String r, String compare)
+    {
+        return "(" + p + " <@ scircle(" + q + ", radians(" + r + ")) and "
+            + q + " <@ scircle(" + p + ", radians(" + r + ")) and " + compare + ")";
+    }
+
+    @Test
+    public void testDistanceSelect()
+    {
+        _query = "select DISTANCE(POINT('ICRS', ra, dec), POINT('ICRS', 10, 20)) from someTable";
+        _expected = "select degrees(" + P + " <-> " + Q + ") from someTable";
+        doit();
+    }
+
+    @Test
+    public void testDistanceFourArgs()
+    {
+        _query = "select DISTANCE(ra, dec, 10, 20) from someTable";
+        _expected = "select degrees(" + P + " <-> " + Q + ") from someTable";
+        doit();
+
+        _query = "select * from someTable where DISTANCE(ra, dec, 10, 20) < 1";
+        _expected = "select * from someTable where " + lowered(P, Q, "1", "degrees(" + P + " <-> " + Q + ") < 1");
+        doit();
+    }
+
+    @Test
+    public void testDistanceUpperBound()
+    {
+        String d = "degrees(" + P + " <-> " + Q + ")";
+        _query = "select * from someTable where DISTANCE(POINT('ICRS', ra, dec), POINT('ICRS', 10, 20)) < 0.5";
+        _expected = "select * from someTable where " + lowered(P, Q, "0.5", d + " < 0.5");
+        doit();
+
+        _query = "select * from someTable where DISTANCE(POINT('ICRS', ra, dec), POINT('ICRS', 10, 20)) <= 0.5";
+        _expected = "select * from someTable where " + lowered(P, Q, "0.5", d + " <= 0.5");
+        doit();
+
+        // reversed: the original comparison is kept as written for the recheck
+        _query = "select * from someTable where 0.5 > DISTANCE(POINT('ICRS', ra, dec), POINT('ICRS', 10, 20))";
+        _expected = "select * from someTable where " + lowered(P, Q, "0.5", "0.5 > " + d);
+        doit();
+
+        _query = "select * from someTable where 0.5 >= DISTANCE(POINT('ICRS', ra, dec), POINT('ICRS', 10, 20))";
+        _expected = "select * from someTable where " + lowered(P, Q, "0.5", "0.5 >= " + d);
+        doit();
+
+        // inside a larger condition
+        _query = "select * from someTable where t_integer = 1 and DISTANCE(POINT('ICRS', ra, dec), POINT('ICRS', 10, 20)) < 0.5";
+        _expected = "select * from someTable where t_integer = 1 and " + lowered(P, Q, "0.5", d + " < 0.5");
+        doit();
+    }
+
+    @Test
+    public void testDistanceJoin()
+    {
+        String p = "spoint(radians(o.ra), radians(o.dec))";
+        String q = "spoint(radians(u.ra), radians(u.dec))";
+        _query = "select * from someTable as o join otherTable as u"
+            + " on DISTANCE(POINT('ICRS', o.ra, o.dec), POINT('ICRS', u.ra, u.dec)) < 0.01";
+        _expected = "select * from someTable as o join otherTable as u on "
+            + lowered(p, q, "0.01", "degrees(" + p + " <-> " + q + ") < 0.01");
+        doit();
+    }
+
+    @Test
+    public void testDistanceConstantBound()
+    {
+        String d = "degrees(" + P + " <-> " + Q + ")";
+        String where = "select * from someTable where ";
+        String dist = "DISTANCE(POINT('ICRS', ra, dec), POINT('ICRS', 10, 20))";
+
+        // constant expressions in [0, 90] are rewritten
+        _query = where + dist + " < 90";
+        _expected = where + lowered(P, Q, "90", d + " < 90");
+        doit();
+        _query = where + dist + " < 0";
+        _expected = where + lowered(P, Q, "0", d + " < 0");
+        doit();
+        _query = where + dist + " < 2 * (0.5 + 1)";
+        _expected = where + lowered(P, Q, "2 * (0.5 + 1)", d + " < 2 * (0.5 + 1)");
+        doit();
+        // integer division truncates toward zero in PostgreSQL: 181 / 2 is 90
+        _query = where + dist + " < 181 / 2";
+        _expected = where + lowered(P, Q, "181 / 2", d + " < 181 / 2");
+        doit();
+        // and -1 / 2 is 0
+        _query = where + dist + " < -1 / 2";
+        _expected = where + lowered(P, Q, "-1 / 2", d + " < -1 / 2");
+        doit();
+
+        // outside the scircle radius range, or not a constant: plain comparison
+        String[] bounds = { "90.5", "181.0 / 2", "-0.1", "1 / 0", "t_double", "2 * t_double" };
+        for (String b : bounds)
+        {
+            _query = where + dist + " < " + b;
+            _expected = where + d + " < " + b;
+            doit();
+        }
+    }
+
+    @Test
+    public void testDistanceNotRewritten()
+    {
+        String d = "degrees(" + P + " <-> " + Q + ")";
+        String where = "select * from someTable where ";
+        String dist = "DISTANCE(POINT('ICRS', ra, dec), POINT('ICRS', 10, 20))";
+
+        // a lower bound, an equality, or a negation is not a containment
+        String[][] cases = {
+            { dist + " > 0.5", d + " > 0.5" },
+            { dist + " >= 0.5", d + " >= 0.5" },
+            { "0.5 < " + dist, "0.5 < " + d },
+            { "0.5 <= " + dist, "0.5 <= " + d },
+            { dist + " = 0.5", d + " = 0.5" },
+            { dist + " <> 0.5", d + " <> 0.5" },
+            { "NOT " + dist + " < 0.5", " NOT " + d + " < 0.5" }, // deparser writes a space before NOT
+            // not a bare DISTANCE
+            { "2 * " + dist + " < 0.5", "2 * " + d + " < 0.5" },
+            { "(" + dist + ") < 0.5", "(" + d + ") < 0.5" },
+        };
+        for (String[] c : cases)
+        {
+            _query = where + c[0];
+            _expected = where + c[1];
+            doit();
+        }
+    }
+
     @Test
     public void testJoinAliasIntersects()
     {

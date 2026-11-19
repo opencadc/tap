@@ -187,9 +187,17 @@ public class RegionFinder extends FunctionFinder
         else if (DISTANCE.equalsIgnoreCase(fname))
         {
             List<Expression> expressions = func.getParameters().getExpressions();
-            if (expressions.size() != 2)
-                throw new IllegalStateException("DISTANCE requires 2 expressions, found " + expressions.size());
-            implExpr = handleDistance(expressions.get(0), expressions.get(1));
+            if (expressions.size() == 4)
+            {
+                // ADQL-2.1 DISTANCE(lon1, lat1, lon2, lat2): coordinates in degrees, same as two ICRS points
+                Expression left = handlePoint(new NullValue(), expressions.get(0), expressions.get(1));
+                Expression right = handlePoint(new NullValue(), expressions.get(2), expressions.get(3));
+                implExpr = handleDistance(left, right);
+            }
+            else if (expressions.size() == 2)
+                implExpr = handleDistance(expressions.get(0), expressions.get(1));
+            else
+                throw new IllegalStateException("DISTANCE requires 2 points or 4 coordinates, found " + expressions.size());
         }
         else if (INTERSECTS.equalsIgnoreCase(fname))
         {
@@ -392,7 +400,9 @@ public class RegionFinder extends FunctionFinder
     }
 
     /**
-     * This method is called when DISTANCE function is found.
+     * This method is called when DISTANCE function is found. The 4-argument
+     * form DISTANCE(lon1, lat1, lon2, lat2) arrives here as two points made by
+     * handlePoint.
      *
      */
     protected Expression handleDistance(Expression left, Expression right)
