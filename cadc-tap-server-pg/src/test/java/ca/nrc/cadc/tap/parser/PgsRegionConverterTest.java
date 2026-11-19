@@ -400,9 +400,9 @@ public class PgsRegionConverterTest
         String where = "select * from someTable where ";
         String dist = "DISTANCE(POINT('ICRS', ra, dec), POINT('ICRS', 10, 20))";
 
-        // constant expressions in [0, 90] are rewritten
-        _query = where + dist + " < 90";
-        _expected = where + lowered(P, Q, "90", d + " < 90");
+        // constant expressions in [0, 30] are rewritten
+        _query = where + dist + " < 30";
+        _expected = where + lowered(P, Q, "30", d + " < 30");
         doit();
         _query = where + dist + " < 0";
         _expected = where + lowered(P, Q, "0", d + " < 0");
@@ -410,17 +410,17 @@ public class PgsRegionConverterTest
         _query = where + dist + " < 2 * (0.5 + 1)";
         _expected = where + lowered(P, Q, "2 * (0.5 + 1)", d + " < 2 * (0.5 + 1)");
         doit();
-        // integer division truncates toward zero in PostgreSQL: 181 / 2 is 90
-        _query = where + dist + " < 181 / 2";
-        _expected = where + lowered(P, Q, "181 / 2", d + " < 181 / 2");
+        // integer division truncates toward zero in PostgreSQL: 61 / 2 is 30
+        _query = where + dist + " < 61 / 2";
+        _expected = where + lowered(P, Q, "61 / 2", d + " < 61 / 2");
         doit();
         // and -1 / 2 is 0
         _query = where + dist + " < -1 / 2";
         _expected = where + lowered(P, Q, "-1 / 2", d + " < -1 / 2");
         doit();
 
-        // outside the scircle radius range, or not a constant: plain comparison
-        String[] bounds = { "90.5", "181.0 / 2", "-0.1", "1 / 0", "t_double", "2 * t_double" };
+        // wider than getMaxIndexedRadius(), outside the scircle radius range, or not a constant: plain comparison
+        String[] bounds = { "30.5", "61.0 / 2", "90", "90.5", "-0.1", "1 / 0", "t_double", "2 * t_double" };
         for (String b : bounds)
         {
             _query = where + dist + " < " + b;

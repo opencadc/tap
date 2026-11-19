@@ -272,10 +272,10 @@ public class PgsphereRegionConverter extends RegionFinder
      * at exactly distance r are kept or dropped as before.</li>
      * </ul>
      *
-     * <p>Only a bare DISTANCE on one side and a constant bound in [0, 90] degrees
-     * (the scircle radius range) are rewritten. Anything else (&gt;, =, NOT,
-     * 2*DISTANCE(...), a per-row radius) returns null and keeps the plain
-     * degrees(p &lt;-&gt; q) comparison.
+     * <p>Only a bare DISTANCE on one side and a constant bound from 0 to
+     * getMaxIndexedRadius() degrees are rewritten. Anything else (&gt;, =, NOT,
+     * 2*DISTANCE(...), a per-row radius, a wide cone) returns null and keeps the
+     * plain degrees(p &lt;-&gt; q) comparison.
      *
      * @param binaryExpression comparison whose arguments have already been converted
      * @return rewritten predicate, or null if this is not a shape that rewrites exactly
@@ -305,7 +305,8 @@ public class PgsphereRegionConverter extends RegionFinder
         // pgsphere rejects an scircle radius outside [0, 90] degrees: a bound outside it
         // would turn a query that ran into one that fails
         Constant radius = constantValue(bound);
-        if (radius == null || radius.value.signum() < 0 || radius.value.compareTo(BigDecimal.valueOf(90)) > 0)
+        double max = Math.min(90.0, getMaxIndexedRadius());
+        if (radius == null || radius.value.signum() < 0 || radius.value.compareTo(BigDecimal.valueOf(max)) > 0)
             return null;
 
         Expression p = distance.getLeft();
@@ -313,6 +314,22 @@ public class PgsphereRegionConverter extends RegionFinder
         Expression pInQ = Distance.pointOperator("<@", p, scircle(q, bound));
         Expression qInP = Distance.pointOperator("<@", q, scircle(p, bound));
         return new Parenthesis(new AndExpression(new AndExpression(pInQ, qInP), binaryExpression));
+    }
+
+    /**
+     * Largest DISTANCE bound, in degrees, that handleDistancePredicate rewrites to
+     * use an index. A wide cone selects a large fraction of the table, where a
+     * sequential scan is faster; and the planner, multiplying the selectivities of
+     * the three terms, estimates very few rows and so prefers the index. On 500k
+     * uniformly distributed rows the rewrite is faster up to 45 degrees and slower
+     * from about 60; the default leaves a margin for less uniform skies. At most 90
+     * (the scircle radius limit).
+     *
+     * @return maximum radius in degrees
+     */
+    protected double getMaxIndexedRadius()
+    {
+        return 30.0;
     }
 
     // scircle(center, radians(radius)) with radius in degrees
