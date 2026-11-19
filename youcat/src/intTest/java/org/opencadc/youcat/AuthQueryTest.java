@@ -125,7 +125,7 @@ public class AuthQueryTest {
         Log4jInit.setLevel("org.opencadc.youcat", Level.INFO);
 
         // need to read cert so we have creds to make the fake GMS call
-        File cf = FileUtil.getFileFromResource("x509_CADCAuthtest1.pem", AuthQueryTest.class);
+        File cf = FileUtil.getFileFromResource("youcat-owner.pem", AuthQueryTest.class);
         subjectWithGroups = SSLUtil.createSubject(cf);
         userWithGroups = subjectWithGroups.getPrincipals(X500Principal.class).iterator().next();
         log.debug("created subjectWithGroups: " + subjectWithGroups);
