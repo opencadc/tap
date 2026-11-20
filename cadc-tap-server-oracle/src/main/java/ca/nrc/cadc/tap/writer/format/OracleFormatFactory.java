@@ -71,6 +71,7 @@ package ca.nrc.cadc.tap.writer.format;
 
 import ca.nrc.cadc.dali.util.Format;
 import ca.nrc.cadc.tap.TapSelectItem;
+import ca.nrc.cadc.tap.schema.TapDataType;
 
 public class OracleFormatFactory extends DefaultFormatFactory {
     /**
@@ -79,6 +80,38 @@ public class OracleFormatFactory extends DefaultFormatFactory {
     @Override
     protected Format<Object> getCircleFormat(TapSelectItem columnDesc) {
         return new OracleCircleFormat();
+    }
+
+    @Override
+    public Format<Object> getFormat(TapSelectItem item) {
+        final TapDataType tt = item.getDatatype();
+        if (tt.xtype != null) {
+            if ("adql:BIGINT".equalsIgnoreCase(tt.xtype)) {
+                if (tt.arraysize != null) {
+                    return getLongArrayFormat(item);
+                }
+                return getLongFormat(item);
+            }
+            else if ("adql:INTEGER".equalsIgnoreCase(tt.xtype) || "adql:SMALLINT".equalsIgnoreCase(tt.xtype)) {
+                if (tt.arraysize != null) {
+                    return getIntArrayFormat(item);
+                }
+                return getIntegerFormat(item);
+            }
+            else if ("adql:FLOAT".equalsIgnoreCase(tt.xtype) || "adql:REAL".equalsIgnoreCase(tt.xtype)) {
+                if (tt.arraysize != null) {
+                    return getFloatArrayFormat(item);
+                }
+                return getFloatFormat(item);
+            }
+            else if ("adql:DOUBLE".equalsIgnoreCase(tt.xtype)) {
+                if (tt.arraysize != null) {
+                    return getDoubleArrayFormat(item);
+                }
+                return getDoubleFormat(item);
+            }
+        }
+        return super.getFormat(item);
     }
 
     /**
@@ -100,5 +133,10 @@ public class OracleFormatFactory extends DefaultFormatFactory {
     @Override
     protected Format<Object> getRegionFormat(TapSelectItem columnDesc) {
         return new OracleRegionFormat();
+    }
+
+    @Override
+    protected Format<Object> getUUIDFormat(TapSelectItem columnDesc) {
+        return new OracleUUIDFormat();
     }
 }

@@ -6,7 +6,15 @@ ALMA currently has a [sample implementation](https://github.com/opencadc/alma/tr
 
 ## Requirements
 
-This has been tested with Oracle 11 _g_ XE, 12, and 19.
+This has been tested with Oracle 19.
+
+For TAP **UPLOAD**, use `ca.nrc.cadc.tap.upload.OracleUploadManager` instead of
+`BasicUploadManager`. It loads rows through `TableLoader`, which binds DALI `point` /
+`polygon` cells as `MDSYS.SDO_GEOMETRY` (generic `TableLoader` leaves them as DALI objects and
+Oracle JDBC reports *invalid column type*, typically on `position_bounds` first).
+
+Other upload xtypes (`uuid`, `uri`, `interval`, `timestamp`) use `OracleDataTypeMapper` for DDL and
+`TableLoader` value conversion; no extra loader logic is required for those columns.
 
 In order to use the ADQL `CONTAINS` and `INTERSECTS` functions, it is necessary to have `SDO_GEOMETRY` columns that 
 contain the shape data, so that Oracle can create a Spatial Index on it.  It is necessary for your database to have

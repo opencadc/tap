@@ -70,6 +70,8 @@
 package ca.nrc.cadc.tap.writer.format;
 
 import ca.nrc.cadc.dali.Point;
+import ca.nrc.cadc.dali.util.STCRegionFormat;
+import ca.nrc.cadc.stc.Region;
 import ca.nrc.cadc.tap.parser.region.function.OracleGeometricFunction;
 import ca.nrc.cadc.tap.parser.region.function.OraclePolygon;
 
@@ -88,25 +90,43 @@ public class OracleRegionFormat extends AbstractResultSetFormat {
     private static final Logger LOGGER = Logger.getLogger(OracleRegionFormat.class);
     private static final int EXPECTED_ARGUMENT_LENGTH = 5;
 
+    private final STCRegionFormat stcRegionFormat = new STCRegionFormat();
+
     @Override
     public Object extract(ResultSet resultSet, int i) throws SQLException {
-        return format(resultSet.getObject(i));
+        String stc = toStcString(resultSet.getObject(i));
+        if (stc == null) {
+            return null;
+        }
+        return stcRegionFormat.parse(stc);
     }
 
     @Override
     public String format(final Object object) {
-        final String returnValue;
-
         if (object == null) {
-            returnValue = null;
-        } else if (object instanceof Struct) {
-            final Struct struct = (Struct) object;
-            returnValue = toString(struct);
-        } else {
-            returnValue = object.toString();
+            return "";
         }
+        if (object instanceof Region) {
+            return stcRegionFormat.format((Region) object);
+        }
+        if (object instanceof String) {
+            return (String) object;
+        }
+        String stc = toStcString(object);
+        return stc == null ? "" : stc;
+    }
 
-        return returnValue;
+    private String toStcString(final Object object) {
+        if (object == null) {
+            return null;
+        }
+        if (object instanceof Struct) {
+            return toString((Struct) object);
+        }
+        if (object instanceof Region) {
+            return stcRegionFormat.format((Region) object);
+        }
+        return object.toString();
     }
 
     private String toString(final Struct struct) {
