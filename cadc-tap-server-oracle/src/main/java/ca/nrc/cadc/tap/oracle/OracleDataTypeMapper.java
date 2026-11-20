@@ -73,10 +73,14 @@ import ca.nrc.cadc.dali.DoubleInterval;
 import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.dali.Polygon;
 import ca.nrc.cadc.dali.util.DoubleIntervalFormat;
+import ca.nrc.cadc.stc.Region;
 import ca.nrc.cadc.tap.db.BasicDataTypeMapper;
 import ca.nrc.cadc.tap.schema.TapDataType;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.sql.Types;
+import java.util.UUID;
 
 public class OracleDataTypeMapper extends BasicDataTypeMapper {
     // HACK: arbitrary sensible limit.  Maximum is 4000 for Oracle.
@@ -129,16 +133,52 @@ public class OracleDataTypeMapper extends BasicDataTypeMapper {
 
     @Override
     public Object getPointObject(Point p) {
-        return p;
+        if (this.dataSource == null) {
+            throw new IllegalStateException("DataSource required for Oracle Point object.  Call setDataSource(DataSource).");
+        }
+
+        try (Connection connection = this.dataSource.getConnection()) {
+            return OracleSdoGeometry.createPoint(connection, p);
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to create Oracle SDO_GEOMETRY object", e);
+        }
+        // Ignore
     }
 
     @Override
     public Object getPolygonObject(Polygon poly) {
-        return poly;
+        if (this.dataSource == null) {
+            throw new IllegalStateException("DataSource required for Oracle Polygon object.  Call setDataSource(DataSource).");
+        }
+
+        try (Connection connection = this.dataSource.getConnection()) {
+            return OracleSdoGeometry.createPolygon(connection, poly);
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to create Oracle SDO_GEOMETRY object", e);
+        }
+        // Ignore
+    }
+
+    @Override
+    public Object getRegionObject(Region reg) {
+        if (reg instanceof ca.nrc.cadc.stc.Polygon) {
+            final ca.nrc.cadc.stc.Polygon poly = ( ca.nrc.cadc.stc.Polygon) reg;
+            final Polygon p = new Polygon();
+            for (ca.nrc.cadc.stc.CoordPair c : poly.getCoordPairs()) {
+                p.getVertices().add(new Point(c.getX(), c.getY()));
+            }
+            return getPolygonObject(p);
+        }
+        throw new UnsupportedOperationException("cannot convert a " + reg.getClass().getSimpleName());
     }
 
     @Override
     public Object getIntervalObject(DoubleInterval inter) {
         return new DoubleIntervalFormat().format(inter);
+    }
+
+    @Override
+    public Object getUUIDObject(UUID uuid) {
+        return uuid.toString();
     }
 }

@@ -75,16 +75,19 @@ import ca.nrc.cadc.dali.Interval;
 import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.dali.Polygon;
 import ca.nrc.cadc.dali.util.DoubleIntervalFormat;
+import ca.nrc.cadc.tap.oracle.OracleDataTypeMapper;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
 import static org.junit.Assert.*;
+
+import org.junit.Assert;
 import org.junit.Test;
 
 
-public class OracleDataTypeTest {
+public class OracleDataTypeMapperTest {
     @Test
     public void getDataType() {
-        final OracleDataType testSubject = new OracleDataType();
+        final OracleDataTypeMapper testSubject = new OracleDataTypeMapper();
 
         final TapDataType tapDataType = TapDataType.CLOB;
         final ColumnDesc columnDesc = new ColumnDesc("mytable", "mycolumn", tapDataType);
@@ -95,7 +98,7 @@ public class OracleDataTypeTest {
 
     @Test
     public void getSizeDataType() {
-        final OracleDataType testSubject = new OracleDataType();
+        final OracleDataTypeMapper testSubject = new OracleDataTypeMapper();
         final TapDataType tapDataType = new TapDataType("char", "256*", null);
 
         final ColumnDesc columnDesc = new ColumnDesc("mytable", "mycolumn", tapDataType);
@@ -106,21 +109,21 @@ public class OracleDataTypeTest {
 
     @Test
     public void getDoubleDataType() {
-        final OracleDataType testSubject = new OracleDataType();
+        final OracleDataTypeMapper testSubject = new OracleDataTypeMapper();
         final ColumnDesc columnDesc = new ColumnDesc("mytable", "mycolumn", TapDataType.DOUBLE);
         assertEquals("Wrong datatype.", "BINARY_DOUBLE", testSubject.getDataType(columnDesc));
     }
 
     @Test
     public void getIntervalDataType() {
-        final OracleDataType testSubject = new OracleDataType();
+        final OracleDataTypeMapper testSubject = new OracleDataTypeMapper();
         final ColumnDesc columnDesc = new ColumnDesc("mytable", "mycolumn", TapDataType.INTERVAL);
         assertEquals("Wrong datatype.", "VARCHAR2(128)", testSubject.getDataType(columnDesc));
     }
 
     @Test
     public void getDoubleArrayDataType() {
-        final OracleDataType testSubject = new OracleDataType();
+        final OracleDataTypeMapper testSubject = new OracleDataTypeMapper();
         final TapDataType tapDataType = new TapDataType("double", "8", null);
         final ColumnDesc columnDesc = new ColumnDesc("mytable", "mycolumn", tapDataType);
         assertEquals("Wrong datatype.", "VARCHAR2(3072)", testSubject.getDataType(columnDesc));
@@ -128,7 +131,7 @@ public class OracleDataTypeTest {
 
     @Test
     public void getUploadVOTable13Xtypes() {
-        final OracleDataType mapper = new OracleDataType();
+        final OracleDataTypeMapper mapper = new OracleDataTypeMapper();
 
         assertEquals("VARCHAR2(36)",
                      mapper.getDataType(new ColumnDesc("t", "planeID",
@@ -148,7 +151,7 @@ public class OracleDataTypeTest {
 
     @Test
     public void getIntervalObjectFormatsDaliInterval() {
-        final OracleDataType mapper = new OracleDataType();
+        final OracleDataTypeMapper mapper = new OracleDataTypeMapper();
         final Interval<Double> interval = new Interval<>(1.174e-6, 1.332e-6);
 
         assertEquals(new DoubleIntervalFormat().format(interval),
@@ -157,20 +160,30 @@ public class OracleDataTypeTest {
 
     @Test
     public void getPointObjectReturnsDaliPoint() {
-        final OracleDataType mapper = new OracleDataType();
+        final OracleDataTypeMapper mapper = new OracleDataTypeMapper();
         final Point point = new Point(19.32, -34.15);
 
-        assertSame(point, mapper.getPointObject(point));
+        try {
+            mapper.getPointObject(point);
+            fail("Should throw IllegalStateException");
+        } catch (IllegalStateException e) {
+            Assert.assertEquals("DataSource required for Oracle Point object.  Call setDataSource(DataSource).", e.getMessage());
+        }
     }
 
     @Test
     public void getPolygonObjectReturnsDaliPolygon() {
-        final OracleDataType testSubject = new OracleDataType();
+        final OracleDataTypeMapper testSubject = new OracleDataTypeMapper();
         final Polygon polygon = new Polygon();
         polygon.getVertices().add(new Point(1.0D, 2.0D));
         polygon.getVertices().add(new Point(3.0D, 4.0D));
         polygon.getVertices().add(new Point(5.0D, 6.0D));
 
-        assertSame(polygon, testSubject.getPolygonObject(polygon));
+        try {
+            testSubject.getPolygonObject(polygon);
+            fail("Should throw IllegalStateException");
+        } catch (IllegalStateException e) {
+            Assert.assertEquals("DataSource required for Oracle Polygon object.  Call setDataSource(DataSource).", e.getMessage());
+        }
     }
 }

@@ -19,17 +19,17 @@ import ca.nrc.cadc.dali.tables.TableData;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.io.ResourceIterator;
 import ca.nrc.cadc.tap.BasicUploadManager;
-import ca.nrc.cadc.tap.db.OracleTableLoader;
 import ca.nrc.cadc.tap.db.TableCreator;
+import ca.nrc.cadc.tap.db.TableLoader;
 import ca.nrc.cadc.tap.schema.TableDesc;
-import ca.nrc.cadc.tap.upload.UploadLimits;
+
 import java.io.IOException;
 import java.util.List;
 import org.opencadc.tap.io.TableDataInputStream;
 
 /**
  * Oracle UPLOAD: binds DALI {@code point} / {@code polygon} as {@code SDO_GEOMETRY} via
- * {@link OracleTableLoader}. Use this instead of {@link BasicUploadManager} on Oracle deployments.
+ * {@link TableLoader}. Use this instead of {@link BasicUploadManager} on Oracle deployments.
  */
 public class OracleUploadManager extends BasicUploadManager {
 
@@ -42,7 +42,7 @@ public class OracleUploadManager extends BasicUploadManager {
         TableCreator tc = new TableCreator(dataSource);
         tc.createTable(table);
 
-        OracleTableLoader tld = new OracleTableLoader(dataSource, 1000);
+        TableLoader tld = new TableLoader(dataSource, 1000);
         tld.load(table, new TableDataInputStream() {
             @Override
             public void close() {

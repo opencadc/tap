@@ -80,7 +80,11 @@ import java.sql.Types;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+
 import org.apache.log4j.Logger;
+
+import javax.sql.DataSource;
 
 /**
  *
@@ -89,6 +93,8 @@ import org.apache.log4j.Logger;
 public class BasicDataTypeMapper implements DatabaseDataType {
 
     private static final Logger log = Logger.getLogger(BasicDataTypeMapper.class);
+
+    protected DataSource dataSource;
 
     protected static class TypePair {
 
@@ -383,4 +389,13 @@ public class BasicDataTypeMapper implements DatabaseDataType {
         return sb.toString();
     }
 
+    @Override
+    public Object getUUIDObject(UUID uuid) {
+        return uuid;
+    }
+
+    @Override
+    public void setDataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
 }

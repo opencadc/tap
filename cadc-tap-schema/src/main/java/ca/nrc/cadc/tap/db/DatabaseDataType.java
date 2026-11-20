@@ -75,7 +75,10 @@ import ca.nrc.cadc.dali.Point;
 import ca.nrc.cadc.dali.Polygon;
 import ca.nrc.cadc.tap.schema.ColumnDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;
+
+import javax.sql.DataSource;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Interface to convert ADQL data types to a database
@@ -207,4 +210,18 @@ public interface DatabaseDataType {
 
     Object getArrayObject(double[] val);
 
+    /**
+     * Convert UUID to a database object for insert.
+     *
+     * @param uuid  UUID Object.
+     * @return  Object suitable for JDBC insert.  Override for database vendor specific conversion.
+     */
+    Object getUUIDObject(UUID uuid);
+
+    /**
+     * Optionally set a data source for creating database objects.  Some Database vendors require the use of the
+     * database to create certain objects.
+     * @param dataSource    DataSource to use for creating database objects.
+     */
+    void setDataSource(final DataSource dataSource);
 }
