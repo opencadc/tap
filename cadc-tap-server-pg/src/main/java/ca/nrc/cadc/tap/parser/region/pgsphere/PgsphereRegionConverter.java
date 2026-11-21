@@ -69,14 +69,25 @@
 
 package ca.nrc.cadc.tap.parser.region.pgsphere;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.util.ArrayList;
 import java.util.List;
 
 import net.sf.jsqlparser.expression.BinaryExpression;
+import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.expression.InverseExpression;
 import net.sf.jsqlparser.expression.LongValue;
 import net.sf.jsqlparser.expression.NullValue;
+import net.sf.jsqlparser.expression.Parenthesis;
 import net.sf.jsqlparser.expression.StringValue;
+import net.sf.jsqlparser.expression.operators.arithmetic.Addition;
+import net.sf.jsqlparser.expression.operators.arithmetic.Division;
+import net.sf.jsqlparser.expression.operators.arithmetic.Multiplication;
+import net.sf.jsqlparser.expression.operators.arithmetic.Subtraction;
+import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
 import net.sf.jsqlparser.expression.operators.relational.GreaterThanEquals;
@@ -99,6 +110,7 @@ import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
 import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.region.pgsphere.function.Center;
+import ca.nrc.cadc.tap.parser.region.pgsphere.function.Distance;
 import ca.nrc.cadc.tap.parser.region.pgsphere.function.Lat;
 import ca.nrc.cadc.tap.parser.region.pgsphere.function.Longitude;
 import ca.nrc.cadc.tap.parser.region.pgsphere.function.Sbox;
@@ -167,6 +179,10 @@ public class PgsphereRegionConverter extends RegionFinder
     {
         log.debug("handleRegionPredicate(" + binaryExpression.getClass().getSimpleName() + "): " + binaryExpression);
 
+        Expression distancePredicate = handleDistancePredicate(binaryExpression);
+        if (distancePredicate != null)
+            return distancePredicate;
+
         if (!(binaryExpression instanceof EqualsTo ||
             binaryExpression instanceof NotEqualsTo ||
             binaryExpression instanceof MinorThan ||
@@ -224,6 +240,178 @@ public class PgsphereRegionConverter extends RegionFinder
     protected Expression handleIntersects(Expression left, Expression right)
     {
         return new Operator("&&", "!&&", left, right);
+    }
+
+    /**
+     * This method is called when DISTANCE function is found.
+     *
+     */
+    @Override
+    protected Expression handleDistance(Expression left, Expression right)
+    {
+        return new Distance(left, right);
+    }
+
+    /**
+     * Rewrite an upper bound on DISTANCE into a form a GiST index on the point
+     * expression can serve. degrees(p &lt;-&gt; q) &lt; r is a computed value, so
+     * every such query (cone search, positional cross-match) scans the table.
+     *
+     * <p>DISTANCE(p, q) &lt; r, &lt;= r and the reversed r &gt; DISTANCE(p, q),
+     * r &gt;= DISTANCE(p, q) become
+     * <pre>
+     * (p &lt;@ scircle(q, radians(r)) AND q &lt;@ scircle(p, radians(r)) AND degrees(p &lt;-&gt; q) &lt; r)
+     * </pre>
+     * <ul>
+     * <li>&lt;@ includes the circle boundary, so each containment term is a
+     * superset of both &lt; and &lt;=: a filter, not the answer.</li>
+     * <li>the mirror term is redundant for the result but not for the planner:
+     * only the left operand of &lt;@ can match an index on the point expression,
+     * so both orders are emitted and the planner uses whichever side is indexed.</li>
+     * <li>the original comparison is kept unchanged as the exact recheck, so rows
+     * at exactly distance r are kept or dropped as before.</li>
+     * </ul>
+     *
+     * <p>Only a bare DISTANCE on one side and a constant bound from 0 to
+     * getMaxIndexedRadius() degrees are rewritten. Anything else (&gt;, =, NOT,
+     * 2*DISTANCE(...), a per-row radius, a wide cone) returns null and keeps the
+     * plain degrees(p &lt;-&gt; q) comparison.
+     *
+     * @param binaryExpression comparison whose arguments have already been converted
+     * @return rewritten predicate, or null if this is not a shape that rewrites exactly
+     */
+    protected Expression handleDistancePredicate(BinaryExpression binaryExpression)
+    {
+        if (binaryExpression.isNot())
+            return null;
+
+        Distance distance;
+        Expression bound;
+        if ((binaryExpression instanceof MinorThan || binaryExpression instanceof MinorThanEquals)
+            && binaryExpression.getLeftExpression() instanceof Distance)
+        {
+            distance = (Distance) binaryExpression.getLeftExpression();
+            bound = binaryExpression.getRightExpression();
+        }
+        else if ((binaryExpression instanceof GreaterThan || binaryExpression instanceof GreaterThanEquals)
+            && binaryExpression.getRightExpression() instanceof Distance)
+        {
+            distance = (Distance) binaryExpression.getRightExpression();
+            bound = binaryExpression.getLeftExpression();
+        }
+        else
+            return null;
+
+        // pgsphere rejects an scircle radius outside [0, 90] degrees: a bound outside it
+        // would turn a query that ran into one that fails
+        Constant radius = constantValue(bound);
+        double max = Math.min(90.0, getMaxIndexedRadius());
+        if (radius == null || radius.value.signum() < 0 || radius.value.compareTo(BigDecimal.valueOf(max)) > 0)
+            return null;
+
+        Expression p = distance.getLeft();
+        Expression q = distance.getRight();
+        Expression pInQ = Distance.pointOperator("<@", p, scircle(q, bound));
+        Expression qInP = Distance.pointOperator("<@", q, scircle(p, bound));
+        return new Parenthesis(new AndExpression(new AndExpression(pInQ, qInP), binaryExpression));
+    }
+
+    /**
+     * Largest DISTANCE bound, in degrees, that handleDistancePredicate rewrites to
+     * use an index. A wide cone selects a large fraction of the table, where a
+     * sequential scan is faster; and the planner, multiplying the selectivities of
+     * the three terms, estimates very few rows and so prefers the index. On 500k
+     * uniformly distributed rows the rewrite is faster up to 45 degrees and slower
+     * from about 60; the default leaves a margin for less uniform skies. At most 90
+     * (the scircle radius limit).
+     *
+     * @return maximum radius in degrees
+     */
+    protected double getMaxIndexedRadius()
+    {
+        return 30.0;
+    }
+
+    // scircle(center, radians(radius)) with radius in degrees
+    private static Function scircle(Expression center, Expression radius)
+    {
+        List<Expression> radiusExp = new ArrayList<Expression>();
+        radiusExp.add(radius);
+        Function radiusFunc = new Function();
+        radiusFunc.setName("radians");
+        radiusFunc.setParameters(new ExpressionList(radiusExp));
+
+        List<Expression> expressions = new ArrayList<Expression>();
+        expressions.add(center);
+        expressions.add(radiusFunc);
+        Function ret = new Function();
+        ret.setName("scircle");
+        ret.setParameters(new ExpressionList(expressions));
+        return ret;
+    }
+
+    // value of a numeric constant and whether PostgreSQL types it as an integer
+    private static class Constant
+    {
+        final BigDecimal value;
+        final boolean integer;
+
+        Constant(BigDecimal value, boolean integer)
+        {
+            this.value = value;
+            this.integer = integer;
+        }
+    }
+
+    /**
+     * The value PostgreSQL computes for a constant expression, or null if the
+     * expression is not a constant this method understands: numeric literals,
+     * unary minus, parentheses, and + - * /. The range check has to see the number
+     * PostgreSQL will compute from the SQL as emitted: decimal literals are exact
+     * numeric, and / between two integers truncates toward zero.
+     */
+    private static Constant constantValue(Expression e)
+    {
+        if (e instanceof LongValue)
+            return new Constant(new BigDecimal(((LongValue) e).getStringValue()), true);
+        if (e instanceof DoubleValue)
+        {
+            // the deparser writes getValue(), not the text the user typed
+            return new Constant(new BigDecimal(Double.toString(((DoubleValue) e).getValue())), false);
+        }
+        if (e instanceof Parenthesis)
+        {
+            Parenthesis par = (Parenthesis) e;
+            return par.isNot() ? null : constantValue(par.getExpression());
+        }
+        if (e instanceof InverseExpression)
+        {
+            Constant c = constantValue(((InverseExpression) e).getExpression());
+            return c == null ? null : new Constant(c.value.negate(), c.integer);
+        }
+        if (e instanceof Addition || e instanceof Subtraction || e instanceof Multiplication || e instanceof Division)
+        {
+            BinaryExpression be = (BinaryExpression) e;
+            if (be.isNot())
+                return null;
+            Constant a = constantValue(be.getLeftExpression());
+            Constant b = constantValue(be.getRightExpression());
+            if (a == null || b == null)
+                return null;
+            boolean integer = a.integer && b.integer;
+            if (e instanceof Addition)
+                return new Constant(a.value.add(b.value), integer);
+            if (e instanceof Subtraction)
+                return new Constant(a.value.subtract(b.value), integer);
+            if (e instanceof Multiplication)
+                return new Constant(a.value.multiply(b.value), integer);
+            if (b.value.signum() == 0)
+                return null;
+            if (integer) // BigInteger division truncates toward zero, as PostgreSQL integer division does
+                return new Constant(new BigDecimal(a.value.toBigInteger().divide(b.value.toBigInteger())), true);
+            return new Constant(a.value.divide(b.value, MathContext.DECIMAL128), false);
+        }
+        return null;
     }
 
     /**

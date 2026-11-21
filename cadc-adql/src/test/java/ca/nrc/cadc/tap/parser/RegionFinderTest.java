@@ -190,6 +190,28 @@ public class RegionFinderTest
     }
 
     @Test
+    public void testDistanceArgs()
+    {
+        // 4-argument form reaches the handle methods: the base class supports neither POINT nor DISTANCE
+        try
+        {
+            doit("select * from someTable as a where DISTANCE(a.ra, a.dec, 12, 34) < 1");
+            Assert.fail("expected UnsupportedOperationException, got nothing");
+        }
+        catch(UnsupportedOperationException expected) { }
+
+        try
+        {
+            doit("select * from someTable as a where DISTANCE(a.ra, a.dec, 12) < 1");
+            Assert.fail("expected IllegalStateException, got nothing");
+        }
+        catch(IllegalStateException expected)
+        {
+            Assert.assertTrue(expected.getMessage(), expected.getMessage().startsWith("DISTANCE requires 2 points or 4 coordinates"));
+        }
+    }
+
+    @Test
     public void testCountStar()
     {
         String query = "select count(*) from SomeTable";
