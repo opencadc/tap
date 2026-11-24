@@ -91,6 +91,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 import org.opencadc.tap.io.InconsistentTableDataException;
@@ -122,6 +123,7 @@ public class TableLoader {
         this.batchSize = batchSize;
         PluginFactory pf = new PluginFactory();
         this.ddType = pf.getDatabaseDataType();
+        this.ddType.setDataSource(dataSource);
         log.debug("loaded: " + ddType.getClass().getName());
     }
     
@@ -159,7 +161,7 @@ public class TableLoader {
                     tm.startTransaction();
                     prof.checkpoint("start-transaction");
                 }
-                BulkInsertStatement bulkInsertStatement = new BulkInsertStatement(reorgTable);
+                BulkInsertStatement bulkInsertStatement = createBulkInsertStatement(reorgTable);
                 
                 while (batch.size() < batchSize && dataIterator.hasNext()) {
                     nextRow = dataIterator.next();
@@ -257,11 +259,15 @@ public class TableLoader {
         return sb.toString();
     }
     
-    private class BulkInsertStatement implements ParameterizedPreparedStatementSetter<List<Object>> {
+    BulkInsertStatement createBulkInsertStatement(TableDesc tableDesc) {
+        return new BulkInsertStatement(tableDesc);
+    }
+
+    class BulkInsertStatement implements ParameterizedPreparedStatementSetter<List<Object>> {
         private final Calendar utc = Calendar.getInstance(DateUtil.UTC);
-        private TableDesc tableDesc;
-        
-        public BulkInsertStatement(TableDesc tableDesc) {
+        final TableDesc tableDesc;
+
+        BulkInsertStatement(TableDesc tableDesc) {
             this.tableDesc = tableDesc;
         }
 
@@ -303,6 +309,9 @@ public class TableLoader {
     private Object convertValueObject(Object v) {
         if (v instanceof URI) {
             return ((URI) v).toASCIIString();
+        }
+        if (v instanceof UUID) {
+            return ddType.getUUIDObject((UUID) v);
         }
         if (v instanceof DoubleInterval) {
             return ddType.getIntervalObject((DoubleInterval) v);
