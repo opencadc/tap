@@ -210,11 +210,12 @@ public class YoucatInitAction extends InitAction {
         
         try {
             Context ctx = new InitialContext();
+            // rebind: init runs again after a failed init or a webapp reload
             if (adminUserStr != null) {
-                ctx.bind(jndiAdminKey, admin);
+                ctx.rebind(jndiAdminKey, admin);
             }
             if (createSchemaInDB != null) {
-                ctx.bind(jndiCreateSchemaKey, createSchemaInDB);
+                ctx.rebind(jndiCreateSchemaKey, createSchemaInDB);
             }
         } catch (Exception ex) {
             log.error("Failed to create JNDI key(s): " + jndiAdminKey + "|" + jndiCreateSchemaKey, ex);
@@ -261,10 +262,14 @@ public class YoucatInitAction extends InitAction {
             log.debug("found openapi: " + resURL + " at " + path);
             Path src = Path.of(resURL.toURI());
             Path dest = src.getParent().resolve("openapi.yaml");
-            Files.copy(src, dest, StandardCopyOption.COPY_ATTRIBUTES);
+            // REPLACE_EXISTING: in a classic Tomcat the unpacked webapp survives
+            // restarts, so openapi.yaml from a previous run may already be there
+            Files.copy(src, dest, StandardCopyOption.REPLACE_EXISTING);
             log.info("api docs: " + src + " -> " + dest);
         } catch (Exception ex) {
-            throw new RuntimeException("INIT FAIL: " + ex.getMessage(), ex);
+            // only the swagger UI (index.html) reads openapi.yaml: a webapp dir that
+            // is not writable (or a war that is not unpacked) must not break /tables
+            log.warn("api docs not available: " + ex);
         }
     }
 
